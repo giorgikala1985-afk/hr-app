@@ -1,0 +1,11 @@
+{
+  "name": "hr-app",
+  "version": "1.0.0",
+  "description": "HR Employee Management App",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "build": "cd frontend && npm run build",
+    "start": "cd backend && node server.js",
+    "dev": "echo \"Run backend and frontend separately for development\""
+  }
+}

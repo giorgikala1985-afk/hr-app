@@ -1,0 +1,13 @@
+/* Global App Styles */
+* {
+  box-sizing: border-box;
+}
+
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-size: 18px;
+  color: #666;
+}
