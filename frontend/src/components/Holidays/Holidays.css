@@ -1,0 +1,158 @@
+.hol-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.hol-header {
+  margin-bottom: 32px;
+}
+
+.hol-header h1 {
+  color: #1a1a2e;
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.hol-header p {
+  color: #666;
+  font-size: 15px;
+  margin: 0;
+}
+
+/* Layout */
+.hol-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Form Card */
+.hol-form-card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 90px;
+}
+
+.hol-form-card h3 {
+  color: #1a1a2e;
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.hol-form-group {
+  margin-bottom: 16px;
+}
+
+.hol-form-group label {
+  display: block;
+  color: #444;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.hol-form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.hol-form-group input:focus {
+  outline: none;
+  border-color: #0f3460;
+}
+
+.hol-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* List Card */
+.hol-list-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.hol-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.hol-list-header h3 {
+  color: #1a1a2e;
+  font-size: 18px;
+  margin: 0;
+}
+
+.hol-list-header select {
+  padding: 8px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  background: white;
+  cursor: pointer;
+}
+
+.hol-list-header select:focus {
+  outline: none;
+  border-color: #0f3460;
+}
+
+.hol-table-wrapper {
+  overflow-x: auto;
+}
+
+.hol-date {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #0f3460;
+}
+
+.hol-empty {
+  padding: 48px 20px;
+  text-align: center;
+  color: #999;
+  font-size: 15px;
+}
+
+.hol-count {
+  padding: 14px 24px;
+  background: #f8f9fa;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hol-container {
+    padding: 24px 16px;
+  }
+
+  .hol-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .hol-form-card {
+    position: static;
+  }
+}

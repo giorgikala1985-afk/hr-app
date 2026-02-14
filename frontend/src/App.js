@@ -7,6 +7,8 @@ import PrivateRoute from './components/Layout/PrivateRoute';
 import Header from './components/Layout/Header';
 import EmployeeList from './components/Employees/EmployeeList';
 import EmployeeForm from './components/Employees/EmployeeForm';
+import SalaryList from './components/Salaries/SalaryList';
+import OptionsPage from './components/Options/OptionsPage';
 import './App.css';
 
 function App() {
@@ -48,6 +50,30 @@ function App() {
                 <>
                   <Header />
                   <EmployeeForm />
+                </>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/salaries"
+            element={
+              <PrivateRoute>
+                <>
+                  <Header />
+                  <SalaryList />
+                </>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/options"
+            element={
+              <PrivateRoute>
+                <>
+                  <Header />
+                  <OptionsPage />
                 </>
               </PrivateRoute>
             }

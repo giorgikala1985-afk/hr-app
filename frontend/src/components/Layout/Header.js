@@ -24,6 +24,8 @@ function Header() {
         </div>
         <nav className="header-nav">
           <Link to="/">Employees</Link>
+          <Link to="/salaries">Salaries</Link>
+          <Link to="/options">Options</Link>
         </nav>
         <div className="header-user">
           <span className="user-email">{user?.email}</span>

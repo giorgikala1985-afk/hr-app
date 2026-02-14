@@ -2,7 +2,7 @@ import axios from 'axios';
 import { supabase } from '../config/supabase';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.REACT_APP_API_URL || '/api',
 });
 
 api.interceptors.request.use(async (config) => {

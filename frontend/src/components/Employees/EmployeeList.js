@@ -9,6 +9,10 @@ function EmployeeList() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [search, setSearch] = useState('');
+  const [filters, setFilters] = useState({
+    name: '', personalId: '', birthdate: '', position: '',
+    salary: '', otRate: '', startDate: '', endDate: '', status: '', account: ''
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -65,6 +69,34 @@ function EmployeeList() {
       day: 'numeric'
     });
   };
+
+  const updateFilter = (key, value) => {
+    setFilters((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({ name: '', personalId: '', birthdate: '', position: '', salary: '', otRate: '', startDate: '', endDate: '', status: '', account: '' });
+  };
+
+  const hasFilters = Object.values(filters).some((v) => v !== '');
+
+  const filteredEmployees = employees.filter((emp) => {
+    const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+    if (filters.name && !fullName.includes(filters.name.toLowerCase())) return false;
+    if (filters.personalId && !emp.personal_id.toLowerCase().includes(filters.personalId.toLowerCase())) return false;
+    if (filters.birthdate && !emp.birthdate.includes(filters.birthdate)) return false;
+    if (filters.position && !emp.position.toLowerCase().includes(filters.position.toLowerCase())) return false;
+    if (filters.salary && !String(emp.salary).includes(filters.salary)) return false;
+    if (filters.otRate && !String(emp.overtime_rate).includes(filters.otRate)) return false;
+    if (filters.startDate && !emp.start_date.includes(filters.startDate)) return false;
+    if (filters.endDate) {
+      if (!emp.end_date || !emp.end_date.includes(filters.endDate)) return false;
+    }
+    if (filters.status === 'active' && emp.end_date) return false;
+    if (filters.status === 'inactive' && !emp.end_date) return false;
+    if (filters.account && !(emp.account_number || '').toLowerCase().includes(filters.account.toLowerCase())) return false;
+    return true;
+  });
 
   if (loading && employees.length === 0) {
     return <div className="emp-loading">Loading employees...</div>;
@@ -125,11 +157,33 @@ function EmployeeList() {
                 <th>Position</th>
                 <th>Salary</th>
                 <th>OT Rate</th>
+                <th>Account Number</th>
+                <th>Start Date</th>
+                <th>End Date</th>
                 <th>Actions</th>
+              </tr>
+              <tr className="filter-row">
+                <th></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.name} onChange={(e) => updateFilter('name', e.target.value)} /></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.personalId} onChange={(e) => updateFilter('personalId', e.target.value)} /></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.birthdate} onChange={(e) => updateFilter('birthdate', e.target.value)} /></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.position} onChange={(e) => updateFilter('position', e.target.value)} /></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.salary} onChange={(e) => updateFilter('salary', e.target.value)} /></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.otRate} onChange={(e) => updateFilter('otRate', e.target.value)} /></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.account} onChange={(e) => updateFilter('account', e.target.value)} /></th>
+                <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.startDate} onChange={(e) => updateFilter('startDate', e.target.value)} /></th>
+                <th>
+                  <select className="col-filter" value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
+                    <option value="">All</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Ended</option>
+                  </select>
+                </th>
+                <th>{hasFilters && <button className="btn-clear-filters" onClick={clearFilters} title="Clear filters">&times;</button>}</th>
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
+              {filteredEmployees.map((emp) => (
                 <tr key={emp.id}>
                   <td>
                     <div className="emp-photo-thumb">
@@ -148,14 +202,45 @@ function EmployeeList() {
                   <td><span className="position-badge">{emp.position}</span></td>
                   <td className="salary">{formatCurrency(emp.salary)}</td>
                   <td className="salary">{formatCurrency(emp.overtime_rate)}</td>
+                  <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>
+                  <td>{formatDate(emp.start_date)}</td>
+                  <td>{emp.end_date ? formatDate(emp.end_date) : <span className="position-badge">Active</span>}</td>
                   <td>
                     <div className="action-btns">
                       <button
                         onClick={() => navigate(`/employees/${emp.id}/edit`)}
                         className="btn-icon"
-                        title="Edit"
+                        title="Edit Info"
                       >
                         ✏️
+                      </button>
+                      <button
+                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=salary`)}
+                        className="btn-icon"
+                        title="Salary Changes"
+                      >
+                        💲
+                      </button>
+                      <button
+                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=account`)}
+                        className="btn-icon"
+                        title="Account Changes"
+                      >
+                        🏦
+                      </button>
+                      <button
+                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=documents`)}
+                        className="btn-icon"
+                        title="Documents"
+                      >
+                        📄
+                      </button>
+                      <button
+                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=members`)}
+                        className="btn-icon"
+                        title="Members"
+                      >
+                        🏋️
                       </button>
                       <button
                         onClick={() => handleDelete(emp)}
