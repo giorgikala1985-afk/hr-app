@@ -22,7 +22,7 @@ function SalaryList() {
   const [deletedUnits, setDeletedUnits] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
   const [unitTypes, setUnitTypes] = useState([]);
-  const [unitForm, setUnitForm] = useState({ type: '', amount: '', date: '' });
+  const [unitForm, setUnitForm] = useState({ type: '', amount: '', date: '', otRate: '110', otHours: '' });
   const [savingUnit, setSavingUnit] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationSettings, setPaginationSettings] = useState(() => {
@@ -208,7 +208,7 @@ function SalaryList() {
         amount: parseFloat(unitForm.amount),
         date: unitForm.date,
       });
-      setUnitForm((prev) => ({ ...prev, type: unitTypes.length > 0 ? unitTypes[0].name : '', amount: '' }));
+      setUnitForm((prev) => ({ ...prev, type: unitTypes.length > 0 ? unitTypes[0].name : '', amount: '', otRate: '110', otHours: '' }));
       loadSalaries(month);
     } catch (err) {
       setError(t('sal.addUnitFailed') + (err.response?.data?.error || err.message));
@@ -504,6 +504,27 @@ function SalaryList() {
                                           </option>
                                         ))}
                                       </select>
+                                      {unitForm.type === 'OT' && (
+                                        <>
+                                          <select
+                                            value={unitForm.otRate}
+                                            onChange={(e) => setUnitForm((prev) => ({ ...prev, otRate: e.target.value }))}
+                                            className="sal-unit-select"
+                                          >
+                                            <option value="110">110</option>
+                                            <option value="200">200</option>
+                                          </select>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            placeholder="Hours"
+                                            value={unitForm.otHours}
+                                            onChange={(e) => setUnitForm((prev) => ({ ...prev, otHours: e.target.value }))}
+                                            className="sal-unit-input"
+                                          />
+                                        </>
+                                      )}
                                       <input
                                         type="number"
                                         step="0.01"
