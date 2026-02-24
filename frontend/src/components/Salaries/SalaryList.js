@@ -550,12 +550,6 @@ function SalaryList() {
                                         onChange={(e) => setUnitForm((prev) => ({ ...prev, amount: e.target.value }))}
                                         className="sal-unit-input"
                                       />
-                                      <input
-                                        type="date"
-                                        value={unitForm.date}
-                                        onChange={(e) => setUnitForm((prev) => ({ ...prev, date: e.target.value }))}
-                                        className="sal-unit-input"
-                                      />
                                       <button
                                         className="btn-primary btn-sm"
                                         onClick={() => handleAddUnit(item.employee.id)}
