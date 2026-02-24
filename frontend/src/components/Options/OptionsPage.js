@@ -6,6 +6,7 @@ import UnitTypesSettings from './UnitTypesSettings';
 import PositionsSettings from './PositionsSettings';
 import LanguageSettings from './LanguageSettings';
 import TaxSettings from './TaxSettings';
+import InsuranceImport from './InsuranceImport';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Options.css';
 
@@ -20,6 +21,7 @@ function OptionsPage() {
     { key: 'units', label: t('options.unitTypes'), icon: '📊' },
     { key: 'pagination', label: t('options.pagination'), icon: '📄' },
     { key: 'tax', label: t('options.tax'), icon: '🧾' },
+    { key: 'insurance', label: t('options.insurance'), icon: '🛡️' },
     { key: 'language', label: t('options.language'), icon: '🌐' }
   ];
 
@@ -51,6 +53,7 @@ function OptionsPage() {
           {activeTab === 'units' && <UnitTypesSettings />}
           {activeTab === 'pagination' && <PaginationSettings />}
           {activeTab === 'tax' && <TaxSettings />}
+          {activeTab === 'insurance' && <InsuranceImport />}
           {activeTab === 'language' && <LanguageSettings />}
         </div>
       </div>

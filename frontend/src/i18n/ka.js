@@ -330,6 +330,7 @@ const ka = {
   'options.unitTypes': 'ერთეულის ტიპები',
   'options.pagination': 'გვერდები',
   'options.tax': 'გადასახადი',
+  'options.insurance': 'დაზღვევის იმპორტი',
   'options.language': 'ენა',
 
   // ===== Pagination Settings =====
@@ -358,6 +359,30 @@ const ka = {
   'ut.deleteConfirm': 'წაშალოთ ეს ერთეულის ტიპი?',
   'ut.deleteFailed': 'ერთეულის ტიპის წაშლა ვერ მოხერხდა',
   'ut.updateFailed': 'ერთეულის ტიპის განახლება ვერ მოხერხდა',
+
+  // ===== Insurance Import =====
+  'insImport.title': 'დაზღვევის იმპორტი',
+  'insImport.desc': 'გადმოწერეთ შაბლონი, შეავსეთ და ატვირთეთ დაზღვევის სიის სანახავად.',
+  'insImport.step1Title': 'შაბლონის გადმოწერა',
+  'insImport.step1Desc': 'მიიღეთ Excel შაბლონი სწორი სვეტებით და მაგალითის რიგით.',
+  'insImport.downloadTemplate': 'შაბლონის გადმოწერა',
+  'insImport.step2Title': 'შევსებული ფაილის ატვირთვა',
+  'insImport.step2Desc': 'ატვირთეთ შევსებული Excel ფაილი (.xlsx ან .xls).',
+  'insImport.chooseFile': 'ფაილის არჩევა',
+  'insImport.step3Title': 'გადახედვა',
+  'insImport.valid': '{count} სწორი',
+  'insImport.invalid': '{count} არასწორი',
+  'insImport.totalRows': '{count} სულ რიგი',
+  'insImport.colName': 'სახელი',
+  'insImport.colLastName': 'გვარი',
+  'insImport.colId': 'პირადი ნომერი',
+  'insImport.colAmount1': 'თანხა 1',
+  'insImport.colAmount2': 'თანხა 2',
+  'insImport.colDate': 'თარიღი',
+  'insImport.colStatus': 'სტატუსი',
+  'insImport.ok': 'OK',
+  'insImport.missing': 'აკლია ველები',
+  'insImport.parseFailed': 'ფაილის წაკითხვა ვერ მოხერხდა: ',
 
   // ===== Tax Settings =====
   'tax.title': 'საგადასახადო კოდები',

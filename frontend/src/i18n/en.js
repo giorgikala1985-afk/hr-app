@@ -330,6 +330,7 @@ const en = {
   'options.unitTypes': 'Unit Types',
   'options.pagination': 'Pagination',
   'options.tax': 'Tax',
+  'options.insurance': 'Insurance Import',
   'options.language': 'Language',
 
   // ===== Pagination Settings =====
@@ -358,6 +359,30 @@ const en = {
   'ut.deleteConfirm': 'Delete this unit type?',
   'ut.deleteFailed': 'Failed to delete unit type',
   'ut.updateFailed': 'Failed to update unit type',
+
+  // ===== Insurance Import =====
+  'insImport.title': 'Insurance Import',
+  'insImport.desc': 'Download the template, fill it in, and upload to preview the insurance list.',
+  'insImport.step1Title': 'Download Template',
+  'insImport.step1Desc': 'Get the Excel template with the correct column headers and an example row.',
+  'insImport.downloadTemplate': 'Download Template',
+  'insImport.step2Title': 'Upload Filled File',
+  'insImport.step2Desc': 'Upload your completed Excel file (.xlsx or .xls).',
+  'insImport.chooseFile': 'Choose File',
+  'insImport.step3Title': 'Preview',
+  'insImport.valid': '{count} valid',
+  'insImport.invalid': '{count} invalid',
+  'insImport.totalRows': '{count} total rows',
+  'insImport.colName': 'Name',
+  'insImport.colLastName': 'Last Name',
+  'insImport.colId': 'ID',
+  'insImport.colAmount1': 'Amount 1',
+  'insImport.colAmount2': 'Amount 2',
+  'insImport.colDate': 'Date',
+  'insImport.colStatus': 'Status',
+  'insImport.ok': 'OK',
+  'insImport.missing': 'Missing fields',
+  'insImport.parseFailed': 'Failed to parse file: ',
 
   // ===== Tax Settings =====
   'tax.title': 'Tax Codes',
