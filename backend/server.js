@@ -11,6 +11,7 @@ const analyticsRoutes = require('./routes/analytics');
 const unitRoutes = require('./routes/units');
 const positionRoutes = require('./routes/positions');
 const taxCodeRoutes = require('./routes/tax_codes');
+const insuranceListRoutes = require('./routes/insurance_list');
 const { authenticateUser } = require('./middleware/auth');
 
 const app = express();
@@ -40,6 +41,7 @@ app.use('/api/analytics', authenticateUser, analyticsRoutes);
 app.use('/api/units', authenticateUser, unitRoutes);
 app.use('/api/positions', authenticateUser, positionRoutes);
 app.use('/api/tax-codes', authenticateUser, taxCodeRoutes);
+app.use('/api/insurance-list', authenticateUser, insuranceListRoutes);
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {
