@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 function AccountChanges({ employeeId, currentAccount, onAccountUpdated }) {
+  const { t } = useLanguage();
   const [changes, setChanges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -23,7 +25,7 @@ function AccountChanges({ employeeId, currentAccount, onAccountUpdated }) {
       const response = await api.get(`/employees/${employeeId}/account-changes`);
       setChanges(response.data.account_changes);
     } catch (err) {
-      setError('Failed to load account history');
+      setError(t('ac.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -41,29 +43,29 @@ function AccountChanges({ employeeId, currentAccount, onAccountUpdated }) {
         effective_date: effectiveDate,
         note
       });
-      setSuccess('Account change recorded successfully');
+      setSuccess(t('ac.success'));
       setNewAccount('');
       setEffectiveDate('');
       setNote('');
       loadChanges();
       if (onAccountUpdated) onAccountUpdated();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save account change');
+      setError(err.response?.data?.error || t('ac.saveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (changeId) => {
-    if (!window.confirm('Delete this account change record?')) return;
+    if (!window.confirm(t('ac.deleteConfirm'))) return;
     setError('');
     setSuccess('');
     try {
       await api.delete(`/employees/${employeeId}/account-changes/${changeId}`);
-      setSuccess('Record deleted');
+      setSuccess(t('ac.deleted'));
       loadChanges();
     } catch (err) {
-      setError('Failed to delete record');
+      setError(t('ac.deleteFailed'));
     }
   };
 
@@ -76,8 +78,8 @@ function AccountChanges({ employeeId, currentAccount, onAccountUpdated }) {
   return (
     <div className="tab-panel">
       <div className="tab-panel-header">
-        <h3>Account Changes</h3>
-        <p>Current account: <strong className={currentAccount ? (currentAccount.toLowerCase().includes('gb') ? 'acct-gb' : currentAccount.toLowerCase().includes('tb') ? 'acct-tb' : '') : ''}>{currentAccount || 'Not set'}</strong></p>
+        <h3>{t('ac.title')}</h3>
+        <p>{t('ac.currentAccount')} <strong className={currentAccount ? (currentAccount.toLowerCase().includes('gb') ? 'acct-gb' : currentAccount.toLowerCase().includes('tb') ? 'acct-tb' : '') : ''}>{currentAccount || t('ac.notSet')}</strong></p>
       </div>
 
       {error && <div className="msg-error">{error}</div>}
@@ -85,33 +87,33 @@ function AccountChanges({ employeeId, currentAccount, onAccountUpdated }) {
 
       {/* New Account Change Form */}
       <div className="sc-form-card">
-        <h4>Record New Account Change</h4>
+        <h4>{t('ac.recordNew')}</h4>
         <form onSubmit={handleSubmit}>
           <div className="sc-form-grid">
             <div className="form-group">
-              <label>New Account Number *</label>
-              <input type="text" value={newAccount} onChange={(e) => setNewAccount(e.target.value)} placeholder="e.g. GE29TB7894545082100008" required />
+              <label>{t('ac.newAccount')}</label>
+              <input type="text" value={newAccount} onChange={(e) => setNewAccount(e.target.value)} placeholder={t('ac.accountPlaceholder')} required />
             </div>
             <div className="form-group">
-              <label>Effective Date *</label>
+              <label>{t('ac.effectiveDate')}</label>
               <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} required />
             </div>
             <div className="form-group">
-              <label>Note</label>
-              <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. New bank account" />
+              <label>{t('ac.note')}</label>
+              <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('ac.notePlaceholder')} />
             </div>
           </div>
           <button type="submit" className="btn-primary btn-sm" disabled={saving}>
-            {saving ? 'Saving...' : 'Record Change'}
+            {saving ? t('ac.saving') : t('ac.recordChange')}
           </button>
         </form>
       </div>
 
       {/* History */}
       {loading ? (
-        <div className="emp-loading">Loading history...</div>
+        <div className="emp-loading">{t('ac.loadingHistory')}</div>
       ) : changes.length === 0 ? (
-        <div className="sc-empty">No account changes recorded yet.</div>
+        <div className="sc-empty">{t('ac.noChanges')}</div>
       ) : (
         <div className="sc-timeline">
           {changes.map((change) => (
@@ -119,7 +121,7 @@ function AccountChanges({ employeeId, currentAccount, onAccountUpdated }) {
               <div className="sc-item-date">{formatDate(change.effective_date)}</div>
               <div className="sc-item-detail">
                 <div className="sc-item-salary">
-                  <span className={`sc-old${change.old_account ? (change.old_account.toLowerCase().includes('gb') ? ' acct-gb' : change.old_account.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{change.old_account || '(none)'}</span>
+                  <span className={`sc-old${change.old_account ? (change.old_account.toLowerCase().includes('gb') ? ' acct-gb' : change.old_account.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{change.old_account || t('ac.none')}</span>
                   <span className="sc-arrow">&rarr;</span>
                   <span className={`sc-new${change.new_account.toLowerCase().includes('gb') ? ' acct-gb' : change.new_account.toLowerCase().includes('tb') ? ' acct-tb' : ''}`}>{change.new_account}</span>
                 </div>

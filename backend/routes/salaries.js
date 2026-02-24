@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
-const { authenticateUser } = require('../middleware/auth');
-
-router.use(authenticateUser);
-
 // Check if a day is a weekend (Saturday=6, Sunday=0)
 function isWeekend(year, month, day) {
   const dow = new Date(year, month - 1, day).getDay();
@@ -39,8 +35,8 @@ router.get('/', async (req, res) => {
     const monthStartStr = `${month}-01`;
     const monthEndStr = `${month}-${String(daysInMonth).padStart(2, '0')}`;
 
-    // Fetch employees, holidays, and all salary changes in parallel
-    const [empResult, holResult, salChangesResult] = await Promise.all([
+    // Fetch employees, holidays, salary changes, employee units, and unit types in parallel
+    const [empResult, holResult, salChangesResult, unitsResult, unitTypesResult] = await Promise.all([
       supabase
         .from('employees')
         .select('*')
@@ -55,7 +51,16 @@ router.get('/', async (req, res) => {
       supabase
         .from('salary_changes')
         .select('*')
-        .order('effective_date', { ascending: true })
+        .order('effective_date', { ascending: true }),
+      supabase
+        .from('employee_units')
+        .select('*')
+        .eq('user_id', req.userId)
+        .lte('date', monthEndStr),
+      supabase
+        .from('unit_types')
+        .select('*')
+        .eq('user_id', req.userId)
     ]);
 
     if (empResult.error) {
@@ -66,6 +71,14 @@ router.get('/', async (req, res) => {
     const employees = empResult.data || [];
     const holidays = holResult.data || [];
     const allSalaryChanges = salChangesResult.data || [];
+    const allUnits = unitsResult.data || [];
+    const unitTypeDefs = unitTypesResult.data || [];
+
+    // Build a set of addition type names from user-defined unit types
+    const additionTypes = new Set(unitTypeDefs.filter((ut) => ut.direction === 'addition').map((ut) => ut.name));
+    function isAddition(type) {
+      return additionTypes.has(type);
+    }
 
     // Build a set of holiday day-numbers for fast lookup
     const holidayDaySet = new Set(holidays.map((h) => new Date(h.date).getDate()));
@@ -84,12 +97,17 @@ router.get('/', async (req, res) => {
       const startDate = new Date(emp.start_date);
       const endDate = emp.end_date ? new Date(emp.end_date) : null;
 
+      // Get units active for this employee in this month (date <= month end)
+      const empUnits = allUnits.filter((u) => u.employee_id === emp.id);
+      const totalDeductions = empUnits.filter((u) => !isAddition(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
+      const totalAdditions = empUnits.filter((u) => isAddition(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
+
       // Employee hasn't started yet or ended before this month
       if (startDate > monthEnd) {
-        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0 };
+        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0, deductions: empUnits, total_deductions: 0, total_additions: 0, net_salary: 0 };
       }
       if (endDate && endDate < monthStart) {
-        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0 };
+        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0, deductions: empUnits, total_deductions: 0, total_additions: 0, net_salary: 0 };
       }
 
       // Effective range within the month
@@ -153,11 +171,18 @@ router.get('/', async (req, res) => {
         const dailyRate = totalWorkingDays > 0 ? currentSalary / totalWorkingDays : 0;
         accruedSalary += dailyRate * remainingDays;
 
+        const roundedAccrued = Math.round(accruedSalary * 100) / 100;
+        const netSalary = Math.round((roundedAccrued + totalAdditions - totalDeductions) * 100) / 100;
+
         return {
           employee: emp,
           days_worked: daysWorked,
           total_days: totalWorkingDays,
-          accrued_salary: Math.round(accruedSalary * 100) / 100,
+          accrued_salary: roundedAccrued,
+          deductions: empUnits,
+          total_deductions: totalDeductions,
+          total_additions: totalAdditions,
+          net_salary: netSalary,
           salary_note: 'Salary changed during this month'
         };
       }
@@ -165,12 +190,17 @@ router.get('/', async (req, res) => {
       // No mid-month changes - use baseSalary for the whole period
       const dailyRate = totalWorkingDays > 0 ? baseSalary / totalWorkingDays : 0;
       const accruedSalary = Math.round(dailyRate * daysWorked * 100) / 100;
+      const netSalary = Math.round((accruedSalary + totalAdditions - totalDeductions) * 100) / 100;
 
       return {
         employee: { ...emp, salary: baseSalary },
         days_worked: daysWorked,
         total_days: totalWorkingDays,
-        accrued_salary: accruedSalary
+        accrued_salary: accruedSalary,
+        deductions: empUnits,
+        total_deductions: totalDeductions,
+        total_additions: totalAdditions,
+        net_salary: netSalary
       };
     });
 

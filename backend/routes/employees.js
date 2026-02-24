@@ -2,10 +2,6 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const supabase = require('../config/supabase');
-const { authenticateUser } = require('../middleware/auth');
-
-router.use(authenticateUser);
-
 // Multer with memory storage for Supabase upload
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -166,7 +162,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/employees - create
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code } = req.body;
 
     // Validate required fields
     if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !overtime_rate || !start_date) {
@@ -193,6 +189,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
         start_date,
         end_date: end_date || null,
         account_number: account_number ? account_number.trim() : null,
+        tax_code: tax_code ? tax_code.trim() : null,
         photo_url
       })
       .select()
@@ -214,7 +211,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
 router.put('/:id', upload.single('photo'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code } = req.body;
 
     if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !overtime_rate || !start_date) {
       return res.status(400).json({ error: 'All fields are required (end date is optional)' });
@@ -254,6 +251,7 @@ router.put('/:id', upload.single('photo'), async (req, res) => {
         start_date,
         end_date: end_date || null,
         account_number: account_number ? account_number.trim() : null,
+        tax_code: tax_code ? tax_code.trim() : null,
         photo_url,
         updated_at: new Date().toISOString()
       })
@@ -293,6 +291,30 @@ router.delete('/:id', async (req, res) => {
 
     // Delete photo from storage
     await deletePhoto(employee.photo_url);
+
+    // Delete all related documents from storage
+    const { data: docs } = await supabase
+      .from('employee_documents')
+      .select('file_url')
+      .eq('employee_id', id);
+
+    if (docs) {
+      for (const doc of docs) {
+        const bucketPath = doc.file_url?.split('/employee-documents/')[1];
+        if (bucketPath) {
+          await supabase.storage.from('employee-documents').remove([bucketPath]);
+        }
+      }
+    }
+
+    // Delete all child records before deleting employee
+    await Promise.all([
+      supabase.from('salary_changes').delete().eq('employee_id', id),
+      supabase.from('account_changes').delete().eq('employee_id', id),
+      supabase.from('employee_documents').delete().eq('employee_id', id),
+      supabase.from('employee_members').delete().eq('employee_id', id),
+      supabase.from('employee_units').delete().eq('employee_id', id),
+    ]);
 
     // Delete employee record
     const { error } = await supabase
@@ -761,6 +783,71 @@ router.post('/:id/members', async (req, res) => {
   }
 });
 
+// POST /api/employees/:id/members/import - bulk import from Excel data
+router.post('/:id/members/import', async (req, res) => {
+  try {
+    const { members } = req.body;
+
+    if (!Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({ error: 'No members data provided' });
+    }
+
+    // Verify employee belongs to user
+    const { data: emp } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+
+    if (!emp) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+    const errors = [];
+    const valid = [];
+
+    members.forEach((m, index) => {
+      const missing = [];
+      if (!m.type) missing.push('Type');
+      if (m.amount === undefined || m.amount === null || m.amount === '') missing.push('Amount');
+      if (!m.effective_date) missing.push('Date');
+      if (m.type === 'Custom' && !m.custom_name) missing.push('Custom Name');
+
+      if (missing.length > 0) {
+        errors.push({ row: index + 2, message: `Missing: ${missing.join(', ')}` });
+      } else {
+        valid.push({
+          employee_id: req.params.id,
+          type: String(m.type).trim(),
+          custom_name: m.custom_name ? String(m.custom_name).trim() : null,
+          amount: parseFloat(m.amount),
+          effective_date: m.effective_date,
+        });
+      }
+    });
+
+    let imported = 0;
+    if (valid.length > 0) {
+      const { data, error } = await supabase
+        .from('employee_members')
+        .insert(valid)
+        .select();
+
+      if (error) {
+        console.error('Bulk member import error:', error);
+        return res.status(500).json({ error: 'Database insert failed: ' + error.message });
+      }
+      imported = data.length;
+    }
+
+    res.json({ imported, errors, total: members.length });
+  } catch (error) {
+    console.error('Import members error:', error);
+    res.status(500).json({ error: 'An error occurred during import' });
+  }
+});
+
 // DELETE /api/employees/:id/members/:memberId
 router.delete('/:id/members/:memberId', async (req, res) => {
   try {
@@ -791,6 +878,69 @@ router.delete('/:id/members/:memberId', async (req, res) => {
   } catch (error) {
     console.error('Delete member error:', error);
     res.status(500).json({ error: 'An error occurred' });
+  }
+});
+
+// ==================== EMPLOYEE UNITS ====================
+
+// GET units for employee
+router.get('/:id/units', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('employee_units')
+      .select('*')
+      .eq('employee_id', req.params.id)
+      .eq('user_id', req.userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json({ units: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST create unit for employee
+router.post('/:id/units', async (req, res) => {
+  try {
+    const { type, amount, date } = req.body;
+
+    if (!type || amount === undefined || !date) {
+      return res.status(400).json({ error: 'Type, amount, and date are required' });
+    }
+
+    const { data, error } = await supabase
+      .from('employee_units')
+      .insert({
+        user_id: req.userId,
+        employee_id: req.params.id,
+        type,
+        amount: parseFloat(amount),
+        date,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json({ unit: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// DELETE unit
+router.delete('/:id/units/:unitId', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('employee_units')
+      .delete()
+      .eq('id', req.params.unitId)
+      .eq('user_id', req.userId);
+
+    if (error) throw error;
+    res.json({ message: 'Unit deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

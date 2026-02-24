@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 import './Holidays.css';
 
 function HolidayList() {
+  const { t } = useLanguage();
   const currentYear = new Date().getFullYear();
 
   const [holidays, setHolidays] = useState([]);
@@ -28,7 +30,7 @@ function HolidayList() {
       const response = await api.get('/holidays', { params: { year: selectedYear } });
       setHolidays(response.data.holidays);
     } catch (err) {
-      setError('Failed to load holidays: ' + (err.response?.data?.error || err.message));
+      setError(t('hol.loadFailed') + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -43,15 +45,15 @@ function HolidayList() {
     try {
       if (editId) {
         await api.put(`/holidays/${editId}`, { date: formDate, name: formName });
-        setSuccess('Holiday updated successfully');
+        setSuccess(t('hol.updatedSuccess'));
       } else {
         await api.post('/holidays', { date: formDate, name: formName });
-        setSuccess('Holiday added successfully');
+        setSuccess(t('hol.addedSuccess'));
       }
       resetForm();
       loadHolidays(year);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save holiday');
+      setError(err.response?.data?.error || t('hol.saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -70,10 +72,10 @@ function HolidayList() {
     setSuccess('');
     try {
       await api.delete(`/holidays/${holiday.id}`);
-      setSuccess('Holiday deleted successfully');
+      setSuccess(t('hol.deletedSuccess'));
       loadHolidays(year);
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to delete holiday');
+      setError(err.response?.data?.error || t('hol.deleteFailed'));
     }
   };
 
@@ -117,8 +119,8 @@ function HolidayList() {
     <div className="hol-container">
       <div className="hol-header">
         <div>
-          <h1>Holidays & Days Off</h1>
-          <p>Manage non-working days that affect salary calculations</p>
+          <h1>{t('hol.title')}</h1>
+          <p>{t('hol.subtitle')}</p>
         </div>
       </div>
 
@@ -128,10 +130,10 @@ function HolidayList() {
       <div className="hol-layout">
         {/* Add/Edit Form */}
         <div className="hol-form-card">
-          <h3>{editId ? 'Edit Holiday' : 'Add Holiday / Day Off'}</h3>
+          <h3>{editId ? t('hol.editTitle') : t('hol.addTitle')}</h3>
           <form onSubmit={handleSubmit}>
             <div className="hol-form-group">
-              <label htmlFor="holDate">Date *</label>
+              <label htmlFor="holDate">{t('hol.date')}</label>
               <input
                 id="holDate"
                 type="date"
@@ -141,23 +143,23 @@ function HolidayList() {
               />
             </div>
             <div className="hol-form-group">
-              <label htmlFor="holName">Name / Reason *</label>
+              <label htmlFor="holName">{t('hol.name')}</label>
               <input
                 id="holName"
                 type="text"
                 value={formName}
                 onChange={(e) => setFormName(e.target.value)}
-                placeholder="e.g. New Year's Day"
+                placeholder={t('hol.namePlaceholder')}
                 required
               />
             </div>
             <div className="hol-form-actions">
               <button type="submit" className="btn-primary btn-sm" disabled={saving}>
-                {saving ? 'Saving...' : editId ? 'Update' : 'Add Holiday'}
+                {saving ? t('hol.saving') : editId ? t('hol.update') : t('hol.addBtn')}
               </button>
               {editId && (
                 <button type="button" className="btn-secondary btn-sm" onClick={resetForm}>
-                  Cancel
+                  {t('hol.cancel')}
                 </button>
               )}
             </div>
@@ -167,7 +169,7 @@ function HolidayList() {
         {/* Holiday List */}
         <div className="hol-list-card">
           <div className="hol-list-header">
-            <h3>Holidays in {year}</h3>
+            <h3>{t('hol.holidaysIn').replace('{year}', year)}</h3>
             <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
               {years.map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -176,19 +178,19 @@ function HolidayList() {
           </div>
 
           {loading ? (
-            <div className="emp-loading">Loading...</div>
+            <div className="emp-loading">{t('hol.loading')}</div>
           ) : holidays.length === 0 ? (
             <div className="hol-empty">
-              <p>No holidays added for {year}</p>
+              <p>{t('hol.noHolidays').replace('{year}', year)}</p>
             </div>
           ) : (
             <div className="hol-table-wrapper">
               <table className="emp-table">
                 <thead>
                   <tr>
-                    <th>Date</th>
-                    <th>Name / Reason</th>
-                    <th>Actions</th>
+                    <th>{t('hol.date')}</th>
+                    <th>{t('hol.nameColumn')}</th>
+                    <th>{t('col.actions')}</th>
                   </tr>
                   <tr className="filter-row">
                     <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.date} onChange={(e) => updateFilter('date', e.target.value)} /></th>
@@ -227,7 +229,7 @@ function HolidayList() {
           )}
 
           <div className="hol-count">
-            Total: {filteredHolidays.length} day{filteredHolidays.length !== 1 ? 's' : ''} off{hasFilters && ` (filtered from ${holidays.length})`}
+            {t('hol.totalDays').replace('{count}', filteredHolidays.length).replace('{s}', filteredHolidays.length !== 1 ? 's' : '')}{hasFilters && ` ${t('hol.filteredFrom').replace('{total}', holidays.length)}`}
           </div>
         </div>
       </div>

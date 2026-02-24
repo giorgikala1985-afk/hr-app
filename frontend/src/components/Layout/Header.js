@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import './Header.css';
 
 function Header() {
   const { user, signOut } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -23,14 +25,15 @@ function Header() {
           <Link to="/">👥 HR Manager</Link>
         </div>
         <nav className="header-nav">
-          <Link to="/">Employees</Link>
-          <Link to="/salaries">Salaries</Link>
-          <Link to="/options">Options</Link>
+          <Link to="/">{t('nav.employees')}</Link>
+          <Link to="/salaries">{t('nav.salaries')}</Link>
+          <Link to="/analytics">{t('nav.analytics')}</Link>
+          <Link to="/options">{t('nav.options')}</Link>
         </nav>
         <div className="header-user">
           <span className="user-email">{user?.email}</span>
           <button onClick={handleLogout} className="btn-logout">
-            Logout
+            {t('nav.logout')}
           </button>
         </div>
       </div>

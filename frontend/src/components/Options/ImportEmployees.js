@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const TEMPLATE_COLUMNS = [
   'First Name', 'Last Name', 'Personal ID', 'Birthdate',
@@ -10,6 +11,7 @@ const TEMPLATE_COLUMNS = [
 const REQUIRED_FIELDS = ['First Name', 'Last Name', 'Personal ID', 'Birthdate', 'Position', 'Salary', 'OT Rate', 'Start Date'];
 
 function ImportEmployees() {
+  const { t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState('');
   const [importing, setImporting] = useState(false);
@@ -118,7 +120,7 @@ function ImportEmployees() {
 
         setRows(mapped);
       } catch (err) {
-        setError('Failed to parse Excel file: ' + err.message);
+        setError(t('import.parseFailed') + err.message);
         setRows([]);
       }
     };
@@ -129,7 +131,7 @@ function ImportEmployees() {
     const validRows = rows.filter((r) => r._valid).map(({ _valid, _missing, ...rest }) => rest);
 
     if (validRows.length === 0) {
-      setError('No valid rows to import');
+      setError(t('import.noValidRows'));
       return;
     }
 
@@ -146,7 +148,7 @@ function ImportEmployees() {
         if (fileRef.current) fileRef.current.value = '';
       }
     } catch (err) {
-      setError(err.response?.data?.error || 'Import failed');
+      setError(err.response?.data?.error || t('import.importFailed'));
     } finally {
       setImporting(false);
     }
@@ -158,16 +160,16 @@ function ImportEmployees() {
   return (
     <div className="tab-panel">
       <div className="tab-panel-header">
-        <h3>Import Employees from Excel</h3>
-        <p>Download the template, fill it in, and upload to import employees in bulk</p>
+        <h3>{t('import.title')}</h3>
+        <p>{t('import.desc')}</p>
       </div>
 
       {error && <div className="msg-error">{error}</div>}
       {result && (
         <div className="msg-success">
-          Successfully imported {result.imported} employee{result.imported !== 1 ? 's' : ''}
+          {t('import.success').replace('{count}', result.imported).replace('{s}', result.imported !== 1 ? 's' : '')}
           {result.errors && result.errors.length > 0 && (
-            <span> ({result.errors.length} row{result.errors.length !== 1 ? 's' : ''} skipped)</span>
+            <span> {t('import.rowsSkipped').replace('{count}', result.errors.length).replace('{s}', result.errors.length !== 1 ? 's' : '')}</span>
           )}
         </div>
       )}
@@ -176,10 +178,10 @@ function ImportEmployees() {
       <div className="import-step">
         <div className="import-step-num">1</div>
         <div className="import-step-content">
-          <h4>Download Template</h4>
-          <p>Get the Excel template with the correct column headers and an example row.</p>
+          <h4>{t('import.step1Title')}</h4>
+          <p>{t('import.step1Desc')}</p>
           <button className="btn-excel" onClick={downloadTemplate}>
-            <span className="excel-icon">&#x1F4E5;</span> Download Template
+            <span className="excel-icon">&#x1F4E5;</span> {t('import.downloadTemplate')}
           </button>
         </div>
       </div>
@@ -188,8 +190,8 @@ function ImportEmployees() {
       <div className="import-step">
         <div className="import-step-num">2</div>
         <div className="import-step-content">
-          <h4>Upload Filled File</h4>
-          <p>Upload your completed Excel file (.xlsx or .xls).</p>
+          <h4>{t('import.step2Title')}</h4>
+          <p>{t('import.step2Desc')}</p>
           <div className="import-file-input">
             <input
               ref={fileRef}
@@ -199,7 +201,7 @@ function ImportEmployees() {
               id="excel-upload"
             />
             <label htmlFor="excel-upload" className="btn-upload">
-              Choose File
+              {t('import.chooseFile')}
             </label>
             {fileName && <span className="import-filename">{fileName}</span>}
           </div>
@@ -211,11 +213,11 @@ function ImportEmployees() {
         <div className="import-step">
           <div className="import-step-num">3</div>
           <div className="import-step-content">
-            <h4>Preview & Import</h4>
+            <h4>{t('import.step3Title')}</h4>
             <div className="import-stats">
-              <span className="import-stat-valid">{validCount} valid</span>
-              {invalidCount > 0 && <span className="import-stat-invalid">{invalidCount} invalid</span>}
-              <span className="import-stat-total">{rows.length} total rows</span>
+              <span className="import-stat-valid">{t('import.valid').replace('{count}', validCount)}</span>
+              {invalidCount > 0 && <span className="import-stat-invalid">{t('import.invalid').replace('{count}', invalidCount)}</span>}
+              <span className="import-stat-total">{t('import.totalRows').replace('{count}', rows.length)}</span>
             </div>
 
             <div className="import-preview-wrapper">
@@ -223,17 +225,17 @@ function ImportEmployees() {
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>First Name</th>
-                    <th>Last Name</th>
-                    <th>Personal ID</th>
-                    <th>Birthdate</th>
-                    <th>Position</th>
-                    <th>Salary</th>
-                    <th>OT Rate</th>
-                    <th>Start Date</th>
-                    <th>End Date</th>
-                    <th>Account</th>
-                    <th>Status</th>
+                    <th>{t('import.firstName')}</th>
+                    <th>{t('import.lastName')}</th>
+                    <th>{t('import.personalId')}</th>
+                    <th>{t('import.birthdate')}</th>
+                    <th>{t('import.position')}</th>
+                    <th>{t('import.salary')}</th>
+                    <th>{t('import.otRate')}</th>
+                    <th>{t('import.startDate')}</th>
+                    <th>{t('import.endDate')}</th>
+                    <th>{t('import.account')}</th>
+                    <th>{t('import.status')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -252,9 +254,9 @@ function ImportEmployees() {
                       <td>{row.account_number || '—'}</td>
                       <td>
                         {row._valid ? (
-                          <span className="import-badge-ok">OK</span>
+                          <span className="import-badge-ok">{t('import.ok')}</span>
                         ) : (
-                          <span className="import-badge-err" title={`Missing: ${row._missing.join(', ')}`}>Missing fields</span>
+                          <span className="import-badge-err" title={`${t('import.missingFields')}: ${row._missing.join(', ')}`}>{t('import.missingFields')}</span>
                         )}
                       </td>
                     </tr>
@@ -268,7 +270,7 @@ function ImportEmployees() {
               onClick={handleImport}
               disabled={importing || validCount === 0}
             >
-              {importing ? 'Importing...' : `Import ${validCount} Employee${validCount !== 1 ? 's' : ''}`}
+              {importing ? t('import.importing') : t('import.importBtn').replace('{count}', validCount).replace('{s}', validCount !== 1 ? 's' : '')}
             </button>
           </div>
         </div>

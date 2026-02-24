@@ -1,0 +1,210 @@
+.gym-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.gym-header {
+  margin-bottom: 32px;
+}
+
+.gym-header h1 {
+  color: #1a1a2e;
+  font-size: 32px;
+  margin-bottom: 6px;
+}
+
+.gym-header p {
+  color: #666;
+  font-size: 15px;
+  margin: 0;
+}
+
+.gym-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 28px;
+  align-items: start;
+}
+
+/* Form Card */
+.gym-form-card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 90px;
+}
+
+.gym-form-card h3 {
+  color: #1a1a2e;
+  font-size: 18px;
+  margin-bottom: 20px;
+}
+
+.gym-form-group {
+  margin-bottom: 16px;
+}
+
+.gym-form-group label {
+  display: block;
+  color: #444;
+  font-weight: 500;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.gym-form-group input,
+.gym-form-group select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.gym-form-group input:focus,
+.gym-form-group select:focus {
+  outline: none;
+  border-color: #0f3460;
+}
+
+.gym-form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Plans List */
+.gym-plans-list {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.gym-plans-list h4 {
+  color: #1a1a2e;
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.gym-plan-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.gym-plan-item:last-child {
+  border-bottom: none;
+}
+
+.gym-plan-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.gym-plan-name {
+  display: block;
+  font-weight: 600;
+  color: #1a1a2e;
+  font-size: 14px;
+}
+
+.gym-plan-provider {
+  font-size: 12px;
+  color: #888;
+}
+
+.gym-plan-price {
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #0f3460;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.gym-plan-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Assignments Card */
+.gym-assignments-card {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.gym-assignments-card h3 {
+  color: #1a1a2e;
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.gym-assign-form {
+  margin-bottom: 28px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.gym-assign-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.gym-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: #999;
+  font-size: 15px;
+}
+
+.gym-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0 0;
+  margin-top: 8px;
+  border-top: 2px solid #e8e8e8;
+}
+
+.gym-total span:first-child {
+  font-weight: 700;
+  font-size: 15px;
+  color: #1a1a2e;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.gym-total-amount {
+  font-family: 'Courier New', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f3460;
+}
+
+@media (max-width: 768px) {
+  .gym-container {
+    padding: 24px 16px;
+  }
+
+  .gym-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .gym-form-card {
+    position: static;
+  }
+
+  .gym-assign-grid {
+    grid-template-columns: 1fr;
+  }
+}

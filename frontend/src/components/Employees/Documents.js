@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 function Documents({ employeeId }) {
+  const { t } = useLanguage();
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -23,7 +25,7 @@ function Documents({ employeeId }) {
       const response = await api.get(`/employees/${employeeId}/documents`);
       setDocuments(response.data.documents);
     } catch (err) {
-      setError('Failed to load documents');
+      setError(t('doc.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -33,7 +35,7 @@ function Documents({ employeeId }) {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) {
-        setError('File must be less than 5MB');
+        setError(t('doc.sizeError'));
         return;
       }
       setDocFile(file);
@@ -46,7 +48,7 @@ function Documents({ employeeId }) {
   const handleUpload = async (e) => {
     e.preventDefault();
     if (!docFile) {
-      setError('Please select a file');
+      setError(t('doc.selectFile'));
       return;
     }
 
@@ -63,28 +65,28 @@ function Documents({ employeeId }) {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      setSuccess('Document uploaded successfully');
+      setSuccess(t('doc.success'));
       setDocName('');
       setDocFile(null);
       if (fileRef.current) fileRef.current.value = '';
       loadDocuments();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to upload document');
+      setError(err.response?.data?.error || t('doc.uploadFailed'));
     } finally {
       setUploading(false);
     }
   };
 
   const handleDelete = async (doc) => {
-    if (!window.confirm(`Delete "${doc.name}"?`)) return;
+    if (!window.confirm(t('doc.deleteConfirm').replace('{name}', doc.name))) return;
     setError('');
     setSuccess('');
     try {
       await api.delete(`/employees/${employeeId}/documents/${doc.id}`);
-      setSuccess('Document deleted');
+      setSuccess(t('doc.deleted'));
       loadDocuments();
     } catch (err) {
-      setError('Failed to delete document');
+      setError(t('doc.deleteFailed'));
     }
   };
 
@@ -109,8 +111,8 @@ function Documents({ employeeId }) {
   return (
     <div className="tab-panel">
       <div className="tab-panel-header">
-        <h3>Documents</h3>
-        <p>Upload and manage employee documents</p>
+        <h3>{t('doc.title')}</h3>
+        <p>{t('doc.subtitle')}</p>
       </div>
 
       {error && <div className="msg-error">{error}</div>}
@@ -118,29 +120,29 @@ function Documents({ employeeId }) {
 
       {/* Upload Form */}
       <div className="doc-upload-card">
-        <h4>Upload Document</h4>
+        <h4>{t('doc.uploadTitle')}</h4>
         <form onSubmit={handleUpload}>
           <div className="sc-form-grid">
             <div className="form-group">
-              <label>Document Name</label>
-              <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} placeholder="e.g. Employment Contract" />
+              <label>{t('doc.docName')}</label>
+              <input type="text" value={docName} onChange={(e) => setDocName(e.target.value)} placeholder={t('doc.docNamePlaceholder')} />
             </div>
             <div className="form-group">
-              <label>File * (PDF, JPEG, PNG, WebP - max 5MB)</label>
+              <label>{t('doc.fileLabel')}</label>
               <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={handleFileChange} />
             </div>
           </div>
           <button type="submit" className="btn-primary btn-sm" disabled={uploading || !docFile}>
-            {uploading ? 'Uploading...' : 'Upload'}
+            {uploading ? t('doc.uploading') : t('doc.upload')}
           </button>
         </form>
       </div>
 
       {/* Document List */}
       {loading ? (
-        <div className="emp-loading">Loading documents...</div>
+        <div className="emp-loading">{t('doc.loading')}</div>
       ) : documents.length === 0 ? (
-        <div className="sc-empty">No documents uploaded yet.</div>
+        <div className="sc-empty">{t('doc.noDocuments')}</div>
       ) : (
         <div className="doc-list">
           {documents.map((doc) => (
@@ -157,10 +159,10 @@ function Documents({ employeeId }) {
                 <span className="doc-meta">{formatSize(doc.file_size)} &middot; {formatDate(doc.created_at)}</span>
               </div>
               <div className="doc-actions">
-                <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title="View/Download">
+                <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="btn-icon" title={t('doc.viewDownload')}>
                   ⬇️
                 </a>
-                <button onClick={() => handleDelete(doc)} className="btn-icon btn-delete" title="Delete">
+                <button onClick={() => handleDelete(doc)} className="btn-icon btn-delete" title={t('action.delete')}>
                   🗑️
                 </button>
               </div>

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalaryUpdated }) {
+  const { t } = useLanguage();
   const [changes, setChanges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -24,7 +26,7 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
       const response = await api.get(`/employees/${employeeId}/salary-changes`);
       setChanges(response.data.salary_changes);
     } catch (err) {
-      setError('Failed to load salary history');
+      setError(t('sc.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -43,7 +45,7 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
         effective_date: effectiveDate,
         note
       });
-      setSuccess('Salary change recorded successfully');
+      setSuccess(t('sc.success'));
       setNewSalary('');
       setNewOvertimeRate('');
       setEffectiveDate('');
@@ -51,22 +53,22 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
       loadChanges();
       if (onSalaryUpdated) onSalaryUpdated();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save salary change');
+      setError(err.response?.data?.error || t('sc.saveFailed'));
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (changeId) => {
-    if (!window.confirm('Delete this salary change record?')) return;
+    if (!window.confirm(t('sc.deleteConfirm'))) return;
     setError('');
     setSuccess('');
     try {
       await api.delete(`/employees/${employeeId}/salary-changes/${changeId}`);
-      setSuccess('Record deleted');
+      setSuccess(t('sc.deleted'));
       loadChanges();
     } catch (err) {
-      setError('Failed to delete record');
+      setError(t('sc.deleteFailed'));
     }
   };
 
@@ -83,8 +85,8 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
   return (
     <div className="tab-panel">
       <div className="tab-panel-header">
-        <h3>Salary Changes</h3>
-        <p>Current salary: <strong>{formatCurrency(currentSalary || 0)}</strong> | OT Rate: <strong>{formatCurrency(currentOvertimeRate || 0)}</strong></p>
+        <h3>{t('sc.title')}</h3>
+        <p>{t('sc.currentSalary')} <strong>{formatCurrency(currentSalary || 0)}</strong> | {t('sc.otRate')} <strong>{formatCurrency(currentOvertimeRate || 0)}</strong></p>
       </div>
 
       {error && <div className="msg-error">{error}</div>}
@@ -92,37 +94,37 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
 
       {/* New Salary Change Form */}
       <div className="sc-form-card">
-        <h4>Record New Salary Change</h4>
+        <h4>{t('sc.recordNew')}</h4>
         <form onSubmit={handleSubmit}>
           <div className="sc-form-grid">
             <div className="form-group">
-              <label>New Salary *</label>
+              <label>{t('sc.newSalary')}</label>
               <input type="number" step="0.01" min="0" value={newSalary} onChange={(e) => setNewSalary(e.target.value)} placeholder="e.g. 500.00" required />
             </div>
             <div className="form-group">
-              <label>New OT Rate</label>
-              <input type="number" step="0.01" min="0" value={newOvertimeRate} onChange={(e) => setNewOvertimeRate(e.target.value)} placeholder="Leave empty to keep current" />
+              <label>{t('sc.newOtRate')}</label>
+              <input type="number" step="0.01" min="0" value={newOvertimeRate} onChange={(e) => setNewOvertimeRate(e.target.value)} placeholder={t('sc.otPlaceholder')} />
             </div>
             <div className="form-group">
-              <label>Effective Date *</label>
+              <label>{t('sc.effectiveDate')}</label>
               <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} required />
             </div>
             <div className="form-group">
-              <label>Note</label>
-              <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Annual raise" />
+              <label>{t('sc.note')}</label>
+              <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('sc.notePlaceholder')} />
             </div>
           </div>
           <button type="submit" className="btn-primary btn-sm" disabled={saving}>
-            {saving ? 'Saving...' : 'Record Change'}
+            {saving ? t('sc.saving') : t('sc.recordChange')}
           </button>
         </form>
       </div>
 
       {/* History */}
       {loading ? (
-        <div className="emp-loading">Loading history...</div>
+        <div className="emp-loading">{t('sc.loadingHistory')}</div>
       ) : changes.length === 0 ? (
-        <div className="sc-empty">No salary changes recorded yet.</div>
+        <div className="sc-empty">{t('sc.noChanges')}</div>
       ) : (
         <div className="sc-timeline">
           {changes.map((change) => (
