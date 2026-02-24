@@ -99,6 +99,7 @@ const en = {
   'empForm.startDate': 'Job Start Date *',
   'empForm.endDate': 'Job End Date',
   'empForm.endDateHint': 'Leave empty if currently employed',
+  'empForm.pension': 'Pension',
   'empForm.taxCode': 'Tax Code',
   'empForm.selectTaxCode': 'Select tax code...',
   'empForm.taxCodePlaceholder': 'Enter tax code',

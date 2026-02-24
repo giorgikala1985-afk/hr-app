@@ -30,7 +30,8 @@ function EmployeeForm() {
     start_date: '',
     end_date: '',
     account_number: '',
-    tax_code: ''
+    tax_code: '',
+    pension: false
   });
   const [positions, setPositions] = useState([]);
   const [taxCodes, setTaxCodes] = useState([]);
@@ -84,7 +85,8 @@ function EmployeeForm() {
         start_date: emp.start_date || '',
         end_date: emp.end_date || '',
         account_number: emp.account_number || '',
-        tax_code: emp.tax_code || ''
+        tax_code: emp.tax_code || '',
+        pension: emp.pension || false
       });
       if (emp.photo_url) {
         setExistingPhotoUrl(emp.photo_url);
@@ -97,7 +99,8 @@ function EmployeeForm() {
   };
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handlePhotoChange = (e) => {
@@ -310,6 +313,12 @@ function EmployeeForm() {
                     ) : (
                       <input id="tax_code" name="tax_code" type="text" value={formData.tax_code} onChange={handleChange} placeholder={t('empForm.taxCodePlaceholder')} />
                     )}
+                  </div>
+                  <div className="form-group">
+                    <label className="checkbox-label">
+                      <input type="checkbox" name="pension" checked={formData.pension} onChange={handleChange} />
+                      {t('empForm.pension')}
+                    </label>
                   </div>
                 </div>
 

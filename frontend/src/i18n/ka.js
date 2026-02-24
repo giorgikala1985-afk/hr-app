@@ -99,6 +99,7 @@ const ka = {
   'empForm.startDate': 'სამუშაოს დაწყების თარიღი *',
   'empForm.endDate': 'სამუშაოს დასრულების თარიღი',
   'empForm.endDateHint': 'დატოვეთ ცარიელი თუ ამჟამად მუშაობს',
+  'empForm.pension': 'პენსია',
   'empForm.taxCode': 'საგადასახადო კოდი',
   'empForm.selectTaxCode': 'აირჩიეთ საგადასახადო კოდი...',
   'empForm.taxCodePlaceholder': 'შეიყვანეთ საგადასახადო კოდი',

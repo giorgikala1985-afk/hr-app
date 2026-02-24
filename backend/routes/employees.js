@@ -162,7 +162,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/employees - create
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension } = req.body;
 
     // Validate required fields
     if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !overtime_rate || !start_date) {
@@ -190,6 +190,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
         end_date: end_date || null,
         account_number: account_number ? account_number.trim() : null,
         tax_code: tax_code ? tax_code.trim() : null,
+        pension: pension === 'true' || pension === true,
         photo_url
       })
       .select()
@@ -211,7 +212,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
 router.put('/:id', upload.single('photo'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension } = req.body;
 
     if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !overtime_rate || !start_date) {
       return res.status(400).json({ error: 'All fields are required (end date is optional)' });
@@ -252,6 +253,7 @@ router.put('/:id', upload.single('photo'), async (req, res) => {
         end_date: end_date || null,
         account_number: account_number ? account_number.trim() : null,
         tax_code: tax_code ? tax_code.trim() : null,
+        pension: pension === 'true' || pension === true,
         photo_url,
         updated_at: new Date().toISOString()
       })
