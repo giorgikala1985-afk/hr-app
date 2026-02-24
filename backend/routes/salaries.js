@@ -56,6 +56,7 @@ router.get('/', async (req, res) => {
         .from('employee_units')
         .select('*')
         .eq('user_id', req.userId)
+        .gte('date', monthStartStr)
         .lte('date', monthEndStr),
       supabase
         .from('unit_types')
