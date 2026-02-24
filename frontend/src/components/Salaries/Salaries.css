@@ -53,6 +53,33 @@
   border-color: #0f3460;
 }
 
+.sal-month-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sal-month-arrow {
+  background: #f0f4ff;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  width: 32px;
+  height: 36px;
+  font-size: 20px;
+  cursor: pointer;
+  color: #0f3460;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.sal-month-arrow:hover {
+  background: #0f3460;
+  border-color: #0f3460;
+  color: white;
+}
+
 .sal-month-label {
   color: #0f3460;
   font-weight: 600;

@@ -269,12 +269,30 @@ function SalaryList() {
 
       <div className="sal-month-picker">
         <label htmlFor="month">{t('sal.selectMonth')}</label>
-        <input
-          id="month"
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-        />
+        <div className="sal-month-nav">
+          <button
+            className="sal-month-arrow"
+            onClick={() => {
+              const [y, m] = month.split('-').map(Number);
+              const d = new Date(y, m - 2, 1);
+              setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            }}
+          >&#8249;</button>
+          <input
+            id="month"
+            type="month"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          />
+          <button
+            className="sal-month-arrow"
+            onClick={() => {
+              const [y, m] = month.split('-').map(Number);
+              const d = new Date(y, m, 1);
+              setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+            }}
+          >&#8250;</button>
+        </div>
         <span className="sal-month-label">{getMonthLabel(month)}</span>
         {deletedUnits.length > 0 && (
           <button className="btn-restore" onClick={handleRestoreAll} title="Restore removed units">
