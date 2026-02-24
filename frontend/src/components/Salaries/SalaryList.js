@@ -199,14 +199,17 @@ function SalaryList() {
   };
 
   const handleAddUnit = async (employeeId) => {
-    if (!unitForm.type || !unitForm.amount || !unitForm.date) return;
+    if (!unitForm.type || !unitForm.amount) return;
+    const [y, m] = month.split('-');
+    const lastDay = new Date(Number(y), Number(m), 0).getDate();
+    const date = `${month}-${String(lastDay).padStart(2, '0')}`;
     setSavingUnit(true);
     setError('');
     try {
       await api.post(`/employees/${employeeId}/units`, {
         type: unitForm.type,
         amount: parseFloat(unitForm.amount),
-        date: unitForm.date,
+        date,
       });
       setUnitForm((prev) => ({ ...prev, type: unitTypes.length > 0 ? unitTypes[0].name : '', amount: '', otRate: '110', otHours: '' }));
       loadSalaries(month);
