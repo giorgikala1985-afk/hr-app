@@ -504,32 +504,43 @@ function SalaryList() {
                                           </option>
                                         ))}
                                       </select>
-                                      {unitForm.type === 'OT' && (
-                                        <>
-                                          <select
-                                            value={unitForm.otRate}
-                                            onChange={(e) => setUnitForm((prev) => ({ ...prev, otRate: e.target.value }))}
-                                            className="sal-unit-select"
-                                          >
-                                            <option value="110">110</option>
-                                            <option value="200">200</option>
-                                          </select>
-                                          <span className="sal-ot-rate-value">
-                                            {workingDays > 0
-                                              ? (item.employee.salary / (workingDays * 8)).toFixed(4)
-                                              : '—'}
-                                          </span>
-                                          <input
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            placeholder="Hours"
-                                            value={unitForm.otHours}
-                                            onChange={(e) => setUnitForm((prev) => ({ ...prev, otHours: e.target.value }))}
-                                            className="sal-unit-input"
-                                          />
-                                        </>
-                                      )}
+                                      {unitForm.type === 'OT' && (() => {
+                                        const hourlyRate = workingDays > 0 ? item.employee.salary / (workingDays * 8) : 0;
+                                        const calcAmount = (rate, hours) =>
+                                          hourlyRate > 0 && hours
+                                            ? (hourlyRate * (parseFloat(rate) / 100) * parseFloat(hours)).toFixed(2)
+                                            : '';
+                                        return (
+                                          <>
+                                            <select
+                                              value={unitForm.otRate}
+                                              onChange={(e) => {
+                                                const rate = e.target.value;
+                                                setUnitForm((prev) => ({ ...prev, otRate: rate, amount: calcAmount(rate, prev.otHours) }));
+                                              }}
+                                              className="sal-unit-select"
+                                            >
+                                              <option value="110">110</option>
+                                              <option value="200">200</option>
+                                            </select>
+                                            <span className="sal-ot-rate-value">
+                                              {hourlyRate > 0 ? hourlyRate.toFixed(4) : '—'}
+                                            </span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              step="0.01"
+                                              placeholder="Hours"
+                                              value={unitForm.otHours}
+                                              onChange={(e) => {
+                                                const hours = e.target.value;
+                                                setUnitForm((prev) => ({ ...prev, otHours: hours, amount: calcAmount(prev.otRate, hours) }));
+                                              }}
+                                              className="sal-unit-input"
+                                            />
+                                          </>
+                                        );
+                                      })()}
                                       <input
                                         type="number"
                                         step="0.01"
