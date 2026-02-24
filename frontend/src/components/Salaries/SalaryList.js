@@ -514,6 +514,11 @@ function SalaryList() {
                                             <option value="110">110</option>
                                             <option value="200">200</option>
                                           </select>
+                                          <span className="sal-ot-rate-value">
+                                            {workingDays > 0
+                                              ? (item.employee.salary / (workingDays * 8)).toFixed(4)
+                                              : '—'}
+                                          </span>
                                           <input
                                             type="number"
                                             min="0"
