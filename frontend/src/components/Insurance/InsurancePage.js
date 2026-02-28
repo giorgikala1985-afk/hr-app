@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Insurance.css';
+import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+
+const INS_DEFAULT_WIDTHS = [160, 140, 130, 130, 120, 120, 120, 80];
 
 function InsurancePage() {
   const { t } = useLanguage();
+  const { colWidths, onResizeMouseDown } = useColumnResize(INS_DEFAULT_WIDTHS);
   const [plans, setPlans] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -302,32 +306,35 @@ function InsurancePage() {
           ) : (
             <>
               <div className="emp-table-wrapper">
-                <table className="emp-table">
+                <table className="emp-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+                  <colgroup>
+                    {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th>Employee</th>
-                      <th>Position</th>
-                      <th>Plan</th>
-                      <th>Provider</th>
-                      <th>{t('ins.coverage')}</th>
-                      <th>{t('ins.premium')}</th>
-                      <th>Start Date</th>
-                      <th></th>
+                      <th style={{ position: 'relative', width: colWidths[0], overflow: 'hidden', whiteSpace: 'nowrap' }}>Employee<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                      <th style={{ position: 'relative', width: colWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>Position<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                      <th style={{ position: 'relative', width: colWidths[2], overflow: 'hidden', whiteSpace: 'nowrap' }}>Plan<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                      <th style={{ position: 'relative', width: colWidths[3], overflow: 'hidden', whiteSpace: 'nowrap' }}>Provider<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                      <th style={{ position: 'relative', width: colWidths[4], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('ins.coverage')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                      <th style={{ position: 'relative', width: colWidths[5], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('ins.premium')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                      <th style={{ position: 'relative', width: colWidths[6], overflow: 'hidden', whiteSpace: 'nowrap' }}>Start Date<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                      <th style={{ position: 'relative', width: colWidths[7], overflow: 'hidden', whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
                     </tr>
                   </thead>
                   <tbody>
                     {assignments.map((a) => (
                       <tr key={a.id}>
-                        <td className="emp-name">
+                        <td className="emp-name" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                           {a.employees?.first_name} {a.employees?.last_name}
                         </td>
-                        <td><span className="position-badge">{a.employees?.position}</span></td>
-                        <td>{a.insurance_plans?.plan_name}</td>
-                        <td>{a.insurance_plans?.provider}</td>
-                        <td><span className="position-badge">{a.insurance_plans?.coverage_type}</span></td>
-                        <td className="salary">{formatCurrency(a.insurance_plans?.premium)}</td>
-                        <td>{formatDate(a.start_date)}</td>
-                        <td>
+                        <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="position-badge">{a.employees?.position}</span></td>
+                        <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{a.insurance_plans?.plan_name}</td>
+                        <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{a.insurance_plans?.provider}</td>
+                        <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="position-badge">{a.insurance_plans?.coverage_type}</span></td>
+                        <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(a.insurance_plans?.premium)}</td>
+                        <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatDate(a.start_date)}</td>
+                        <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                           <button
                             className="btn-icon btn-delete"
                             onClick={() => handleDeleteAssignment(a.id)}

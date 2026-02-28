@@ -4,7 +4,6 @@ import api from '../../services/api';
 import SalaryChanges from './SalaryChanges';
 import AccountChanges from './AccountChanges';
 import Documents from './Documents';
-import EmployeeUnits from './EmployeeUnits';
 import './Employees.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -25,15 +24,17 @@ function EmployeeForm() {
     personal_id: '',
     birthdate: '',
     position: '',
+    department: '',
     salary: '',
-    overtime_rate: '',
     start_date: '',
     end_date: '',
     account_number: '',
     tax_code: '',
-    pension: false
+    pension: false,
+    personal_email: ''
   });
   const [positions, setPositions] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [taxCodes, setTaxCodes] = useState([]);
   const [photo, setPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -44,6 +45,7 @@ function EmployeeForm() {
 
   useEffect(() => {
     loadPositions();
+    loadDepartments();
     loadTaxCodes();
     if (isEdit) {
       loadEmployee();
@@ -57,6 +59,15 @@ function EmployeeForm() {
       setPositions(res.data.positions || []);
     } catch (err) {
       console.error('Failed to load positions:', err);
+    }
+  };
+
+  const loadDepartments = async () => {
+    try {
+      const res = await api.get('/departments');
+      setDepartments(res.data.departments || []);
+    } catch (err) {
+      console.error('Failed to load departments:', err);
     }
   };
 
@@ -80,13 +91,14 @@ function EmployeeForm() {
         personal_id: emp.personal_id,
         birthdate: emp.birthdate,
         position: emp.position,
+        department: emp.department || '',
         salary: emp.salary.toString(),
-        overtime_rate: emp.overtime_rate.toString(),
         start_date: emp.start_date || '',
         end_date: emp.end_date || '',
         account_number: emp.account_number || '',
         tax_code: emp.tax_code || '',
-        pension: emp.pension || false
+        pension: emp.pension || false,
+        personal_email: emp.personal_email || ''
       });
       if (emp.photo_url) {
         setExistingPhotoUrl(emp.photo_url);
@@ -173,7 +185,6 @@ function EmployeeForm() {
     { key: 'salary', label: t('empForm.tabSalary'), icon: '$', disabled: !isEdit },
     { key: 'account', label: t('empForm.tabAccount'), icon: '#', disabled: !isEdit },
     { key: 'documents', label: t('empForm.tabDocuments'), icon: 'D', disabled: !isEdit },
-    { key: 'units', label: t('empForm.tabUnits'), icon: 'U', disabled: !isEdit }
   ];
 
   return (
@@ -278,12 +289,21 @@ function EmployeeForm() {
                     )}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="salary">{t('empForm.salary')}</label>
-                    <input id="salary" name="salary" type="number" step="0.01" min="0" value={formData.salary} onChange={handleChange} placeholder="e.g. 5000.00" required />
+                    <label htmlFor="department">Department</label>
+                    {departments.length > 0 ? (
+                      <select id="department" name="department" value={formData.department} onChange={handleChange}>
+                        <option value="">Select department</option>
+                        {departments.map((d) => (
+                          <option key={d.id} value={d.name}>{d.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input id="department" name="department" type="text" value={formData.department} onChange={handleChange} placeholder="e.g. Engineering" />
+                    )}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="overtime_rate">{t('empForm.overtimeRate')}</label>
-                    <input id="overtime_rate" name="overtime_rate" type="number" step="0.01" min="0" value={formData.overtime_rate} onChange={handleChange} placeholder="e.g. 25.00" required />
+                    <label htmlFor="salary">{t('empForm.salary')}</label>
+                    <input id="salary" name="salary" type="number" step="0.01" min="0" value={formData.salary} onChange={handleChange} placeholder="e.g. 5000.00" required />
                   </div>
                   <div className="form-group">
                     <label htmlFor="start_date">{t('empForm.startDate')}</label>
@@ -315,10 +335,17 @@ function EmployeeForm() {
                     )}
                   </div>
                   <div className="form-group">
-                    <label className="checkbox-label">
-                      <input type="checkbox" name="pension" checked={formData.pension} onChange={handleChange} />
-                      {t('empForm.pension')}
-                    </label>
+                    <label htmlFor="personal_email">Personal Email</label>
+                    <input id="personal_email" name="personal_email" type="email" value={formData.personal_email} onChange={handleChange} placeholder="e.g. john@example.com" />
+                  </div>
+                  <div className="form-group">
+                    <div className="pension-toggle-row">
+                      <label className="toggle-switch">
+                        <input type="checkbox" name="pension" checked={formData.pension} onChange={handleChange} />
+                        <span className="toggle-track" />
+                      </label>
+                      <span className="pension-label">{t('empForm.pension')}</span>
+                    </div>
                   </div>
                 </div>
 
@@ -344,9 +371,6 @@ function EmployeeForm() {
             <Documents employeeId={id} />
           )}
 
-          {activeTab === 'units' && isEdit && (
-            <EmployeeUnits employeeId={id} />
-          )}
         </div>
       </div>
     </div>

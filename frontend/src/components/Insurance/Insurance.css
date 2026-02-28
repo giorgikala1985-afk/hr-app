@@ -121,7 +121,7 @@
 }
 
 .ins-plan-price {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
   color: #0f3460;
   font-size: 14px;
@@ -185,7 +185,7 @@
 }
 
 .ins-total-amount {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 18px;
   font-weight: 700;
   color: #0f3460;

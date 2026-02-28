@@ -2,9 +2,13 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import './Analytics.css';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+
+const SALARY_REPORT_WIDTHS = [130, 120, 130, 130, 130];
 
 function Analytics() {
   const { t } = useLanguage();
+  const { colWidths, onResizeMouseDown } = useColumnResize(SALARY_REPORT_WIDTHS);
   const [analytics, setAnalytics] = useState(null);
   const [salaryReport, setSalaryReport] = useState([]);
   const [reportMonths, setReportMonths] = useState(12);
@@ -80,32 +84,49 @@ function Analytics() {
       <h1>{t('analytics.title')}</h1>
 
       <div className="analytics-grid">
-        <div className="stat-card">
+        <div className="stat-card stat-card-blue">
+          <div className="stat-card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
           <div className="stat-value">{analytics.totalEmployees}</div>
           <div className="stat-label">{t('analytics.totalEmployees')}</div>
-          <div className="stat-icon">👥</div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-value">
-            ${analytics.averageSalary?.toFixed(2) || '0.00'}
+        <div className="stat-card stat-card-green">
+          <div className="stat-card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/>
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
           </div>
+          <div className="stat-value">${analytics.averageSalary?.toFixed(2) || '0.00'}</div>
           <div className="stat-label">{t('analytics.averageSalary')}</div>
-          <div className="stat-icon">💰</div>
         </div>
 
-        <div className="stat-card">
-          <div className="stat-value">
-            ${analytics.totalSalaryExpense?.toFixed(2) || '0.00'}
+        <div className="stat-card stat-card-purple">
+          <div className="stat-card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/>
+              <line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+            </svg>
           </div>
+          <div className="stat-value">${analytics.totalSalaryExpense?.toFixed(2) || '0.00'}</div>
           <div className="stat-label">{t('analytics.totalMonthlySalary')}</div>
-          <div className="stat-icon">💸</div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card stat-card-teal">
+          <div className="stat-card-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+              <polyline points="16,11 17,13 21,9"/>
+            </svg>
+          </div>
           <div className="stat-value">{analytics.activeEmployees || 0}</div>
           <div className="stat-label">{t('analytics.activeEmployees')}</div>
-          <div className="stat-icon">✅</div>
         </div>
       </div>
 
@@ -156,38 +177,41 @@ function Analytics() {
 
           {/* Table */}
           <div className="salary-report-table">
-            <table>
+            <table style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+              <colgroup>
+                {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+              </colgroup>
               <thead>
                 <tr>
-                  <th>{t('analytics.month')}</th>
-                  <th>{t('analytics.employees')}</th>
-                  <th>{t('analytics.accrued')}</th>
-                  <th>{t('analytics.deductions')}</th>
-                  <th>{t('analytics.netSalary')}</th>
+                  <th style={{ position: 'relative', width: colWidths[0], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('analytics.month')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                  <th style={{ position: 'relative', width: colWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('analytics.employees')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                  <th style={{ position: 'relative', width: colWidths[2], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('analytics.accrued')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                  <th style={{ position: 'relative', width: colWidths[3], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('analytics.deductions')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                  <th style={{ position: 'relative', width: colWidths[4], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('analytics.netSalary')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
                 </tr>
               </thead>
               <tbody>
                 {salaryReport.map((item) => (
                   <tr key={item.month}>
-                    <td className="report-month">{item.label}</td>
-                    <td>{item.active_employees}</td>
-                    <td className="report-amount">{formatCurrency(item.total_accrued)}</td>
-                    <td className="report-deduction">{item.total_deductions > 0 ? `-${formatCurrency(item.total_deductions)}` : '-'}</td>
-                    <td className="report-net">{formatCurrency(item.net_salary)}</td>
+                    <td className="report-month" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{item.label}</td>
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{item.active_employees}</td>
+                    <td className="report-amount" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(item.total_accrued)}</td>
+                    <td className="report-deduction" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{item.total_deductions > 0 ? `-${formatCurrency(item.total_deductions)}` : '-'}</td>
+                    <td className="report-net" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(item.net_salary)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr>
-                  <td className="report-total-label">{t('analytics.total')}</td>
-                  <td />
-                  <td className="report-amount">{formatCurrency(salaryReport.reduce((s, r) => s + r.total_accrued, 0))}</td>
-                  <td className="report-deduction">
+                  <td className="report-total-label" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{t('analytics.total')}</td>
+                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} />
+                  <td className="report-amount" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(salaryReport.reduce((s, r) => s + r.total_accrued, 0))}</td>
+                  <td className="report-deduction" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     {salaryReport.reduce((s, r) => s + r.total_deductions, 0) > 0
                       ? `-${formatCurrency(salaryReport.reduce((s, r) => s + r.total_deductions, 0))}`
                       : '-'}
                   </td>
-                  <td className="report-net">{formatCurrency(salaryReport.reduce((s, r) => s + r.net_salary, 0))}</td>
+                  <td className="report-net" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(salaryReport.reduce((s, r) => s + r.net_salary, 0))}</td>
                 </tr>
               </tfoot>
             </table>

@@ -90,6 +90,31 @@
   background: #1a1a2e;
 }
 
+/* Excel download button */
+.btn-excel {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 22px;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1.5px solid #86efac;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s;
+  font-family: inherit;
+  box-shadow: 0 1px 3px rgba(22,163,74,0.08);
+}
+
+.btn-excel:hover {
+  background: #dcfce7;
+  border-color: #16a34a;
+  color: #14532d;
+  box-shadow: 0 2px 8px rgba(22,163,74,0.15);
+}
+
 .import-filename {
   color: #444;
   font-size: 14px;

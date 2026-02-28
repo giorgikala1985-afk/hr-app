@@ -10,8 +10,15 @@ const holidayRoutes = require('./routes/holidays');
 const analyticsRoutes = require('./routes/analytics');
 const unitRoutes = require('./routes/units');
 const positionRoutes = require('./routes/positions');
+const departmentRoutes = require('./routes/departments');
+const overtimeRateRoutes = require('./routes/overtime_rates');
 const taxCodeRoutes = require('./routes/tax_codes');
 const insuranceListRoutes = require('./routes/insurance_list');
+const documentRoutes = require('./routes/documents');
+const salaryDeferralRoutes = require('./routes/salary_deferrals');
+const accountingRoutes = require('./routes/accounting');
+const bonusRoutes = require('./routes/bonuses');
+const userRoutes = require('./routes/users');
 const { authenticateUser } = require('./middleware/auth');
 
 const app = express();
@@ -40,8 +47,17 @@ app.use('/api/holidays', authenticateUser, holidayRoutes);
 app.use('/api/analytics', authenticateUser, analyticsRoutes);
 app.use('/api/units', authenticateUser, unitRoutes);
 app.use('/api/positions', authenticateUser, positionRoutes);
+app.use('/api/departments', authenticateUser, departmentRoutes);
+app.use('/api/overtime-rates', authenticateUser, overtimeRateRoutes);
 app.use('/api/tax-codes', authenticateUser, taxCodeRoutes);
 app.use('/api/insurance-list', authenticateUser, insuranceListRoutes);
+app.use('/api/salary-deferrals', authenticateUser, salaryDeferralRoutes);
+app.use('/api/accounting', authenticateUser, accountingRoutes);
+app.use('/api/bonuses', authenticateUser, bonusRoutes);
+app.use('/api/users', authenticateUser, userRoutes);
+// Documents: sign route is public (no auth), rest needs auth
+app.use('/api/documents/sign', documentRoutes);
+app.use('/api/documents', authenticateUser, documentRoutes);
 
 // Serve React build in production
 if (process.env.NODE_ENV === 'production') {

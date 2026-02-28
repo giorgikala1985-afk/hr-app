@@ -75,16 +75,16 @@
 }
 
 .btn-primary {
-  background: #4361ee;
+  background: #3185FC;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #3a56d4;
+  background: #1a6fe0;
 }
 
 .btn-primary:disabled {
-  background: #a0b0e8;
+  background: #a0c4f8;
   cursor: not-allowed;
 }
 

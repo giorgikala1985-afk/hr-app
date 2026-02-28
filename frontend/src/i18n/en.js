@@ -1,14 +1,17 @@
 const en = {
   // ===== Header / Nav =====
-  'nav.logo': 'HR Manager',
+  'nav.logo': 'Finpilot',
+  'nav.home': 'Home',
   'nav.employees': 'Employees',
   'nav.salaries': 'Salaries',
   'nav.analytics': 'Analytics',
+  'nav.documents': 'Documents',
+  'nav.accounting': 'Accounting',
   'nav.options': 'Options',
   'nav.logout': 'Logout',
 
   // ===== Auth =====
-  'auth.title': 'HR Manager',
+  'auth.title': 'Finpilot',
   'auth.signInSubtitle': 'Sign in to manage employees',
   'auth.signUpSubtitle': 'Create your account',
   'auth.email': 'Email',
@@ -332,6 +335,7 @@ const en = {
   'options.tax': 'Tax',
   'options.insurance': 'Insurance Import',
   'options.language': 'Language',
+  'options.navOrder': 'Navigation',
 
   // ===== Pagination Settings =====
   'pagination.title': 'Pagination',
@@ -591,7 +595,7 @@ const en = {
   'billing.loading': 'Loading...',
 
   // ===== Subscription =====
-  'sub.title': 'Subscribe to HR Manager',
+  'sub.title': 'Subscribe to Finpilot',
   'sub.subtitle': 'Get full access to all HR management features',
   'sub.monthlyPlan': 'Monthly Plan',
   'sub.feature1': 'Employee Management',

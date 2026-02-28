@@ -1,9 +1,12 @@
 const ka = {
   // ===== Header / Nav =====
   'nav.logo': 'HR მენეჯერი',
+  'nav.home': 'მთავარი',
   'nav.employees': 'თანამშრომლები',
   'nav.salaries': 'ხელფასები',
   'nav.analytics': 'ანალიტიკა',
+  'nav.documents': 'დოკუმენტები',
+  'nav.accounting': 'ბუღალტერია',
   'nav.options': 'პარამეტრები',
   'nav.logout': 'გასვლა',
 
@@ -332,6 +335,7 @@ const ka = {
   'options.tax': 'გადასახადი',
   'options.insurance': 'დაზღვევის იმპორტი',
   'options.language': 'ენა',
+  'options.navOrder': 'ნავიგაცია',
 
   // ===== Pagination Settings =====
   'pagination.title': 'გვერდები',

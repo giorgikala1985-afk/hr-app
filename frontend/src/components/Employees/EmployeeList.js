@@ -4,12 +4,17 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Employees.css';
 import '../Options/Options.css';
+import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 
-const DEFAULT_COLUMN_KEYS = ['photo', 'name', 'personalId', 'birthdate', 'position', 'salary', 'otRate', 'account', 'startDate', 'endDate'];
+// Widths for always-visible columns: name (0), salary (1)
+const EMP_STATIC_WIDTHS = [160, 120];
+
+const DEFAULT_COLUMN_KEYS = ['photo', 'name', 'personalId', 'birthdate', 'position', 'salary', 'otRate', 'account', 'startDate', 'endDate', 'pension'];
 const DEFAULT_VISIBLE = new Set(DEFAULT_COLUMN_KEYS);
 
 function EmployeeList() {
   const { t } = useLanguage();
+  const { colWidths: empColWidths, onResizeMouseDown: empOnResizeMouseDown } = useColumnResize(EMP_STATIC_WIDTHS);
 
   const ALL_COLUMNS = [
     { key: 'photo', label: t('col.photo'), hideable: true },
@@ -22,6 +27,7 @@ function EmployeeList() {
     { key: 'account', label: t('col.account'), hideable: true },
     { key: 'startDate', label: t('col.startDate'), hideable: true },
     { key: 'endDate', label: t('col.endDate'), hideable: true },
+    { key: 'pension', label: 'Pension', hideable: true },
   ];
 
   const [employees, setEmployees] = useState([]);
@@ -284,7 +290,12 @@ function EmployeeList() {
 
       {employees.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">👥</div>
+          <div className="empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
           <h3>{t('emp.noEmployees')}</h3>
           <p>{t('emp.noEmployeesDesc')}</p>
           <button onClick={() => navigate('/employees/new')} className="btn-primary">
@@ -304,15 +315,16 @@ function EmployeeList() {
                   />
                 </th>
                 {isCol('photo') && <th>{t('col.photo')}</th>}
-                {isCol('name') && <th>{t('col.name')}</th>}
+                {isCol('name') && <th style={{ position: 'relative', width: empColWidths[0], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('col.name')}<div onMouseDown={e => empOnResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>}
                 {isCol('personalId') && <th>{t('col.personalId')}</th>}
                 {isCol('birthdate') && <th>{t('col.birthdate')}</th>}
                 {isCol('position') && <th>{t('col.position')}</th>}
-                {isCol('salary') && <th>{t('col.salary')}</th>}
+                {isCol('salary') && <th style={{ position: 'relative', width: empColWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('col.salary')}<div onMouseDown={e => empOnResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>}
                 {isCol('otRate') && <th>{t('col.otRate')}</th>}
                 {isCol('account') && <th>{t('col.account')}</th>}
                 {isCol('startDate') && <th>{t('col.startDate')}</th>}
                 {isCol('endDate') && <th>{t('col.endDate')}</th>}
+                {isCol('pension') && <th>Pension</th>}
                 <th>{t('col.actions')}</th>
               </tr>
               <tr className="filter-row">
@@ -333,6 +345,7 @@ function EmployeeList() {
                     <option value="inactive">{t('emp.ended')}</option>
                   </select>
                 </th>}
+                {isCol('pension') && <th></th>}
                 <th>{hasFilters && <button className="btn-clear-filters" onClick={clearFilters} title={t('action.clearFilters')}>&times;</button>}</th>
               </tr>
             </thead>
@@ -358,18 +371,19 @@ function EmployeeList() {
                     </td>
                   )}
                   {isCol('name') && (
-                    <td className="emp-name">
+                    <td className="emp-name" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                       {emp.first_name} {emp.last_name}
                     </td>
                   )}
                   {isCol('personalId') && <td>{emp.personal_id}</td>}
                   {isCol('birthdate') && <td>{formatDate(emp.birthdate)}</td>}
                   {isCol('position') && <td><span className="position-badge">{emp.position}</span></td>}
-                  {isCol('salary') && <td className="salary">{formatCurrency(emp.salary)}</td>}
+                  {isCol('salary') && <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(emp.salary)}</td>}
                   {isCol('otRate') && <td className="salary">{formatCurrency(emp.overtime_rate)}</td>}
                   {isCol('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
                   {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
                   {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="position-badge">{t('emp.active')}</span>}</td>}
+                  {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? '✔' : '—'}</td>}
                   <td>
                     <div className="action-btns">
                       <button
@@ -377,42 +391,67 @@ function EmployeeList() {
                         className="btn-icon"
                         title={t('action.edit')}
                       >
-                        ✏️
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
                       </button>
                       <button
                         onClick={() => navigate(`/employees/${emp.id}/edit?tab=salary`)}
                         className="btn-icon"
                         title={t('action.salaryChanges')}
                       >
-                        💲
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="12" y1="1" x2="12" y2="23"/>
+                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                        </svg>
                       </button>
                       <button
                         onClick={() => navigate(`/employees/${emp.id}/edit?tab=account`)}
                         className="btn-icon"
                         title={t('action.accountChanges')}
                       >
-                        🏦
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="11" width="18" height="10" rx="2"/>
+                          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                          <line x1="12" y1="15" x2="12" y2="17"/>
+                        </svg>
                       </button>
                       <button
                         onClick={() => navigate(`/employees/${emp.id}/edit?tab=documents`)}
                         className="btn-icon"
                         title={t('action.documents')}
                       >
-                        📄
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                          <polyline points="14,2 14,8 20,8"/>
+                          <line x1="16" y1="13" x2="8" y2="13"/>
+                          <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
                       </button>
                       <button
                         onClick={() => navigate(`/employees/${emp.id}/edit?tab=members`)}
                         className="btn-icon"
                         title={t('action.members')}
                       >
-                        🏋️
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="9" cy="7" r="4"/>
+                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
                       </button>
                       <button
                         onClick={() => handleDelete(emp)}
                         className="btn-icon btn-delete"
                         title={t('action.delete')}
                       >
-                        🗑️
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="3,6 5,6 21,6"/>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                          <path d="M10 11v6"/><path d="M14 11v6"/>
+                          <path d="M9 6V4h6v2"/>
+                        </svg>
                       </button>
                     </div>
                   </td>

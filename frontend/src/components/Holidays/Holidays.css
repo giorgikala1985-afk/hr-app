@@ -56,17 +56,22 @@
   font-size: 14px;
 }
 
-.hol-form-group input {
+.hol-form-group input,
+.hol-form-group select {
   width: 100%;
   padding: 10px 14px;
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 15px;
+  font-family: inherit;
   transition: border-color 0.3s;
   box-sizing: border-box;
+  background: white;
+  color: #111827;
 }
 
-.hol-form-group input:focus {
+.hol-form-group input:focus,
+.hol-form-group select:focus {
   outline: none;
   border-color: #0f3460;
 }
@@ -104,6 +109,7 @@
   border: 2px solid #e0e0e0;
   border-radius: 8px;
   font-size: 14px;
+  font-family: inherit;
   color: #333;
   background: white;
   cursor: pointer;

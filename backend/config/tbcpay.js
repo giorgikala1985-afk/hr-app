@@ -52,7 +52,7 @@ async function createPayment({ amount, currency, returnUrl, callbackUrl, merchan
       callbackUrl: callbackUrl,
       merchantPaymentId: merchantPaymentId,
       language: 'EN',
-      description: description || 'HR Manager Subscription',
+      description: description || 'Finpilot Subscription',
     },
     {
       headers: {

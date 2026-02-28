@@ -1,6 +1,14 @@
 /* Global App Styles */
+:root {
+  --font-mono: 'ui-monospace', 'Cascadia Code', 'SF Mono', 'Fira Mono', 'Menlo', 'Consolas', monospace;
+}
+
 * {
   box-sizing: border-box;
+}
+
+input, select, textarea, button {
+  font-family: inherit;
 }
 
 .loading-screen {

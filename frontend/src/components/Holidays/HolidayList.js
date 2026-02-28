@@ -2,9 +2,30 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Holidays.css';
+import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+
+const HOL_DEFAULT_WIDTHS = [140, 260, 80];
+
+const HOLIDAY_NAMES = [
+  'New Year',
+  'Christmas',
+  'Easter',
+  'Heavy Monday',
+  'Didgori Battle',
+  "Developer's Birthday / Stalin's Death",
+  'Custom',
+];
+
+const HOLIDAY_DATES = {
+  'New Year': '01-01',
+  'Christmas': '01-07',
+  'Didgori Battle': '08-12',
+  "Developer's Birthday / Stalin's Death": '03-05',
+};
 
 function HolidayList() {
   const { t } = useLanguage();
+  const { colWidths, onResizeMouseDown } = useColumnResize(HOL_DEFAULT_WIDTHS);
   const currentYear = new Date().getFullYear();
 
   const [holidays, setHolidays] = useState([]);
@@ -15,6 +36,7 @@ function HolidayList() {
 
   const [formDate, setFormDate] = useState('');
   const [formName, setFormName] = useState('');
+  const [formCustomName, setFormCustomName] = useState('');
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState({ date: '', name: '' });
@@ -42,12 +64,13 @@ function HolidayList() {
     setSuccess('');
     setSaving(true);
 
+    const finalName = formName === 'Custom' ? formCustomName : formName;
     try {
       if (editId) {
-        await api.put(`/holidays/${editId}`, { date: formDate, name: formName });
+        await api.put(`/holidays/${editId}`, { date: formDate, name: finalName });
         setSuccess(t('hol.updatedSuccess'));
       } else {
-        await api.post('/holidays', { date: formDate, name: formName });
+        await api.post('/holidays', { date: formDate, name: finalName });
         setSuccess(t('hol.addedSuccess'));
       }
       resetForm();
@@ -62,7 +85,9 @@ function HolidayList() {
   const handleEdit = (holiday) => {
     setEditId(holiday.id);
     setFormDate(holiday.date);
-    setFormName(holiday.name);
+    const isPreset = HOLIDAY_NAMES.filter(n => n !== 'Custom').includes(holiday.name);
+    setFormName(isPreset ? holiday.name : 'Custom');
+    setFormCustomName(isPreset ? '' : holiday.name);
   };
 
   const handleDelete = async (holiday) => {
@@ -83,6 +108,7 @@ function HolidayList() {
     setEditId(null);
     setFormDate('');
     setFormName('');
+    setFormCustomName('');
   };
 
   const formatDate = (dateStr) => {
@@ -144,15 +170,36 @@ function HolidayList() {
             </div>
             <div className="hol-form-group">
               <label htmlFor="holName">{t('hol.name')}</label>
-              <input
+              <select
                 id="holName"
-                type="text"
                 value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t('hol.namePlaceholder')}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormName(val);
+                  setFormCustomName('');
+                  if (HOLIDAY_DATES[val]) {
+                    setFormDate(`${year}-${HOLIDAY_DATES[val]}`);
+                  }
+                }}
                 required
-              />
+              >
+                <option value="">— Select reason —</option>
+                {HOLIDAY_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
             </div>
+            {formName === 'Custom' && (
+              <div className="hol-form-group">
+                <label htmlFor="holCustomName">Custom Name *</label>
+                <input
+                  id="holCustomName"
+                  type="text"
+                  value={formCustomName}
+                  onChange={(e) => setFormCustomName(e.target.value)}
+                  placeholder="e.g. Company Anniversary"
+                  required
+                />
+              </div>
+            )}
             <div className="hol-form-actions">
               <button type="submit" className="btn-primary btn-sm" disabled={saving}>
                 {saving ? t('hol.saving') : editId ? t('hol.update') : t('hol.addBtn')}
@@ -185,12 +232,15 @@ function HolidayList() {
             </div>
           ) : (
             <div className="hol-table-wrapper">
-              <table className="emp-table">
+              <table className="emp-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+                <colgroup>
+                  {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+                </colgroup>
                 <thead>
                   <tr>
-                    <th>{t('hol.date')}</th>
-                    <th>{t('hol.nameColumn')}</th>
-                    <th>{t('col.actions')}</th>
+                    <th style={{ position: 'relative', width: colWidths[0], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('hol.date')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                    <th style={{ position: 'relative', width: colWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('hol.nameColumn')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                    <th style={{ position: 'relative', width: colWidths[2], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('col.actions')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
                   </tr>
                   <tr className="filter-row">
                     <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.date} onChange={(e) => updateFilter('date', e.target.value)} /></th>
@@ -201,23 +251,24 @@ function HolidayList() {
                 <tbody>
                   {filteredHolidays.map((hol) => (
                     <tr key={hol.id}>
-                      <td className="hol-date">{formatDate(hol.date)}</td>
-                      <td>{hol.name}</td>
-                      <td>
+                      <td className="hol-date" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatDate(hol.date)}</td>
+                      <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{hol.name}</td>
+                      <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                         <div className="action-btns">
                           <button
                             onClick={() => handleEdit(hol)}
                             className="btn-icon"
                             title="Edit"
+                            style={{ color: '#3b82f6' }}
                           >
-                            ✏️
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                           </button>
                           <button
                             onClick={() => handleDelete(hol)}
                             className="btn-icon btn-delete"
                             title="Delete"
                           >
-                            🗑️
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                           </button>
                         </div>
                       </td>

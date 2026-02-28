@@ -53,7 +53,7 @@ router.post('/create-payment', authenticateUser, async (req, res) => {
       returnUrl: `${FRONTEND_URL}/billing?success=true`,
       callbackUrl: callbackUrl,
       merchantPaymentId: merchantPaymentId,
-      description: 'HR Manager Monthly Sub',
+      description: 'Finpilot Monthly Sub',
     });
 
     // Upsert a pending subscription record

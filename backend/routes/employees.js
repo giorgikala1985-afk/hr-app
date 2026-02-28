@@ -162,10 +162,10 @@ router.get('/:id', async (req, res) => {
 // POST /api/employees - create
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension, personal_email, department } = req.body;
 
     // Validate required fields
-    if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !overtime_rate || !start_date) {
+    if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !start_date) {
       return res.status(400).json({ error: 'All fields are required (end date is optional)' });
     }
 
@@ -185,12 +185,14 @@ router.post('/', upload.single('photo'), async (req, res) => {
         birthdate,
         position: position.trim(),
         salary: parseFloat(salary),
-        overtime_rate: parseFloat(overtime_rate),
+        overtime_rate: overtime_rate ? parseFloat(overtime_rate) : 0,
         start_date,
         end_date: end_date || null,
         account_number: account_number ? account_number.trim() : null,
         tax_code: tax_code ? tax_code.trim() : null,
         pension: pension === 'true' || pension === true,
+        personal_email: personal_email ? personal_email.trim() : null,
+        department: department ? department.trim() : null,
         photo_url
       })
       .select()
@@ -212,9 +214,9 @@ router.post('/', upload.single('photo'), async (req, res) => {
 router.put('/:id', upload.single('photo'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension, personal_email, department } = req.body;
 
-    if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !overtime_rate || !start_date) {
+    if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !start_date) {
       return res.status(400).json({ error: 'All fields are required (end date is optional)' });
     }
 
@@ -248,12 +250,14 @@ router.put('/:id', upload.single('photo'), async (req, res) => {
         birthdate,
         position: position.trim(),
         salary: parseFloat(salary),
-        overtime_rate: parseFloat(overtime_rate),
+        overtime_rate: overtime_rate ? parseFloat(overtime_rate) : existing.overtime_rate,
         start_date,
         end_date: end_date || null,
         account_number: account_number ? account_number.trim() : null,
         tax_code: tax_code ? tax_code.trim() : null,
         pension: pension === 'true' || pension === true,
+        personal_email: personal_email ? personal_email.trim() : null,
+        department: department ? department.trim() : null,
         photo_url,
         updated_at: new Date().toISOString()
       })
