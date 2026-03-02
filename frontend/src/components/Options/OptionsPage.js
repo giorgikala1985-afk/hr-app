@@ -115,6 +115,13 @@ function OptionsPage() {
         <circle cx="12" cy="7" r="4"/>
       </svg>
     )},
+    { key: 'about', label: 'About', icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="12" y1="8" x2="12" y2="12"/>
+        <line x1="12" y1="16" x2="12.01" y2="16"/>
+      </svg>
+    )},
   ];
 
   return (
@@ -151,6 +158,15 @@ function OptionsPage() {
         {activeTab === 'language' && <LanguageSettings />}
         {activeTab === 'navorder' && <NavOrderSettings />}
         {activeTab === 'users' && <UsersSettings />}
+        {activeTab === 'about' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 16, textAlign: 'center' }}>
+            <div style={{ fontSize: 72 }}>🍾</div>
+            <p style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0 }}>
+              A Giorgi Kalandadze &amp; Archil Chogovadze Product
+            </p>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>© 2026 HR Management System</p>
+          </div>
+        )}
       </main>
     </div>
   );
