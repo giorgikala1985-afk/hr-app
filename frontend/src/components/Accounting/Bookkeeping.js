@@ -26,6 +26,7 @@ function Bookkeeping() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editTxId, setEditTxId] = useState(null); // null = new, string = editing
   const [saving, setSaving] = useState(false);
   const [filterText, setFilterText] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
@@ -108,6 +109,7 @@ function Bookkeeping() {
   const totalCredit = filtered.reduce((s, rows) => s + rows.reduce((ss, r) => ss + (r.credit || 0), 0), 0);
 
   const openNewEntry = () => {
+    setEditTxId(null);
     setFormDate(new Date().toISOString().slice(0, 10));
     setFormDesc('');
     setFormDebit('');
@@ -115,6 +117,24 @@ function Bookkeeping() {
     setFormAmount('');
     setFormAgentId('');
     setAgentSearch('');
+    setAgentOpen(false);
+    setFormError('');
+    setShowForm(true);
+  };
+
+  const openEditEntry = (rows) => {
+    const debitRow  = rows.find(r => r.debit > 0)  || rows[0];
+    const creditRow = rows.find(r => r.credit > 0) || rows[1];
+    const agentId   = debitRow?.agent_id || '';
+    const agent     = agents.find(a => a.id === agentId);
+    setEditTxId(rows[0].transaction_id);
+    setFormDate(rows[0].date || new Date().toISOString().slice(0, 10));
+    setFormDesc(rows[0].description || '');
+    setFormDebit(debitRow?.account || '');
+    setFormCredit(creditRow?.account || '');
+    setFormAmount(debitRow?.debit ? String(debitRow.debit) : '');
+    setFormAgentId(agentId);
+    setAgentSearch(agent ? agent.name : '');
     setAgentOpen(false);
     setFormError('');
     setShowForm(true);
@@ -128,8 +148,11 @@ function Bookkeeping() {
     const amount = parseFloat(formAmount);
     if (!amount || amount <= 0) { setFormError('Amount must be greater than 0.'); return; }
     setSaving(true); setFormError('');
-    const transaction_id = uuidv4();
+    const transaction_id = editTxId || uuidv4();
     try {
+      if (editTxId) {
+        await api.delete(`/accounting/bookkeeping/transaction/${editTxId}`);
+      }
       await api.post('/accounting/bookkeeping/bulk', {
         entries: [
           { transaction_id, date: formDate, description: formDesc.trim(), account: formDebit.trim(), debit: amount, credit: 0, agent_id: formAgentId || null },
@@ -137,6 +160,7 @@ function Bookkeeping() {
         ],
       });
       setShowForm(false);
+      setEditTxId(null);
       loadEntries();
     } catch (err) {
       setFormError(err.response?.data?.error || 'Failed to save.');
@@ -282,15 +306,26 @@ function Bookkeeping() {
                             <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#b91c1c', fontWeight: r.credit > 0 ? 600 : 400 }}>{r.credit > 0 ? fmt(r.credit) : ''}</td>
                             <td style={td}>
                               {i === 0 && (
-                                <button onClick={() => handleDeleteTransaction(txId)} title="Delete"
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }}
-                                  onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                                  onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                                    <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                                  </svg>
-                                </button>
+                                <div style={{ display: 'flex', gap: 2 }}>
+                                  <button onClick={() => openEditEntry(rows)} title="Edit"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }}
+                                    onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'}
+                                    onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                  </button>
+                                  <button onClick={() => handleDeleteTransaction(txId)} title="Delete"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }}
+                                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                                    onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                      <path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                                    </svg>
+                                  </button>
+                                </div>
                               )}
                             </td>
                           </tr>
@@ -415,7 +450,7 @@ function Bookkeeping() {
       {showForm && (
         <div style={overlay} onClick={() => setShowForm(false)}>
           <div style={{ ...modal, maxWidth: 660 }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: '#1e293b' }}>New Journal Entry</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: '#1e293b' }}>{editTxId ? 'Edit Journal Entry' : 'New Journal Entry'}</h3>
             {formError && <div style={{ ...errBox, marginBottom: 14 }}>{formError}</div>}
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 20 }}>
@@ -491,7 +526,7 @@ function Bookkeeping() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <button onClick={() => setShowForm(false)} style={cancelBtn}>Cancel</button>
               <button onClick={handleSaveEntry} disabled={saving} style={{ ...primaryBtn, opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>
-                {saving ? 'Saving…' : 'Post Entry'}
+                {saving ? 'Saving…' : editTxId ? 'Save Changes' : 'Post Entry'}
               </button>
             </div>
           </div>
