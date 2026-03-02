@@ -31,11 +31,17 @@ function Bookkeeping() {
   const [filterMonth, setFilterMonth] = useState('');
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [formDesc, setFormDesc] = useState('');
-  const [formLines, setFormLines] = useState([{ ...EMPTY_LINE }, { ...EMPTY_LINE }]);
+  const [formDebit, setFormDebit] = useState('');
+  const [formCredit, setFormCredit] = useState('');
+  const [formAmount, setFormAmount] = useState('');
+  const [formAgentId, setFormAgentId] = useState('');
+  const [agentSearch, setAgentSearch] = useState('');
+  const [agentOpen, setAgentOpen] = useState(false);
   const [formError, setFormError] = useState('');
 
   // Accounts state
   const [accounts, setAccounts] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [accLoading, setAccLoading] = useState(false);
   const [accError, setAccError] = useState('');
   const [showAccForm, setShowAccForm] = useState(false);
@@ -43,7 +49,7 @@ function Bookkeeping() {
   const [editAccId, setEditAccId] = useState(null);
   const [accSaving, setAccSaving] = useState(false);
 
-  useEffect(() => { loadEntries(); loadAccounts(); }, []);
+  useEffect(() => { loadEntries(); loadAccounts(); loadAgents(); }, []);
 
   const loadEntries = async () => {
     setLoading(true);
@@ -70,6 +76,13 @@ function Bookkeeping() {
     }
   };
 
+  const loadAgents = async () => {
+    try {
+      const res = await api.get('/accounting/agents');
+      setAgents(res.data.agents || []);
+    } catch {}
+  };
+
   // ── JOURNAL ──────────────────────────────────────────
 
   const grouped = entries.reduce((acc, e) => {
@@ -94,20 +107,15 @@ function Bookkeeping() {
   const totalDebit = filtered.reduce((s, rows) => s + rows.reduce((ss, r) => ss + (r.debit || 0), 0), 0);
   const totalCredit = filtered.reduce((s, rows) => s + rows.reduce((ss, r) => ss + (r.credit || 0), 0), 0);
 
-  const updateLine = (i, field, value) =>
-    setFormLines(prev => { const n = [...prev]; n[i] = { ...n[i], [field]: value }; return n; });
-
-  const addLine = () => setFormLines(prev => [...prev, { ...EMPTY_LINE }]);
-  const removeLine = (i) => { if (formLines.length > 2) setFormLines(prev => prev.filter((_, idx) => idx !== i)); };
-
-  const lineDebitTotal = formLines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0);
-  const lineCreditTotal = formLines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);
-  const isBalanced = Math.abs(lineDebitTotal - lineCreditTotal) < 0.01;
-
   const openNewEntry = () => {
     setFormDate(new Date().toISOString().slice(0, 10));
     setFormDesc('');
-    setFormLines([{ ...EMPTY_LINE }, { ...EMPTY_LINE }]);
+    setFormDebit('');
+    setFormCredit('');
+    setFormAmount('');
+    setFormAgentId('');
+    setAgentSearch('');
+    setAgentOpen(false);
     setFormError('');
     setShowForm(true);
   };
@@ -115,17 +123,18 @@ function Bookkeeping() {
   const handleSaveEntry = async () => {
     if (!formDate) { setFormError('Date is required.'); return; }
     if (!formDesc.trim()) { setFormError('Description is required.'); return; }
-    const validLines = formLines.filter(l => l.account.trim() && (parseFloat(l.debit) > 0 || parseFloat(l.credit) > 0));
-    if (validLines.length < 2) { setFormError('At least 2 lines with account and amount are required.'); return; }
-    if (!isBalanced) { setFormError('Debits and credits must be equal.'); return; }
+    if (!formDebit.trim()) { setFormError('Debit account is required.'); return; }
+    if (!formCredit.trim()) { setFormError('Credit account is required.'); return; }
+    const amount = parseFloat(formAmount);
+    if (!amount || amount <= 0) { setFormError('Amount must be greater than 0.'); return; }
     setSaving(true); setFormError('');
     const transaction_id = uuidv4();
     try {
       await api.post('/accounting/bookkeeping/bulk', {
-        entries: validLines.map(l => ({
-          transaction_id, date: formDate, description: formDesc.trim(),
-          account: l.account.trim(), debit: parseFloat(l.debit) || 0, credit: parseFloat(l.credit) || 0,
-        })),
+        entries: [
+          { transaction_id, date: formDate, description: formDesc.trim(), account: formDebit.trim(), debit: amount, credit: 0, agent_id: formAgentId || null },
+          { transaction_id, date: formDate, description: formDesc.trim(), account: formCredit.trim(), debit: 0, credit: amount, agent_id: formAgentId || null },
+        ],
       });
       setShowForm(false);
       loadEntries();
@@ -426,49 +435,64 @@ function Bookkeeping() {
               {accountNames.map((n, i) => <option key={i} value={n} />)}
             </datalist>
 
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden', marginBottom: 14 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 32px', background: '#f8fafc', padding: '8px 12px', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                <span>Account</span>
-                <span style={{ textAlign: 'right', color: '#16a34a' }}>Debit</span>
-                <span style={{ textAlign: 'right', color: '#dc2626' }}>Credit</span>
-                <span></span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+              <div>
+                <label style={{ ...lbl, color: '#15803d' }}>Debit Account</label>
+                <input list="bk-accounts" value={formDebit} onChange={e => setFormDebit(e.target.value)}
+                  placeholder="Account to debit" style={{ ...inpStyle, borderColor: '#bbf7d0', color: '#15803d' }} />
               </div>
-              {formLines.map((line, i) => (
-                <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 32px', borderTop: '1px solid #f1f5f9', padding: '6px 12px', alignItems: 'center' }}>
-                  <input list="bk-accounts" value={line.account} onChange={e => updateLine(i, 'account', e.target.value)}
-                    placeholder="Account name" style={{ ...inpStyle, borderRadius: 6, fontSize: 13 }} />
-                  <input type="number" min="0" step="0.01" value={line.debit} onChange={e => updateLine(i, 'debit', e.target.value)}
-                    placeholder="0.00" style={{ ...inpStyle, borderRadius: 6, fontSize: 13, textAlign: 'right', color: '#15803d' }} />
-                  <input type="number" min="0" step="0.01" value={line.credit} onChange={e => updateLine(i, 'credit', e.target.value)}
-                    placeholder="0.00" style={{ ...inpStyle, borderRadius: 6, fontSize: 13, textAlign: 'right', color: '#b91c1c' }} />
-                  <button onClick={() => removeLine(i)} disabled={formLines.length <= 2}
-                    style={{ background: 'none', border: 'none', cursor: formLines.length <= 2 ? 'default' : 'pointer', color: formLines.length <= 2 ? '#e2e8f0' : '#94a3b8', fontSize: 16 }}>×</button>
-                </div>
-              ))}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 32px', borderTop: '2px solid #e2e8f0', padding: '8px 12px', background: '#f8fafc' }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b' }}>Total</span>
-                <span style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 13, color: '#15803d' }}>{fmt(lineDebitTotal)}</span>
-                <span style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, fontSize: 13, color: '#b91c1c' }}>{fmt(lineCreditTotal)}</span>
-                <span></span>
+              <div>
+                <label style={{ ...lbl, color: '#b91c1c' }}>Credit Account</label>
+                <input list="bk-accounts" value={formCredit} onChange={e => setFormCredit(e.target.value)}
+                  placeholder="Account to credit" style={{ ...inpStyle, borderColor: '#fca5a5', color: '#b91c1c' }} />
+              </div>
+              <div>
+                <label style={lbl}>Amount *</label>
+                <input type="number" min="0" step="0.01" value={formAmount} onChange={e => setFormAmount(e.target.value)}
+                  placeholder="0.00" style={{ ...inpStyle, fontFamily: 'monospace', fontSize: 16, fontWeight: 700 }} />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <label style={lbl}>Agent</label>
+                <input
+                  value={agentSearch}
+                  onChange={e => { setAgentSearch(e.target.value); setAgentOpen(true); if (!e.target.value) setFormAgentId(''); }}
+                  onFocus={() => setAgentOpen(true)}
+                  onBlur={() => setTimeout(() => setAgentOpen(false), 150)}
+                  placeholder="Search agent…"
+                  style={inpStyle}
+                />
+                {agentOpen && (
+                  <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: 180, overflowY: 'auto' }}>
+                    {agents
+                      .filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase()))
+                      .map(a => (
+                        <div key={a.id}
+                          onMouseDown={() => { setFormAgentId(a.id); setAgentSearch(a.name); setAgentOpen(false); }}
+                          style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 14, borderBottom: '1px solid #f1f5f9' }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f0f4ff'}
+                          onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+                        >
+                          <span style={{ fontWeight: 600 }}>{a.name}</span>
+                          {a.type && <span style={{ color: '#94a3b8', fontSize: 12, marginLeft: 8 }}>{a.type}</span>}
+                        </div>
+                      ))}
+                    {agents.filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase())).length === 0 && (
+                      <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>No agents found</div>
+                    )}
+                  </div>
+                )}
+                {formAgentId && (
+                  <button type="button" onClick={() => { setFormAgentId(''); setAgentSearch(''); }}
+                    style={{ position: 'absolute', right: 8, top: 30, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 16 }}>×</button>
+                )}
               </div>
             </div>
 
-            <div style={{ marginBottom: 20, fontSize: 13 }}>
-              {isBalanced && lineDebitTotal > 0
-                ? <span style={{ color: '#16a34a', fontWeight: 600 }}>✓ Balanced</span>
-                : <span style={{ color: '#dc2626', fontWeight: 600 }}>Difference: {fmt(Math.abs(lineDebitTotal - lineCreditTotal))}</span>}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <button onClick={addLine} style={{ background: 'none', border: '1px dashed #cbd5e1', borderRadius: 7, padding: '6px 14px', color: '#64748b', cursor: 'pointer', fontSize: 13 }}>
-                + Add line
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button onClick={() => setShowForm(false)} style={cancelBtn}>Cancel</button>
+              <button onClick={handleSaveEntry} disabled={saving} style={{ ...primaryBtn, opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>
+                {saving ? 'Saving…' : 'Post Entry'}
               </button>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button onClick={() => setShowForm(false)} style={cancelBtn}>Cancel</button>
-                <button onClick={handleSaveEntry} disabled={saving} style={{ ...primaryBtn, opacity: saving ? 0.7 : 1, cursor: saving ? 'not-allowed' : 'pointer' }}>
-                  {saving ? 'Saving…' : 'Post Entry'}
-                </button>
-              </div>
             </div>
           </div>
         </div>

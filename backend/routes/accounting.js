@@ -286,6 +286,7 @@ router.post('/bookkeeping/bulk', async (req, res) => {
       account: e.account,
       debit: parseFloat(e.debit) || 0,
       credit: parseFloat(e.credit) || 0,
+      agent_id: e.agent_id || null,
     }));
     const { data, error } = await supabase.from('bookkeeping_entries').insert(rows).select();
     if (error) throw error;
