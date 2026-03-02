@@ -79,7 +79,7 @@ function Bookkeeping() {
   const loadAgents = async () => {
     try {
       const res = await api.get('/accounting/agents');
-      setAgents(res.data.agents || []);
+      setAgents(res.data.records || []);
     } catch {}
   };
 
