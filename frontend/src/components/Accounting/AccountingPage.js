@@ -53,12 +53,12 @@ const ICONS = {
 };
 
 const TABS = [
-  { key: 'purchases',      label: 'Purchases',       icon: ICONS.purchases },
+  { key: 'bookkeeping',    label: 'Bookkeeping',      icon: ICONS.bookkeeping },
+  { key: 'purchases',      label: 'Purchases',        icon: ICONS.purchases },
   { key: 'sales',          label: 'Sales',            icon: ICONS.sales },
   { key: 'invoices',       label: 'Invoices',         icon: ICONS.invoices },
   { key: 'salary-accrual', label: 'Salaries',         icon: ICONS.salaryAccrual },
   { key: 'agents',         label: 'Agents',           icon: ICONS.agents },
-  { key: 'bookkeeping',   label: 'Bookkeeping',      icon: ICONS.bookkeeping },
 ];
 
 const CHEVRON_LEFT = (

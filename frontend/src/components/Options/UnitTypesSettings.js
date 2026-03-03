@@ -14,160 +14,149 @@ function UnitTypesSettings() {
   const [editName, setEditName] = useState('');
   const [editDirection, setEditDirection] = useState('deduction');
 
-  useEffect(() => {
-    loadUnitTypes();
-  }, []);
+  useEffect(() => { loadUnitTypes(); }, []);
 
   const loadUnitTypes = async () => {
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       const res = await api.get('/units');
       setUnitTypes(res.data.unit_types);
-    } catch (err) {
-      setError(t('ut.loadFailed'));
-    } finally {
-      setLoading(false);
-    }
+    } catch { setError(t('ut.loadFailed')); }
+    finally { setLoading(false); }
   };
 
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!name.trim()) return;
-    setSaving(true);
-    setError('');
+    setSaving(true); setError('');
     try {
       await api.post('/units', { name: name.trim(), direction });
-      setName('');
-      setDirection('deduction');
-      loadUnitTypes();
-    } catch (err) {
-      setError(err.response?.data?.error || t('ut.createFailed'));
-    } finally {
-      setSaving(false);
-    }
+      setName(''); setDirection('deduction'); loadUnitTypes();
+    } catch (err) { setError(err.response?.data?.error || t('ut.createFailed')); }
+    finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm(t('ut.deleteConfirm'))) return;
     setError('');
-    try {
-      await api.delete(`/units/${id}`);
-      loadUnitTypes();
-    } catch (err) {
-      setError(t('ut.deleteFailed'));
-    }
+    try { await api.delete(`/units/${id}`); loadUnitTypes(); }
+    catch { setError(t('ut.deleteFailed')); }
   };
 
-  const startEdit = (ut) => {
-    setEditId(ut.id);
-    setEditName(ut.name);
-    setEditDirection(ut.direction);
-  };
-
-  const cancelEdit = () => {
-    setEditId(null);
-    setEditName('');
-    setEditDirection('deduction');
-  };
+  const startEdit = (ut) => { setEditId(ut.id); setEditName(ut.name); setEditDirection(ut.direction); };
+  const cancelEdit = () => { setEditId(null); setEditName(''); setEditDirection('deduction'); };
 
   const handleUpdate = async (id) => {
     if (!editName.trim()) return;
     setError('');
     try {
       await api.put(`/units/${id}`, { name: editName.trim(), direction: editDirection });
-      setEditId(null);
-      loadUnitTypes();
-    } catch (err) {
-      setError(err.response?.data?.error || t('ut.updateFailed'));
-    }
+      setEditId(null); loadUnitTypes();
+    } catch (err) { setError(err.response?.data?.error || t('ut.updateFailed')); }
   };
 
+  const DirToggle = ({ value, onChange }) => (
+    <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 3, gap: 2, flexShrink: 0 }}>
+      {[{ key: 'deduction', label: '− Deduct', color: '#dc2626', bg: '#fef2f2' }, { key: 'addition', label: '+ Add', color: '#16a34a', bg: '#f0fdf4' }].map(opt => (
+        <button key={opt.key} type="button" onClick={() => onChange(opt.key)} style={{
+          padding: '5px 12px', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+          background: value === opt.key ? opt.bg : 'transparent',
+          color: value === opt.key ? opt.color : '#94a3b8',
+          boxShadow: value === opt.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+        }}>{opt.label}</button>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="unit-types-settings">
-      <h3>{t('ut.title')}</h3>
-      <p className="pagination-desc">
-        {t('ut.desc')}
-      </p>
+    <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      {/* Header */}
+      <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', background: '#fafbfc', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>{t('ut.title')}</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>{t('ut.desc')}</div>
+        </div>
+        <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: '#64748b', background: '#f1f5f9', borderRadius: 20, padding: '3px 10px' }}>
+          {unitTypes.length} {unitTypes.length === 1 ? 'item' : 'items'}
+        </div>
+      </div>
 
-      {error && <div className="msg-error" style={{ marginBottom: 16 }}>{error}</div>}
-
-      <form className="ut-add-form" onSubmit={handleAdd}>
+      {/* Add form */}
+      <form onSubmit={handleAdd} style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', display: 'flex', gap: 10, flexWrap: 'wrap', background: '#fff', alignItems: 'center' }}>
         <input
           type="text"
           placeholder={t('ut.placeholder')}
           value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="ut-input"
+          onChange={e => setName(e.target.value)}
+          style={{ flex: 1, minWidth: 180, padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box' }}
+          onFocus={e => e.target.style.borderColor = '#ea580c'}
+          onBlur={e => e.target.style.borderColor = '#e2e8f0'}
         />
-        <div className="ut-direction-toggle">
-          <button
-            type="button"
-            className={`ut-dir-btn ${direction === 'deduction' ? 'ut-dir-active-minus' : ''}`}
-            onClick={() => setDirection('deduction')}
-          >
-            {t('ut.deduction')}
-          </button>
-          <button
-            type="button"
-            className={`ut-dir-btn ${direction === 'addition' ? 'ut-dir-active-plus' : ''}`}
-            onClick={() => setDirection('addition')}
-          >
-            {t('ut.addition')}
-          </button>
-        </div>
-        <button type="submit" className="btn-primary btn-sm" disabled={saving || !name.trim()}>
-          {saving ? t('ut.adding') : t('ut.add')}
+        <DirToggle value={direction} onChange={setDirection} />
+        <button
+          type="submit"
+          disabled={saving || !name.trim()}
+          style={{ padding: '9px 18px', background: saving || !name.trim() ? '#e2e8f0' : '#ea580c', color: saving || !name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+        >
+          {saving ? t('ut.adding') : `+ ${t('ut.add')}`}
         </button>
       </form>
 
+      {error && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13 }}>{error}</div>}
+
+      {/* List */}
       {loading ? (
-        <div style={{ padding: '20px 0', color: '#888' }}>{t('ut.loading')}</div>
+        <div style={{ padding: '32px 24px', color: '#94a3b8', fontSize: 13 }}>Loading…</div>
       ) : unitTypes.length === 0 ? (
-        <div className="ut-empty">{t('ut.empty')}</div>
+        <div style={{ padding: '40px 24px', textAlign: 'center', color: '#94a3b8' }}>
+          <div style={{ fontSize: 32, marginBottom: 8 }}>⊞</div>
+          <div style={{ fontSize: 13, fontWeight: 500 }}>No unit types yet</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>Add your first unit type above.</div>
+        </div>
       ) : (
-        <div className="ut-list">
-          {unitTypes.map((ut) => (
-            <div key={ut.id} className="ut-item">
+        <div>
+          {unitTypes.map((ut, i) => (
+            <div key={ut.id} style={{ padding: '12px 24px', borderBottom: i < unitTypes.length - 1 ? '1px solid #f8fafc' : 'none', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.1s' }}
+              onMouseEnter={e => { if (editId !== ut.id) e.currentTarget.style.background = '#f8fafc'; }}
+              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+            >
               {editId === ut.id ? (
-                <div className="ut-edit-row">
+                <>
                   <input
                     type="text"
                     value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="ut-input"
+                    onChange={e => setEditName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleUpdate(ut.id); if (e.key === 'Escape') cancelEdit(); }}
+                    autoFocus
+                    style={{ flex: 1, padding: '7px 10px', border: '1px solid #ea580c', borderRadius: 7, fontSize: 13, outline: 'none' }}
                   />
-                  <div className="ut-direction-toggle">
-                    <button
-                      type="button"
-                      className={`ut-dir-btn ${editDirection === 'deduction' ? 'ut-dir-active-minus' : ''}`}
-                      onClick={() => setEditDirection('deduction')}
-                    >
-                      -
-                    </button>
-                    <button
-                      type="button"
-                      className={`ut-dir-btn ${editDirection === 'addition' ? 'ut-dir-active-plus' : ''}`}
-                      onClick={() => setEditDirection('addition')}
-                    >
-                      +
-                    </button>
-                  </div>
-                  <button className="btn-primary btn-sm" onClick={() => handleUpdate(ut.id)}>{t('ut.save')}</button>
-                  <button className="ut-cancel-btn" onClick={cancelEdit}>{t('ut.cancel')}</button>
-                </div>
+                  <DirToggle value={editDirection} onChange={setEditDirection} />
+                  <button onClick={() => handleUpdate(ut.id)} style={{ padding: '7px 14px', background: '#ea580c', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>{t('ut.save')}</button>
+                  <button onClick={cancelEdit} style={{ padding: '7px 12px', background: 'none', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, color: '#64748b', cursor: 'pointer' }}>{t('ut.cancel')}</button>
+                </>
               ) : (
                 <>
-                  <div className="ut-item-info">
-                    <span className="ut-item-name">{ut.name}</span>
-                    <span className={`ut-item-badge ${ut.direction === 'addition' ? 'ut-badge-plus' : 'ut-badge-minus'}`}>
-                      {ut.direction === 'addition' ? '+' : '-'}
-                    </span>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: ut.direction === 'addition' ? '#f0fdf4' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 14, color: ut.direction === 'addition' ? '#16a34a' : '#dc2626' }}>
+                    {ut.direction === 'addition' ? '+' : '−'}
                   </div>
-                  <div className="ut-item-actions">
-                    <button className="ut-edit-btn" onClick={() => startEdit(ut)} title={t('ut.edit')}>&#9998;</button>
-                    <button className="ut-delete-btn" onClick={() => handleDelete(ut.id)} title={t('ut.delete')}>&times;</button>
-                  </div>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: '#1e293b' }}>{ut.name}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: ut.direction === 'addition' ? '#f0fdf4' : '#fef2f2', color: ut.direction === 'addition' ? '#16a34a' : '#dc2626', border: `1px solid ${ut.direction === 'addition' ? '#bbf7d0' : '#fca5a5'}` }}>
+                    {ut.direction === 'addition' ? 'Addition' : 'Deduction'}
+                  </span>
+                  <button onClick={() => startEdit(ut)} title={t('ut.edit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#ea580c'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  </button>
+                  <button onClick={() => handleDelete(ut.id)} title={t('ut.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  </button>
                 </>
               )}
             </div>
