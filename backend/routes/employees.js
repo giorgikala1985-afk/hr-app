@@ -909,7 +909,7 @@ router.get('/:id/units', async (req, res) => {
 // POST create unit for employee
 router.post('/:id/units', async (req, res) => {
   try {
-    const { type, amount, date } = req.body;
+    const { type, amount, date, currency } = req.body;
 
     if (!type || amount === undefined || !date) {
       return res.status(400).json({ error: 'Type, amount, and date are required' });
@@ -923,6 +923,7 @@ router.post('/:id/units', async (req, res) => {
         type,
         amount: parseFloat(amount),
         date,
+        currency: currency || 'GEL',
       })
       .select()
       .single();

@@ -7,11 +7,13 @@ import UnitTypesSettings from './UnitTypesSettings';
 import PositionsSettings from './PositionsSettings';
 import DepartmentsSettings from './DepartmentsSettings';
 import OvertimeSettings from './OvertimeSettings';
+import StockSettings from './StockSettings';
 import LanguageSettings from './LanguageSettings';
 import TaxSettings from './TaxSettings';
 import InsuranceImport from './InsuranceImport';
 import NavOrderSettings from './NavOrderSettings';
 import UsersSettings from './UsersSettings';
+import ToolsPage from './Tools/ToolsPage';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Options.css';
 
@@ -95,6 +97,11 @@ function OptionsPage() {
         <circle cx="12" cy="7" r="4"/>
       </svg>
     )},
+    { key: 'tools', label: 'Tools', icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+      </svg>
+    )},
     { key: 'about', label: 'About', icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>
@@ -147,7 +154,7 @@ function OptionsPage() {
         {activeTab === 'info' && (
           <div>
             <div style={{ display: 'flex', gap: 2, background: '#f1f5f9', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-              {[{ key: 'positions', label: 'Positions' }, { key: 'units', label: 'Units' }, { key: 'departments', label: 'Departments' }, { key: 'overtime', label: 'Overtime Rates' }].map(tab => (
+              {[{ key: 'positions', label: 'Positions' }, { key: 'units', label: 'Units' }, { key: 'departments', label: 'Departments' }, { key: 'overtime', label: 'Overtime Rates' }, { key: 'stock', label: 'Stock' }].map(tab => (
                 <button key={tab.key} onClick={() => setInfoView(tab.key)} style={{
                   padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
                   background: infoView === tab.key ? '#fff' : 'transparent',
@@ -161,6 +168,7 @@ function OptionsPage() {
             {infoView === 'units' && <UnitTypesSettings />}
             {infoView === 'departments' && <DepartmentsSettings />}
             {infoView === 'overtime' && <OvertimeSettings />}
+            {infoView === 'stock' && <StockSettings />}
           </div>
         )}
         {activeTab === 'pagination' && <PaginationSettings />}
@@ -168,6 +176,7 @@ function OptionsPage() {
 {activeTab === 'language' && <LanguageSettings />}
         {activeTab === 'navorder' && <NavOrderSettings />}
         {activeTab === 'users' && <UsersSettings />}
+        {activeTab === 'tools' && <ToolsPage />}
         {activeTab === 'about' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 16, textAlign: 'center' }}>
             <div style={{ fontSize: 72 }}>🍾</div>

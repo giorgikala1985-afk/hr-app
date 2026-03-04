@@ -19,6 +19,9 @@ const salaryDeferralRoutes = require('./routes/salary_deferrals');
 const accountingRoutes = require('./routes/accounting');
 const bonusRoutes = require('./routes/bonuses');
 const userRoutes = require('./routes/users');
+const toolRoutes = require('./routes/tools');
+const stockLocationRoutes = require('./routes/stock_locations');
+const agreementRoutes = require('./routes/agreements');
 const { authenticateUser } = require('./middleware/auth');
 
 const app = express();
@@ -55,6 +58,9 @@ app.use('/api/salary-deferrals', authenticateUser, salaryDeferralRoutes);
 app.use('/api/accounting', authenticateUser, accountingRoutes);
 app.use('/api/bonuses', authenticateUser, bonusRoutes);
 app.use('/api/users', authenticateUser, userRoutes);
+app.use('/api/tools', authenticateUser, toolRoutes);
+app.use('/api/stock-locations', authenticateUser, stockLocationRoutes);
+app.use('/api/agreements', authenticateUser, agreementRoutes);
 // Documents: sign route is public (no auth), rest needs auth
 app.use('/api/documents/sign', documentRoutes);
 app.use('/api/documents', authenticateUser, documentRoutes);
@@ -78,7 +84,7 @@ app.use((err, req, res, next) => {
   console.error('Error:', err);
 
   if (err.code === 'LIMIT_FILE_SIZE') {
-    return res.status(400).json({ error: 'File too large. Maximum size is 5MB' });
+    return res.status(400).json({ error: 'File too large.' });
   }
 
   if (err.message === 'Only JPEG, PNG, and WebP images are allowed') {

@@ -54,6 +54,12 @@ function calcGross(netSalary, pensionOn) {
 
 const HARDCODED_UNIT_NAMES = new Set(['Bonus', 'Team Building', 'Reimbursement', 'Fitpass']);
 
+const UNIT_CURRENCIES = [
+  { code: 'GEL', symbol: '₾', flag: '🇬🇪' },
+  { code: 'USD', symbol: '$',  flag: '🇺🇸' },
+];
+const currSymbol = (code) => UNIT_CURRENCIES.find(c => c.code === code)?.symbol || code;
+
 const money = (n) => {
   const v = parseFloat(n || 0);
   if (v === 0) return '—';
@@ -75,7 +81,7 @@ function SalaryAccrual() {
   const [unitTypes, setUnitTypes] = useState([]);
   const [overtimeRates, setOvertimeRates] = useState([]);
   const [selectedRow, setSelectedRow] = useState(null);
-  const [unitForm, setUnitForm] = useState({ type: '', amount: '', otRate: '', otHours: '' });
+  const [unitForm, setUnitForm] = useState({ type: '', amount: '', otRate: '', otHours: '', currency: 'GEL' });
   const [savingUnit, setSavingUnit] = useState(false);
   const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
 
@@ -153,8 +159,9 @@ function SalaryAccrual() {
         type: unitForm.type,
         amount: parseFloat(unitForm.amount),
         date,
+        currency: unitForm.currency,
       });
-      setUnitForm({ type: '', amount: '', otRate: overtimeRates.length > 0 ? String(overtimeRates[0].rate) : '', otHours: '' });
+      setUnitForm({ type: '', amount: '', otRate: overtimeRates.length > 0 ? String(overtimeRates[0].rate) : '', otHours: '', currency: unitForm.currency });
       const res = await api.get(`/salaries?month=${month}`);
       setData(res.data);
       const updated = (res.data.salaries || []).find(r => r.employee.id === employeeId);
@@ -652,7 +659,7 @@ function SalaryAccrual() {
                           <span style={{ fontWeight: 600, color: '#333', flex: 1 }}>{d.type}</span>
                           <span style={{ color: '#9ca3af', fontSize: 11 }}>{d.date}</span>
                           <span style={{ fontFamily: FONT_MONO, fontWeight: 700, color: isAdd ? '#16a34a' : '#e53e3e' }}>
-                            {isAdd ? '+' : '−'}${parseFloat(d.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {isAdd ? '+' : '−'}{currSymbol(d.currency)}{parseFloat(d.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                           <button
                             style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
@@ -774,6 +781,33 @@ function SalaryAccrual() {
                       </div>
                     );
                   })()}
+
+                  {/* Currency picker */}
+                  <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 3, gap: 2 }}>
+                    {UNIT_CURRENCIES.map(c => {
+                      const isActive = unitForm.currency === c.code;
+                      return (
+                        <button
+                          key={c.code}
+                          type="button"
+                          onClick={() => setUnitForm(prev => ({ ...prev, currency: c.code }))}
+                          style={{
+                            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                            padding: '6px 10px', border: 'none', borderRadius: 6,
+                            background: isActive ? '#fff' : 'transparent',
+                            boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+                            fontWeight: isActive ? 700 : 500, fontSize: 13,
+                            color: isActive ? '#1e293b' : '#64748b',
+                            cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
+                          }}
+                        >
+                          <span style={{ fontSize: 15 }}>{c.flag}</span>
+                          <span style={{ fontFamily: FONT_MONO, fontWeight: 700 }}>{c.symbol}</span>
+                          <span>{c.code}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
 
                   <input
                     type="number"

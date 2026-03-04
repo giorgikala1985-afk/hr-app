@@ -333,4 +333,47 @@ router.delete('/bookkeeping/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── STOCK ──────────────────────────────────────────────
+router.get('/stock', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('accounting_stock').select('*').eq('user_id', req.userId).order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ records: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/stock', async (req, res) => {
+  try {
+    const { sku, name, stock_name, move_in_date, move_in_qty, move_in_price, move_out_date, move_out_qty, move_out_price } = req.body;
+    const { data, error } = await supabase.from('accounting_stock').insert([{
+      user_id: req.userId, sku, name, stock_name,
+      move_in_date: move_in_date || null, move_in_qty: move_in_qty ? parseFloat(move_in_qty) : null, move_in_price: move_in_price ? parseFloat(move_in_price) : null,
+      move_out_date: move_out_date || null, move_out_qty: move_out_qty ? parseFloat(move_out_qty) : null, move_out_price: move_out_price ? parseFloat(move_out_price) : null,
+    }]).select().single();
+    if (error) throw error;
+    res.status(201).json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/stock/:id', async (req, res) => {
+  try {
+    const { sku, name, stock_name, move_in_date, move_in_qty, move_in_price, move_out_date, move_out_qty, move_out_price } = req.body;
+    const { data, error } = await supabase.from('accounting_stock').update({
+      sku, name, stock_name,
+      move_in_date: move_in_date || null, move_in_qty: move_in_qty ? parseFloat(move_in_qty) : null, move_in_price: move_in_price ? parseFloat(move_in_price) : null,
+      move_out_date: move_out_date || null, move_out_qty: move_out_qty ? parseFloat(move_out_qty) : null, move_out_price: move_out_price ? parseFloat(move_out_price) : null,
+    }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    if (error) throw error;
+    res.json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/stock/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('accounting_stock').delete().eq('id', req.params.id).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;
