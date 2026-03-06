@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
+import { PortalAuthProvider } from './contexts/PortalAuthContext';
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import PrivateRoute from './components/Layout/PrivateRoute';
@@ -13,6 +14,12 @@ import DocumentsPage from './components/Documents/DocumentsPage';
 import SignDocument from './components/Documents/SignDocument';
 import AccountingPage from './components/Accounting/AccountingPage';
 import HomePage from './components/Home/HomePage';
+import PortalLogin from './components/Portal/PortalLogin';
+import PortalPrivateRoute from './components/Portal/PortalPrivateRoute';
+import PortalDashboard from './components/Portal/PortalDashboard';
+import PortalDocuments from './components/Portal/PortalDocuments';
+import PortalPayroll from './components/Portal/PortalPayroll';
+import PortalScan from './components/Portal/PortalScan';
 import './App.css';
 
 function App() {
@@ -111,6 +118,13 @@ function App() {
 
           {/* Public sign page */}
           <Route path="/sign/:token" element={<SignDocument />} />
+
+          {/* Employee portal */}
+          <Route path="/portal" element={<PortalAuthProvider><PortalLogin /></PortalAuthProvider>} />
+          <Route path="/portal/home" element={<PortalAuthProvider><PortalPrivateRoute><PortalDashboard /></PortalPrivateRoute></PortalAuthProvider>} />
+          <Route path="/portal/documents" element={<PortalAuthProvider><PortalPrivateRoute><PortalDocuments /></PortalPrivateRoute></PortalAuthProvider>} />
+          <Route path="/portal/payroll" element={<PortalAuthProvider><PortalPrivateRoute><PortalPayroll /></PortalPrivateRoute></PortalAuthProvider>} />
+          <Route path="/portal/scan" element={<PortalAuthProvider><PortalPrivateRoute><PortalScan /></PortalPrivateRoute></PortalAuthProvider>} />
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" />} />

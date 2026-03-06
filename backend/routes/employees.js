@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const bcrypt = require('bcrypt');
 const supabase = require('../config/supabase');
 // Multer with memory storage for Supabase upload
 const upload = multer({
@@ -946,6 +947,42 @@ router.delete('/:id/units/:unitId', async (req, res) => {
 
     if (error) throw error;
     res.json({ message: 'Unit deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Portal PIN management ────────────────────────────────────────────────────
+
+// GET /api/employees/:id/portal-pin-status
+router.get('/:id/portal-pin-status', async (req, res) => {
+  try {
+    const { data: emp } = await supabase.from('employees').select('id').eq('id', req.params.id).eq('user_id', req.userId).maybeSingle();
+    if (!emp) return res.status(404).json({ error: 'Employee not found' });
+
+    const { data: pinRecord } = await supabase.from('employee_pins').select('updated_at').eq('employee_id', req.params.id).maybeSingle();
+    res.json({ has_pin: !!pinRecord, updated_at: pinRecord?.updated_at || null });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/employees/:id/portal-pin
+router.post('/:id/portal-pin', async (req, res) => {
+  try {
+    const { pin } = req.body;
+    if (!pin || !/^\d{4}$/.test(String(pin))) {
+      return res.status(400).json({ error: 'PIN must be exactly 4 digits' });
+    }
+
+    const { data: emp } = await supabase.from('employees').select('id').eq('id', req.params.id).eq('user_id', req.userId).maybeSingle();
+    if (!emp) return res.status(404).json({ error: 'Employee not found' });
+
+    const pin_hash = await bcrypt.hash(String(pin), 10);
+    const { error } = await supabase.from('employee_pins').upsert({ employee_id: emp.id, pin_hash, updated_at: new Date().toISOString() });
+
+    if (error) return res.status(500).json({ error: 'Failed to set PIN' });
+    res.json({ message: 'Portal PIN set successfully' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

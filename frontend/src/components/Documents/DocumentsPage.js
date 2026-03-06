@@ -4,6 +4,8 @@ import HiringDocuments from './HiringDocuments';
 import EmployeeList from '../Employees/EmployeeList';
 import Agents from '../Accounting/Agents';
 import Agreements from './Agreements';
+import AiAgentTool from '../Options/Tools/AiAgentTool';
+import CurrencyRates from './CurrencyRates';
 import './Documents.css';
 
 const TABS = [
@@ -33,6 +35,23 @@ const TABS = [
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
       <line x1="12" y1="17" x2="12" y2="21"/>
+    </svg>
+  )},
+  { key: 'nbg-rates', label: 'NBG Rates', icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/>
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+  )},
+  { key: 'ai-agent', label: 'FinBot', icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="10" rx="2"/>
+      <path d="M12 2v3"/>
+      <circle cx="12" cy="5" r="1"/>
+      <path d="M8 11V9a4 4 0 0 1 8 0v2"/>
+      <circle cx="9" cy="15" r="1" fill="currentColor"/>
+      <circle cx="15" cy="15" r="1" fill="currentColor"/>
+      <path d="M9 19h6"/>
     </svg>
   )},
 ];
@@ -71,6 +90,8 @@ function DocumentsPage() {
         )}
         {activeTab === 'agents' && <Agents />}
         {activeTab === 'agreements' && <Agreements />}
+        {activeTab === 'nbg-rates' && <CurrencyRates />}
+        {activeTab === 'ai-agent' && <div style={{ padding: '24px 32px', maxWidth: 900 }}><AiAgentTool /></div>}
         {activeTab === 'devices' && (
           <div className="docs-blank">
             <div className="docs-blank-icon">

@@ -43,6 +43,12 @@ function EmployeeForm() {
   const [pageLoading, setPageLoading] = useState(isEdit);
   const [error, setError] = useState('');
 
+  // Portal PIN management
+  const [pinStatus, setPinStatus] = useState(null);
+  const [pinInput, setPinInput] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinMsg, setPinMsg] = useState({ type: '', text: '' });
+
   useEffect(() => {
     loadPositions();
     loadDepartments();
@@ -52,6 +58,30 @@ function EmployeeForm() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const loadPinStatus = async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/employees/${id}/portal-pin-status`);
+      setPinStatus(res.data);
+    } catch { /* ignore */ }
+  };
+
+  const handleSetPin = async () => {
+    if (!/^\d{4}$/.test(pinInput)) { setPinMsg({ type: 'error', text: 'PIN must be exactly 4 digits' }); return; }
+    setPinLoading(true);
+    setPinMsg({ type: '', text: '' });
+    try {
+      await api.post(`/employees/${id}/portal-pin`, { pin: pinInput });
+      setPinInput('');
+      setPinMsg({ type: 'success', text: 'PIN set successfully' });
+      loadPinStatus();
+    } catch (err) {
+      setPinMsg({ type: 'error', text: err.response?.data?.error || 'Failed to set PIN' });
+    } finally {
+      setPinLoading(false);
+    }
+  };
 
   const loadPositions = async () => {
     try {
@@ -185,6 +215,7 @@ function EmployeeForm() {
     { key: 'salary', label: t('empForm.tabSalary'), icon: '$', disabled: !isEdit },
     { key: 'account', label: t('empForm.tabAccount'), icon: '#', disabled: !isEdit },
     { key: 'documents', label: t('empForm.tabDocuments'), icon: 'D', disabled: !isEdit },
+    { key: 'portal', label: 'Portal Access', icon: '🔑', disabled: !isEdit },
   ];
 
   return (
@@ -371,8 +402,86 @@ function EmployeeForm() {
             <Documents employeeId={id} />
           )}
 
+          {activeTab === 'portal' && isEdit && (
+            <PortalAccessTab
+              id={id}
+              pinStatus={pinStatus}
+              loadPinStatus={loadPinStatus}
+              pinInput={pinInput}
+              setPinInput={setPinInput}
+              pinLoading={pinLoading}
+              pinMsg={pinMsg}
+              setPinMsg={setPinMsg}
+              handleSetPin={handleSetPin}
+            />
+          )}
+
         </div>
       </div>
+    </div>
+  );
+}
+
+function PortalAccessTab({ id, pinStatus, loadPinStatus, pinInput, setPinInput, pinLoading, pinMsg, setPinMsg, handleSetPin }) {
+  useEffect(() => { loadPinStatus(); }, [id]);
+
+  return (
+    <div style={{ padding: '24px 0', maxWidth: 440 }}>
+      <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: '#1e293b' }}>Portal Access</h3>
+      <p style={{ margin: '0 0 20px', fontSize: 13, color: '#64748b' }}>
+        Set a 4-digit PIN so this employee can log in to the Employee Portal at <code>/portal</code> using their Personal ID and this PIN.
+      </p>
+
+      {/* Status */}
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px', marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: '#475569' }}>
+          {pinStatus === null
+            ? 'Loading...'
+            : pinStatus.has_pin
+              ? <>
+                  <span style={{ color: '#16a34a', fontWeight: 600 }}>✓ PIN active</span>
+                  {pinStatus.updated_at && <span style={{ color: '#94a3b8', marginLeft: 8 }}>Last updated {new Date(pinStatus.updated_at).toLocaleDateString('en-GB')}</span>}
+                </>
+              : <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚠ No PIN set — employee cannot log in</span>
+          }
+        </div>
+      </div>
+
+      {/* Set PIN */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            {pinStatus?.has_pin ? 'New PIN' : 'Set PIN'}
+          </label>
+          <input
+            type="password"
+            maxLength={4}
+            inputMode="numeric"
+            pattern="\d{4}"
+            placeholder="4-digit PIN"
+            value={pinInput}
+            onChange={e => { setPinInput(e.target.value.replace(/\D/g, '').slice(0,4)); setPinMsg({ type: '', text: '' }); }}
+            style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 15, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', letterSpacing: '0.3em' }}
+          />
+        </div>
+        <button
+          onClick={handleSetPin}
+          disabled={pinLoading || pinInput.length !== 4}
+          style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', opacity: (pinLoading || pinInput.length !== 4) ? 0.6 : 1 }}
+        >
+          {pinLoading ? 'Saving...' : 'Set PIN'}
+        </button>
+      </div>
+
+      {pinMsg.text && (
+        <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, fontSize: 13, background: pinMsg.type === 'error' ? '#fef2f2' : '#f0fdf4', color: pinMsg.type === 'error' ? '#dc2626' : '#16a34a', border: `1px solid ${pinMsg.type === 'error' ? '#fca5a5' : '#bbf7d0'}` }}>
+          {pinMsg.text}
+        </div>
+      )}
+
+      <p style={{ marginTop: 20, fontSize: 12, color: '#94a3b8' }}>
+        Employees access the portal at: <strong style={{ color: '#475569' }}>{window.location.origin}/portal</strong>
+      </p>
     </div>
   );
 }

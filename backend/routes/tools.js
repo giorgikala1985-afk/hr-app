@@ -4,6 +4,7 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const XLSX = require('xlsx');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
+const OpenAI = require('openai');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -86,6 +87,56 @@ router.post('/pdf-convert', upload.single('file'), async (req, res) => {
   } catch (err) {
     console.error('PDF convert error:', err);
     res.status(500).json({ error: 'Failed to convert PDF: ' + (err.message || 'Unknown error') });
+  }
+});
+
+// POST /api/tools/pdf-ask  — upload one or more PDFs + question, get answer across all
+const uploadMulti = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 30 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === 'application/pdf') cb(null, true);
+    else cb(new Error('Only PDF files are allowed'));
+  },
+});
+
+router.post('/pdf-ask', uploadMulti.array('files', 20), async (req, res) => {
+  try {
+    const files = req.files || [];
+    if (files.length === 0) return res.status(400).json({ error: 'No PDF files uploaded' });
+    const question = (req.body.question || '').trim();
+    if (!question) return res.status(400).json({ error: 'Question is required' });
+
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY is not configured on the server.' });
+
+    // Extract text from all PDFs and combine with file name labels
+    const charsPerFile = Math.floor(100000 / files.length);
+    const combinedText = (
+      await Promise.all(
+        files.map(async (f) => {
+          const pdfData = await pdfParse(f.buffer);
+          const text = (pdfData.text || '').slice(0, charsPerFile);
+          return `=== Document: ${f.originalname} ===\n${text}`;
+        })
+      )
+    ).join('\n\n');
+
+    const openai = new OpenAI({ apiKey });
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant. Answer questions based only on the provided documents. If the answer comes from a specific document, mention its name.' },
+        { role: 'user', content: `Documents:\n"""\n${combinedText}\n"""\n\nQuestion: ${question}` }
+      ],
+    });
+
+    const answer = completion.choices[0].message.content;
+    res.json({ answer });
+  } catch (err) {
+    console.error('PDF ask error:', err);
+    res.status(500).json({ error: 'Failed to get answer: ' + (err.message || 'Unknown error') });
   }
 });
 

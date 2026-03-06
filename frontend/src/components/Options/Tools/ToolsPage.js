@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import PdfParsingTool from './PdfParsingTool';
-
 const TABS = [
   {
     key: 'pdf',

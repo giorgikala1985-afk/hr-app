@@ -16,6 +16,48 @@ const ALL_TABS = [
     ),
   },
   {
+    key: 'doc-agents', label: 'Agents', section: 'Documents', route: '/documents?tab=agents',
+    color: '#0891b2', bg: '#f0fdfa',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+        <circle cx="9" cy="7" r="4"/>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'doc-agreements', label: 'Agreements', section: 'Documents', route: '/documents?tab=agreements',
+    color: '#0891b2', bg: '#f0fdfa',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'doc-nbg', label: 'NBG Rates', section: 'Documents', route: '/documents?tab=nbg-rates',
+    color: '#0891b2', bg: '#f0fdfa',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23"/>
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+      </svg>
+    ),
+  },
+  {
+    key: 'doc-finbot', label: 'FinBot', section: 'Documents', route: '/documents?tab=ai-agent',
+    color: '#0891b2', bg: '#f0fdfa',
+    icon: (
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
+        <path d="M12 8v4l3 3"/>
+      </svg>
+    ),
+  },
+  {
     key: 'doc-devices', label: 'Devices & Tools', section: 'Documents', route: '/documents?tab=devices',
     color: '#0891b2', bg: '#f0fdfa',
     icon: (
