@@ -75,6 +75,7 @@ function Transactions() {
   const [suggestion, setSuggestion] = useState([]);
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
 
   useEffect(() => { load(); loadAgents(); }, []);
@@ -113,6 +114,32 @@ function Transactions() {
   const hasFilters = Object.values(filters).some(v => v !== '');
   const setFilter = (col, val) => setFilters(prev => ({ ...prev, [col]: val }));
   const clearFilters = () => setFilters(EMPTY_FILTERS);
+
+  /* ── Selection ── */
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filtered.length && filtered.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filtered.map(r => r.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} selected purchase(s)?`)) return;
+    try {
+      await api.delete('/accounting/transactions/bulk', { data: { ids: Array.from(selectedIds) } });
+      setRecords(prev => prev.filter(r => !selectedIds.has(r.id)));
+      setSelectedIds(new Set());
+    } catch { setError('Failed to delete selected purchases.'); }
+  };
 
   /* ── Suggestion logic ── */
   const computeSuggestion = (client, currentEditId) => {
@@ -255,6 +282,24 @@ function Transactions() {
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
+      {selectedIds.size > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff8e1', border: '1px solid #ffd54f', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, fontWeight: 500, color: '#555' }}>
+          <span>{selectedIds.size} purchase(s) selected</span>
+          <button
+            onClick={handleBulkDelete}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#e53935', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <IconDelete /> Delete Selected
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            style={{ background: '#f5f5f5', color: '#666', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="acc-table-wrapper">
         {loading ? <div className="acc-empty"><p>Loading…</p></div> : records.length === 0 ? (
           <div className="acc-empty">
@@ -271,12 +316,22 @@ function Transactions() {
             <p>No results match your filters.</p>
           </div>
         ) : (
-          <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+          <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) + 40 }}>
             <colgroup>
+              <col style={{ width: 40 }} />
               {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
             </colgroup>
             <thead>
               <tr>
+                <th style={{ width: 40, textAlign: 'center', verticalAlign: 'middle' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.size === filtered.length && filtered.length > 0}
+                    onChange={toggleSelectAll}
+                    title="Select all"
+                    style={{ width: 15, height: 15, cursor: 'pointer' }}
+                  />
+                </th>
                 {[
                   { label: 'Date', key: 'date', type: 'date' },
                   { label: 'Client', key: 'client', type: 'text' },
@@ -313,7 +368,15 @@ function Transactions() {
             </thead>
             <tbody>
               {filtered.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
+                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(r.id)}
+                      onChange={() => toggleSelect(r.id)}
+                      style={{ width: 15, height: 15, cursor: 'pointer' }}
+                    />
+                  </td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-category-badge">{r.item_type}</span></td>

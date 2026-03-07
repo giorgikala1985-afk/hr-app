@@ -64,6 +64,18 @@ router.put('/sales/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.delete('/sales/bulk', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required and must not be empty' });
+    }
+    const { error } = await supabase.from('accounting_sales').delete().in('id', ids).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: `${ids.length} sales deleted` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.delete('/sales/:id', async (req, res) => {
   try {
     const { error } = await supabase.from('accounting_sales').delete().eq('id', req.params.id).eq('user_id', req.userId);
@@ -96,6 +108,18 @@ router.put('/invoices/:id', async (req, res) => {
     const { data, error } = await supabase.from('accounting_invoices').update({ client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes, items, total: parseFloat(total) }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/invoices/bulk', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required and must not be empty' });
+    }
+    const { error } = await supabase.from('accounting_invoices').delete().in('id', ids).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: `${ids.length} invoices deleted` });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -151,6 +175,18 @@ router.put('/transactions/:id', async (req, res) => {
     const { data, error } = await supabase.from('accounting_transactions').update({ date, client, item_type, amount: parseFloat(amount), note }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/transactions/bulk', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required and must not be empty' });
+    }
+    const { error } = await supabase.from('accounting_transactions').delete().in('id', ids).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: `${ids.length} transactions deleted` });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

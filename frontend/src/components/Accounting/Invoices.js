@@ -4,6 +4,35 @@ import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResiz
 
 const DEFAULT_WIDTHS = [80, 160, 110, 110, 120, 100, 80];
 
+function IconEdit() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  );
+}
+
+function IconDelete() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3,6 5,6 21,6"/>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      <path d="M10 11v6"/><path d="M14 11v6"/>
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  );
+}
+
 const EMPTY_ITEM = { description: '', qty: 1, unit_price: '' };
 const EMPTY_FORM = { client: '', client_email: '', invoice_number: '', date: '', due_date: '', currency: 'USD', status: 'draft', notes: '', items: [{ ...EMPTY_ITEM }] };
 
@@ -16,6 +45,7 @@ function Invoices() {
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
   const [previewInv, setPreviewInv] = useState(null);
   const printRef = useRef();
 
@@ -70,6 +100,32 @@ function Invoices() {
     catch { setError('Failed to delete.'); }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === records.length && records.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(records.map(r => r.id)));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedIds.size} selected invoice(s)?`)) return;
+    try {
+      await api.delete('/accounting/invoices/bulk', { data: { ids: Array.from(selectedIds) } });
+      setRecords(prev => prev.filter(r => !selectedIds.has(r.id)));
+      if (previewInv && selectedIds.has(previewInv.id)) setPreviewInv(null);
+      setSelectedIds(new Set());
+    } catch { setError('Failed to delete selected invoices.'); }
+  };
+
   const handlePrint = () => {
     const content = printRef.current?.innerHTML;
     const win = window.open('', '_blank');
@@ -108,15 +164,43 @@ function Invoices() {
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
+      {selectedIds.size > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff8e1', border: '1px solid #ffd54f', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, fontWeight: 500, color: '#555' }}>
+          <span>{selectedIds.size} invoice(s) selected</span>
+          <button
+            onClick={handleBulkDelete}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#e53935', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <IconDelete /> Delete Selected
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            style={{ background: '#f5f5f5', color: '#666', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       <div className="acc-table-wrapper">
         {loading ? <div className="acc-empty"><p>Loading…</p></div> : records.length === 0 ? (
           <div className="acc-empty"><div className="acc-empty-icon">🧾</div><p>No invoices yet. Create your first one.</p></div>
         ) : (
-          <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+          <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) + 40 }}>
             <colgroup>
+              <col style={{ width: 40 }} />
               {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
             </colgroup>
             <thead><tr>
+              <th style={{ width: 40, textAlign: 'center', verticalAlign: 'middle' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.size === records.length && records.length > 0}
+                  onChange={toggleSelectAll}
+                  title="Select all"
+                  style={{ width: 15, height: 15, cursor: 'pointer' }}
+                />
+              </th>
               <th style={{ position: 'relative', width: colWidths[0], overflow: 'hidden', whiteSpace: 'nowrap' }}>#<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>Client<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[2], overflow: 'hidden', whiteSpace: 'nowrap' }}>Date<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
@@ -127,7 +211,15 @@ function Invoices() {
             </tr></thead>
             <tbody>
               {records.map((r) => (
-                <tr key={r.id}>
+                <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
+                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(r.id)}
+                      onChange={() => toggleSelect(r.id)}
+                      style={{ width: 15, height: 15, cursor: 'pointer' }}
+                    />
+                  </td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.invoice_number}</strong></td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.client}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>
@@ -136,9 +228,9 @@ function Invoices() {
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className={statusClass(r.status)}>{r.status}</span></td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     <div className="action-btns">
-                      <button className="btn-icon" title="Preview" onClick={() => setPreviewInv(r)}>👁️</button>
-                      <button className="btn-icon" onClick={() => openEdit(r)}>✏️</button>
-                      <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)}>🗑️</button>
+                      <button className="btn-icon" title="Preview" onClick={() => setPreviewInv(r)} style={{ color: '#64748b' }}><IconEye /></button>
+                      <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}><IconEdit /></button>
+                      <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)} title="Delete"><IconDelete /></button>
                     </div>
                   </td>
                 </tr>
