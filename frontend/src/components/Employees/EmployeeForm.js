@@ -215,6 +215,7 @@ function EmployeeForm() {
     { key: 'salary', label: t('empForm.tabSalary'), icon: '$', disabled: !isEdit },
     { key: 'account', label: t('empForm.tabAccount'), icon: '#', disabled: !isEdit },
     { key: 'documents', label: t('empForm.tabDocuments'), icon: 'D', disabled: !isEdit },
+    { key: 'agreement', label: 'Agreement', icon: '📄', disabled: !isEdit },
     { key: 'portal', label: 'Portal Access', icon: '🔑', disabled: !isEdit },
   ];
 
@@ -402,6 +403,10 @@ function EmployeeForm() {
             <Documents employeeId={id} />
           )}
 
+          {activeTab === 'agreement' && isEdit && (
+            <AgreementTab employeeId={id} employee={employee} />
+          )}
+
           {activeTab === 'portal' && isEdit && (
             <PortalAccessTab
               id={id}
@@ -421,6 +426,186 @@ function EmployeeForm() {
     </div>
   );
 }
+
+function AgreementTab({ employeeId, employee }) {
+  const emptyForm = {
+    title: 'Employment Agreement',
+    type: 'Employment',
+    party_name: employee ? `${employee.first_name} ${employee.last_name}` : '',
+    start_date: employee?.start_date || '',
+    end_date: employee?.end_date || '',
+    amount: employee?.salary || '',
+    currency: 'GEL',
+    status: 'active',
+    notes: '',
+  };
+
+  const [agreements, setAgreements] = useState([]);
+  const [form, setForm] = useState(emptyForm);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => { loadAgreements(); }, [employeeId]);
+
+  const loadAgreements = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/agreements?employee_id=${employeeId}`);
+      setAgreements(res.data.agreements || []);
+    } catch { setError('Failed to load agreements.'); }
+    finally { setLoading(false); }
+  };
+
+  const handleChange = (e) => setForm(f => ({ ...f, [e.target.name]: e.target.value }));
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    setSuccess('');
+    try {
+      await api.post('/agreements', { ...form, employee_id: employeeId });
+      setSuccess('Agreement created successfully.');
+      setShowForm(false);
+      setForm({ ...emptyForm, party_name: employee ? `${employee.first_name} ${employee.last_name}` : '' });
+      loadAgreements();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create agreement.');
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (agId) => {
+    if (!window.confirm('Delete this agreement?')) return;
+    try {
+      await api.delete(`/agreements/${agId}`);
+      setAgreements(a => a.filter(x => x.id !== agId));
+    } catch { setError('Failed to delete.'); }
+  };
+
+  const statusBadge = (s) => {
+    const map = { active: ['#dcfce7','#15803d'], inactive: ['#f1f5f9','#475569'], terminated: ['#fef2f2','#dc2626'] };
+    const [bg, color] = map[s] || map.inactive;
+    return <span style={{ background: bg, color, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>{s}</span>;
+  };
+
+  return (
+    <div style={{ padding: '24px 0', maxWidth: 680 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>Agreements</h3>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Employment agreements for this employee</p>
+        </div>
+        <button
+          onClick={() => { setShowForm(f => !f); setError(''); setSuccess(''); }}
+          style={{ padding: '8px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+        >
+          {showForm ? 'Cancel' : '+ Create Agreement'}
+        </button>
+      </div>
+
+      {error && <div style={{ padding: '10px 14px', background: '#fef2f2', color: '#dc2626', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid #fca5a5' }}>{error}</div>}
+      {success && <div style={{ padding: '10px 14px', background: '#f0fdf4', color: '#16a34a', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid #bbf7d0' }}>{success}</div>}
+
+      {showForm && (
+        <form onSubmit={handleCreate} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {[
+              ['Title', 'title', 'text'],
+              ['Party Name', 'party_name', 'text'],
+            ].map(([lbl, name, type]) => (
+              <div key={name}>
+                <label style={ls.label}>{lbl}</label>
+                <input name={name} type={type} value={form[name]} onChange={handleChange} required style={ls.input} />
+              </div>
+            ))}
+            <div>
+              <label style={ls.label}>Type</label>
+              <select name="type" value={form.type} onChange={handleChange} style={ls.input}>
+                {['Employment', 'Service', 'Contractor', 'NDA', 'Other'].map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={ls.label}>Status</label>
+              <select name="status" value={form.status} onChange={handleChange} style={ls.input}>
+                {['active', 'inactive', 'terminated'].map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={ls.label}>Start Date</label>
+              <input name="start_date" type="date" value={form.start_date} onChange={handleChange} style={ls.input} />
+            </div>
+            <div>
+              <label style={ls.label}>End Date</label>
+              <input name="end_date" type="date" value={form.end_date} onChange={handleChange} style={ls.input} />
+            </div>
+            <div>
+              <label style={ls.label}>Amount</label>
+              <input name="amount" type="number" step="0.01" min="0" value={form.amount} onChange={handleChange} style={ls.input} />
+            </div>
+            <div>
+              <label style={ls.label}>Currency</label>
+              <select name="currency" value={form.currency} onChange={handleChange} style={ls.input}>
+                {['GEL', 'USD', 'EUR'].map(o => <option key={o}>{o}</option>)}
+              </select>
+            </div>
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={ls.label}>Notes</label>
+              <textarea name="notes" value={form.notes} onChange={handleChange} rows={3} style={{ ...ls.input, resize: 'vertical' }} />
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button type="submit" disabled={saving} style={{ padding: '9px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              {saving ? 'Saving…' : 'Create Agreement'}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading ? (
+        <p style={{ color: '#94a3b8', fontSize: 14 }}>Loading…</p>
+      ) : agreements.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 14, border: '1px dashed #e2e8f0', borderRadius: 10 }}>
+          No agreements yet. Click "+ Create Agreement" to add one.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {agreements.map(ag => (
+            <div key={ag.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>{ag.title}</span>
+                  {statusBadge(ag.status)}
+                  <span style={{ fontSize: 12, color: '#94a3b8', background: '#f1f5f9', padding: '2px 8px', borderRadius: 12 }}>{ag.type}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#64748b', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  {ag.party_name && <span>Party: {ag.party_name}</span>}
+                  {ag.amount && <span>Amount: {ag.amount} {ag.currency}</span>}
+                  {ag.start_date && <span>From: {new Date(ag.start_date).toLocaleDateString('en-GB')}</span>}
+                  {ag.end_date && <span>To: {new Date(ag.end_date).toLocaleDateString('en-GB')}</span>}
+                </div>
+                {ag.notes && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>{ag.notes}</p>}
+              </div>
+              <button
+                onClick={() => handleDelete(ag.id)}
+                style={{ background: 'none', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ls = {
+  label: { display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  input: { width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' },
+};
 
 function PortalAccessTab({ id, pinStatus, loadPinStatus, pinInput, setPinInput, pinLoading, pinMsg, setPinMsg, handleSetPin }) {
   useEffect(() => { loadPinStatus(); }, [id]);
