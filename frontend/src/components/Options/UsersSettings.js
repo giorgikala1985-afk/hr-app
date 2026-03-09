@@ -9,9 +9,31 @@ const RIGHTS_STYLE = {
   'Member':      { background: '#f9fafb', color: '#374151', border: '1px solid #e5e7eb' },
 };
 
+const ROLES_INFO = [
+  {
+    role: 'Super Admin',
+    style: RIGHTS_STYLE['Super Admin'],
+    description: 'Full access to all features including settings, billing, and user management.',
+    permissions: ['Manage users & roles', 'Access all modules', 'Edit settings', 'View billing', 'Delete records'],
+  },
+  {
+    role: 'Admin',
+    style: RIGHTS_STYLE['Admin'],
+    description: 'Can manage most features but cannot access billing or user management.',
+    permissions: ['Access all modules', 'Edit records', 'Export data', 'View reports'],
+  },
+  {
+    role: 'Member',
+    style: RIGHTS_STYLE['Member'],
+    description: 'Standard access with read and limited write permissions.',
+    permissions: ['View records', 'Add basic entries', 'Export own data'],
+  },
+];
+
 const EMPTY = { name: '', email: '', phone: '', rights: 'Member' };
 
 function UsersSettings() {
+  const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -73,61 +95,110 @@ function UsersSettings() {
 
   return (
     <div className="unit-types-settings">
-      <h3>Users</h3>
+      <h3>Users &amp; Roles</h3>
       <p className="pagination-desc">Manage team members and their access rights.</p>
 
-      {error && <div className="msg-error" style={{ marginBottom: 16 }}>{error}</div>}
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button className="btn-primary btn-sm" onClick={openNew}>+ Add User</button>
+      {/* Inner tabs */}
+      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid #e2e8f0', marginBottom: 24 }}>
+        {['users', 'roles'].map((t) => (
+          <button
+            key={t}
+            onClick={() => setActiveTab(t)}
+            style={{
+              padding: '8px 20px',
+              border: 'none',
+              background: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+              color: activeTab === t ? '#16a34a' : '#64748b',
+              borderBottom: activeTab === t ? '2px solid #16a34a' : '2px solid transparent',
+              marginBottom: -2,
+              transition: 'all 0.15s',
+              textTransform: 'capitalize',
+            }}
+          >
+            {t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        ))}
       </div>
 
-      {loading ? (
-        <div style={{ padding: '20px 0', color: '#888' }}>Loading…</div>
-      ) : users.length === 0 ? (
-        <div className="ut-empty">No users yet. Add one above.</div>
-      ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
-            <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={thStyle}>Name</th>
-                <th style={thStyle}>ID</th>
-                <th style={thStyle}>Email</th>
-                <th style={thStyle}>Phone</th>
-                <th style={thStyle}>Rights</th>
-                <th style={{ ...thStyle, width: 80 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => {
-                const rs = RIGHTS_STYLE[u.rights] || RIGHTS_STYLE['Member'];
-                return (
-                  <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                    <td style={tdStyle}><strong>{u.name}</strong></td>
-                    <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' }} title={u.id}>{truncateId(u.id)}</td>
-                    <td style={{ ...tdStyle, color: '#64748b' }}>{u.email || '—'}</td>
-                    <td style={{ ...tdStyle, color: '#64748b' }}>{u.phone || '—'}</td>
-                    <td style={tdStyle}>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, ...rs }}>
-                        {u.rights || 'Member'}
-                      </span>
-                    </td>
-                    <td style={tdStyle}>
-                      <div className="action-btns">
-                        <button className="btn-icon" onClick={() => openEdit(u)} title="Edit" style={{ color: '#3b82f6' }}>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
-                        <button className="btn-icon btn-delete" onClick={() => handleDelete(u)} title="Delete">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                        </button>
-                      </div>
-                    </td>
+      {activeTab === 'users' && (
+        <>
+          {error && <div className="msg-error" style={{ marginBottom: 16 }}>{error}</div>}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <button className="btn-add btn-sm" onClick={openNew}>+ Add User</button>
+          </div>
+
+          {loading ? (
+            <div style={{ padding: '20px 0', color: '#888' }}>Loading…</div>
+          ) : users.length === 0 ? (
+            <div className="ut-empty">No users yet. Add one above.</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                <thead>
+                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                    <th style={thStyle}>Name</th>
+                    <th style={thStyle}>ID</th>
+                    <th style={thStyle}>Email</th>
+                    <th style={thStyle}>Phone</th>
+                    <th style={thStyle}>Rights</th>
+                    <th style={{ ...thStyle, width: 80 }}></th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {users.map((u) => {
+                    const rs = RIGHTS_STYLE[u.rights] || RIGHTS_STYLE['Member'];
+                    return (
+                      <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
+                        <td style={tdStyle}><strong>{u.name}</strong></td>
+                        <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' }} title={u.id}>{truncateId(u.id)}</td>
+                        <td style={{ ...tdStyle, color: '#64748b' }}>{u.email || '—'}</td>
+                        <td style={{ ...tdStyle, color: '#64748b' }}>{u.phone || '—'}</td>
+                        <td style={tdStyle}>
+                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, ...rs }}>
+                            {u.rights || 'Member'}
+                          </span>
+                        </td>
+                        <td style={tdStyle}>
+                          <div className="action-btns">
+                            <button className="btn-icon" onClick={() => openEdit(u)} title="Edit" style={{ color: '#3b82f6' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button className="btn-icon btn-delete" onClick={() => handleDelete(u)} title="Delete">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'roles' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {ROLES_INFO.map(({ role, style, description, permissions }) => (
+            <div key={role} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 24px', background: '#fff' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 6, ...style }}>{role}</span>
+                <span style={{ fontSize: 13, color: '#64748b' }}>{description}</span>
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+                {permissions.map((p) => (
+                  <span key={p} style={{ fontSize: 12, padding: '4px 10px', background: '#f1f5f9', color: '#475569', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                    {p}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 

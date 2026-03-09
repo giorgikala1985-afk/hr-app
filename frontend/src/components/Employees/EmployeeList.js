@@ -260,7 +260,7 @@ function EmployeeList() {
               </div>
             )}
           </div>
-          <button onClick={() => navigate('/employees/new')} className="btn-primary">
+          <button onClick={() => navigate('/employees/new')} className="btn-add">
             {t('emp.addNew')}
           </button>
         </div>
@@ -298,7 +298,7 @@ function EmployeeList() {
           </div>
           <h3>{t('emp.noEmployees')}</h3>
           <p>{t('emp.noEmployeesDesc')}</p>
-          <button onClick={() => navigate('/employees/new')} className="btn-primary">
+          <button onClick={() => navigate('/employees/new')} className="btn-add">
             {t('emp.addEmployee')}
           </button>
         </div>
@@ -383,7 +383,7 @@ function EmployeeList() {
                   {isCol('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
                   {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
                   {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="position-badge">{t('emp.active')}</span>}</td>}
-                  {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? '✔' : '—'}</td>}
+                  {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 16 }}>✔</span> : '—'}</td>}
                   <td>
                     <div className="action-btns">
                       <button

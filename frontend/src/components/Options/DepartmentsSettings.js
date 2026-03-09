@@ -83,7 +83,7 @@ function DepartmentsSettings() {
         <button
           type="submit"
           disabled={saving || !name.trim()}
-          style={{ padding: '9px 18px', background: saving || !name.trim() ? '#e2e8f0' : '#7c3aed', color: saving || !name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+          style={{ padding: '9px 18px', background: saving || !name.trim() ? '#e2e8f0' : '#16a34a', color: saving || !name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
         >
           {saving ? 'Adding…' : '+ Add Department'}
         </button>

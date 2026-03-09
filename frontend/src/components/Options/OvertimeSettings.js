@@ -98,7 +98,7 @@ function OvertimeSettings() {
         <button
           type="submit"
           disabled={saving || !label.trim() || !rate}
-          style={{ padding: '9px 18px', background: saving || !label.trim() || !rate ? '#e2e8f0' : '#ca8a04', color: saving || !label.trim() || !rate ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !label.trim() || !rate ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+          style={{ padding: '9px 18px', background: saving || !label.trim() || !rate ? '#e2e8f0' : '#16a34a', color: saving || !label.trim() || !rate ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !label.trim() || !rate ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
         >
           {saving ? 'Adding…' : '+ Add Rate'}
         </button>

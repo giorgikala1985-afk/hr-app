@@ -138,7 +138,7 @@ function Transactions() {
       await api.delete('/accounting/transactions/bulk', { data: { ids: Array.from(selectedIds) } });
       setRecords(prev => prev.filter(r => !selectedIds.has(r.id)));
       setSelectedIds(new Set());
-    } catch { setError('Failed to delete selected purchases.'); }
+    } catch (err) { setError(err.response?.data?.error || err.message || 'Failed to delete selected purchases.'); }
   };
 
   /* ── Suggestion logic ── */
@@ -274,7 +274,7 @@ function Transactions() {
           >
             <IconExcel /> Excel
           </button>
-          <button className="btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="btn-add" onClick={openNew}>
             <IconPlus /> Add Purchase
           </button>
         </div>
@@ -316,7 +316,7 @@ function Transactions() {
             <p>No results match your filters.</p>
           </div>
         ) : (
-          <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) + 40 }}>
+          <table className="acc-table">
             <colgroup>
               <col style={{ width: 40 }} />
               {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
@@ -340,7 +340,7 @@ function Transactions() {
                   { label: 'Note', key: 'note', type: 'text' },
                   { label: '', key: null },
                 ].map((col, i) => (
-                  <th key={i} style={{ position: 'relative', width: colWidths[i], overflow: 'hidden', verticalAlign: 'top', paddingBottom: 6 }}>
+                  <th key={i} style={{ position: 'relative', width: colWidths[i], verticalAlign: 'top', paddingBottom: 6 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
                       {col.label}
                       {col.key && filters[col.key] && (

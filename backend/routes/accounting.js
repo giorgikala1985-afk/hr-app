@@ -233,6 +233,25 @@ router.delete('/agents/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.post('/agents/bulk', async (req, res) => {
+  try {
+    const { records } = req.body;
+    if (!Array.isArray(records) || records.length === 0) return res.status(400).json({ error: 'No records provided' });
+    const rows = records.map(r => ({
+      user_id: req.userId,
+      name: r.name,
+      type: r.type || 'Other',
+      add_date: r.add_date || null,
+      account_number: r.account_number || null,
+      address: r.address || null,
+      phone: r.phone || null,
+    }));
+    const { data, error } = await supabase.from('accounting_agents').insert(rows).select();
+    if (error) throw error;
+    res.status(201).json({ inserted: data.length });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── BOOKKEEPING ACCOUNTS ───────────────────────────────
 router.get('/bookkeeping-accounts', async (req, res) => {
   try {

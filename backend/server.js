@@ -23,6 +23,7 @@ const toolRoutes = require('./routes/tools');
 const stockLocationRoutes = require('./routes/stock_locations');
 const agreementRoutes = require('./routes/agreements');
 const portalRoutes = require('./routes/portal');
+const adminRoutes = require('./routes/admin');
 const { authenticateUser } = require('./middleware/auth');
 
 const app = express();
@@ -62,6 +63,8 @@ app.use('/api/users', authenticateUser, userRoutes);
 app.use('/api/tools', authenticateUser, toolRoutes);
 app.use('/api/stock-locations', authenticateUser, stockLocationRoutes);
 app.use('/api/agreements', authenticateUser, agreementRoutes);
+// Admin: super admin panel
+app.use('/api/admin', adminRoutes);
 // Portal: handles its own auth internally
 app.use('/api/portal', portalRoutes);
 // Documents: sign route is public (no auth), rest needs auth

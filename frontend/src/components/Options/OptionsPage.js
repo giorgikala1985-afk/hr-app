@@ -11,6 +11,7 @@ import StockSettings from './StockSettings';
 import LanguageSettings from './LanguageSettings';
 import TaxSettings from './TaxSettings';
 import InsuranceImport from './InsuranceImport';
+import AgentsImport from './AgentsImport';
 import NavOrderSettings from './NavOrderSettings';
 import UsersSettings from './UsersSettings';
 import ToolsPage from './Tools/ToolsPage';
@@ -91,7 +92,7 @@ function OptionsPage() {
         <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
       </svg>
     )},
-    { key: 'users', label: 'Users', icon: (
+    { key: 'users', label: 'Users & Roles', icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
         <circle cx="12" cy="7" r="4"/>
@@ -136,7 +137,7 @@ function OptionsPage() {
         {activeTab === 'importdata' && (
           <div>
             <div style={{ display: 'flex', gap: 2, background: '#f1f5f9', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-              {[{ key: 'employees', label: 'Import Employees' }, { key: 'insurance', label: 'Insurance Import' }].map(tab => (
+              {[{ key: 'employees', label: 'Import Employees' }, { key: 'insurance', label: 'Insurance Import' }, { key: 'agents', label: 'Import Agents' }].map(tab => (
                 <button key={tab.key} onClick={() => setImportView(tab.key)} style={{
                   padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
                   background: importView === tab.key ? '#fff' : 'transparent',
@@ -148,6 +149,7 @@ function OptionsPage() {
             </div>
             {importView === 'employees' && <ImportEmployees />}
             {importView === 'insurance' && <InsuranceImport />}
+            {importView === 'agents' && <AgentsImport />}
           </div>
         )}
         {activeTab === 'holidays' && <HolidayList />}
@@ -183,7 +185,7 @@ function OptionsPage() {
             <p style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', margin: 0 }}>
               A Giorgi Kalandadze &amp; Archil Chogovadze Product
             </p>
-            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>© 2026 HR Management System</p>
+            <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>© 2026 Finpilot</p>
           </div>
         )}
       </main>

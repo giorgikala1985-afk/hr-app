@@ -57,11 +57,11 @@ function UnitTypesSettings() {
 
   const DirToggle = ({ value, onChange }) => (
     <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 3, gap: 2, flexShrink: 0 }}>
-      {[{ key: 'deduction', label: '− Deduct', color: '#dc2626', bg: '#fef2f2' }, { key: 'addition', label: '+ Add', color: '#16a34a', bg: '#f0fdf4' }].map(opt => (
+      {[{ key: 'deduction', label: '− Deduct', color: '#dc2626', bg: '#fef2f2', inactiveColor: '#94a3b8' }, { key: 'addition', label: '+ Add', color: '#16a34a', bg: '#f0fdf4', inactiveColor: '#86efac' }].map(opt => (
         <button key={opt.key} type="button" onClick={() => onChange(opt.key)} style={{
           padding: '5px 12px', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
           background: value === opt.key ? opt.bg : 'transparent',
-          color: value === opt.key ? opt.color : '#94a3b8',
+          color: value === opt.key ? opt.color : opt.inactiveColor,
           boxShadow: value === opt.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
         }}>{opt.label}</button>
       ))}
@@ -102,7 +102,7 @@ function UnitTypesSettings() {
         <button
           type="submit"
           disabled={saving || !name.trim()}
-          style={{ padding: '9px 18px', background: saving || !name.trim() ? '#e2e8f0' : '#ea580c', color: saving || !name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+          style={{ padding: '9px 18px', background: saving || !name.trim() ? '#e2e8f0' : '#16a34a', color: saving || !name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
         >
           {saving ? t('ut.adding') : `+ ${t('ut.add')}`}
         </button>

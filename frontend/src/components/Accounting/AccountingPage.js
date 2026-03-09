@@ -80,8 +80,13 @@ const CHEVRON_RIGHT = (
 );
 
 function AccountingPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'purchases');
+
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    setSearchParams({ tab: key }, { replace: true });
+  };
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('acc_sidebar_collapsed') === 'true'; } catch { return false; }
   });
@@ -105,7 +110,7 @@ function AccountingPage() {
           <button
             key={tab.key}
             className={`acc-sidebar-btn${activeTab === tab.key ? ' active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => handleTabChange(tab.key)}
             title={collapsed ? tab.label : ''}
           >
             <span className="acc-sidebar-icon">{tab.icon}</span>

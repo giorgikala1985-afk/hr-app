@@ -56,36 +56,64 @@ const TABS = [
   )},
 ];
 
+const CHEVRON_LEFT = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
+const CHEVRON_RIGHT = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
+
 function DocumentsPage() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'employees');
+  const [innerTab, setInnerTab] = useState(searchParams.get('inner') || 'hr');
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('docs_sidebar_collapsed') === 'true'; } catch { return false; }
+  });
+
+  const toggleSidebar = () => setCollapsed(v => {
+    const next = !v;
+    try { localStorage.setItem('docs_sidebar_collapsed', next); } catch {}
+    return next;
+  });
 
   return (
     <div className="docs-layout">
-      <aside className="docs-sidebar">
-        <div className="docs-sidebar-title">Documents</div>
+      <aside className={`docs-sidebar${collapsed ? ' collapsed' : ''}`}>
+        <div className="docs-sidebar-header">
+          <span className="docs-sidebar-title">Documents</span>
+          <button className="docs-sidebar-toggle" onClick={toggleSidebar} title={collapsed ? 'Expand' : 'Collapse'}>
+            {collapsed ? CHEVRON_RIGHT : CHEVRON_LEFT}
+          </button>
+        </div>
         {TABS.map((tab) => (
           <button
             key={tab.key}
             className={`docs-sidebar-btn${activeTab === tab.key ? ' active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
+            title={collapsed ? tab.label : ''}
           >
             <span className="docs-sidebar-icon">{tab.icon}</span>
-            {tab.label}
+            <span className="docs-sidebar-btn-label">{tab.label}</span>
           </button>
         ))}
       </aside>
 
       <main className="docs-content">
         {activeTab === 'employees' && (
-          <div className="docs-split">
-            <div className="docs-split-pane">
-              <HiringDocuments />
+          <div>
+            <div className="docs-inner-tabs">
+              <button
+                className={`docs-inner-tab${innerTab === 'hr' ? ' active' : ''}`}
+                onClick={() => setInnerTab('hr')}
+              >
+                HR
+              </button>
+              <button
+                className={`docs-inner-tab${innerTab === 'employees' ? ' active' : ''}`}
+                onClick={() => setInnerTab('employees')}
+              >
+                Employees
+              </button>
             </div>
-            <div className="docs-split-divider" />
-            <div className="docs-split-pane">
-              <EmployeeList />
-            </div>
+            {innerTab === 'hr' && <HiringDocuments />}
+            {innerTab === 'employees' && <EmployeeList />}
           </div>
         )}
         {activeTab === 'agents' && <Agents />}

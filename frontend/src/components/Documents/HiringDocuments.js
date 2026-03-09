@@ -294,22 +294,22 @@ function HiringDocuments() {
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
         <button
-          className={showForm ? 'btn-primary' : 'btn-secondary-outline'}
-          style={showForm ? { boxShadow: '0 0 0 3px rgba(49,133,252,0.2)' } : {}}
+          className={showForm ? 'btn-add' : 'btn-secondary-outline'}
+          style={showForm ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
           onClick={() => { setShowForm(f => !f); setShowAgrOnly(false); setShowBonus(false); setFormError(''); }}
         >
           + Add Employee &amp; Create Agreement
         </button>
         <button
-          className={showAgrOnly ? 'btn-primary' : 'btn-secondary-outline'}
-          style={showAgrOnly ? { boxShadow: '0 0 0 3px rgba(49,133,252,0.2)' } : {}}
+          className={showAgrOnly ? 'btn-add' : 'btn-secondary-outline'}
+          style={showAgrOnly ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
           onClick={() => { setShowAgrOnly(f => !f); setShowForm(false); setShowBonus(false); setAgrOnlyError(''); }}
         >
           + Agreement for Existing Employee
         </button>
         <button
-          className={showBonus ? 'btn-primary' : 'btn-secondary-outline'}
-          style={showBonus ? { boxShadow: '0 0 0 3px rgba(49,133,252,0.2)' } : {}}
+          className={showBonus ? 'btn-add' : 'btn-secondary-outline'}
+          style={showBonus ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
           onClick={() => { setShowBonus(f => !f); setShowForm(false); setShowAgrOnly(false); setBonusError(''); setBonusSuccess(''); }}
         >
           + Add Bonus

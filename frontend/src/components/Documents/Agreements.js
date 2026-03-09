@@ -103,7 +103,7 @@ export default function Agreements() {
             {agreements.length} agreement{agreements.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <button className="docs-btn-primary" onClick={openAdd}>+ New Agreement</button>
+        <button className="btn-add" onClick={openAdd}>+ New Agreement</button>
       </div>
 
       {showForm && (

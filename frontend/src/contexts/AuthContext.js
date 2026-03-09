@@ -26,10 +26,19 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const signUp = async (email, password) => {
-    const { data, error } = await supabase.auth.signUp({ email, password });
-    if (error) throw error;
-    return data;
+  const signUp = async (email, password, metadata = {}) => {
+    const apiUrl = process.env.REACT_APP_API_URL || '/api';
+    const res = await fetch(`${apiUrl}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, ...metadata }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Signup failed');
+    // Sign in after successful registration
+    const { data: session, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) throw signInError;
+    return session;
   };
 
   const signOut = async () => {

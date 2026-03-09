@@ -14,6 +14,7 @@ import DocumentsPage from './components/Documents/DocumentsPage';
 import SignDocument from './components/Documents/SignDocument';
 import AccountingPage from './components/Accounting/AccountingPage';
 import HomePage from './components/Home/HomePage';
+import AdminPage from './components/Admin/AdminPage';
 import PortalLogin from './components/Portal/PortalLogin';
 import PortalPrivateRoute from './components/Portal/PortalPrivateRoute';
 import PortalDashboard from './components/Portal/PortalDashboard';
@@ -111,6 +112,18 @@ function App() {
                 <>
                   <Header />
                   <AccountingPage />
+                </>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/admin"
+            element={
+              <PrivateRoute>
+                <>
+                  <Header />
+                  <AdminPage />
                 </>
               </PrivateRoute>
             }

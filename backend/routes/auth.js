@@ -6,7 +6,7 @@ const { authenticateUser } = require('../middleware/auth');
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, company_name, company_id, first_name, last_name } = req.body;
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
@@ -19,7 +19,8 @@ router.post('/signup', async (req, res) => {
     const { data, error } = await supabase.auth.admin.createUser({
       email,
       password,
-      email_confirm: true
+      email_confirm: true,
+      user_metadata: { company_name, company_id, first_name, last_name },
     });
 
     if (error) {

@@ -378,9 +378,9 @@ function Bookkeeping() {
         {view === 'transactions' && (
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={openTModal} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-              <span style={{ fontSize: 16, lineHeight: 1 }}>⊤</span> T-Account Entry
+              + T-Account Entry
             </button>
-            <button onClick={openNewTx} style={{ padding: '9px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={openNewTx} className="btn-add">
               + New Transaction
             </button>
           </div>
@@ -389,7 +389,7 @@ function Bookkeeping() {
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={handleRemoveDuplicates} style={{ padding: '9px 18px', background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Remove Duplicates</button>
             <button onClick={handleLoadSampleAccounts} style={{ padding: '9px 18px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>✦ Load Sample Data</button>
-            <button onClick={openNewAccount} style={{ padding: '9px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>+ Add Account</button>
+            <button onClick={openNewAccount} className="btn-add">+ Add Account</button>
           </div>
         )}
       </div>
@@ -522,7 +522,7 @@ function Bookkeeping() {
                       ) : <div />}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setFormLines([...formLines, { ...EMPTY_LINE }])} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #cbd5e1', borderRadius: 7, background: '#f8fafc', color: '#64748b', cursor: 'pointer', fontSize: 13 }}>+ Add Line</button>
+                  <button type="button" onClick={() => setFormLines([...formLines, { ...EMPTY_LINE }])} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>+ Add Line</button>
                 </div>
                 <div style={{ marginBottom: 20, position: 'relative' }}>
                   <label style={lbl}>Project / Agent</label>

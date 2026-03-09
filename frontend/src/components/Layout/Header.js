@@ -57,6 +57,9 @@ const NAV_CONFIG = {
   },
 };
 
+const ADMIN_EMAILS = (process.env.REACT_APP_ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+const isAdmin = (email) => ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes((email || '').toLowerCase());
+
 function Header() {
   const { user, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
@@ -106,6 +109,14 @@ function Header() {
               </NavLink>
             );
           })}
+          {isAdmin(user?.email) && (
+            <NavLink to="/admin" end={false} style={({ isActive }) => ({ color: isActive ? '#16a34a' : undefined })}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+              Admin
+            </NavLink>
+          )}
         </nav>
         <div className="header-user">
           <div className="lang-switcher">

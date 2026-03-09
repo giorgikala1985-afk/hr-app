@@ -189,13 +189,18 @@ function EmployeeForm() {
         await api.put(`/employees/${id}`, data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        navigate('/documents?tab=employees&inner=employees');
       } else {
-        await api.post('/employees', data, {
+        const res = await api.post('/employees', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        const newId = res.data.employee?.id;
+        if (newId) {
+          navigate(`/employees/${newId}/edit`);
+        } else {
+          navigate('/documents?tab=employees&inner=employees');
+        }
       }
-
-      navigate('/');
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save employee');
     } finally {
@@ -226,7 +231,7 @@ function EmployeeForm() {
           <h1>{isEdit ? empName : t('empForm.addTitle')}</h1>
           <p>{isEdit ? t('empForm.editSubtitle') : t('empForm.addSubtitle')}</p>
         </div>
-        <button onClick={() => navigate('/')} className="btn-secondary">
+        <button onClick={() => navigate('/documents?tab=employees&inner=employees')} className="btn-secondary">
           {t('empForm.backToList')}
         </button>
       </div>
@@ -382,8 +387,8 @@ function EmployeeForm() {
                 </div>
 
                 <div className="form-actions">
-                  <button type="button" className="btn-secondary" onClick={() => navigate('/')}>{t('empForm.cancel')}</button>
-                  <button type="submit" className="btn-primary" disabled={loading}>
+                  <button type="button" className="btn-secondary" onClick={() => navigate('/documents?tab=employees&inner=employees')}>{t('empForm.cancel')}</button>
+                  <button type="submit" className="btn-add" disabled={loading}>
                     {loading ? t('empForm.saving') : isEdit ? t('empForm.update') : t('empForm.create')}
                   </button>
                 </div>
