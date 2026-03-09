@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import * as XLSX from 'xlsx';
 import api from '../../services/api';
 
 const fmt = (n) =>
@@ -319,53 +320,50 @@ function Bookkeeping() {
   };
 
   const handleDownloadTemplate = () => {
-    const csv = 'Account #,Type,Account Geo,Account Eng\n1000,Asset,ფული,Cash\n';
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'accounts_template.csv'; a.click();
-    URL.revokeObjectURL(url);
+    const rows = [
+      ['Account #', 'Type', 'Account Geo', 'Account Eng'],
+      ['1000', 'Asset', 'ფული', 'Cash'],
+      ['2000', 'Liability', 'გადასახდელი', 'Accounts Payable'],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 24 }, { wch: 24 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Accounts');
+    XLSX.writeFile(wb, 'accounts_template.xlsx');
   };
 
-  const handleUploadCSV = async (e) => {
+  const handleUploadXLSX = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
     setAccUploadError('');
-    const text = await file.text();
-    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) { setAccUploadError('CSV is empty or has no data rows.'); return; }
 
-    // Parse header
-    const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_').replace(/#/, 'num'));
-    // Expected: account_num, type, account_geo, account_eng
-    const colCode = header.findIndex(h => h.includes('account') && h.includes('num') || h === 'account_#' || h === 'account#' || h === 'code' || h === 'account_no');
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+    if (rows.length < 2) { setAccUploadError('File is empty or has no data rows.'); return; }
+
+    // Normalize header
+    const header = rows[0].map(h => String(h).trim().toLowerCase().replace(/\s+/g, '_').replace(/#/, 'num'));
+    const colCode = header.findIndex(h => h.includes('num') || h === 'code' || h === 'account_no');
     const colType = header.findIndex(h => h === 'type');
     const colGeo  = header.findIndex(h => h.includes('geo'));
     const colEng  = header.findIndex(h => h.includes('eng'));
 
-    if (colEng === -1) { setAccUploadError('Could not find "Account Eng" column in CSV.'); return; }
+    if (colEng === -1) { setAccUploadError('Could not find "Account Eng" column in the file.'); return; }
 
     const VALID_TYPES = new Set(['Asset', 'Liability', 'Equity', 'Revenue', 'Expense']);
     const parsed = [];
     const errors = [];
 
-    lines.slice(1).forEach((line, i) => {
-      // Handle quoted CSV fields
-      const cols = [];
-      let cur = '', inQ = false;
-      for (const ch of line) {
-        if (ch === '"') { inQ = !inQ; }
-        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
-        else cur += ch;
-      }
-      cols.push(cur.trim());
-
-      const eng = colEng !== -1 ? cols[colEng] || '' : '';
-      if (!eng) return; // skip blank rows
-      const code = colCode !== -1 ? cols[colCode] || '' : '';
-      const type = colType !== -1 ? cols[colType] || '' : '';
-      const geo  = colGeo  !== -1 ? cols[colGeo]  || '' : '';
+    rows.slice(1).forEach((row, i) => {
+      const eng = colEng !== -1 ? String(row[colEng] || '').trim() : '';
+      if (!eng) return;
+      const code = colCode !== -1 ? String(row[colCode] || '').trim() : '';
+      const type = colType !== -1 ? String(row[colType] || '').trim() : '';
+      const geo  = colGeo  !== -1 ? String(row[colGeo]  || '').trim() : '';
 
       const resolvedType = VALID_TYPES.has(type) ? type : 'Asset';
       if (type && !VALID_TYPES.has(type)) errors.push(`Row ${i + 2}: unknown type "${type}", defaulted to Asset.`);
@@ -373,13 +371,13 @@ function Bookkeeping() {
       parsed.push({ code, name: eng, account_geo: geo, type: resolvedType });
     });
 
-    if (parsed.length === 0) { setAccUploadError('No valid rows found in CSV.'); return; }
+    if (parsed.length === 0) { setAccUploadError('No valid rows found in the file.'); return; }
 
     setAccUploading(true);
     try {
       await api.post('/accounting/bookkeeping-accounts/bulk', { accounts: parsed });
       loadAccounts();
-      if (errors.length > 0) setAccUploadError(`Imported ${parsed.length} accounts with warnings:\n${errors.join('\n')}`);
+      if (errors.length > 0) setAccUploadError(`Imported ${parsed.length} accounts with warnings: ${errors.join('; ')}`);
     } catch (err) {
       setAccUploadError(err.response?.data?.error || 'Upload failed.');
     } finally { setAccUploading(false); }
@@ -461,9 +459,9 @@ function Bookkeeping() {
             <button onClick={handleLoadSampleAccounts} style={{ padding: '9px 18px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>✦ Load Sample Data</button>
             <button onClick={handleDownloadTemplate} style={{ padding: '9px 18px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>↓ Template</button>
             <button onClick={() => uploadInputRef.current?.click()} disabled={accUploading} style={{ padding: '9px 18px', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer', opacity: accUploading ? 0.7 : 1 }}>
-              {accUploading ? 'Uploading…' : '↑ Upload CSV'}
+              {accUploading ? 'Uploading…' : '↑ Upload Excel'}
             </button>
-            <input ref={uploadInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleUploadCSV} />
+            <input ref={uploadInputRef} type="file" accept=".xlsx" style={{ display: 'none' }} onChange={handleUploadXLSX} />
             <button onClick={openNewAccount} className="btn-add">+ Add Account</button>
           </div>
         )}
