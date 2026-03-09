@@ -46,7 +46,7 @@ const TYPE_STYLE = {
   Expense:   { background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa' },
 };
 
-const EMPTY_ACCOUNT = { code: '', name: '', type: 'Asset' };
+const EMPTY_ACCOUNT = { code: '', name: '', account_geo: '', type: 'Asset' };
 const EMPTY_LINE = { debitAccount: '', creditAccount: '', amount: '' };
 
 function Bookkeeping() {
@@ -106,6 +106,9 @@ function Bookkeeping() {
   const [accForm, setAccForm] = useState(EMPTY_ACCOUNT);
   const [editAccId, setEditAccId] = useState(null);
   const [accSaving, setAccSaving] = useState(false);
+  const [accUploading, setAccUploading] = useState(false);
+  const [accUploadError, setAccUploadError] = useState('');
+  const uploadInputRef = useRef(null);
 
   useEffect(() => { loadEntries(); loadAccounts(); loadAgents(); }, []);
 
@@ -299,10 +302,10 @@ function Bookkeeping() {
   // ── ACCOUNTS ─────────────────────────────────────────
 
   const openNewAccount = () => { setAccForm(EMPTY_ACCOUNT); setEditAccId(null); setAccError(''); setShowAccForm(true); };
-  const openEditAccount = (a) => { setAccForm({ code: a.code || '', name: a.name, type: a.type }); setEditAccId(a.id); setAccError(''); setShowAccForm(true); };
+  const openEditAccount = (a) => { setAccForm({ code: a.code || '', name: a.name, account_geo: a.account_geo || '', type: a.type }); setEditAccId(a.id); setAccError(''); setShowAccForm(true); };
 
   const handleSaveAccount = async () => {
-    if (!accForm.name.trim()) { setAccError('Name is required.'); return; }
+    if (!accForm.name.trim()) { setAccError('Account Eng is required.'); return; }
     const dup = accounts.find(a => a.id !== editAccId && ((accForm.code.trim() && a.code === accForm.code.trim()) || a.name.toLowerCase() === accForm.name.toLowerCase().trim()));
     if (dup) { setAccError(`An account named "${dup.name}" (code: ${dup.code || '—'}) already exists.`); return; }
     setAccSaving(true); setAccError('');
@@ -313,6 +316,73 @@ function Bookkeeping() {
     } catch (err) {
       setAccError(err.response?.data?.error || 'Failed to save.');
     } finally { setAccSaving(false); }
+  };
+
+  const handleDownloadTemplate = () => {
+    const csv = 'Account #,Type,Account Geo,Account Eng\n1000,Asset,ფული,Cash\n';
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'accounts_template.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleUploadCSV = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setAccUploadError('');
+    const text = await file.text();
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) { setAccUploadError('CSV is empty or has no data rows.'); return; }
+
+    // Parse header
+    const header = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_').replace(/#/, 'num'));
+    // Expected: account_num, type, account_geo, account_eng
+    const colCode = header.findIndex(h => h.includes('account') && h.includes('num') || h === 'account_#' || h === 'account#' || h === 'code' || h === 'account_no');
+    const colType = header.findIndex(h => h === 'type');
+    const colGeo  = header.findIndex(h => h.includes('geo'));
+    const colEng  = header.findIndex(h => h.includes('eng'));
+
+    if (colEng === -1) { setAccUploadError('Could not find "Account Eng" column in CSV.'); return; }
+
+    const VALID_TYPES = new Set(['Asset', 'Liability', 'Equity', 'Revenue', 'Expense']);
+    const parsed = [];
+    const errors = [];
+
+    lines.slice(1).forEach((line, i) => {
+      // Handle quoted CSV fields
+      const cols = [];
+      let cur = '', inQ = false;
+      for (const ch of line) {
+        if (ch === '"') { inQ = !inQ; }
+        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else cur += ch;
+      }
+      cols.push(cur.trim());
+
+      const eng = colEng !== -1 ? cols[colEng] || '' : '';
+      if (!eng) return; // skip blank rows
+      const code = colCode !== -1 ? cols[colCode] || '' : '';
+      const type = colType !== -1 ? cols[colType] || '' : '';
+      const geo  = colGeo  !== -1 ? cols[colGeo]  || '' : '';
+
+      const resolvedType = VALID_TYPES.has(type) ? type : 'Asset';
+      if (type && !VALID_TYPES.has(type)) errors.push(`Row ${i + 2}: unknown type "${type}", defaulted to Asset.`);
+
+      parsed.push({ code, name: eng, account_geo: geo, type: resolvedType });
+    });
+
+    if (parsed.length === 0) { setAccUploadError('No valid rows found in CSV.'); return; }
+
+    setAccUploading(true);
+    try {
+      await api.post('/accounting/bookkeeping-accounts/bulk', { accounts: parsed });
+      loadAccounts();
+      if (errors.length > 0) setAccUploadError(`Imported ${parsed.length} accounts with warnings:\n${errors.join('\n')}`);
+    } catch (err) {
+      setAccUploadError(err.response?.data?.error || 'Upload failed.');
+    } finally { setAccUploading(false); }
   };
 
   const handleDeleteAccount = async (a) => {
@@ -386,9 +456,14 @@ function Bookkeeping() {
           </div>
         )}
         {view === 'accounts' && (
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button onClick={handleRemoveDuplicates} style={{ padding: '9px 18px', background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Remove Duplicates</button>
             <button onClick={handleLoadSampleAccounts} style={{ padding: '9px 18px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>✦ Load Sample Data</button>
+            <button onClick={handleDownloadTemplate} style={{ padding: '9px 18px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>↓ Template</button>
+            <button onClick={() => uploadInputRef.current?.click()} disabled={accUploading} style={{ padding: '9px 18px', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer', opacity: accUploading ? 0.7 : 1 }}>
+              {accUploading ? 'Uploading…' : '↑ Upload CSV'}
+            </button>
+            <input ref={uploadInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleUploadCSV} />
             <button onClick={openNewAccount} className="btn-add">+ Add Account</button>
           </div>
         )}
@@ -553,7 +628,7 @@ function Bookkeeping() {
       {/* ── ACCOUNTS VIEW ── */}
       {view === 'accounts' && (
         <>
-          {accError && <div style={errBox}>{accError}</div>}
+          {(accError || accUploadError) && <div style={errBox}>{accUploadError || accError}</div>}
           {accLoading ? <div style={{ color: '#94a3b8', padding: 24 }}>Loading…</div>
           : accounts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
@@ -567,7 +642,7 @@ function Bookkeeping() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={th}>Code</th><th style={th}>Name</th><th style={th}>Type</th><th style={{ ...th, width: 80 }}></th>
+                    <th style={{ ...th, width: 90 }}>Account #</th><th style={th}>Type</th><th style={th}>Account Geo</th><th style={th}>Account Eng</th><th style={{ ...th, width: 80 }}></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -576,8 +651,9 @@ function Bookkeeping() {
                     return (
                       <tr key={a.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ ...td, fontFamily: 'monospace', color: '#64748b', fontSize: 13 }}>{a.code || '—'}</td>
-                        <td style={{ ...td, fontWeight: 600, color: '#1e293b' }}>{a.name}</td>
                         <td style={td}><span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 5, ...ts }}>{a.type}</span></td>
+                        <td style={{ ...td, color: '#1e293b' }}>{a.account_geo || '—'}</td>
+                        <td style={{ ...td, fontWeight: 600, color: '#1e293b' }}>{a.name}</td>
                         <td style={td}>
                           <div style={{ display: 'flex', gap: 4 }}>
                             <button onClick={() => openEditAccount(a)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#3b82f6', padding: 4 }}>
@@ -601,14 +677,17 @@ function Bookkeeping() {
                 <h3 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>{editAccId ? 'Edit Account' : 'New Account'}</h3>
                 {accError && <div style={{ ...errBox, marginBottom: 14 }}>{accError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12, marginBottom: 12 }}>
-                  <div><label style={lbl}>Code</label><input value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} placeholder="e.g. 1000" style={inpStyle} /></div>
-                  <div><label style={lbl}>Name *</label><input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="e.g. Cash" style={inpStyle} /></div>
+                  <div><label style={lbl}>Account #</label><input value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} placeholder="e.g. 1000" style={inpStyle} /></div>
+                  <div>
+                    <label style={lbl}>Type *</label>
+                    <select value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value })} style={{ ...inpStyle, background: '#fff' }}>
+                      {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div style={{ marginBottom: 20 }}>
-                  <label style={lbl}>Type *</label>
-                  <select value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value })} style={{ ...inpStyle, background: '#fff' }}>
-                    {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
+                  <div><label style={lbl}>Account Geo</label><input value={accForm.account_geo} onChange={e => setAccForm({ ...accForm, account_geo: e.target.value })} placeholder="e.g. ფული" style={inpStyle} /></div>
+                  <div><label style={lbl}>Account Eng *</label><input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="e.g. Cash" style={inpStyle} /></div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                   <button onClick={() => setShowAccForm(false)} style={cancelBtn}>Cancel</button>

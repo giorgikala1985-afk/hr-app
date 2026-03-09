@@ -267,22 +267,38 @@ router.get('/bookkeeping-accounts', async (req, res) => {
 
 router.post('/bookkeeping-accounts', async (req, res) => {
   try {
-    const { code, name, type } = req.body;
+    const { code, name, type, account_geo } = req.body;
     const { data, error } = await supabase
       .from('bookkeeping_accounts')
-      .insert([{ user_id: req.userId, code: code || null, name, type }])
+      .insert([{ user_id: req.userId, code: code || null, name, type, account_geo: account_geo || null }])
       .select().single();
     if (error) throw error;
     res.status(201).json({ account: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+router.post('/bookkeeping-accounts/bulk', async (req, res) => {
+  try {
+    const { accounts } = req.body;
+    const rows = accounts.map(a => ({
+      user_id: req.userId,
+      code: a.code || null,
+      name: a.name,
+      type: a.type || 'Asset',
+      account_geo: a.account_geo || null,
+    }));
+    const { data, error } = await supabase.from('bookkeeping_accounts').insert(rows).select();
+    if (error) throw error;
+    res.status(201).json({ accounts: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 router.put('/bookkeeping-accounts/:id', async (req, res) => {
   try {
-    const { code, name, type } = req.body;
+    const { code, name, type, account_geo } = req.body;
     const { data, error } = await supabase
       .from('bookkeeping_accounts')
-      .update({ code: code || null, name, type })
+      .update({ code: code || null, name, type, account_geo: account_geo || null })
       .eq('id', req.params.id)
       .eq('user_id', req.userId)
       .select().single();
