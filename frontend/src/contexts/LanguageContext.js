@@ -1,8 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import en from '../i18n/en';
-import ka from '../i18n/ka';
 
-const translations = { en, ka };
+const translations = { en };
 const LanguageContext = createContext({});
 
 export function LanguageProvider({ children }) {

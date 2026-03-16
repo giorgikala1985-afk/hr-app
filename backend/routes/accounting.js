@@ -447,4 +447,39 @@ router.delete('/stock/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── TRANSFERS ───────────────────────────────────────────
+router.get('/transfers', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('accounting_transfers').select('*').eq('user_id', req.userId).order('due_date', { ascending: true });
+    if (error) throw error;
+    res.json({ records: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/transfers', async (req, res) => {
+  try {
+    const { client_name, agent_id, amount, due_date, description, status } = req.body;
+    const { data, error } = await supabase.from('accounting_transfers').insert([{ user_id: req.userId, client_name, agent_id: agent_id || null, amount: parseFloat(amount), due_date, description, status: status || 'normal' }]).select().single();
+    if (error) throw error;
+    res.status(201).json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/transfers/:id', async (req, res) => {
+  try {
+    const { client_name, agent_id, amount, due_date, description, status } = req.body;
+    const { data, error } = await supabase.from('accounting_transfers').update({ client_name, agent_id: agent_id || null, amount: parseFloat(amount), due_date, description, status }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    if (error) throw error;
+    res.json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/transfers/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('accounting_transfers').delete().eq('id', req.params.id).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

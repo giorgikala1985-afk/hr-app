@@ -241,7 +241,7 @@ function SalaryList() {
       await api.post('/salary-deferrals', { employee_id: employeeId, month, deferred_amount: accruedSalary });
       loadSalaries(month);
     } catch (err) {
-      setError('Failed to defer salary.');
+      setError(t('sal.deferFailed'));
     }
   };
 
@@ -250,7 +250,7 @@ function SalaryList() {
       await api.delete(`/salary-deferrals/${employeeId}/${month}`);
       loadSalaries(month);
     } catch (err) {
-      setError('Failed to undo deferral.');
+      setError(t('sal.undoDeferFailed'));
     }
   };
 
@@ -358,7 +358,7 @@ function SalaryList() {
             {t('sal.restore').replace('{count}', deletedUnits.length)}
           </button>
         )}
-        <button className="btn-excel" onClick={downloadExcel} title="Download Excel File">
+        <button className="btn-excel" onClick={downloadExcel} {...{title: t('sal.exportExcel')}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14,2 14,8 20,8"/>
@@ -501,22 +501,22 @@ function SalaryList() {
                           {item.is_deferred ? (
                             <div>
                               <span style={{ color: '#94a3b8', textDecoration: 'line-through', fontSize: 13 }}>{formatCurrency(item.original_accrued)}</span>
-                              <div><span className="sal-defer-badge">→ Next month</span></div>
+                              <div><span className="sal-defer-badge">{t('sal.nextMonth')}</span></div>
                             </div>
                           ) : (
                             <>
                               {formatCurrency(item.accrued_salary)}
                               {(item.carry_over || 0) > 0 && (
-                                <div style={{ color: '#2a7', fontSize: 12 }}>+{formatCurrency(item.carry_over)} carried</div>
+                                <div style={{ color: '#2a7', fontSize: 12 }}>+{formatCurrency(item.carry_over)} {t('sal.carriedOver')}</div>
                               )}
                             </>
                           )}
                           {item.is_mid_month_starter && (
                             <div onClick={(e) => e.stopPropagation()} style={{ marginTop: 4 }}>
                               {item.is_deferred ? (
-                                <button className="sal-defer-undo-btn" onClick={() => handleUndoDefer(item.employee.id)}>↩ Undo</button>
+                                <button className="sal-defer-undo-btn" onClick={() => handleUndoDefer(item.employee.id)}>{t('sal.undo')}</button>
                               ) : (
-                                <button className="sal-defer-btn" onClick={() => handleDefer(item.employee.id, item.original_accrued)}>→ Defer to next month</button>
+                                <button className="sal-defer-btn" onClick={() => handleDefer(item.employee.id, item.original_accrued)}>{t('sal.defer')}</button>
                               )}
                             </div>
                           )}
@@ -631,7 +631,7 @@ function SalaryList() {
                                               type="number"
                                               min="0"
                                               step="0.01"
-                                              placeholder="Hours"
+                                              {...{placeholder: t('sal.hoursPlaceholder')}}
                                               value={unitForm.otHours}
                                               onChange={(e) => {
                                                 const hours = e.target.value;
@@ -698,13 +698,13 @@ function SalaryList() {
                                   <span style={{ color: '#e53e3e' }}>{t('sal.deductionsLabel')} <strong>{formatCurrency(item.total_deductions)}</strong></span>
                                 )}
                                 {(item.insurance_deduction || 0) > 0 && (
-                                  <span style={{ color: '#e53e3e' }}>Insurance <strong>-{formatCurrency(item.insurance_deduction)}</strong></span>
+                                  <span style={{ color: '#e53e3e' }}>{t('sal.insurance')} <strong>-{formatCurrency(item.insurance_deduction)}</strong></span>
                                 )}
                                 {(item.carry_over || 0) > 0 && (
-                                  <span style={{ color: '#2a7' }}>↩ Carried over <strong>+{formatCurrency(item.carry_over)}</strong></span>
+                                  <span style={{ color: '#2a7' }}>{t('sal.undo')} {t('sal.carriedOver')} <strong>+{formatCurrency(item.carry_over)}</strong></span>
                                 )}
                                 {item.is_deferred && (
-                                  <span style={{ color: '#94a3b8' }}>⏭ Deferred <strong>{formatCurrency(item.original_accrued)}</strong> → next month</span>
+                                  <span style={{ color: '#94a3b8' }}>⏭ {t('sal.deferredLabel')} <strong>{formatCurrency(item.original_accrued)}</strong> {t('sal.defer').replace('→ ', '→ ')}</span>
                                 )}
                                 <span className="sal-detail-net">{t('sal.netLabel')} <strong>{formatCurrency(item.net_salary ?? item.accrued_salary)}</strong></span>
                               </div>

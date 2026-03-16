@@ -1,10 +1,11 @@
 .header {
-  background: #ffffff;
+  background: #eef1f6;
   padding: 0 32px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background 0.2s, border-color 0.2s;
 }
 
 .header-content {
@@ -17,7 +18,7 @@
 }
 
 .header-logo a {
-  color: #111827;
+  color: var(--text);
   font-size: 15px;
   font-weight: 700;
   text-decoration: none;
@@ -33,7 +34,7 @@
 }
 
 .header-nav a {
-  color: #6b7280;
+  color: var(--text-3);
   text-decoration: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -46,13 +47,22 @@
 }
 
 .header-nav a:hover {
-  color: #111827;
-  background: #f3f4f6;
+  color: var(--text);
+  background: var(--surface-3);
 }
 
 .header-nav a.active {
   color: #3185FC;
   background: #eff6ff;
+}
+
+[data-theme="dark"] .header {
+  background: #141e2e;
+}
+
+[data-theme="dark"] .header-nav a.active {
+  color: #60a5fa;
+  background: #1e3a5f;
 }
 
 .header-user {
@@ -62,14 +72,14 @@
 }
 
 .user-email {
-  color: #9ca3af;
+  color: var(--text-4);
   font-size: 13px;
 }
 
 .btn-logout {
   background: transparent;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
+  color: var(--text-3);
+  border: 1px solid var(--border);
   padding: 6px 14px;
   border-radius: 7px;
   font-size: 13px;
@@ -79,16 +89,16 @@
 }
 
 .btn-logout:hover {
-  background: #f9fafb;
-  color: #111827;
-  border-color: #d1d5db;
+  background: var(--surface-3);
+  color: var(--text);
+  border-color: var(--text-4);
 }
 
 .lang-switcher {
   display: flex;
   align-items: center;
   gap: 4px;
-  background: #f3f4f6;
+  background: var(--surface-3);
   border-radius: 8px;
   padding: 3px;
 }
@@ -113,17 +123,38 @@
 
 .lang-flag-btn:hover {
   opacity: 0.8;
-  background: #e5e7eb;
+  background: var(--border);
 }
 
 .lang-flag-btn.active {
   opacity: 1;
-  background: white;
+  background: var(--surface);
   box-shadow: 0 1px 3px rgba(0,0,0,0.12);
 }
 
 .lang-flag-btn.active img {
   filter: grayscale(0);
+}
+
+/* Theme toggle */
+.theme-toggle-btn {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-3);
+  transition: all 0.15s;
+  flex-shrink: 0;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--border);
+  color: var(--text);
 }
 
 @media (max-width: 768px) {

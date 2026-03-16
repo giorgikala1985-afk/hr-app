@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { PortalAuthProvider } from './contexts/PortalAuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import PrivateRoute from './components/Layout/PrivateRoute';
@@ -25,6 +26,7 @@ import './App.css';
 
 function App() {
   return (
+    <ThemeProvider>
     <LanguageProvider>
     <AuthProvider>
       <BrowserRouter>
@@ -145,6 +147,7 @@ function App() {
       </BrowserRouter>
     </AuthProvider>
     </LanguageProvider>
+    </ThemeProvider>
   );
 }
 

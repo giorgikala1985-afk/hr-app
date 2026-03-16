@@ -205,10 +205,10 @@ function Bookkeeping() {
   };
 
   const handleSaveTx = async () => {
-    if (!formDate) { setTxFormError('თარიღი სავალდებულოა.'); return; }
-    if (!formDesc.trim()) { setTxFormError('აღწერა სავალდებულოა.'); return; }
+    if (!formDate) { setTxFormError('Date is required.'); return; }
+    if (!formDesc.trim()) { setTxFormError('Description is required.'); return; }
     const validLines = formLines.filter(l => l.debitAccount.trim() && l.creditAccount.trim() && parseFloat(l.amount) > 0);
-    if (validLines.length < 1) { setTxFormError('მინიმუმ ერთი სრული ხაზი საჭიროა.'); return; }
+    if (validLines.length < 1) { setTxFormError('At least one complete line is required.'); return; }
     setTxSaving(true); setTxFormError('');
     const transaction_id = editTxId || uuidv4();
     try {
@@ -221,16 +221,16 @@ function Bookkeeping() {
       });
       setShowTxForm(false); loadEntries();
     } catch (err) {
-      setTxFormError(err.response?.data?.error || 'შენახვა ვერ მოხდა.');
+      setTxFormError(err.response?.data?.error || 'Failed to save.');
     } finally { setTxSaving(false); }
   };
 
   const handleDeleteTx = async (txId) => {
-    if (!window.confirm('გატარების წაშლა?')) return;
+    if (!window.confirm('Delete transaction?')) return;
     try {
       await api.delete(`/accounting/bookkeeping/transaction/${txId}`);
       loadEntries();
-    } catch (err) { setTxError(err.response?.data?.error || 'წაშლა ვერ მოხდა.'); }
+    } catch (err) { setTxError(err.response?.data?.error || 'Failed to delete.'); }
   };
 
   // ── T-ACCOUNT FORM ────────────────────────────────────
@@ -266,12 +266,12 @@ function Bookkeeping() {
   const tCreditTotal = tCredit.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
 
   const handleTSave = async () => {
-    if (!tDate) { setTError('თარიღი სავალდებულოა.'); return; }
-    if (!tDesc.trim()) { setTError('აღწერა სავალდებულოა.'); return; }
+    if (!tDate) { setTError('Date is required.'); return; }
+    if (!tDesc.trim()) { setTError('Description is required.'); return; }
     const validD = tDebit.filter(e => e.account && parseFloat(e.amount) > 0);
     const validC = tCredit.filter(e => e.account && parseFloat(e.amount) > 0);
-    if (validD.length === 0) { setTError('მინიმუმ ერთი სადებეტო ჩანაწერი საჭიროა.'); return; }
-    if (validC.length === 0) { setTError('მინიმუმ ერთი საკრედიტო ჩანაწერი საჭიროა.'); return; }
+    if (validD.length === 0) { setTError('At least one debit entry is required.'); return; }
+    if (validC.length === 0) { setTError('At least one credit entry is required.'); return; }
     setTSaving(true); setTError('');
     const transaction_id = uuidv4();
     try {
@@ -283,7 +283,7 @@ function Bookkeeping() {
       });
       setShowTModal(false); loadEntries();
     } catch (err) {
-      setTError(err.response?.data?.error || 'შენახვა ვერ მოხდა.');
+      setTError(err.response?.data?.error || 'Failed to save.');
     } finally { setTSaving(false); }
   };
 
@@ -306,7 +306,7 @@ function Bookkeeping() {
   const openEditAccount = (a) => { setAccForm({ code: a.code || '', name: a.name, account_geo: a.account_geo || '', type: a.type }); setEditAccId(a.id); setAccError(''); setShowAccForm(true); };
 
   const handleSaveAccount = async () => {
-    if (!accForm.name.trim()) { setAccError('ანგარიში (ინგლ.) სავალდებულოა.'); return; }
+    if (!accForm.name.trim()) { setAccError('Account (Eng) is required.'); return; }
     const dup = accounts.find(a => a.id !== editAccId && ((accForm.code.trim() && a.code === accForm.code.trim()) || a.name.toLowerCase() === accForm.name.toLowerCase().trim()));
     if (dup) { setAccError(`An account named "${dup.name}" (code: ${dup.code || '—'}) already exists.`); return; }
     setAccSaving(true); setAccError('');
@@ -315,7 +315,7 @@ function Bookkeeping() {
       else await api.post('/accounting/bookkeeping-accounts', accForm);
       setShowAccForm(false); loadAccounts();
     } catch (err) {
-      setAccError(err.response?.data?.error || 'შენახვა ვერ მოხდა.');
+      setAccError(err.response?.data?.error || 'Failed to save.');
     } finally { setAccSaving(false); }
   };
 
@@ -343,7 +343,7 @@ function Bookkeeping() {
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
 
-    if (rows.length < 2) { setAccUploadError('ფაილი ცარიელია ან მონაცემები არ არის.'); return; }
+    if (rows.length < 2) { setAccUploadError('File is empty or has no data.'); return; }
 
     // Normalize header
     const header = rows[0].map(h => String(h).trim().toLowerCase().replace(/\s+/g, '_').replace(/#/, 'num'));
@@ -352,7 +352,7 @@ function Bookkeeping() {
     const colGeo  = header.findIndex(h => h.includes('geo'));
     const colEng  = header.findIndex(h => h.includes('eng'));
 
-    if (colEng === -1) { setAccUploadError('"Account Eng" სვეტი ფაილში ვერ მოიძებნა.'); return; }
+    if (colEng === -1) { setAccUploadError('"Account Eng" column not found in file.'); return; }
 
     const VALID_TYPES = new Set(['Asset', 'Liability', 'Equity', 'Revenue', 'Expense']);
     const parsed = [];
@@ -371,37 +371,37 @@ function Bookkeeping() {
       parsed.push({ code, name: eng, account_geo: geo, type: resolvedType });
     });
 
-    if (parsed.length === 0) { setAccUploadError('ფაილში მოქმედი სტრიქონები ვერ მოიძებნა.'); return; }
+    if (parsed.length === 0) { setAccUploadError('No valid rows found in file.'); return; }
 
     setAccUploading(true);
     try {
       await api.post('/accounting/bookkeeping-accounts/bulk', { accounts: parsed });
       loadAccounts();
-      if (errors.length > 0) setAccUploadError(`შემოტანილია ${parsed.length} ანგარიში გაფრთხილებებით: ${errors.join('; ')}`);
+      if (errors.length > 0) setAccUploadError(`Imported ${parsed.length} accounts with warnings: ${errors.join('; ')}`);
     } catch (err) {
-      setAccUploadError(err.response?.data?.error || 'ატვირთვა ვერ მოხდა.');
+      setAccUploadError(err.response?.data?.error || 'Upload failed.');
     } finally { setAccUploading(false); }
   };
 
   const handleDeleteAccount = async (a) => {
-    if (!window.confirm(`ანგარიშის "${a.name}" წაშლა?`)) return;
+    if (!window.confirm(`Delete account "${a.name}"?`)) return;
     try {
       await api.delete(`/accounting/bookkeeping-accounts/${a.id}`);
       loadAccounts();
-    } catch (err) { setAccError(err.response?.data?.error || 'წაშლა ვერ მოხდა.'); }
+    } catch (err) { setAccError(err.response?.data?.error || 'Failed to delete.'); }
   };
 
   const handleLoadSampleAccounts = async () => {
     const existingCodes = new Set(accounts.map(a => a.code).filter(Boolean));
     const existingNames = new Set(accounts.map(a => a.name.toLowerCase()));
     const toAdd = SAMPLE_ACCOUNTS.filter(a => !existingCodes.has(a.code) && !existingNames.has(a.name.toLowerCase()));
-    if (toAdd.length === 0) { setAccError('ყველა სანიმუშო ანგარიში უკვე არსებობს — დასამატებელი არ არის.'); return; }
+    if (toAdd.length === 0) { setAccError('All sample accounts already exist — nothing to add.'); return; }
     setAccLoading(true); setAccError('');
     try {
       await Promise.all(toAdd.map(a => api.post('/accounting/bookkeeping-accounts', a)));
       loadAccounts();
     } catch (err) {
-      setAccError(err.response?.data?.error || 'სანიმუშო ანგარიშების ჩატვირთვა ვერ მოხდა.');
+      setAccError(err.response?.data?.error || 'Failed to load sample accounts.');
       setAccLoading(false);
     }
   };
@@ -414,14 +414,14 @@ function Bookkeeping() {
       if (seen[key]) toDelete.push(acc);
       else seen[key] = true;
     });
-    if (toDelete.length === 0) { alert('დუბლიკატები ვერ მოიძებნა.'); return; }
-    if (!window.confirm(`${toDelete.length} დუბლიკატი ანგარიშის წაშლა? ძველი ჩანაწერები შენარჩუნდება.`)) return;
+    if (toDelete.length === 0) { alert('No duplicates found.'); return; }
+    if (!window.confirm(`Delete ${toDelete.length} duplicate account(s)? Existing entries will be kept.`)) return;
     setAccLoading(true); setAccError('');
     try {
       await Promise.all(toDelete.map(a => api.delete(`/accounting/bookkeeping-accounts/${a.id}`)));
       loadAccounts();
     } catch (err) {
-      setAccError(err.response?.data?.error || 'დუბლიკატების წაშლა ვერ მოხდა.');
+      setAccError(err.response?.data?.error || 'Failed to delete duplicates.');
       setAccLoading(false);
     }
   };
@@ -440,36 +440,36 @@ function Bookkeeping() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1e293b' }}>საბუღალტრო აღრიცხვა</h2>
-          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>ორმხრივი ჩანაწერი</p>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1e293b' }}>Bookkeeping</h2>
+          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>Double-entry accounting</p>
         </div>
         {view === 'transactions' && (
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={openTModal} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-              + T-ანგარიშის ჩანაწერი
+              + T-Account Entry
             </button>
             <button onClick={openNewTx} className="btn-add">
-              + ახალი გატარება
+              + New Transaction
             </button>
           </div>
         )}
         {view === 'accounts' && (
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button onClick={handleRemoveDuplicates} style={{ padding: '9px 18px', background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>დუბლიკატების წაშლა</button>
-            <button onClick={handleLoadSampleAccounts} style={{ padding: '9px 18px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>✦ სანიმუშო მონაცემები</button>
-            <button onClick={handleDownloadTemplate} style={{ padding: '9px 18px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>↓ შაბლონი</button>
+            <button onClick={handleRemoveDuplicates} style={{ padding: '9px 18px', background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Remove Duplicates</button>
+            <button onClick={handleLoadSampleAccounts} style={{ padding: '9px 18px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>✦ Load Sample Data</button>
+            <button onClick={handleDownloadTemplate} style={{ padding: '9px 18px', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>↓ Template</button>
             <button onClick={() => uploadInputRef.current?.click()} disabled={accUploading} style={{ padding: '9px 18px', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer', opacity: accUploading ? 0.7 : 1 }}>
-              {accUploading ? 'იტვირთება…' : '↑ Excel-ის ატვირთვა'}
+              {accUploading ? 'Uploading…' : '↑ Upload Excel'}
             </button>
             <input ref={uploadInputRef} type="file" accept=".xlsx" style={{ display: 'none' }} onChange={handleUploadXLSX} />
-            <button onClick={openNewAccount} className="btn-add">+ ანგარიშის დამატება</button>
+            <button onClick={openNewAccount} className="btn-add">+ Add Account</button>
           </div>
         )}
       </div>
 
       {/* Sub-tabs */}
       <div style={{ display: 'flex', gap: 2, background: '#f1f5f9', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[{ key: 'transactions', label: 'გატარებები' }, { key: 'accounts', label: 'ანგარიშები' }, { key: 'trial-balance', label: 'საცდელი ბალანსი' }].map(tab => (
+        {[{ key: 'transactions', label: 'Transactions' }, { key: 'accounts', label: 'Accounts' }, { key: 'trial-balance', label: 'Trial Balance' }].map(tab => (
           <button key={tab.key} onClick={() => setView(tab.key)} style={{
             padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
             background: view === tab.key ? '#fff' : 'transparent',
@@ -485,32 +485,32 @@ function Bookkeeping() {
         <>
           {txError && <div style={errBox}>{txError}</div>}
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-            <input placeholder="გატარების ან ანგარიშის ძიება…" value={filterText} onChange={e => setFilterText(e.target.value)} style={{ flex: 1, minWidth: 200, ...inpStyle }} />
+            <input placeholder="Search transactions or accounts…" value={filterText} onChange={e => setFilterText(e.target.value)} style={{ flex: 1, minWidth: 200, ...inpStyle }} />
             <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ ...inpStyle, width: 'auto' }} />
             {(filterText || filterMonth) && (
-              <button onClick={() => { setFilterText(''); setFilterMonth(''); }} style={{ padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 7, background: '#f8fafc', cursor: 'pointer', fontSize: 13 }}>გასუფთავება</button>
+              <button onClick={() => { setFilterText(''); setFilterMonth(''); }} style={{ padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 7, background: '#f8fafc', cursor: 'pointer', fontSize: 13 }}>Clear</button>
             )}
           </div>
 
           {txLoading ? (
-            <div style={{ color: '#94a3b8', padding: 24 }}>იტვირთება…</div>
+            <div style={{ color: '#94a3b8', padding: 24 }}>Loading…</div>
           ) : filteredRows.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>📒</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>გატარებები ჯერ არ არის</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>გამოიყენეთ "ახალი გატარება" ან "T-ანგარიშის ჩანაწერი" დასაწყებად.</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>No transactions yet</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>Use "New Transaction" or "T-Account Entry" to get started.</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={th}>თარიღი</th>
-                    <th style={{ ...th, color: '#16a34a' }}>დებეტი</th>
-                    <th style={{ ...th, color: '#dc2626' }}>კრედიტი</th>
-                    <th style={th}>აღწერა</th>
-                    <th style={{ ...th, textAlign: 'right' }}>თანხა</th>
-                    <th style={th}>პროექტი</th>
+                    <th style={th}>Date</th>
+                    <th style={{ ...th, color: '#16a34a' }}>Debit</th>
+                    <th style={{ ...th, color: '#dc2626' }}>Credit</th>
+                    <th style={th}>Description</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Amount</th>
+                    <th style={th}>Project</th>
                     <th style={{ ...th, width: 40 }}></th>
                   </tr>
                 </thead>
@@ -569,37 +569,37 @@ function Bookkeeping() {
           {showTxForm && (
             <div style={overlay} onClick={() => setShowTxForm(false)}>
               <div style={{ ...modal, maxWidth: 680 }} onClick={e => e.stopPropagation()}>
-                <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: '#1e293b' }}>{editTxId ? 'გატარების რედაქტირება' : 'ახალი გატარება'}</h3>
+                <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: '#1e293b' }}>{editTxId ? 'Edit Transaction' : 'New Transaction'}</h3>
                 {txFormError && <div style={{ ...errBox, marginBottom: 14 }}>{txFormError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 16 }}>
-                  <div><label style={lbl}>თარიღი *</label><input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} style={inpStyle} /></div>
-                  <div><label style={lbl}>აღწერა *</label><input value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="მაგ. ოფისის ქირა" style={inpStyle} /></div>
+                  <div><label style={lbl}>Date *</label><input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} style={inpStyle} /></div>
+                  <div><label style={lbl}>Description *</label><input value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="e.g. Office rent" style={inpStyle} /></div>
                 </div>
                 <datalist id="bk-accs">
                   {accountNames.map((n, i) => <option key={i} value={n} />)}
                 </datalist>
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: 4 }}>
-                    <div style={{ ...lbl, marginBottom: 0, color: '#15803d' }}>სადებეტო ანგარიში</div>
-                    <div style={{ ...lbl, marginBottom: 0, color: '#b91c1c' }}>საკრედიტო ანგარიში</div>
-                    <div style={{ ...lbl, marginBottom: 0, textAlign: 'right' }}>თანხა</div>
+                    <div style={{ ...lbl, marginBottom: 0, color: '#15803d' }}>Debit Account</div>
+                    <div style={{ ...lbl, marginBottom: 0, color: '#b91c1c' }}>Credit Account</div>
+                    <div style={{ ...lbl, marginBottom: 0, textAlign: 'right' }}>Amount</div>
                     <div />
                   </div>
                   {formLines.map((line, idx) => (
                     <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: 6 }}>
-                      <input list="bk-accs" value={line.debitAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], debitAccount: e.target.value }; setFormLines(l); }} placeholder="სადებეტო ანგარიში…" style={{ ...inpStyle, borderColor: line.debitAccount ? '#bbf7d0' : '#e2e8f0', color: '#15803d' }} />
-                      <input list="bk-accs" value={line.creditAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], creditAccount: e.target.value }; setFormLines(l); }} placeholder="საკრედიტო ანგარიში…" style={{ ...inpStyle, borderColor: line.creditAccount ? '#fca5a5' : '#e2e8f0', color: '#b91c1c' }} />
+                      <input list="bk-accs" value={line.debitAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], debitAccount: e.target.value }; setFormLines(l); }} placeholder="Debit account…" style={{ ...inpStyle, borderColor: line.debitAccount ? '#bbf7d0' : '#e2e8f0', color: '#15803d' }} />
+                      <input list="bk-accs" value={line.creditAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], creditAccount: e.target.value }; setFormLines(l); }} placeholder="Credit account…" style={{ ...inpStyle, borderColor: line.creditAccount ? '#fca5a5' : '#e2e8f0', color: '#b91c1c' }} />
                       <input type="number" min="0" step="0.01" value={line.amount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], amount: e.target.value }; setFormLines(l); }} placeholder="0.00" style={{ ...inpStyle, textAlign: 'right', fontFamily: 'monospace' }} />
                       {formLines.length > 1 ? (
                         <button type="button" onClick={() => setFormLines(formLines.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 18, lineHeight: 1, padding: 0, alignSelf: 'center' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>×</button>
                       ) : <div />}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setFormLines([...formLines, { ...EMPTY_LINE }])} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>+ ხაზის დამატება</button>
+                  <button type="button" onClick={() => setFormLines([...formLines, { ...EMPTY_LINE }])} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>+ Add Line</button>
                 </div>
                 <div style={{ marginBottom: 20, position: 'relative' }}>
-                  <label style={lbl}>პროექტი / აგენტი</label>
-                  <input value={agentSearch} onChange={e => { setAgentSearch(e.target.value); setAgentOpen(true); if (!e.target.value) setFormAgentId(''); }} onFocus={() => setAgentOpen(true)} onBlur={() => setTimeout(() => setAgentOpen(false), 150)} placeholder="აგენტის ძიება…" style={inpStyle} />
+                  <label style={lbl}>Project / Agent</label>
+                  <input value={agentSearch} onChange={e => { setAgentSearch(e.target.value); setAgentOpen(true); if (!e.target.value) setFormAgentId(''); }} onFocus={() => setAgentOpen(true)} onBlur={() => setTimeout(() => setAgentOpen(false), 150)} placeholder="Search agent…" style={inpStyle} />
                   {agentOpen && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: 180, overflowY: 'auto' }}>
                       {agents.filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase())).map(a => (
@@ -608,14 +608,14 @@ function Bookkeeping() {
                           {a.type && <span style={{ color: '#94a3b8', fontSize: 12, marginLeft: 8 }}>{a.type}</span>}
                         </div>
                       ))}
-                      {agents.filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase())).length === 0 && <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>აგენტი ვერ მოიძებნა</div>}
+                      {agents.filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase())).length === 0 && <div style={{ padding: '8px 12px', color: '#94a3b8', fontSize: 13 }}>Agent not found</div>}
                     </div>
                   )}
                   {formAgentId && <button type="button" onClick={() => { setFormAgentId(''); setAgentSearch(''); }} style={{ position: 'absolute', right: 8, top: 30, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 16 }}>×</button>}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button onClick={() => setShowTxForm(false)} style={cancelBtn}>გაუქმება</button>
-                  <button onClick={handleSaveTx} disabled={txSaving} style={{ ...primaryBtn, opacity: txSaving ? 0.7 : 1 }}>{txSaving ? 'ინახება…' : editTxId ? 'ცვლილებების შენახვა' : 'გატარების განთავსება'}</button>
+                  <button onClick={() => setShowTxForm(false)} style={cancelBtn}>Cancel</button>
+                  <button onClick={handleSaveTx} disabled={txSaving} style={{ ...primaryBtn, opacity: txSaving ? 0.7 : 1 }}>{txSaving ? 'Saving…' : editTxId ? 'Save Changes' : 'Post Transaction'}</button>
                 </div>
               </div>
             </div>
@@ -627,13 +627,13 @@ function Bookkeeping() {
       {view === 'accounts' && (
         <>
           {(accError || accUploadError) && <div style={errBox}>{accUploadError || accError}</div>}
-          {accLoading ? <div style={{ color: '#94a3b8', padding: 24 }}>იტვირთება…</div>
+          {accLoading ? <div style={{ color: '#94a3b8', padding: 24 }}>Loading…</div>
           : accounts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>🗂️</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>ანგარიშები ჯერ არ არის</div>
-              <div style={{ fontSize: 13, marginTop: 4, marginBottom: 20 }}>დაამატეთ ანგარიშები გატარებებში გამოსაყენებლად.</div>
-              <button onClick={handleLoadSampleAccounts} style={{ padding: '10px 22px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>✦ სანიმუშო ანგარიშთა გეგმის ჩატვირთვა</button>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>No accounts yet</div>
+              <div style={{ fontSize: 13, marginTop: 4, marginBottom: 20 }}>Add accounts to use in transactions.</div>
+              <button onClick={handleLoadSampleAccounts} style={{ padding: '10px 22px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>✦ Load Sample Chart of Accounts</button>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -672,24 +672,24 @@ function Bookkeeping() {
           {showAccForm && (
             <div style={overlay} onClick={() => setShowAccForm(false)}>
               <div style={modal} onClick={e => e.stopPropagation()}>
-                <h3 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>{editAccId ? 'ანგარიშის რედაქტირება' : 'ახალი ანგარიში'}</h3>
+                <h3 style={{ margin: '0 0 20px', fontSize: 17, fontWeight: 700, color: '#1e293b' }}>{editAccId ? 'Edit Account' : 'New Account'}</h3>
                 {accError && <div style={{ ...errBox, marginBottom: 14 }}>{accError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12, marginBottom: 12 }}>
-                  <div><label style={lbl}>ანგარიშის #</label><input value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} placeholder="მაგ. 1000" style={inpStyle} /></div>
+                  <div><label style={lbl}>Account #</label><input value={accForm.code} onChange={e => setAccForm({ ...accForm, code: e.target.value })} placeholder="e.g. 1000" style={inpStyle} /></div>
                   <div>
-                    <label style={lbl}>ტიპი *</label>
+                    <label style={lbl}>Type *</label>
                     <select value={accForm.type} onChange={e => setAccForm({ ...accForm, type: e.target.value })} style={{ ...inpStyle, background: '#fff' }}>
                       {ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                  <div><label style={lbl}>ანგარიში (ქართ.)</label><input value={accForm.account_geo} onChange={e => setAccForm({ ...accForm, account_geo: e.target.value })} placeholder="მაგ. ფული" style={inpStyle} /></div>
-                  <div><label style={lbl}>ანგარიში (ინგლ.) *</label><input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="e.g. Cash" style={inpStyle} /></div>
+                  <div><label style={lbl}>Account (Geo)</label><input value={accForm.account_geo} onChange={e => setAccForm({ ...accForm, account_geo: e.target.value })} placeholder="e.g. Naghdi" style={inpStyle} /></div>
+                  <div><label style={lbl}>Account (Eng) *</label><input value={accForm.name} onChange={e => setAccForm({ ...accForm, name: e.target.value })} placeholder="e.g. Cash" style={inpStyle} /></div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button onClick={() => setShowAccForm(false)} style={cancelBtn}>გაუქმება</button>
-                  <button onClick={handleSaveAccount} disabled={accSaving} style={primaryBtn}>{accSaving ? 'ინახება…' : 'შენახვა'}</button>
+                  <button onClick={() => setShowAccForm(false)} style={cancelBtn}>Cancel</button>
+                  <button onClick={handleSaveAccount} disabled={accSaving} style={primaryBtn}>{accSaving ? 'Saving…' : 'Save'}</button>
                 </div>
               </div>
             </div>
@@ -701,24 +701,24 @@ function Bookkeeping() {
       {view === 'trial-balance' && (
         <>
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>გაფილტრე თვის მიხედვით:</span>
+            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>Filter by month:</span>
             <input type="month" value={tbFilterMonth} onChange={e => setTbFilterMonth(e.target.value)} style={{ ...inpStyle, width: 'auto' }} />
-            {tbFilterMonth && <button onClick={() => setTbFilterMonth('')} style={{ padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 7, background: '#f8fafc', cursor: 'pointer', fontSize: 13 }}>გასუფთავება</button>}
+            {tbFilterMonth && <button onClick={() => setTbFilterMonth('')} style={{ padding: '8px 14px', border: '1px solid #e2e8f0', borderRadius: 7, background: '#f8fafc', cursor: 'pointer', fontSize: 13 }}>Clear</button>}
           </div>
           {trialBalance.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>⚖️</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>ჩანაწერები ვერ მოიძებნა</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>No entries found</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={{ ...th, width: 70 }}>კოდი</th><th style={th}>ანგარიში</th>
-                    <th style={{ ...th, textAlign: 'right', color: '#16a34a' }}>დებეტი</th>
-                    <th style={{ ...th, textAlign: 'right', color: '#dc2626' }}>კრედიტი</th>
-                    <th style={{ ...th, textAlign: 'right' }}>სარდო</th>
+                    <th style={{ ...th, width: 70 }}>Code</th><th style={th}>Account</th>
+                    <th style={{ ...th, textAlign: 'right', color: '#16a34a' }}>Debit</th>
+                    <th style={{ ...th, textAlign: 'right', color: '#dc2626' }}>Credit</th>
+                    <th style={{ ...th, textAlign: 'right' }}>Balance</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -763,11 +763,11 @@ function Bookkeeping() {
                 </tbody>
                 <tfoot>
                   <tr style={{ background: '#f1f5f9', borderTop: '2px solid #e2e8f0' }}>
-                    <td style={td} /><td style={{ ...td, fontWeight: 700, color: '#1e293b', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>ჯამი</td>
+                    <td style={td} /><td style={{ ...td, fontWeight: 700, color: '#1e293b', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Total</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#15803d' }}>{fmt(tbTotalDebit)}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#b91c1c' }}>{fmt(tbTotalCredit)}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '#16a34a' : '#dc2626' }}>
-                      {Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '✓ დაბალანსებულია' : `სხვაობა: ${fmt(Math.abs(tbTotalDebit - tbTotalCredit))}`}
+                      {Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '✓ Balanced' : `Difference: ${fmt(Math.abs(tbTotalDebit - tbTotalCredit))}`}
                     </td>
                   </tr>
                 </tfoot>
@@ -784,19 +784,19 @@ function Bookkeeping() {
 
             {/* Modal header */}
             <div style={{ padding: '20px 28px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ fontWeight: 700, fontSize: 17, color: '#1e293b', marginRight: 8 }}>⊤ T-ანგარიშის ჩანაწერი</div>
+              <div style={{ fontWeight: 700, fontSize: 17, color: '#1e293b', marginRight: 8 }}>⊤ T-Account Entry</div>
               <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 140 }}>
-                  <label style={{ ...lbl, marginBottom: 3 }}>თარიღი *</label>
+                  <label style={{ ...lbl, marginBottom: 3 }}>Date *</label>
                   <input type="date" value={tDate} onChange={e => setTDate(e.target.value)} style={{ ...inpStyle, fontSize: 13 }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <label style={{ ...lbl, marginBottom: 3 }}>აღწერა *</label>
-                  <input value={tDesc} onChange={e => setTDesc(e.target.value)} placeholder="მაგ. თვიური ქირა" style={{ ...inpStyle, fontSize: 13 }} />
+                  <label style={{ ...lbl, marginBottom: 3 }}>Description *</label>
+                  <input value={tDesc} onChange={e => setTDesc(e.target.value)} placeholder="e.g. Monthly rent" style={{ ...inpStyle, fontSize: 13 }} />
                 </div>
                 <div style={{ minWidth: 180, position: 'relative' }}>
-                  <label style={{ ...lbl, marginBottom: 3 }}>პროექტი / აგენტი</label>
-                  <input value={tAgentSearch} onChange={e => { setTAgentSearch(e.target.value); setTAgentOpen(true); if (!e.target.value) setTAgentId(''); }} onFocus={() => setTAgentOpen(true)} onBlur={() => setTimeout(() => setTAgentOpen(false), 150)} placeholder="აგენტის ძიება…" style={{ ...inpStyle, fontSize: 13 }} />
+                  <label style={{ ...lbl, marginBottom: 3 }}>Project / Agent</label>
+                  <input value={tAgentSearch} onChange={e => { setTAgentSearch(e.target.value); setTAgentOpen(true); if (!e.target.value) setTAgentId(''); }} onFocus={() => setTAgentOpen(true)} onBlur={() => setTimeout(() => setTAgentOpen(false), 150)} placeholder="Search agent…" style={{ ...inpStyle, fontSize: 13 }} />
                   {tAgentOpen && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 20, maxHeight: 160, overflowY: 'auto' }}>
                       {agents.filter(a => a.name.toLowerCase().includes(tAgentSearch.toLowerCase())).map(a => (
@@ -817,11 +817,11 @@ function Bookkeeping() {
               {/* Left: accounts panel */}
               <div style={{ width: 220, borderRight: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', background: '#fafbfc' }}>
                 <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid #f1f5f9' }}>
-                  <input value={tAccSearch} onChange={e => setTAccSearch(e.target.value)} placeholder="ანგარიშების ძიება…" style={{ ...inpStyle, fontSize: 12, padding: '6px 9px' }} />
+                  <input value={tAccSearch} onChange={e => setTAccSearch(e.target.value)} placeholder="Search accounts…" style={{ ...inpStyle, fontSize: 12, padding: '6px 9px' }} />
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
                   {tAccList.length === 0 ? (
-                    <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', padding: 16 }}>ანგარიში ვერ მოიძებნა</div>
+                    <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', padding: 16 }}>No accounts found</div>
                   ) : tAccList.map(a => {
                     const ts = TYPE_STYLE[a.type] || TYPE_STYLE.Asset;
                     return (
@@ -847,7 +847,7 @@ function Bookkeeping() {
                   })}
                 </div>
                 <div style={{ padding: '10px 12px', borderTop: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8', textAlign: 'center' }}>
-                  გადაიტანე ანგარიშები T-ზე
+                  Drag accounts to T
                 </div>
               </div>
 
@@ -866,7 +866,7 @@ function Bookkeeping() {
                   {/* Debit side */}
                   <div style={{ flex: 1, borderRight: '3px solid #1e293b', borderTop: '3px solid #1e293b', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#f0fdf4' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: 1 }}>დებეტი (Dr)</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: 1 }}>Debit (Dr)</span>
                     </div>
 
                     {/* Drop zone */}
@@ -877,7 +877,7 @@ function Bookkeeping() {
                       style={{ flex: 1, padding: 10, minHeight: 120, background: dragOver === 'debit' ? '#dcfce7' : 'transparent', border: dragOver === 'debit' ? '2px dashed #16a34a' : '2px dashed transparent', borderRadius: 6, transition: 'all 0.15s' }}
                     >
                       {tDebit.length === 0 && dragOver !== 'debit' && (
-                        <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginTop: 20 }}>ჩააგდე ანგარიშები აქ</div>
+                        <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginTop: 20 }}>Drop accounts here</div>
                       )}
                       {tDebit.map(entry => (
                         <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, background: '#fff', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 10px' }}>
@@ -899,7 +899,7 @@ function Bookkeeping() {
 
                     {/* Debit total */}
                     <div style={{ borderTop: '2px solid #1e293b', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', background: '#f8fafc' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>ჯამი Dr</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Dr</span>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#15803d' }}>{tDebitTotal > 0 ? fmt(tDebitTotal) : '0.00'}</span>
                     </div>
                   </div>
@@ -907,7 +907,7 @@ function Bookkeeping() {
                   {/* Credit side */}
                   <div style={{ flex: 1, borderTop: '3px solid #1e293b', display: 'flex', flexDirection: 'column' }}>
                     <div style={{ padding: '8px 14px', borderBottom: '1px solid #e2e8f0', background: '#fef2f2' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: 1 }}>კრედიტი (Cr)</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: 1 }}>Credit (Cr)</span>
                     </div>
 
                     {/* Drop zone */}
@@ -918,7 +918,7 @@ function Bookkeeping() {
                       style={{ flex: 1, padding: 10, minHeight: 120, background: dragOver === 'credit' ? '#fee2e2' : 'transparent', border: dragOver === 'credit' ? '2px dashed #dc2626' : '2px dashed transparent', borderRadius: 6, transition: 'all 0.15s' }}
                     >
                       {tCredit.length === 0 && dragOver !== 'credit' && (
-                        <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginTop: 20 }}>ჩააგდე ანგარიშები აქ</div>
+                        <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginTop: 20 }}>Drop accounts here</div>
                       )}
                       {tCredit.map(entry => (
                         <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, background: '#fff', border: '1px solid #fca5a5', borderRadius: 8, padding: '6px 10px' }}>
@@ -940,7 +940,7 @@ function Bookkeeping() {
 
                     {/* Credit total */}
                     <div style={{ borderTop: '2px solid #1e293b', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', background: '#f8fafc' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>ჯამი Cr</span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>Total Cr</span>
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#b91c1c' }}>{tCreditTotal > 0 ? fmt(tCreditTotal) : '0.00'}</span>
                     </div>
                   </div>
@@ -950,10 +950,10 @@ function Bookkeeping() {
                 {(tDebitTotal > 0 || tCreditTotal > 0) && (
                   <div style={{ marginTop: 12, textAlign: 'center' }}>
                     {Math.abs(tDebitTotal - tCreditTotal) < 0.001 ? (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 14px', borderRadius: 20 }}>✓ დაბალანსებულია</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 14px', borderRadius: 20 }}>✓ Balanced</span>
                     ) : (
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa', padding: '4px 14px', borderRadius: 20 }}>
-                        სხვაობა: {fmt(Math.abs(tDebitTotal - tCreditTotal))} ({tDebitTotal > tCreditTotal ? 'Dr' : 'Cr'} მხარე მეტია)
+                        Difference: {fmt(Math.abs(tDebitTotal - tCreditTotal))} ({tDebitTotal > tCreditTotal ? 'Dr' : 'Cr'} side is more)
                       </span>
                     )}
                   </div>
@@ -963,9 +963,9 @@ function Bookkeeping() {
 
             {/* Footer */}
             <div style={{ padding: '14px 28px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#fafbfc' }}>
-              <button onClick={() => setShowTModal(false)} style={cancelBtn}>გაუქმება</button>
+              <button onClick={() => setShowTModal(false)} style={cancelBtn}>Cancel</button>
               <button onClick={handleTSave} disabled={tSaving} style={{ ...primaryBtn, background: '#7c3aed', opacity: tSaving ? 0.7 : 1 }}>
-                {tSaving ? 'ინახება…' : 'T-ანგარიშის განთავსება'}
+                {tSaving ? 'Saving…' : 'Post T-Account Entry'}
               </button>
             </div>
           </div>

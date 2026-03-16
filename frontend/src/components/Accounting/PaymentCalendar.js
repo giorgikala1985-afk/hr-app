@@ -1,16 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
-
-const TYPES = {
-  purchase:    { label: 'Purchase',      color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' },
-  sale:        { label: 'Sale',          color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
-  invoice:     { label: 'Invoice',       color: '#2563eb', bg: '#eff6ff', border: '#93c5fd' },
-  invoice_due: { label: 'Invoice Due',   color: '#d97706', bg: '#fffbeb', border: '#fcd34d' },
-  transaction: { label: 'Transaction',   color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd' },
-};
-
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+import { useLanguage } from '../../contexts/LanguageContext';
 
 function fmtAmount(amount, currency) {
   if (amount == null) return '';
@@ -19,10 +9,10 @@ function fmtAmount(amount, currency) {
 
 function toDateKey(d) {
   if (!d) return null;
-  return d.slice(0, 10); // YYYY-MM-DD
+  return d.slice(0, 10);
 }
 
-function buildEventMap(purchases, sales, invoices, transactions) {
+function buildEventMap(purchases, sales, invoices, transactions, labels) {
   const map = {};
   const add = (dateKey, event) => {
     if (!dateKey) return;
@@ -30,25 +20,45 @@ function buildEventMap(purchases, sales, invoices, transactions) {
     map[dateKey].push(event);
   };
 
-  purchases.forEach(r => add(toDateKey(r.date), { type: 'purchase', label: r.vendor || r.description || 'Purchase', amount: r.amount, currency: r.currency, id: r.id }));
-  sales.forEach(r => add(toDateKey(r.date), { type: 'sale', label: r.client || r.description || 'Sale', amount: r.amount, currency: r.currency, id: r.id }));
+  purchases.forEach(r => add(toDateKey(r.date), { type: 'purchase', label: r.vendor || r.description || labels.purchase, amount: r.amount, currency: r.currency, id: r.id }));
+  sales.forEach(r => add(toDateKey(r.date), { type: 'sale', label: r.client || r.description || labels.sale, amount: r.amount, currency: r.currency, id: r.id }));
   invoices.forEach(r => {
-    add(toDateKey(r.date), { type: 'invoice', label: r.client || r.invoice_number || 'Invoice', amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
-    if (r.due_date) add(toDateKey(r.due_date), { type: 'invoice_due', label: r.client || r.invoice_number || 'Invoice Due', amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
+    add(toDateKey(r.date), { type: 'invoice', label: r.client || r.invoice_number || labels.invoice, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
+    if (r.due_date) add(toDateKey(r.due_date), { type: 'invoice_due', label: r.client || r.invoice_number || labels.invoiceDue, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
   });
-  transactions.forEach(r => add(toDateKey(r.date), { type: 'transaction', label: r.client || r.item_type || 'Transaction', amount: r.amount, currency: null, id: r.id }));
+  transactions.forEach(r => add(toDateKey(r.date), { type: 'transaction', label: r.client || r.item_type || labels.transaction, amount: r.amount, currency: null, id: r.id }));
 
   return map;
 }
 
 export default function PaymentCalendar() {
+  const { t } = useLanguage();
   const today = new Date();
   const [year, setYear]   = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth()); // 0-indexed
+  const [month, setMonth] = useState(today.getMonth());
   const [events, setEvents]     = useState({});
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
   const [selectedDay, setSelectedDay] = useState(null);
+
+  const DAYS = [t('cal.sun'), t('cal.mon'), t('cal.tue'), t('cal.wed'), t('cal.thu'), t('cal.fri'), t('cal.sat')];
+  const MONTHS = [t('cal.jan'), t('cal.feb'), t('cal.mar'), t('cal.apr'), t('cal.may'), t('cal.jun'), t('cal.jul'), t('cal.aug'), t('cal.sep'), t('cal.oct'), t('cal.nov'), t('cal.dec')];
+
+  const TYPES = {
+    purchase:    { label: t('cal.purchase'),    color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' },
+    sale:        { label: t('cal.sale'),        color: '#16a34a', bg: '#f0fdf4', border: '#86efac' },
+    invoice:     { label: t('cal.invoice'),     color: '#2563eb', bg: '#eff6ff', border: '#93c5fd' },
+    invoice_due: { label: t('cal.invoiceDue'),  color: '#d97706', bg: '#fffbeb', border: '#fcd34d' },
+    transaction: { label: t('cal.transaction'), color: '#7c3aed', bg: '#f5f3ff', border: '#c4b5fd' },
+  };
+
+  const typeLabels = {
+    purchase: t('cal.purchase'),
+    sale: t('cal.sale'),
+    invoice: t('cal.invoice'),
+    invoiceDue: t('cal.invoiceDue'),
+    transaction: t('cal.transaction'),
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -65,9 +75,10 @@ export default function PaymentCalendar() {
         s.data.records   || [],
         inv.data.records || [],
         tr.data.records  || [],
+        typeLabels,
       ));
     } catch {
-      setError('Failed to load payment data.');
+      setError(t('cal.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -75,7 +86,6 @@ export default function PaymentCalendar() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Navigation
   const prevMonth = () => {
     if (month === 0) { setMonth(11); setYear(y => y - 1); }
     else setMonth(m => m - 1);
@@ -88,33 +98,26 @@ export default function PaymentCalendar() {
   };
   const goToday = () => { setYear(today.getFullYear()); setMonth(today.getMonth()); setSelectedDay(null); };
 
-  // Build calendar grid
-  const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+  const firstDay = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrev  = new Date(year, month, 0).getDate();
 
   const cells = [];
-  // Leading days from previous month
   for (let i = firstDay - 1; i >= 0; i--) {
     cells.push({ day: daysInPrev - i, cur: false });
   }
-  // Current month
   for (let d = 1; d <= daysInMonth; d++) {
     cells.push({ day: d, cur: true });
   }
-  // Trailing days
   const trailing = 42 - cells.length;
   for (let d = 1; d <= trailing; d++) {
     cells.push({ day: d, cur: false });
   }
 
   const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-
   const dayKey = (d) => `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-
   const selectedEvents = selectedDay ? (events[dayKey(selectedDay)] || []) : [];
 
-  // Unique type colors present in a day (max 4 dots)
   const dotsFor = (d) => {
     const key = dayKey(d);
     const evs = events[key];
@@ -141,8 +144,8 @@ export default function PaymentCalendar() {
             </svg>
           </div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>Payment Schedule</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>Click a day to see payment details</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>{t('cal.paymentSchedule')}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>{t('cal.clickDay')}</div>
           </div>
           {loading && (
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }}>
@@ -170,7 +173,7 @@ export default function PaymentCalendar() {
           </button>
           <button onClick={goToday} style={{ padding: '5px 12px', border: '1px solid #e2e8f0', borderRadius: 7, background: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#2563eb' }}
             onMouseEnter={e => e.currentTarget.style.background='#eff6ff'} onMouseLeave={e => e.currentTarget.style.background='#fff'}>
-            Today
+            {t('cal.today')}
           </button>
         </div>
 
@@ -230,10 +233,10 @@ export default function PaymentCalendar() {
 
         {/* Legend */}
         <div style={{ padding: '10px 20px 16px', borderTop: '1px solid #f1f5f9', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {Object.entries(TYPES).map(([key, t]) => (
+          {Object.entries(TYPES).map(([key, tp]) => (
             <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color }} />
-              <span style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>{t.label}</span>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: tp.color }} />
+              <span style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>{tp.label}</span>
             </div>
           ))}
         </div>
@@ -246,22 +249,24 @@ export default function PaymentCalendar() {
             <div style={{ padding: '14px 18px', background: '#fafbfc', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>{MONTHS[month]} {selectedDay}, {year}</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>{selectedEvents.length} event{selectedEvents.length !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
+                  {t('cal.events').replace('{count}', selectedEvents.length).replace('{s}', selectedEvents.length !== 1 ? 's' : '')}
+                </div>
               </div>
               <button onClick={() => setSelectedDay(null)} style={{ width: 26, height: 26, border: 'none', background: '#f1f5f9', borderRadius: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
             {selectedEvents.length === 0 ? (
-              <div style={{ padding: '24px 18px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No payments on this day</div>
+              <div style={{ padding: '24px 18px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>{t('cal.noPayments')}</div>
             ) : (
               <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {selectedEvents.map((ev, i) => {
-                  const t = TYPES[ev.type];
+                  const tp = TYPES[ev.type];
                   return (
-                    <div key={i} style={{ padding: '10px 12px', background: t.bg, border: `1px solid ${t.border}`, borderRadius: 9, borderLeft: `3px solid ${t.color}` }}>
+                    <div key={i} style={{ padding: '10px 12px', background: tp.bg, border: `1px solid ${tp.border}`, borderRadius: 9, borderLeft: `3px solid ${tp.color}` }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: t.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t.label}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: tp.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{tp.label}</span>
                         {ev.amount != null && <span style={{ fontSize: 12, fontWeight: 700, color: '#1e293b' }}>{fmtAmount(ev.amount, ev.currency)}</span>}
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', marginTop: 3 }}>{ev.label}</div>
@@ -281,8 +286,8 @@ export default function PaymentCalendar() {
                 <line x1="3" y1="10" x2="21" y2="10"/>
               </svg>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Select a day</div>
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>Click any date to view payment details</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>{t('cal.selectDay')}</div>
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>{t('cal.clickDate')}</div>
           </div>
         )}
       </div>

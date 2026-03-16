@@ -3,11 +3,11 @@
   margin: 0 auto;
   padding: 32px 28px;
   min-height: calc(100vh - 80px);
-  background: #f8fafc;
+  background: var(--bg);
 }
 
 .analytics-container h1 {
-  color: #0f172a;
+  color: var(--text);
   margin-bottom: 28px;
   font-size: 1.6rem;
   font-weight: 700;
@@ -16,13 +16,13 @@
 
 .loading,
 .no-data {
-  background: white;
+  background: var(--surface);
   padding: 48px;
   text-align: center;
   border-radius: 12px;
   font-size: 15px;
-  color: #64748b;
-  border: 1px solid #e5e7eb;
+  color: var(--text-3);
+  border: 1px solid var(--border);
 }
 
 .error {
@@ -61,10 +61,10 @@
 }
 
 .stat-card {
-  background: white;
+  background: var(--surface);
   border-radius: 14px;
   padding: 24px 22px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   position: relative;
   overflow: hidden;
@@ -72,7 +72,7 @@
 }
 
 .stat-card:hover {
-  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
   transform: translateY(-2px);
 }
 
@@ -91,6 +91,11 @@
 .stat-card-purple .stat-card-icon{ background: #faf5ff; color: #7c3aed; }
 .stat-card-teal .stat-card-icon  { background: #f0fdfa; color: #0891b2; }
 
+[data-theme="dark"] .stat-card-blue .stat-card-icon  { background: #1e3a5f; }
+[data-theme="dark"] .stat-card-green .stat-card-icon { background: #0f2a1e; }
+[data-theme="dark"] .stat-card-purple .stat-card-icon{ background: #2e1a47; }
+[data-theme="dark"] .stat-card-teal .stat-card-icon  { background: #0a2a2e; }
+
 .stat-card::after {
   content: '';
   position: absolute;
@@ -106,13 +111,13 @@
 .stat-value {
   font-size: 2rem;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text);
   margin-bottom: 4px;
   line-height: 1;
 }
 
 .stat-label {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 13px;
   font-weight: 500;
   text-transform: uppercase;
@@ -121,16 +126,16 @@
 
 /* ── Sections ───────────────────────────────── */
 .section {
-  background: white;
+  background: var(--surface);
   border-radius: 14px;
   padding: 26px 28px;
   margin-bottom: 24px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border);
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
 
 .section h2 {
-  color: #0f172a;
+  color: var(--text);
   margin-bottom: 20px;
   font-size: 1.05rem;
   font-weight: 700;
@@ -151,13 +156,13 @@
 
 .report-months-select {
   padding: 7px 32px 7px 12px;
-  border: 1.5px solid #e5e7eb;
+  border: 1.5px solid var(--border);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-2);
   cursor: pointer;
-  background-color: #fff;
+  background-color: var(--surface-2);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 8px center;
@@ -180,7 +185,7 @@
   height: 200px;
   padding-bottom: 0;
   margin-bottom: 12px;
-  border-bottom: 1.5px solid #e5e7eb;
+  border-bottom: 1.5px solid var(--border);
 }
 
 .chart-col {
@@ -224,7 +229,7 @@
 
 .chart-label {
   font-size: 10px;
-  color: #94a3b8;
+  color: var(--text-4);
   font-weight: 500;
   margin-top: 6px;
   white-space: nowrap;
@@ -243,7 +248,7 @@
   align-items: center;
   gap: 7px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-3);
   font-weight: 500;
 }
 
@@ -268,38 +273,38 @@
 }
 
 .salary-report-table th {
-  background: #f8fafc;
-  color: #374151;
+  background: var(--surface-2);
+  color: var(--text-2);
   padding: 11px 16px;
   text-align: left;
   font-weight: 600;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1.5px solid #e5e7eb;
+  border-bottom: 1.5px solid var(--border);
   position: relative;
 }
 
 .salary-report-table td {
   padding: 11px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-3);
   font-size: 14px;
-  color: #374151;
+  color: var(--text-2);
 }
 
 .salary-report-table tr:hover td {
-  background: #f8fafc;
+  background: var(--surface-2);
 }
 
 .report-month {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .report-amount {
   font-family: var(--font-mono);
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .report-deduction {
@@ -319,12 +324,12 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 12px;
-  color: #0f172a;
+  color: var(--text);
 }
 
 .salary-report-table tfoot td {
-  border-top: 2px solid #e5e7eb;
-  background: #f8fafc;
+  border-top: 2px solid var(--border);
+  background: var(--surface-2);
   padding: 13px 16px;
 }
 
@@ -339,25 +344,26 @@
 }
 
 .department-table th {
-  background: #f8fafc;
-  color: #374151;
+  background: var(--surface-2);
+  color: var(--text-2);
   padding: 11px 16px;
   text-align: left;
   font-weight: 600;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1.5px solid #e5e7eb;
+  border-bottom: 1.5px solid var(--border);
 }
 
 .department-table td {
   padding: 11px 16px;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-3);
   font-size: 14px;
+  color: var(--text-2);
 }
 
 .department-table tr:hover td {
-  background: #f8fafc;
+  background: var(--surface-2);
 }
 
 /* ── Salary Ranges ──────────────────────────── */
@@ -367,7 +373,7 @@
 }
 
 .salary-range-item {
-  background: #f8fafc;
+  background: var(--surface-2);
   padding: 14px 16px;
   border-radius: 10px;
   border-left: 3px solid #3185FC;
@@ -375,13 +381,13 @@
 
 .range-label {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
   font-size: 13px;
   margin-bottom: 8px;
 }
 
 .range-bar-container {
-  background: #e5e7eb;
+  background: var(--border);
   height: 8px;
   border-radius: 999px;
   overflow: hidden;
@@ -396,7 +402,7 @@
 }
 
 .range-count {
-  color: #64748b;
+  color: var(--text-3);
   font-size: 12px;
   font-weight: 500;
 }
@@ -409,8 +415,8 @@
 }
 
 .holiday-item {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-left: 3px solid #3185FC;
   padding: 16px 18px;
   border-radius: 10px;
@@ -428,7 +434,7 @@
 .holiday-name {
   font-weight: 600;
   font-size: 14px;
-  color: #1e293b;
+  color: var(--text);
 }
 
 /* ── Refresh ────────────────────────────────── */
@@ -439,9 +445,9 @@
 
 .btn-refresh {
   padding: 10px 24px;
-  background: white;
-  color: #374151;
-  border: 1.5px solid #d1d5db;
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1.5px solid var(--border-2);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
@@ -451,8 +457,8 @@
 }
 
 .btn-refresh:hover {
-  background: #f8fafc;
-  border-color: #9ca3af;
+  background: var(--surface-3);
+  border-color: var(--text-4);
 }
 
 @media (max-width: 768px) {

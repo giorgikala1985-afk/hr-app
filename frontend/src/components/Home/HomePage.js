@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import './HomePage.css';
@@ -220,6 +221,7 @@ const STORAGE_KEY = 'hr_pinned_tabs';
 const DEFAULT_PINS = ['doc-hr', 'opt-units', 'acc-purchases', 'employees'];
 
 function HomePage() {
+  const { t } = useLanguage();
   const [pinned, setPinned] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -241,23 +243,23 @@ function HomePage() {
     setPinned(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   };
 
-  const pinnedTabs = ALL_TABS.filter(t => pinned.includes(t.key));
+  const pinnedTabs = ALL_TABS.filter(tab => pinned.includes(tab.key));
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-  const sections = [...new Set(ALL_TABS.map(t => t.section))];
+  const sections = [...new Set(ALL_TABS.map(tab => tab.section))];
 
   return (
     <div className="home-page">
       <div className="home-header">
         <div>
-          <h1 className="home-title">Dashboard</h1>
+          <h1 className="home-title">{t('home.title')}</h1>
           <p className="home-date">{today}</p>
         </div>
         <button
           className={`home-customize-btn${customizing ? ' active' : ''}`}
           onClick={() => setCustomizing(c => !c)}
         >
-          {customizing ? 'Done' : 'Customize'}
+          {customizing ? t('home.done') : t('home.customize')}
         </button>
       </div>
 
@@ -272,7 +274,7 @@ function HomePage() {
             </div>
             <div>
               <div className="home-stat-value">{empCount}</div>
-              <div className="home-stat-label">Total Employees</div>
+              <div className="home-stat-label">{t('analytics.totalEmployees')}</div>
             </div>
           </div>
         </div>
@@ -284,12 +286,12 @@ function HomePage() {
 
       {customizing ? (
         <div className="home-customize-sections">
-          {sections.map(section => {
-            const sectionTabs = ALL_TABS.filter(t => t.section === section);
+          {sections.map(sectionKey => {
+            const sectionTabs = ALL_TABS.filter(tab => tab.section === sectionKey);
             const sectionColor = sectionTabs[0]?.color;
             return (
-              <div key={section} className="home-customize-group">
-                <div className="home-customize-group-label" style={{ color: sectionColor }}>{section}</div>
+              <div key={sectionKey} className="home-customize-group">
+                <div className="home-customize-group-label" style={{ color: sectionColor }}>{t(sectionKey)}</div>
                 <div className="home-all-grid">
                   {sectionTabs.map(tab => (
                     <button
@@ -310,7 +312,7 @@ function HomePage() {
                         )}
                       </div>
                       <div className="home-card-icon" style={{ background: tab.bg, color: tab.color }}>{tab.icon}</div>
-                      <div className="home-card-label">{tab.label}</div>
+                      <div className="home-card-label">{t(tab.labelKey)}</div>
                     </button>
                   ))}
                 </div>
@@ -320,7 +322,7 @@ function HomePage() {
         </div>
       ) : pinnedTabs.length === 0 ? (
         <div className="home-empty">
-          <p>No pinned tabs. Click <strong>Customize</strong> to add shortcuts.</p>
+          <p>{t('home.noTabs')}</p>
         </div>
       ) : (
         <div className="home-pinned-grid">
@@ -328,8 +330,8 @@ function HomePage() {
             <Link key={tab.key} to={tab.route} className="home-pinned-card" style={{ '--section-color': tab.color, '--section-bg': tab.bg }}>
               <div className="home-card-icon" style={{ background: tab.bg, color: tab.color }}>{tab.icon}</div>
               <div>
-                <div className="home-card-label">{tab.label}</div>
-                <div className="home-card-section">{tab.section}</div>
+                <div className="home-card-label">{t(tab.labelKey)}</div>
+                <div className="home-card-section">{t(tab.section)}</div>
               </div>
               <svg className="home-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>

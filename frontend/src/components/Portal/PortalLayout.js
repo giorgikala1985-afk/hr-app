@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { NavLink } from 'react-router-dom';
 import './Portal.css';
 
@@ -38,13 +39,14 @@ const NAV = [
 ];
 
 export default function PortalLayout({ children }) {
+  const { t } = useLanguage();
   return (
     <div className="portal-layout">
       <nav className="portal-bottom-nav">
-        {NAV.map(({ to, label, icon }) => (
+        {NAV.map(({ to, labelKey, icon }) => (
           <NavLink key={to} to={to} className={({ isActive }) => `portal-nav-item${isActive ? ' active' : ''}`}>
             {icon}
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
           </NavLink>
         ))}
       </nav>

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePortalAuth } from '../../contexts/PortalAuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import './Portal.css';
 
 const KEYS = ['1','2','3','4','5','6','7','8','9','⌫','0','✓'];
 
 export default function PortalLogin() {
+  const { t } = useLanguage();
   const { login, loading, error, setError } = usePortalAuth();
   const navigate = useNavigate();
   const [personalId, setPersonalId] = useState('');
@@ -18,8 +20,8 @@ export default function PortalLogin() {
       return;
     }
     if (k === '✓') {
-      if (!personalId.trim()) { setError('Please enter your Personal ID'); return; }
-      if (pin.length !== 4) { setError('Enter your 4-digit PIN'); return; }
+      if (!personalId.trim()) { setError(t('portal.enterPersonalId')); return; }
+      if (pin.length !== 4) { setError(t('portal.enterPin')); return; }
       const ok = await login(personalId.trim(), pin);
       if (ok) navigate('/portal/home', { replace: true });
       return;
@@ -38,20 +40,20 @@ export default function PortalLogin() {
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          <h1>Employee Portal</h1>
-          <p>Enter your Personal ID and PIN</p>
+          <h1>{t('portal.title')}</h1>
+          <p>{t('portal.enterIdPin')}</p>
         </div>
 
         <input
           className="portal-id-input"
           type="text"
-          placeholder="Personal ID"
+          {...{placeholder: t('portal.personalId')}}
           value={personalId}
           onChange={e => { setPersonalId(e.target.value); setError(''); }}
           autoComplete="off"
         />
 
-        <div className="portal-pin-label">PIN</div>
+        <div className="portal-pin-label">{t('portal.pin')}</div>
         <div className="portal-pin-dots">
           {[0,1,2,3].map(i => (
             <div key={i} className={`portal-pin-dot${i < pin.length ? ' filled' : ''}`} />

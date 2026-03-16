@@ -60,15 +60,15 @@ function StockSettings() {
   };
 
   const INPUT = {
-    flex: 1, padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 8,
+    flex: 1, padding: '8px 10px', border: '1px solid var(--border-2)', borderRadius: 8,
     fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
   };
 
   return (
-    <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+    <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
 
       {/* Header */}
-      <div style={{ padding: '20px 24px', borderBottom: '1px solid #f1f5f9', background: '#fafbfc', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 36, height: 36, borderRadius: 9, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
@@ -76,27 +76,27 @@ function StockSettings() {
           </svg>
         </div>
         <div>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>Stock Locations</div>
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>Manage warehouse and storage locations for stock items.</div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Stock Locations</div>
+          <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 1 }}>Manage warehouse and storage locations for stock items.</div>
         </div>
-        <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: '#64748b', background: '#f1f5f9', borderRadius: 20, padding: '3px 10px' }}>
+        <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', background: 'var(--surface-3)', borderRadius: 20, padding: '3px 10px' }}>
           {locations.length} {locations.length === 1 ? 'item' : 'items'}
         </div>
       </div>
 
       {/* Add form */}
-      <form onSubmit={handleAdd} style={{ padding: '16px 24px', borderBottom: '1px solid #f1f5f9', background: '#fff' }}>
+      <form onSubmit={handleAdd} style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 1fr', gap: 8, marginBottom: 8 }}>
           <input type="text" placeholder="Name *" value={form.name} onChange={f('name')} style={INPUT}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
           <input type="date" value={form.add_date} onChange={f('add_date')} style={INPUT}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
           <input type="text" placeholder="Area" value={form.area} onChange={f('area')} style={INPUT}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input type="text" placeholder="Address" value={form.address} onChange={f('address')} style={{ ...INPUT, flex: 1 }}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
           <button type="submit" disabled={saving || !form.name.trim()} style={{
             padding: '8px 18px', background: saving || !form.name.trim() ? '#e2e8f0' : '#16a34a',
             color: saving || !form.name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8,
@@ -112,10 +112,10 @@ function StockSettings() {
 
       {/* List */}
       {loading ? (
-        <div style={{ padding: '32px 24px', color: '#94a3b8', fontSize: 13 }}>Loading…</div>
+        <div style={{ padding: '32px 24px', color: 'var(--text-4)', fontSize: 13 }}>Loading…</div>
       ) : locations.length === 0 ? (
-        <div style={{ padding: '40px 24px', textAlign: 'center', color: '#94a3b8' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 12, background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+        <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--text-4)' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             </svg>
@@ -128,8 +128,8 @@ function StockSettings() {
           {locations.map((loc, i) => (
             <div key={loc.id}
               style={{ padding: '12px 24px', borderBottom: i < locations.length - 1 ? '1px solid #f8fafc' : 'none', transition: 'background 0.1s' }}
-              onMouseEnter={e => { if (editId !== loc.id) e.currentTarget.style.background = '#f8fafc'; }}
-              onMouseLeave={e => e.currentTarget.style.background = '#fff'}
+              onMouseEnter={e => { if (editId !== loc.id) e.currentTarget.style.background = 'var(--surface-2)'; }}
+              onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
             >
               {editId === loc.id ? (
                 <div>
@@ -143,7 +143,7 @@ function StockSettings() {
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input type="text" placeholder="Address" value={editForm.address} onChange={ef('address')} style={{ ...INPUT, flex: 1, borderColor: '#16a34a' }} />
                     <button onClick={() => handleUpdate(loc.id)} style={{ padding: '7px 14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
-                    <button onClick={cancelEdit} style={{ padding: '7px 12px', background: 'none', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, color: '#64748b', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                    <button onClick={cancelEdit} style={{ padding: '7px 12px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                   </div>
                 </div>
               ) : (
@@ -154,19 +154,19 @@ function StockSettings() {
                     </svg>
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b' }}>{loc.name}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{loc.name}</div>
                     <div style={{ display: 'flex', gap: 12, marginTop: 2, flexWrap: 'wrap' }}>
-                      {loc.add_date && <span style={{ fontSize: 11, color: '#64748b' }}>{loc.add_date}</span>}
-                      {loc.area    && <span style={{ fontSize: 11, color: '#64748b', background: '#f1f5f9', borderRadius: 4, padding: '1px 6px' }}>{loc.area}</span>}
-                      {loc.address && <span style={{ fontSize: 11, color: '#94a3b8' }}>{loc.address}</span>}
+                      {loc.add_date && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{loc.add_date}</span>}
+                      {loc.area    && <span style={{ fontSize: 11, color: 'var(--text-3)', background: 'var(--surface-3)', borderRadius: 4, padding: '1px 6px' }}>{loc.area}</span>}
+                      {loc.address && <span style={{ fontSize: 11, color: 'var(--text-4)' }}>{loc.address}</span>}
                     </div>
                   </div>
-                  <button onClick={() => startEdit(loc)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                  <button onClick={() => startEdit(loc)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--border)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'} onMouseLeave={e => e.currentTarget.style.color = 'var(--border)'}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   </button>
-                  <button onClick={() => handleDelete(loc.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                  <button onClick={() => handleDelete(loc.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--border)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--border)'}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                   </button>
                 </div>
