@@ -13,6 +13,8 @@
   --border:      #e5e7eb;
   --border-2:    #e2e8f0;
   --border-3:    #f1f5f9;
+  --accent:      #0f3460;
+  --accent-hover:#1a2a4e;
 }
 
 [data-theme="dark"] {
@@ -27,6 +29,8 @@
   --border:      #334155;
   --border-2:    #2d3748;
   --border-3:    #1e293b;
+  --accent:      #3b82f6;
+  --accent-hover:#2563eb;
 }
 
 body {

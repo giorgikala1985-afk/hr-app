@@ -39,8 +39,8 @@ router.get('/', async (req, res) => {
     const prevMonthDate = new Date(year, monthNum - 2, 1);
     const prevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
-    // Fetch employees, holidays, salary changes, employee units, unit types, insurance list, and deferrals in parallel
-    const [empResult, holResult, salChangesResult, unitsResult, unitTypesResult, insuranceResult, deferralsResult] = await Promise.all([
+    // Fetch employees, holidays, salary changes, employee units, unit types, insurance list, fitpass list, and deferrals in parallel
+    const [empResult, holResult, salChangesResult, unitsResult, unitTypesResult, insuranceResult, fitpassResult, deferralsResult] = await Promise.all([
       supabase
         .from('employees')
         .select('*')
@@ -73,6 +73,12 @@ router.get('/', async (req, res) => {
         .gte('date', monthStartStr)
         .lte('date', monthEndStr),
       supabase
+        .from('fitpass_list')
+        .select('*')
+        .eq('user_id', req.userId)
+        .gte('period', monthStartStr)
+        .lte('period', monthEndStr),
+      supabase
         .from('salary_deferrals')
         .select('*')
         .eq('user_id', req.userId)
@@ -90,6 +96,7 @@ router.get('/', async (req, res) => {
     const allUnits = unitsResult.data || [];
     const unitTypeDefs = unitTypesResult.data || [];
     const insuranceRecords = insuranceResult.data || [];
+    const fitpassRecords = fitpassResult.data || [];
 
     const allDeferrals = deferralsResult.data || [];
     // Map: employee_id -> deferral record for current month
@@ -106,6 +113,14 @@ router.get('/', async (req, res) => {
     for (const rec of insuranceRecords) {
       if (rec.personal_id) {
         insuranceByPersonalId[String(rec.personal_id).trim()] = parseFloat(rec.amount1) || 0;
+      }
+    }
+
+    // Build a map: personal_id -> amount for fitpass
+    const fitpassByPersonalId = {};
+    for (const rec of fitpassRecords) {
+      if (rec.personal_id) {
+        fitpassByPersonalId[String(rec.personal_id).trim()] = parseFloat(rec.amount) || 0;
       }
     }
 
@@ -142,6 +157,11 @@ router.get('/', async (req, res) => {
         ? (insuranceByPersonalId[String(emp.personal_id).trim()] || 0)
         : 0;
 
+      // FitPass deduction: match by personal_id
+      const fitpassDeduction = emp.personal_id
+        ? (fitpassByPersonalId[String(emp.personal_id).trim()] || 0)
+        : 0;
+
       // Deferral flags
       const deferral = currentDeferralMap[emp.id] || null;
       const isDeferred = !!deferral;
@@ -150,10 +170,10 @@ router.get('/', async (req, res) => {
 
       // Employee hasn't started yet or ended before this month
       if (startDate > monthEnd) {
-        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0, deductions: empUnits, total_deductions: 0, total_additions: 0, insurance_deduction: 0, net_salary: 0, is_deferred: false, carry_over: carryOver, is_mid_month_starter: false };
+        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0, deductions: empUnits, total_deductions: 0, total_additions: 0, insurance_deduction: 0, fitpass_deduction: 0, net_salary: 0, is_deferred: false, carry_over: carryOver, is_mid_month_starter: false };
       }
       if (endDate && endDate < monthStart) {
-        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0, deductions: empUnits, total_deductions: 0, total_additions: 0, insurance_deduction: 0, net_salary: 0, is_deferred: false, carry_over: carryOver, is_mid_month_starter: false };
+        return { employee: emp, days_worked: 0, total_days: totalWorkingDays, accrued_salary: 0, deductions: empUnits, total_deductions: 0, total_additions: 0, insurance_deduction: 0, fitpass_deduction: 0, net_salary: 0, is_deferred: false, carry_over: carryOver, is_mid_month_starter: false };
       }
 
       // Effective range within the month
@@ -219,7 +239,7 @@ router.get('/', async (req, res) => {
 
         const roundedAccrued = Math.round(accruedSalary * 100) / 100;
         const effectiveAccrued = isDeferred ? 0 : roundedAccrued;
-        const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction) * 100) / 100;
+        const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction - fitpassDeduction) * 100) / 100;
 
         return {
           employee: emp,
@@ -231,6 +251,7 @@ router.get('/', async (req, res) => {
           total_deductions: totalDeductions,
           total_additions: totalAdditions,
           insurance_deduction: insuranceDeduction,
+          fitpass_deduction: fitpassDeduction,
           carry_over: carryOver,
           is_deferred: isDeferred,
           deferral_id: deferral?.id || null,
@@ -244,7 +265,7 @@ router.get('/', async (req, res) => {
       const dailyRate = totalWorkingDays > 0 ? baseSalary / totalWorkingDays : 0;
       const accruedSalary = Math.round(dailyRate * daysWorked * 100) / 100;
       const effectiveAccrued = isDeferred ? 0 : accruedSalary;
-      const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction) * 100) / 100;
+      const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction - fitpassDeduction) * 100) / 100;
 
       return {
         employee: { ...emp, salary: baseSalary },
@@ -256,6 +277,7 @@ router.get('/', async (req, res) => {
         total_deductions: totalDeductions,
         total_additions: totalAdditions,
         insurance_deduction: insuranceDeduction,
+        fitpass_deduction: fitpassDeduction,
         carry_over: carryOver,
         is_deferred: isDeferred,
         deferral_id: deferral?.id || null,

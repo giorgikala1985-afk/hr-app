@@ -98,8 +98,8 @@ function SVGChart({ data, activeCurrencies }) {
       {yTicks.map((v, i) => (
         <g key={i}>
           <line x1={PAD.left} y1={yOf(v)} x2={PAD.left + chartW} y2={yOf(v)}
-            stroke="#f1f5f9" strokeWidth="1" />
-          <text x={PAD.left - 8} y={yOf(v) + 4} textAnchor="end" fontSize="10" fill="#94a3b8">
+            stroke="rgba(255,255,255,0.07)" strokeWidth="1" />
+          <text x={PAD.left - 8} y={yOf(v) + 4} textAnchor="end" fontSize="10" fill="var(--text-3)">
             {v.toFixed(3)}
           </text>
         </g>
@@ -107,7 +107,7 @@ function SVGChart({ data, activeCurrencies }) {
 
       {/* X axis */}
       <line x1={PAD.left} y1={PAD.top + chartH} x2={PAD.left + chartW} y2={PAD.top + chartH}
-        stroke="#e2e8f0" strokeWidth="1" />
+        stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
 
       {/* Lines + dots per currency */}
       {activeCurrencies.map(cur => {
@@ -128,7 +128,7 @@ function SVGChart({ data, activeCurrencies }) {
               return (
                 <g key={i}>
                   <circle cx={x} cy={y} r="3.5"
-                    fill="white" stroke={CURRENCY_COLORS[cur]} strokeWidth="2" />
+                    fill="var(--surface)" stroke={CURRENCY_COLORS[cur]} strokeWidth="2" />
                   <text
                     x={x} y={labelAbove ? y - 8 : y + 16}
                     textAnchor="middle" fontSize="9" fontWeight="600"
@@ -147,7 +147,7 @@ function SVGChart({ data, activeCurrencies }) {
       {data.map((d, i) => {
         if (!xLabelSet.has(i)) return null;
         return (
-          <text key={i} x={xOf(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="#94a3b8">
+          <text key={i} x={xOf(i)} y={H - 6} textAnchor="middle" fontSize="10" fill="var(--text-3)">
             {d.date.slice(5)}
           </text>
         );
@@ -219,19 +219,19 @@ export default function CurrencyRates() {
     <div style={{ padding: '24px 32px', maxWidth: 700 }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#1e293b' }}>NBG Exchange Rates</h2>
-        <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>National Bank of Georgia — rates against GEL</p>
+        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>NBG Exchange Rates</h2>
+        <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-3)' }}>National Bank of Georgia — rates against GEL</p>
       </div>
 
       {/* Period tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#f1f5f9', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
         {PERIODS.map(p => (
           <button key={p.key} onClick={() => setPeriod(p.key)} style={{
             padding: '6px 20px', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 500,
             cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-            background: period === p.key ? 'white' : 'transparent',
-            color: period === p.key ? '#1e293b' : '#64748b',
-            boxShadow: period === p.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+            background: period === p.key ? 'var(--surface)' : 'transparent',
+            color: period === p.key ? 'var(--text)' : 'var(--text-3)',
+            boxShadow: period === p.key ? '0 1px 3px rgba(0,0,0,0.3)' : 'none',
           }}>
             {p.label}
           </button>
@@ -239,7 +239,7 @@ export default function CurrencyRates() {
       </div>
 
       {error && (
-        <div style={{ padding: '10px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+        <div style={{ padding: '10px 14px', background: 'rgba(220,38,38,0.15)', color: '#f87171', border: '1px solid rgba(220,38,38,0.3)', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
           {error}
         </div>
       )}
@@ -250,35 +250,35 @@ export default function CurrencyRates() {
           <div style={{ marginBottom: 16 }}>
             <input type="date" value={date} max={todayStr()}
               onChange={e => setDate(e.target.value)}
-              style={{ padding: '8px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, color: '#1e293b', outline: 'none', cursor: 'pointer' }}
+              style={{ padding: '8px 12px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, color: 'var(--text)', outline: 'none', cursor: 'pointer', background: 'var(--surface)', colorScheme: 'dark' }}
             />
           </div>
           {loading ? (
-            <div style={{ textAlign: 'center', color: '#94a3b8', paddingTop: 40, fontSize: 13 }}>Loading...</div>
+            <div style={{ textAlign: 'center', color: 'var(--text-3)', paddingTop: 40, fontSize: 13 }}>Loading...</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {dayRates.map(r => (
-                <div key={r.code} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                <div key={r.code} style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
                   <div style={{ fontSize: 32 }}>{FLAG[r.code]}</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                      <span style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>{r.code}</span>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>{CURRENCY_LABELS[r.code]}</span>
+                      <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{r.code}</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-3)' }}>{CURRENCY_LABELS[r.code]}</span>
                     </div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                      {r.quantity > 1 ? `${r.quantity} ${r.code}` : `1 ${r.code}`} = <strong style={{ color: '#1e293b' }}>{r.rate?.toFixed(4)}</strong> GEL
+                    <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>
+                      {r.quantity > 1 ? `${r.quantity} ${r.code}` : `1 ${r.code}`} = <strong style={{ color: 'var(--text)' }}>{r.rate?.toFixed(4)}</strong> GEL
                     </div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: '#1e293b' }}>{r.rate?.toFixed(4)}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: r.diff > 0 ? '#16a34a' : r.diff < 0 ? '#dc2626' : '#94a3b8' }}>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{r.rate?.toFixed(4)}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: r.diff > 0 ? '#16a34a' : r.diff < 0 ? '#f87171' : 'var(--text-3)' }}>
                       {r.diff > 0 ? '▲' : r.diff < 0 ? '▼' : '—'} {Math.abs(r.diff)?.toFixed(4)}
                     </div>
                   </div>
                 </div>
               ))}
               {!loading && dayRates.length === 0 && !error && (
-                <div style={{ textAlign: 'center', color: '#94a3b8', paddingTop: 40, fontSize: 13 }}>No rates found for this date.</div>
+                <div style={{ textAlign: 'center', color: 'var(--text-3)', paddingTop: 40, fontSize: 13 }}>No rates found for this date.</div>
               )}
             </div>
           )}
@@ -294,13 +294,13 @@ export default function CurrencyRates() {
                 <button key={cur} onClick={() => toggleCurrency(cur)} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '5px 14px',
-                  border: `2px solid ${active ? CURRENCY_COLORS[cur] : '#e2e8f0'}`,
+                  border: `2px solid ${active ? CURRENCY_COLORS[cur] : 'var(--border-2)'}`,
                   borderRadius: 20, fontSize: 12, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                  background: active ? `${CURRENCY_COLORS[cur]}18` : 'white',
-                  color: active ? CURRENCY_COLORS[cur] : '#94a3b8',
+                  background: active ? `${CURRENCY_COLORS[cur]}22` : 'var(--surface)',
+                  color: active ? CURRENCY_COLORS[cur] : 'var(--text-3)',
                 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: active ? CURRENCY_COLORS[cur] : '#e2e8f0', display: 'inline-block' }} />
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: active ? CURRENCY_COLORS[cur] : 'var(--border-2)', display: 'inline-block' }} />
                   {FLAG[cur]} {cur}
                 </button>
               );
@@ -308,9 +308,9 @@ export default function CurrencyRates() {
           </div>
 
           {/* Chart card */}
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 16px 12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, padding: '20px 16px 12px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}>
             {chartLoading ? (
-              <div style={{ textAlign: 'center', color: '#94a3b8', padding: '60px 0', fontSize: 13 }}>
+              <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '60px 0', fontSize: 13 }}>
                 Loading chart data…
               </div>
             ) : chartData.length > 0 ? (
@@ -319,7 +319,7 @@ export default function CurrencyRates() {
                 {/* Legend */}
                 <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 10 }}>
                   {activeCurrencies.map(cur => (
-                    <div key={cur} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748b' }}>
+                    <div key={cur} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-2)' }}>
                       <div style={{ width: 20, height: 3, background: CURRENCY_COLORS[cur], borderRadius: 2 }} />
                       {cur} / GEL
                     </div>
@@ -327,7 +327,7 @@ export default function CurrencyRates() {
                 </div>
               </>
             ) : (
-              <div style={{ textAlign: 'center', color: '#94a3b8', padding: '60px 0', fontSize: 13 }}>No data available.</div>
+              <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '60px 0', fontSize: 13 }}>No data available.</div>
             )}
           </div>
 
@@ -339,13 +339,13 @@ export default function CurrencyRates() {
                 const oldest = chartData.find(d => d[cur] != null);
                 const change = latest && oldest ? latest[cur] - oldest[cur] : null;
                 return (
-                  <div key={cur} style={{ flex: 1, background: 'white', border: `1.5px solid ${CURRENCY_COLORS[cur]}30`, borderRadius: 10, padding: '12px 16px' }}>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>{FLAG[cur]} {cur} / GEL</div>
-                    <div style={{ fontSize: 20, fontWeight: 700, color: '#1e293b' }}>{latest?.[cur]?.toFixed(4) ?? '—'}</div>
+                  <div key={cur} style={{ flex: 1, background: 'var(--surface)', border: `1.5px solid ${CURRENCY_COLORS[cur]}40`, borderRadius: 10, padding: '12px 16px' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>{FLAG[cur]} {cur} / GEL</div>
+                    <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{latest?.[cur]?.toFixed(4) ?? '—'}</div>
                     {change != null && (
-                      <div style={{ fontSize: 11, fontWeight: 600, marginTop: 3, color: change > 0.0001 ? '#16a34a' : change < -0.0001 ? '#dc2626' : '#94a3b8' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, marginTop: 3, color: change > 0.0001 ? '#16a34a' : change < -0.0001 ? '#f87171' : 'var(--text-3)' }}>
                         {change > 0.0001 ? '▲' : change < -0.0001 ? '▼' : '—'} {Math.abs(change).toFixed(4)}
-                        <span style={{ fontWeight: 400, color: '#94a3b8', marginLeft: 4 }}>this {period}</span>
+                        <span style={{ fontWeight: 400, color: 'var(--text-3)', marginLeft: 4 }}>this {period}</span>
                       </div>
                     )}
                   </div>

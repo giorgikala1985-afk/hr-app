@@ -125,12 +125,13 @@ router.get('/payroll', authenticatePortalEmployee, async (req, res) => {
     const prevMonthDate = new Date(year, monthNum - 2, 1);
     const prevMonth = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
-    const [salChangesRes, unitsRes, holidaysRes, unitTypesRes, insuranceRes, deferralsRes] = await Promise.all([
+    const [salChangesRes, unitsRes, holidaysRes, unitTypesRes, insuranceRes, fitpassRes, deferralsRes] = await Promise.all([
       supabase.from('salary_changes').select('*').eq('employee_id', emp.id).order('effective_date', { ascending: true }),
       supabase.from('employee_units').select('*').eq('employee_id', emp.id).eq('user_id', emp.user_id).gte('date', monthStartStr).lte('date', monthEndStr),
       supabase.from('holidays').select('*').eq('user_id', emp.user_id).gte('date', monthStartStr).lte('date', monthEndStr),
       supabase.from('unit_types').select('*').eq('user_id', emp.user_id),
       supabase.from('insurance_list').select('*').eq('user_id', emp.user_id).gte('date', monthStartStr).lte('date', monthEndStr),
+      supabase.from('fitpass_list').select('*').eq('user_id', emp.user_id).gte('period', monthStartStr).lte('period', monthEndStr),
       supabase.from('salary_deferrals').select('*').eq('employee_id', emp.id).in('month', [month, prevMonth])
     ]);
 
@@ -139,6 +140,7 @@ router.get('/payroll', authenticatePortalEmployee, async (req, res) => {
     const holidays = holidaysRes.data || [];
     const unitTypeDefs = unitTypesRes.data || [];
     const insuranceRecords = insuranceRes.data || [];
+    const fitpassRecords = fitpassRes.data || [];
     const allDeferrals = deferralsRes.data || [];
 
     // Build helpers
@@ -152,6 +154,11 @@ router.get('/payroll', authenticatePortalEmployee, async (req, res) => {
       if (rec.personal_id) insuranceByPersonalId[String(rec.personal_id).trim()] = parseFloat(rec.amount1) || 0;
     }
 
+    const fitpassByPersonalId = {};
+    for (const rec of fitpassRecords) {
+      if (rec.personal_id) fitpassByPersonalId[String(rec.personal_id).trim()] = parseFloat(rec.amount) || 0;
+    }
+
     let weekendCount = 0;
     for (let d = 1; d <= daysInMonth; d++) { if (isWeekend(year, monthNum, d)) weekendCount++; }
 
@@ -163,13 +170,14 @@ router.get('/payroll', authenticatePortalEmployee, async (req, res) => {
     const totalDeductions = empUnits.filter(u => !isAddition(u.type)).reduce((s, u) => s + parseFloat(u.amount), 0);
     const totalAdditions = empUnits.filter(u => isAddition(u.type)).reduce((s, u) => s + parseFloat(u.amount), 0);
     const insuranceDeduction = emp.personal_id ? (insuranceByPersonalId[String(emp.personal_id).trim()] || 0) : 0;
+    const fitpassDeduction = emp.personal_id ? (fitpassByPersonalId[String(emp.personal_id).trim()] || 0) : 0;
 
     const startDate = new Date(emp.start_date);
     const endDate = emp.end_date ? new Date(emp.end_date) : null;
 
     // Employee not active this month
     if (startDate > monthEnd || (endDate && endDate < monthStart)) {
-      return res.json({ month, working_days: totalWorkingDays, weekend_days: weekendCount, days_worked: 0, accrued_salary: 0, total_additions: totalAdditions, total_deductions: totalDeductions, insurance_deduction: insuranceDeduction, carry_over: carryOver, is_deferred: isDeferred, net_salary: 0, units: empUnits });
+      return res.json({ month, working_days: totalWorkingDays, weekend_days: weekendCount, days_worked: 0, accrued_salary: 0, total_additions: totalAdditions, total_deductions: totalDeductions, insurance_deduction: insuranceDeduction, fitpass_deduction: fitpassDeduction, carry_over: carryOver, is_deferred: isDeferred, net_salary: 0, units: empUnits });
     }
 
     let effectiveStart = 1;
@@ -212,7 +220,7 @@ router.get('/payroll', authenticatePortalEmployee, async (req, res) => {
 
     const roundedAccrued = Math.round(accruedSalary * 100) / 100;
     const effectiveAccrued = isDeferred ? 0 : roundedAccrued;
-    const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction) * 100) / 100;
+    const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction - fitpassDeduction) * 100) / 100;
 
     res.json({
       month,
@@ -226,6 +234,7 @@ router.get('/payroll', authenticatePortalEmployee, async (req, res) => {
       total_additions: totalAdditions,
       total_deductions: totalDeductions,
       insurance_deduction: insuranceDeduction,
+      fitpass_deduction: fitpassDeduction,
       carry_over: carryOver,
       is_deferred: isDeferred,
       net_salary: netSalary,

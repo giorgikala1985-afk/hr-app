@@ -6,6 +6,10 @@ import Agents from '../Accounting/Agents';
 import Agreements from './Agreements';
 import AiAgentTool from '../Options/Tools/AiAgentTool';
 import CurrencyRates from './CurrencyRates';
+import ImportEmployees from '../Options/ImportEmployees';
+import InsuranceImport from '../Options/InsuranceImport';
+import AgentsImport from '../Options/AgentsImport';
+import FitPassImport from '../Options/FitPassImport';
 import './Documents.css';
 
 const TABS = [
@@ -53,6 +57,12 @@ const TABS = [
       <path d="M9 19h6"/>
     </svg>
   )},
+  { key: 'importdata', label: 'Import Data', icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  )},
 ];
 
 const CHEVRON_LEFT = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -62,6 +72,7 @@ function DocumentsPage() {
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'employees');
   const [innerTab, setInnerTab] = useState(searchParams.get('inner') || 'hr');
+  const [importView, setImportView] = useState('employees');
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('docs_sidebar_collapsed') === 'true'; } catch { return false; }
   });
@@ -119,6 +130,25 @@ function DocumentsPage() {
         {activeTab === 'agreements' && <Agreements />}
         {activeTab === 'nbg-rates' && <CurrencyRates />}
         {activeTab === 'ai-agent' && <div style={{ padding: '24px 32px', maxWidth: 900 }}><AiAgentTool /></div>}
+        {activeTab === 'importdata' && (
+          <div>
+            <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
+              {[{ key: 'employees', label: 'Import Employees' }, { key: 'insurance', label: 'Insurance Import' }, { key: 'agents', label: 'Import Agents' }, { key: 'fitpass', label: 'FitPass' }].map(tab => (
+                <button key={tab.key} onClick={() => setImportView(tab.key)} style={{
+                  padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  background: importView === tab.key ? 'var(--surface)' : 'transparent',
+                  color: importView === tab.key ? 'var(--text)' : 'var(--text-3)',
+                  boxShadow: importView === tab.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+                  transition: 'all 0.15s',
+                }}>{tab.label}</button>
+              ))}
+            </div>
+            {importView === 'employees' && <ImportEmployees />}
+            {importView === 'insurance' && <InsuranceImport />}
+            {importView === 'agents' && <AgentsImport />}
+            {importView === 'fitpass' && <FitPassImport />}
+          </div>
+        )}
         {activeTab === 'devices' && (
           <div className="docs-blank">
             <div className="docs-blank-icon">

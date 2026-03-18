@@ -1,0 +1,131 @@
+/* ── Card override for dark mode ── */
+.reg-card {
+  position: relative;
+  background: var(--surface);
+  color: var(--text);
+  transition: background 0.2s, color 0.2s;
+}
+
+.reg-card .auth-header h1 {
+  color: var(--text);
+}
+
+.reg-card .auth-header p {
+  color: var(--text-3);
+}
+
+.reg-card .auth-logo {
+  color: var(--text);
+}
+
+.reg-card .auth-section-label {
+  color: var(--text-3);
+  border-bottom-color: var(--border-2);
+}
+
+.reg-card .form-group label {
+  color: var(--text-2);
+}
+
+.reg-card .form-group input {
+  background: var(--surface-2);
+  border-color: var(--border-2);
+  color: var(--text);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.reg-card .form-group input::placeholder {
+  color: var(--text-4);
+}
+
+.reg-card .form-group input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.reg-card .auth-error {
+  background: rgba(220, 38, 38, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(220, 38, 38, 0.25);
+}
+
+.reg-card .auth-link {
+  color: var(--text-3);
+}
+
+.reg-card .auth-link a {
+  color: var(--accent);
+}
+
+.reg-card .auth-btn {
+  background: var(--accent);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.reg-card .auth-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+/* ── Theme toggle button ── */
+.reg-theme-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text-3);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.reg-theme-btn:hover {
+  background: var(--surface-3);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+/* ── Account type toggle ── */
+.reg-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 4px;
+  width: fit-content;
+  margin: 0 auto 24px;
+  border: 1px solid var(--border-2);
+}
+
+.reg-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 24px;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  background: transparent;
+  color: var(--text-3);
+}
+
+.reg-toggle-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.reg-toggle-btn:not(.active):hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}

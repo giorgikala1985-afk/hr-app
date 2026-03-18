@@ -286,6 +286,7 @@ function SalaryList() {
   const totalDeductions = filteredEmployees.reduce((sum, s) => sum + (s.total_deductions || 0), 0);
   const totalAdditions = filteredEmployees.reduce((sum, s) => sum + (s.total_additions || 0), 0);
   const totalInsurance = filteredEmployees.reduce((sum, s) => sum + (s.insurance_deduction || 0), 0);
+  const totalFitpass = filteredEmployees.reduce((sum, s) => sum + (s.fitpass_deduction || 0), 0);
   const totalNet = filteredEmployees.reduce((sum, s) => sum + (s.net_salary ?? s.accrued_salary), 0);
 
   const usePagination = paginationSettings.enabled && paginationSettings.pageSize !== 'all';
@@ -415,6 +416,12 @@ function SalaryList() {
               <div className="sal-summary-card">
                 <span className="sal-summary-label">Insurance</span>
                 <span className="sal-summary-value" style={{ color: '#e53e3e' }}>-{formatCurrency(totalInsurance)}</span>
+              </div>
+            )}
+            {totalFitpass > 0 && (
+              <div className="sal-summary-card">
+                <span className="sal-summary-label">FitPass</span>
+                <span className="sal-summary-value" style={{ color: '#e53e3e' }}>-{formatCurrency(totalFitpass)}</span>
               </div>
             )}
             <div className="sal-summary-card">
@@ -699,6 +706,9 @@ function SalaryList() {
                                 )}
                                 {(item.insurance_deduction || 0) > 0 && (
                                   <span style={{ color: '#e53e3e' }}>{t('sal.insurance')} <strong>-{formatCurrency(item.insurance_deduction)}</strong></span>
+                                )}
+                                {(item.fitpass_deduction || 0) > 0 && (
+                                  <span style={{ color: '#e53e3e' }}>FitPass <strong>-{formatCurrency(item.fitpass_deduction)}</strong></span>
                                 )}
                                 {(item.carry_over || 0) > 0 && (
                                   <span style={{ color: '#2a7' }}>{t('sal.undo')} {t('sal.carriedOver')} <strong>+{formatCurrency(item.carry_over)}</strong></span>

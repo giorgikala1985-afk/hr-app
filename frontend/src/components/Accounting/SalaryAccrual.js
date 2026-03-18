@@ -66,10 +66,21 @@ const money = (n) => {
   return `$${v.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 };
 const moneyTotal = (n) => `$${parseFloat(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+const moneySign = (n, dir) => {
+  const v = parseFloat(n || 0);
+  if (v === 0) return '—';
+  const sign = dir === 'addition' ? '+' : '−';
+  return `${sign}$${v.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+};
+const moneyTotalSign = (n, dir) => {
+  const v = parseFloat(n || 0);
+  const sign = dir === 'addition' ? '+' : '−';
+  return `${sign}$${v.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+};
 
 const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", "Fira Mono", Menlo, Consolas, monospace';
 const TD_NUM = { textAlign: 'right', fontFamily: FONT_MONO, fontSize: 13, padding: '11px 14px' };
-const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: '#111827' };
+const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: 'var(--text)' };
 
 function SalaryAccrual() {
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
@@ -92,6 +103,12 @@ function SalaryAccrual() {
     } catch { return COLUMNS.map(c => c.key); }
   });
   const [showColChooser, setShowColChooser] = useState(false);
+  const [isDark, setIsDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
+  useEffect(() => {
+    const obs = new MutationObserver(() => setIsDark(document.documentElement.getAttribute('data-theme') === 'dark'));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
+  }, []);
   const [fontSize, setFontSize] = useState(() => {
     try { return parseFloat(localStorage.getItem('sal_font_size')) || 13; } catch { return 13; }
   });
@@ -190,7 +207,7 @@ function SalaryAccrual() {
   const totBonus     = active.reduce((s, r) => s + unitAmt(r.deductions, 'Bonus'), 0);
   const totTeam      = active.reduce((s, r) => s + unitAmt(r.deductions, 'Team Building'), 0);
   const totReimburse = active.reduce((s, r) => s + unitAmt(r.deductions, 'Reimbursement'), 0);
-  const totFitpass   = active.reduce((s, r) => s + unitAmt(r.deductions, 'Fitpass'), 0);
+  const totFitpass   = active.reduce((s, r) => s + parseFloat(r.fitpass_deduction || 0), 0);
   const totInsurance = active.reduce((s, r) => s + parseFloat(r.insurance_deduction || 0), 0);
   const totSum       = active.reduce((s, r) => s + parseFloat(r.net_salary || 0), 0);
   const totGross     = active.reduce((s, r) => s + calcGross(r.net_salary, r.employee.pension), 0);
@@ -215,6 +232,7 @@ function SalaryAccrual() {
   const drEmp = dr?.employee;
   const drGross = dr ? calcGross(dr.net_salary, drEmp.pension) : 0;
   const drInsurance = parseFloat(dr?.insurance_deduction || 0);
+  const drFitpass = parseFloat(dr?.fitpass_deduction || 0);
 
   // Derive visible columns in order; grossSalary is always rendered last
   const visCols       = COLUMNS.filter(c => visibleCols.includes(c.key));
@@ -240,33 +258,33 @@ function SalaryAccrual() {
   const footerVal = (key) => {
     switch (key) {
       case 'netSalary':   return { val: moneyTotal(totNetSalary), style: TD_BOLD };
-      case 'bonus':       return { val: moneyTotal(totBonus),     style: { ...TD_NUM, color: '#16a34a', fontWeight: 700 } };
-      case 'teamBuild':   return { val: moneyTotal(totTeam),      style: { ...TD_NUM, color: '#16a34a', fontWeight: 700 } };
-      case 'reimburse':   return { val: moneyTotal(totReimburse), style: { ...TD_NUM, color: '#16a34a', fontWeight: 700 } };
-      case 'fitpass':     return { val: moneyTotal(totFitpass),   style: { ...TD_NUM, color: '#e53e3e', fontWeight: 700 } };
-      case 'insurance':   return { val: moneyTotal(totInsurance), style: { ...TD_NUM, color: '#e53e3e', fontWeight: 700 } };
+      case 'bonus':       return { val: moneyTotalSign(totBonus,     'addition'),  cls: 'cell-addition',  style: { ...TD_NUM, fontWeight: 700 } };
+      case 'teamBuild':   return { val: moneyTotalSign(totTeam,      'addition'),  cls: 'cell-addition',  style: { ...TD_NUM, fontWeight: 700 } };
+      case 'reimburse':   return { val: moneyTotalSign(totReimburse, 'addition'),  cls: 'cell-addition',  style: { ...TD_NUM, fontWeight: 700 } };
+      case 'fitpass':     return { val: moneyTotalSign(totFitpass,   'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
+      case 'insurance':   return { val: moneyTotalSign(totInsurance, 'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
       case 'totalSum':    return { val: moneyTotal(totSum),       style: { ...TD_BOLD, fontSize: 14 } };
-      case 'grossSalary': return { val: moneyTotal(totGross),     style: { ...TD_BOLD, fontSize: 14, color: '#2563eb' } };
-      case 'pension':     return { val: moneyTotal(totPension),   style: { ...TD_NUM, color: '#7c3aed', fontWeight: 700 } };
+      case 'grossSalary': return { val: moneyTotal(totGross),     style: { ...TD_BOLD, fontSize: 14, color: '#3b82f6' } };
+      case 'pension':     return { val: moneyTotal(totPension),   style: { ...TD_NUM, color: '#8b5cf6', fontWeight: 700 } };
       default:            return { val: '', style: TD_NUM };
     }
   };
 
   const rowVal = (key, r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt) => {
     switch (key) {
-      case 'date':        return <td key={key} style={{ color: '#6b7280', fontSize: 13, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtMonth(month)}</td>;
+      case 'date':        return <td key={key} style={{ color: 'var(--text-3)', fontSize: 13, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtMonth(month)}</td>;
       case 'personalId':  return <td key={key} style={{ fontFamily: FONT_MONO, fontSize: 13, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.personal_id || '—'}</td>;
-      case 'firstName':   return <td key={key} style={{ fontWeight: 600, color: '#111827', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.first_name}</td>;
-      case 'lastName':    return <td key={key} style={{ fontWeight: 600, color: '#111827', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.last_name}</td>;
+      case 'firstName':   return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.first_name}</td>;
+      case 'lastName':    return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.last_name}</td>;
       case 'netSalary':   return <td key={key} style={{ ...TD_BOLD, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(r.net_salary)}</td>;
-      case 'bonus':       return <td key={key} style={{ ...TD_NUM, color: bonus > 0 ? '#16a34a' : '#9ca3af', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{money(bonus)}</td>;
-      case 'teamBuild':   return <td key={key} style={{ ...TD_NUM, color: teamBuild > 0 ? '#16a34a' : '#9ca3af', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{money(teamBuild)}</td>;
-      case 'reimburse':   return <td key={key} style={{ ...TD_NUM, color: reimburse > 0 ? '#16a34a' : '#9ca3af', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{money(reimburse)}</td>;
-      case 'fitpass':     return <td key={key} style={{ ...TD_NUM, color: fitpass > 0 ? '#e53e3e' : '#9ca3af', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{money(fitpass)}</td>;
-      case 'insurance':   return <td key={key} style={{ ...TD_NUM, color: insurance > 0 ? '#e53e3e' : '#9ca3af', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{money(insurance)}</td>;
+      case 'bonus':       return <td key={key} className={bonus > 0 ? 'cell-addition' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(bonus, 'addition')}</td>;
+      case 'teamBuild':   return <td key={key} className={teamBuild > 0 ? 'cell-addition' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(teamBuild, 'addition')}</td>;
+      case 'reimburse':   return <td key={key} className={reimburse > 0 ? 'cell-addition' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(reimburse, 'addition')}</td>;
+      case 'fitpass':     return <td key={key} className={fitpass > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(fitpass, 'deduction')}</td>;
+      case 'insurance':   return <td key={key} className={insurance > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(insurance, 'deduction')}</td>;
       case 'totalSum':    return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(r.net_salary)}</td>;
-      case 'grossSalary': return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#2563eb', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(grossSalary)}</td>;
-      case 'pension':     return <td key={key} style={{ ...TD_NUM, color: emp.pension ? '#7c3aed' : '#9ca3af', fontWeight: emp.pension ? 700 : 400, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.pension ? moneyTotal(pensionAmt) : '—'}</td>;
+      case 'grossSalary': return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#3b82f6', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(grossSalary)}</td>;
+      case 'pension':     return <td key={key} style={{ ...TD_NUM, color: emp.pension ? '#8b5cf6' : 'var(--text-4)', fontWeight: emp.pension ? 700 : 400, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.pension ? moneyTotal(pensionAmt) : '—'}</td>;
       default:            return null;
     }
   };
@@ -284,7 +302,7 @@ function SalaryAccrual() {
       const bonus      = unitAmt(r.deductions, 'Bonus');
       const teamBuild  = unitAmt(r.deductions, 'Team Building');
       const reimburse  = unitAmt(r.deductions, 'Reimbursement');
-      const fitpass    = unitAmt(r.deductions, 'Fitpass');
+      const fitpass    = parseFloat(r.fitpass_deduction || 0);
       const insurance  = parseFloat(r.insurance_deduction || 0);
       const grossSalary = calcGross(r.net_salary, emp.pension);
       const pensionAmt = emp.pension ? grossSalary * 0.02 : 0;
@@ -371,12 +389,14 @@ function SalaryAccrual() {
           </div>
           <div className="acc-summary-card">
             <span className="acc-summary-label">Total Bonus</span>
-            <span className="acc-summary-value" style={{ color: '#16a34a' }}>{moneyTotal(totBonus)}</span>
+            <span className="acc-summary-value green">{moneyTotal(totBonus)}</span>
           </div>
-          <div className="acc-summary-card">
-            <span className="acc-summary-label">Total Fitpass</span>
-            <span className="acc-summary-value red">{moneyTotal(totFitpass)}</span>
-          </div>
+          {totFitpass > 0 && (
+            <div className="acc-summary-card">
+              <span className="acc-summary-label">Total Fitpass</span>
+              <span className="acc-summary-value red">{moneyTotal(totFitpass)}</span>
+            </div>
+          )}
           {totInsurance > 0 && (
             <div className="acc-summary-card">
               <span className="acc-summary-label">Total Insurance</span>
@@ -397,8 +417,8 @@ function SalaryAccrual() {
           title="Download as Excel"
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 14px', background: 'white',
-            border: '1.5px solid #e5e7eb', borderRadius: 7,
+            padding: '6px 14px', background: 'var(--surface)',
+            border: '1.5px solid var(--border-2)', borderRadius: 7,
             fontSize: 13, fontWeight: 500, color: '#16a34a',
             cursor: (!data || active.length === 0) ? 'not-allowed' : 'pointer',
             opacity: (!data || active.length === 0) ? 0.5 : 1,
@@ -412,20 +432,20 @@ function SalaryAccrual() {
           Excel
         </button>
         {/* Font size controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 7, overflow: 'hidden' }}>
-          <button onClick={zoomOut} title="Decrease font size" style={{ padding: '5px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: '#374151', lineHeight: 1, display: 'flex', alignItems: 'center' }}>−</button>
-          <span onClick={zoomReset} title="Reset font size" style={{ fontSize: 12, color: '#6b7280', minWidth: 32, textAlign: 'center', cursor: 'pointer', userSelect: 'none', fontWeight: 500 }}>{fontSize}px</span>
-          <button onClick={zoomIn}  title="Increase font size" style={{ padding: '5px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: '#374151', lineHeight: 1, display: 'flex', alignItems: 'center' }}>+</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'var(--surface)', border: '1.5px solid var(--border-2)', borderRadius: 7, overflow: 'hidden' }}>
+          <button onClick={zoomOut} title="Decrease font size" style={{ padding: '5px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text-2)', lineHeight: 1, display: 'flex', alignItems: 'center' }}>−</button>
+          <span onClick={zoomReset} title="Reset font size" style={{ fontSize: 12, color: 'var(--text-3)', minWidth: 32, textAlign: 'center', cursor: 'pointer', userSelect: 'none', fontWeight: 500 }}>{fontSize}px</span>
+          <button onClick={zoomIn}  title="Increase font size" style={{ padding: '5px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text-2)', lineHeight: 1, display: 'flex', alignItems: 'center' }}>+</button>
         </div>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowColChooser(v => !v)}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '6px 14px', background: showColChooser ? '#eff6ff' : 'white',
-              border: `1.5px solid ${showColChooser ? '#3185FC' : '#e5e7eb'}`,
+              padding: '6px 14px', background: showColChooser ? (isDark ? '#1e3a5f' : '#eff6ff') : 'var(--surface)',
+              border: `1.5px solid ${showColChooser ? '#3185FC' : 'var(--border-2)'}`,
               borderRadius: 7, fontSize: 13, fontWeight: 500,
-              color: showColChooser ? '#3185FC' : '#374151',
+              color: showColChooser ? '#3185FC' : 'var(--text-2)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -441,19 +461,19 @@ function SalaryAccrual() {
               <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowColChooser(false)} />
               <div style={{
                 position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20,
-                background: 'white', border: '1px solid #e5e7eb', borderRadius: 10,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.1)', padding: '8px 0', minWidth: 200,
+                background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '8px 0', minWidth: 200,
               }}>
-                <div style={{ padding: '6px 14px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#94a3b8', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ padding: '6px 14px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-4)', borderBottom: '1px solid var(--border-3)' }}>
                   Visible Columns
                 </div>
                 {COLUMNS.map(col => (
                   <label key={col.key} style={{
                     display: 'flex', alignItems: 'center', gap: 9,
-                    padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: '#374151',
+                    padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: 'var(--text-2)',
                     transition: 'background 0.1s',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f9fafb'}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <input
@@ -465,7 +485,7 @@ function SalaryAccrual() {
                     {col.label}
                   </label>
                 ))}
-                <div style={{ borderTop: '1px solid #f1f5f9', padding: '6px 14px 2px' }}>
+                <div style={{ borderTop: '1px solid var(--border-3)', padding: '6px 14px 2px' }}>
                   <button
                     onClick={() => setVisibleCols(COLUMNS.map(c => c.key))}
                     style={{ background: 'none', border: 'none', color: '#3185FC', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
@@ -509,7 +529,7 @@ function SalaryAccrual() {
                       position: isSticky ? 'sticky' : 'relative',
                       left: isSticky ? stickyLeftMap[col.key] : undefined,
                       zIndex: isSticky ? 3 : undefined,
-                      background: isSticky ? '#f8f9fa' : undefined,
+                      background: isSticky ? 'var(--surface-2)' : undefined,
                       boxShadow: isLastSticky ? '2px 0 5px rgba(0,0,0,0.08)' : undefined,
                       width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap',
@@ -556,7 +576,7 @@ function SalaryAccrual() {
                 const bonus       = unitAmt(r.deductions, 'Bonus');
                 const teamBuild   = unitAmt(r.deductions, 'Team Building');
                 const reimburse   = unitAmt(r.deductions, 'Reimbursement');
-                const fitpass     = unitAmt(r.deductions, 'Fitpass');
+                const fitpass     = parseFloat(r.fitpass_deduction || 0);
                 const insurance   = parseFloat(r.insurance_deduction || 0);
                 const grossSalary = calcGross(r.net_salary, emp.pension);
                 const pensionAmt  = emp.pension ? grossSalary * 0.02 : 0;
@@ -565,7 +585,7 @@ function SalaryAccrual() {
                 return (
                   <tr
                     key={emp.id}
-                    style={{ cursor: 'pointer', background: isSelected ? '#eff6ff' : undefined, transition: 'background 0.15s' }}
+                    style={{ cursor: 'pointer', background: isSelected ? (isDark ? '#1e2a45' : '#eff6ff') : undefined, transition: 'background 0.15s' }}
                     onClick={() => setSelectedRow(isSelected ? null : r)}
                   >
                     {visColsMain.map(col => {
@@ -578,7 +598,7 @@ function SalaryAccrual() {
                             position: 'sticky',
                             left: stickyLeftMap[col.key],
                             zIndex: 1,
-                            background: isSelected ? '#eff6ff' : 'white',
+                            background: isSelected ? (isDark ? '#1e2a45' : '#eff6ff') : 'var(--surface)',
                             boxShadow: col.key === lastStickyKey ? '2px 0 5px rgba(0,0,0,0.08)' : undefined,
                           }
                         });
@@ -588,8 +608,8 @@ function SalaryAccrual() {
                     {dynUnitCols.map(ut => {
                       const amt = unitAmt(r.deductions, ut.name);
                       return (
-                        <td key={`dyn-td-${ut.name}`} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: amt > 0 ? (ut.direction === 'addition' ? '#16a34a' : '#e53e3e') : '#9ca3af' }}>
-                          {money(amt)}
+                        <td key={`dyn-td-${ut.name}`} className={amt > 0 ? (ut.direction === 'addition' ? 'cell-addition' : 'cell-deduction') : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                          {moneySign(amt, ut.direction)}
                         </td>
                       );
                     })}
@@ -599,32 +619,32 @@ function SalaryAccrual() {
               })}
             </tbody>
             <tfoot>
-              <tr style={{ background: '#f9fafb', fontWeight: 700 }}>
+              <tr style={{ background: 'var(--surface-2)', fontWeight: 700 }}>
                 {visTextCols.length > 0 && (
                   <td
                     colSpan={visTextCols.length}
-                    style={{ position: 'sticky', left: 0, zIndex: 1, background: '#f9fafb', boxShadow: '2px 0 5px rgba(0,0,0,0.08)', padding: '12px 16px', textAlign: 'right', fontSize: 11, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}
+                    style={{ position: 'sticky', left: 0, zIndex: 1, background: 'var(--surface-2)', boxShadow: '2px 0 5px rgba(0,0,0,0.08)', padding: '12px 16px', textAlign: 'right', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.6px' }}
                   >
                     Totals
                   </td>
                 )}
                 {visNumCols.map(col => {
-                  const { val, style } = footerVal(col.key);
+                  const { val, style, cls } = footerVal(col.key);
                   return (
-                    <td key={col.key} style={{ ...style, borderTop: '2px solid #e5e7eb' }}>{val}</td>
+                    <td key={col.key} className={cls || ''} style={{ ...style, borderTop: '2px solid var(--border-2)' }}>{val}</td>
                   );
                 })}
                 {dynUnitCols.map(ut => {
                   const total = active.reduce((sum, r) => sum + unitAmt(r.deductions, ut.name), 0);
                   return (
-                    <td key={`dyn-tf-${ut.name}`} style={{ ...TD_NUM, fontWeight: 700, borderTop: '2px solid #e5e7eb', color: ut.direction === 'addition' ? '#16a34a' : '#e53e3e' }}>
-                      {moneyTotal(total)}
+                    <td key={`dyn-tf-${ut.name}`} className={ut.direction === 'addition' ? 'cell-addition' : 'cell-deduction'} style={{ ...TD_NUM, fontWeight: 700, borderTop: '2px solid var(--border-2)' }}>
+                      {moneyTotalSign(total, ut.direction)}
                     </td>
                   );
                 })}
                 {grossSalaryCol && (() => {
                   const { val, style } = footerVal('grossSalary');
-                  return <td key="gross-tf" style={{ ...style, borderTop: '2px solid #e5e7eb' }}>{val}</td>;
+                  return <td key="gross-tf" style={{ ...style, borderTop: '2px solid var(--border-2)' }}>{val}</td>;
                 })()}
               </tr>
             </tfoot>
@@ -647,24 +667,24 @@ function SalaryAccrual() {
 
             <div className="sa-drawer-body">
               <div>
-                <h4 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Units / Adjustments</h4>
+                <h4 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Units / Adjustments</h4>
                 {(dr.deductions || []).length === 0 ? (
-                  <div style={{ color: '#9ca3af', fontSize: 13, padding: '8px 0' }}>No units this month.</div>
+                  <div style={{ color: 'var(--text-4)', fontSize: 13, padding: '8px 0' }}>No units this month.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {(dr.deductions || []).map(d => {
                       const isAdd = getDirection(d.type) === 'addition';
                       return (
-                        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, fontSize: 13, background: isAdd ? '#f0fff4' : '#fff5f5' }}>
-                          <span style={{ fontWeight: 600, color: '#333', flex: 1 }}>{d.type}</span>
-                          <span style={{ color: '#9ca3af', fontSize: 11 }}>{d.date}</span>
+                        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 6, fontSize: 13, background: isAdd ? (isDark ? 'rgba(22,163,74,0.1)' : '#f0fff4') : (isDark ? 'rgba(229,62,62,0.12)' : '#fff5f5') }}>
+                          <span style={{ fontWeight: 600, color: 'var(--text)', flex: 1 }}>{d.type}</span>
+                          <span style={{ color: 'var(--text-4)', fontSize: 11 }}>{d.date}</span>
                           <span style={{ fontFamily: FONT_MONO, fontWeight: 700, color: isAdd ? '#16a34a' : '#e53e3e' }}>
                             {isAdd ? '+' : '−'}{currSymbol(d.currency)}{parseFloat(d.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                           </span>
                           <button
-                            style={{ background: 'none', border: 'none', color: '#ccc', fontSize: 18, cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
+                            style={{ background: 'none', border: 'none', color: 'var(--text-4)', fontSize: 18, cursor: 'pointer', padding: '0 2px', lineHeight: 1 }}
                             onMouseEnter={e => e.currentTarget.style.color = '#e53e3e'}
-                            onMouseLeave={e => e.currentTarget.style.color = '#ccc'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}
                             onClick={() => handleDeleteUnit(drEmp.id, d.id)}
                             title="Remove"
                           >&times;</button>
@@ -676,7 +696,7 @@ function SalaryAccrual() {
               </div>
 
               <div>
-                <h4 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Add Unit</h4>
+                <h4 style={{ margin: '0 0 10px', fontSize: 13, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Add Unit</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ position: 'relative' }}>
                     {unitDropdownOpen && (
@@ -686,21 +706,22 @@ function SalaryAccrual() {
                       type="button"
                       onClick={() => setUnitDropdownOpen(v => !v)}
                       style={{
-                        width: '100%', padding: '9px 12px', border: `1.5px solid ${unitDropdownOpen ? '#3185FC' : '#e0e0e0'}`,
-                        borderRadius: 7, fontSize: 13, background: 'white', cursor: 'pointer',
+                        width: '100%', padding: '9px 12px', border: `1.5px solid ${unitDropdownOpen ? '#3185FC' : 'var(--border-2)'}`,
+                        borderRadius: 7, fontSize: 13, background: 'var(--surface-2)', cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontFamily: 'inherit',
+                        color: 'var(--text)',
                       }}
                     >
                       {unitForm.type ? (
                         <span>
-                          <span style={{ fontWeight: 600, color: '#111827' }}>{unitForm.type}</span>
+                          <span style={{ fontWeight: 600, color: 'var(--text)' }}>{unitForm.type}</span>
                           {' '}
                           <span style={{ fontFamily: FONT_MONO, fontWeight: 700, color: getDirection(unitForm.type) === 'addition' ? '#16a34a' : '#e53e3e' }}>
                             ({getDirection(unitForm.type) === 'addition' ? '+' : '−'})
                           </span>
                         </span>
                       ) : (
-                        <span style={{ color: '#9ca3af' }}>Select unit type…</span>
+                        <span style={{ color: 'var(--text-4)' }}>Select unit type…</span>
                       )}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: unitDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
                         <polyline points="6,9 12,15 18,9"/>
@@ -709,8 +730,8 @@ function SalaryAccrual() {
                     {unitDropdownOpen && (
                       <div style={{
                         position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
-                        background: 'white', border: '1.5px solid #e0e0e0', borderRadius: 7,
-                        boxShadow: '0 6px 18px rgba(0,0,0,0.1)', overflow: 'hidden',
+                        background: 'var(--surface)', border: '1.5px solid var(--border-2)', borderRadius: 7,
+                        boxShadow: '0 6px 18px rgba(0,0,0,0.15)', overflow: 'hidden',
                       }}>
                         {unitTypes.map(ut => {
                           const isAdd = ut.direction === 'addition';
@@ -721,12 +742,12 @@ function SalaryAccrual() {
                               onClick={() => { setUnitForm({ type: ut.name, amount: '', otRate: '110', otHours: '' }); setUnitDropdownOpen(false); }}
                               style={{
                                 padding: '9px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                                background: isSelected ? '#eff6ff' : 'white', fontSize: 13,
+                                background: isSelected ? (isDark ? '#1e2a45' : '#eff6ff') : 'var(--surface)', fontSize: 13,
                               }}
-                              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = '#f9fafb'; }}
-                              onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'white'; }}
+                              onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                              onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'var(--surface)'; }}
                             >
-                              <span style={{ fontWeight: isSelected ? 700 : 500, color: '#111827' }}>{ut.name}</span>
+                              <span style={{ fontWeight: isSelected ? 700 : 500, color: 'var(--text)' }}>{ut.name}</span>
                               <span style={{ fontFamily: FONT_MONO, fontWeight: 700, fontSize: 13, color: isAdd ? '#16a34a' : '#e53e3e' }}>
                                 {isAdd ? '(+)' : '(−)'}
                               </span>
@@ -753,7 +774,7 @@ function SalaryAccrual() {
                               const rate = e.target.value;
                               setUnitForm(prev => ({ ...prev, otRate: rate, amount: calcAmount(rate, prev.otHours) }));
                             }}
-                            style={{ padding: '9px 12px', border: '1.5px solid #e0e0e0', borderRadius: 7, fontSize: 13, flex: 1 }}
+                            style={{ padding: '9px 12px', border: '1.5px solid var(--border-2)', borderRadius: 7, fontSize: 13, flex: 1, background: 'var(--surface-2)', color: 'var(--text)' }}
                           >
                             {overtimeRates.length > 0
                               ? overtimeRates.map(r => (
@@ -762,7 +783,7 @@ function SalaryAccrual() {
                               : (<><option value="110">110%</option><option value="200">200%</option></>)
                             }
                           </select>
-                          <div style={{ padding: '9px 12px', background: '#f0f4ff', border: '1.5px solid #e0e0e0', borderRadius: 7, fontSize: 12, fontFamily: FONT_MONO, color: '#374151', whiteSpace: 'nowrap' }}>
+                          <div style={{ padding: '9px 12px', background: 'var(--surface-2)', border: '1.5px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontFamily: FONT_MONO, color: 'var(--text-2)', whiteSpace: 'nowrap' }}>
                             {hourlyRate > 0 ? `$${hourlyRate.toFixed(4)}/hr` : '—'}
                           </div>
                         </div>
@@ -776,14 +797,14 @@ function SalaryAccrual() {
                             const hours = e.target.value;
                             setUnitForm(prev => ({ ...prev, otHours: hours, amount: calcAmount(prev.otRate, hours) }));
                           }}
-                          style={{ padding: '9px 12px', border: '1.5px solid #e0e0e0', borderRadius: 7, fontSize: 13, width: '100%', boxSizing: 'border-box' }}
+                          style={{ padding: '9px 12px', border: '1.5px solid var(--border-2)', borderRadius: 7, fontSize: 13, width: '100%', boxSizing: 'border-box', background: 'var(--surface-2)', color: 'var(--text)' }}
                         />
                       </div>
                     );
                   })()}
 
                   {/* Currency picker */}
-                  <div style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 3, gap: 2 }}>
+                  <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 8, padding: 3, gap: 2 }}>
                     {UNIT_CURRENCIES.map(c => {
                       const isActive = unitForm.currency === c.code;
                       return (
@@ -794,10 +815,10 @@ function SalaryAccrual() {
                           style={{
                             flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                             padding: '6px 10px', border: 'none', borderRadius: 6,
-                            background: isActive ? '#fff' : 'transparent',
+                            background: isActive ? 'var(--surface)' : 'transparent',
                             boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                             fontWeight: isActive ? 700 : 500, fontSize: 13,
-                            color: isActive ? '#1e293b' : '#64748b',
+                            color: isActive ? 'var(--text)' : 'var(--text-3)',
                             cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
                           }}
                         >
@@ -816,9 +837,9 @@ function SalaryAccrual() {
                     placeholder="Amount"
                     value={unitForm.amount}
                     onChange={e => setUnitForm(prev => ({ ...prev, amount: e.target.value }))}
-                    style={{ padding: '9px 12px', border: '1.5px solid #e0e0e0', borderRadius: 7, fontSize: 13, width: '100%', boxSizing: 'border-box' }}
+                    style={{ padding: '9px 12px', border: '1.5px solid var(--border-2)', borderRadius: 7, fontSize: 13, width: '100%', boxSizing: 'border-box', background: 'var(--surface-2)', color: 'var(--text)' }}
                   />
-                  <div style={{ fontSize: 11, color: '#9ca3af', fontStyle: 'italic' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-4)', fontStyle: 'italic' }}>
                     {getDirection(unitForm.type) === 'addition' ? 'Will be added to net salary' : 'Will be deducted from net salary'}
                   </div>
                   <button

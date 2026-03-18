@@ -6,6 +6,7 @@ import { PortalAuthProvider } from './contexts/PortalAuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
+import Register from './components/Auth/Register';
 import PrivateRoute from './components/Layout/PrivateRoute';
 import Header from './components/Layout/Header';
 import EmployeeForm from './components/Employees/EmployeeForm';
@@ -34,6 +35,7 @@ function App() {
           {/* Public routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/register" element={<Register />} />
 
           {/* Protected routes */}
           <Route
