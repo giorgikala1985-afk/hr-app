@@ -580,7 +580,136 @@
   color: #0f3460;
 }
 
-/* Responsive */
+/* ─── Dark theme ─────────────────────────────────────────────── */
+[data-theme="dark"] .sal-header h1 { color: var(--text); }
+[data-theme="dark"] .sal-header p { color: var(--text-3); }
+
+[data-theme="dark"] .sal-month-picker {
+  background: var(--surface);
+  border-color: var(--border-2);
+}
+[data-theme="dark"] .sal-month-picker label { color: var(--text-2); }
+[data-theme="dark"] .sal-month-picker input[type="month"] {
+  border-color: var(--border-2);
+  color: var(--text);
+  background: var(--surface-2);
+  color-scheme: dark;
+}
+[data-theme="dark"] .sal-month-picker input[type="month"]:focus { border-color: var(--accent); }
+
+[data-theme="dark"] .sal-month-arrow {
+  background: var(--surface-2);
+  border-color: var(--border-2);
+  color: var(--text-3);
+}
+[data-theme="dark"] .sal-month-arrow:hover {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+}
+
+[data-theme="dark"] .sal-month-label { color: var(--accent); }
+
+[data-theme="dark"] .sal-summary-card {
+  background: var(--surface);
+  border-color: var(--border-2);
+}
+[data-theme="dark"] .sal-summary-label { color: var(--text-3); }
+[data-theme="dark"] .sal-summary-value { color: var(--text); }
+[data-theme="dark"] .sal-total { color: var(--accent); }
+
+[data-theme="dark"] .sal-accrued { color: var(--text); }
+[data-theme="dark"] .sal-gel { color: var(--accent); }
+[data-theme="dark"] .sal-gel-inline { color: var(--text-4); }
+
+[data-theme="dark"] .emp-table tfoot td {
+  border-top-color: var(--border);
+  background: var(--surface-2);
+}
+[data-theme="dark"] .sal-footer-label { color: var(--text); }
+
+[data-theme="dark"] .sal-row-clickable:hover { background: var(--surface-2); }
+[data-theme="dark"] .sal-row-expanded { background: #1e2a45 !important; }
+
+[data-theme="dark"] .sal-detail-row td { border-bottom-color: #4f46e5; }
+[data-theme="dark"] .sal-detail-panel {
+  background: var(--surface-2);
+  border-top-color: var(--border);
+}
+[data-theme="dark"] .sal-detail-panel h4 { color: var(--text); }
+[data-theme="dark"] .sal-detail-empty { color: var(--text-4); }
+
+[data-theme="dark"] .sal-units-group-label { color: var(--text-4); }
+[data-theme="dark"] .sal-unit-type { color: var(--text); }
+[data-theme="dark"] .sal-unit-date { color: var(--text-4); }
+[data-theme="dark"] .sal-unit-delete { color: var(--text-4); }
+[data-theme="dark"] .sal-unit-deduction { background: rgba(229,62,62,0.12); }
+[data-theme="dark"] .sal-unit-addition { background: rgba(22,163,74,0.1); }
+
+[data-theme="dark"] .sal-add-unit-form {
+  background: var(--surface);
+  border-color: var(--border);
+}
+[data-theme="dark"] .sal-unit-select {
+  border-color: var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+}
+[data-theme="dark"] .sal-unit-select:focus { border-color: var(--accent); }
+[data-theme="dark"] .sal-ot-rate-value {
+  background: var(--surface-2);
+  border-color: var(--border-2);
+  color: var(--text);
+}
+[data-theme="dark"] .sal-unit-input {
+  border-color: var(--border-2);
+  background: var(--surface-2);
+  color: var(--text);
+}
+[data-theme="dark"] .sal-unit-input:focus { border-color: var(--accent); }
+[data-theme="dark"] .sal-unit-hint { color: var(--text-4); }
+
+[data-theme="dark"] .sal-currency-toggle { border-color: var(--border-2); }
+[data-theme="dark"] .sal-currency-btn {
+  background: var(--surface-2);
+  color: var(--text-3);
+  border-right-color: var(--border-2);
+}
+[data-theme="dark"] .sal-currency-btn:hover { background: var(--surface-3); color: var(--text); }
+[data-theme="dark"] .sal-currency-btn.active { background: var(--accent); color: white; }
+[data-theme="dark"] .sal-currency-converted { color: var(--text-4); }
+
+[data-theme="dark"] .sal-defer-btn {
+  background: rgba(234,88,12,0.15);
+  border-color: rgba(234,88,12,0.3);
+}
+[data-theme="dark"] .sal-defer-btn:hover { background: rgba(234,88,12,0.22); }
+[data-theme="dark"] .sal-defer-undo-btn {
+  background: var(--surface-2);
+  color: var(--text-3);
+  border-color: var(--border-2);
+}
+[data-theme="dark"] .sal-defer-undo-btn:hover { background: var(--surface-3); }
+[data-theme="dark"] .sal-defer-badge {
+  background: rgba(234,88,12,0.15);
+  border-color: rgba(234,88,12,0.3);
+}
+
+[data-theme="dark"] .sal-detail-summary {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-3);
+}
+[data-theme="dark"] .sal-detail-net { color: var(--accent); }
+
+[data-theme="dark"] .sal-deduction-tag {
+  background: rgba(229,62,62,0.15);
+}
+[data-theme="dark"] .sal-addition-tag {
+  background: rgba(34,170,68,0.12);
+}
+
+/* ─── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .sal-container {
     padding: 24px 16px;

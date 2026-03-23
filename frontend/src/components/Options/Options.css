@@ -36,7 +36,7 @@
   width: 36px;
   height: 36px;
   min-width: 36px;
-  background: #0f3460;
+  background: var(--accent);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -77,7 +77,7 @@
   display: inline-flex;
   align-items: center;
   padding: 10px 20px;
-  background: #0f3460;
+  background: var(--accent);
   color: white;
   border-radius: 8px;
   font-size: 14px;
@@ -87,7 +87,7 @@
 }
 
 .btn-upload:hover {
-  background: #1a2a4e;
+  background: var(--accent-hover);
 }
 
 /* Excel download button */
@@ -159,6 +159,16 @@
   border-radius: 20px;
   font-size: 13px;
   font-weight: 500;
+}
+
+[data-theme="dark"] .import-stat-valid {
+  background: #0f2a1e;
+  color: #4ade80;
+}
+
+[data-theme="dark"] .import-stat-invalid {
+  background: #2a1010;
+  color: #f87171;
 }
 
 /* Preview Table */
@@ -309,7 +319,7 @@
 }
 
 .pagination-toggle-on {
-  background: #0f3460;
+  background: var(--accent);
 }
 
 .pagination-toggle-knob {
@@ -360,13 +370,13 @@
 }
 
 .pagination-size-btn:hover {
-  border-color: #0f3460;
-  color: #0f3460;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .pagination-size-btn.active {
-  background: #0f3460;
-  border-color: #0f3460;
+  background: var(--accent);
+  border-color: var(--accent);
   color: white;
 }
 
@@ -392,8 +402,8 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-  border-color: #0f3460;
-  color: #0f3460;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .pagination-btn:disabled {
@@ -402,8 +412,8 @@
 }
 
 .pagination-btn.active {
-  background: #0f3460;
-  border-color: #0f3460;
+  background: var(--accent);
+  border-color: var(--accent);
   color: white;
 }
 
@@ -441,7 +451,7 @@
 
 .ut-input:focus {
   outline: none;
-  border-color: #0f3460;
+  border-color: var(--accent);
 }
 
 .ut-direction-toggle {
@@ -558,7 +568,7 @@
 
 .ut-edit-btn:hover {
   background: var(--surface-2);
-  color: #0f3460;
+  color: var(--accent);
 }
 
 .ut-delete-btn:hover {

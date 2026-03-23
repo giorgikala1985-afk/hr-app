@@ -82,4 +82,120 @@ async function getPaymentDetails(payId) {
   return response.data;
 }
 
-module.exports = { getAccessToken, createPayment, getPaymentDetails };
+// ── Open Banking: Account Statements ──────────────────
+const OB_BASE_URL = process.env.TBC_OB_BASE_URL || 'https://api.tbcbank.ge/v1/openbanking';
+
+async function getAccountStatements({ accountId, dateFrom, dateTo }) {
+  const token = await getAccessToken();
+  const params = {};
+  if (dateFrom) params.dateFrom = dateFrom;
+  if (dateTo) params.dateTo = dateTo;
+
+  const response = await axios.get(
+    `${OB_BASE_URL}/accounts/${accountId}/statements`,
+    {
+      params,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: API_KEY,
+      },
+    }
+  );
+  return response.data;
+}
+
+async function getAccounts() {
+  const token = await getAccessToken();
+  const response = await axios.get(
+    `${OB_BASE_URL}/accounts`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: API_KEY,
+      },
+    }
+  );
+  return response.data;
+}
+
+// ── Open Banking: Initiate Transfer ───────────────────
+async function initiateTransfer({ debtorIban, creditorIban, creditorName, amount, currency, description }) {
+  const token = await getAccessToken();
+
+  const response = await axios.post(
+    `${OB_BASE_URL}/payments/initiate`,
+    {
+      debtorAccount: { iban: debtorIban },
+      creditorAccount: { iban: creditorIban },
+      creditorName,
+      instructedAmount: {
+        amount: amount,
+        currency: currency || 'GEL',
+      },
+      remittanceInformation: description || 'Payment',
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: API_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  return response.data;
+}
+
+async function getTransferStatus(paymentId) {
+  const token = await getAccessToken();
+
+  const response = await axios.get(
+    `${OB_BASE_URL}/payments/${paymentId}/status`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: API_KEY,
+      },
+    }
+  );
+  return response.data;
+}
+
+// ── Bulk Transfer (salary batch) ──────────────────────
+async function initiateBulkTransfer({ debtorIban, payments }) {
+  const token = await getAccessToken();
+
+  const response = await axios.post(
+    `${OB_BASE_URL}/payments/bulk`,
+    {
+      debtorAccount: { iban: debtorIban },
+      payments: payments.map(p => ({
+        creditorAccount: { iban: p.creditorIban },
+        creditorName: p.creditorName,
+        instructedAmount: {
+          amount: p.amount,
+          currency: p.currency || 'GEL',
+        },
+        remittanceInformation: p.description || 'Salary Payment',
+      })),
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        apikey: API_KEY,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  return response.data;
+}
+
+module.exports = {
+  getAccessToken,
+  createPayment,
+  getPaymentDetails,
+  getAccountStatements,
+  getAccounts,
+  initiateTransfer,
+  getTransferStatus,
+  initiateBulkTransfer,
+};

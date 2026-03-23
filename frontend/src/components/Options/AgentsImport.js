@@ -7,8 +7,8 @@ const AGENT_TYPES = ['LLC', 'IS', 'JSC', 'Other'];
 
 const INPUT_STYLE = {
   width: '100%', boxSizing: 'border-box', padding: '6px 8px',
-  border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12,
-  outline: 'none', fontFamily: 'inherit',
+  border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12,
+  outline: 'none', fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)',
 };
 
 function AgentsImport() {
@@ -143,10 +143,10 @@ function AgentsImport() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
 
         {/* Header */}
-        <div style={{ padding: '20px 24px', background: '#fafbfc', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ padding: '20px 24px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 9, background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -156,25 +156,26 @@ function AgentsImport() {
             </svg>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>Import Agents</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>Bulk import agent records from an Excel file</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Import Agents</div>
+            <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 1 }}>Bulk import agent records from an Excel file</div>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: '#64748b', background: '#f1f5f9', borderRadius: 20, padding: '3px 10px' }}>
+          <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', background: 'var(--surface-3)', borderRadius: 20, padding: '3px 10px' }}>
             {records.length} records
           </div>
         </div>
 
         {/* Sub-tab bar */}
-        <div style={{ padding: '12px 24px', borderBottom: '1px solid #f1f5f9', background: '#fff' }}>
-          <div style={{ display: 'flex', gap: 2, background: '#f1f5f9', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+        <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface)' }}>
+          <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
             {[
               { key: 'import', label: 'Import Agents' },
               { key: 'records', label: `Saved Records${records.length ? ` (${records.length})` : ''}` },
             ].map(tab => (
               <button key={tab.key} onClick={() => setSubTab(tab.key)} style={{
                 padding: '6px 18px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                background: subTab === tab.key ? '#fff' : 'transparent',
-                color: subTab === tab.key ? '#1e293b' : '#64748b',
+                fontFamily: 'inherit',
+                background: subTab === tab.key ? 'var(--surface)' : 'transparent',
+                color: subTab === tab.key ? 'var(--text)' : 'var(--text-3)',
                 boxShadow: subTab === tab.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s',
               }}>{tab.label}</button>
@@ -189,19 +190,12 @@ function AgentsImport() {
         {subTab === 'import' && (
           <div style={{ padding: '8px 0' }}>
             {/* Step 1 */}
-            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: '1px solid #f8fafc' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>1</div>
+            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: '1px solid var(--border-3)' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>1</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>Download Template</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>Get the Excel template with the correct column format.</div>
-                <button onClick={downloadTemplate} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '9px 18px', background: '#f0fdf4', color: '#16a34a',
-                  border: '1.5px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#dcfce7'; e.currentTarget.style.borderColor = '#86efac'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#bbf7d0'; }}
-                >
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>Download Template</div>
+                <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>Get the Excel template with the correct column format.</div>
+                <button onClick={downloadTemplate} className="btn-excel">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
@@ -213,11 +207,11 @@ function AgentsImport() {
             </div>
 
             {/* Step 2 */}
-            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: rows.length > 0 ? '1px solid #f8fafc' : 'none' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>2</div>
+            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: rows.length > 0 ? '1px solid var(--border-3)' : 'none' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>2</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>Upload your file</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>Fill in the template and upload it here.</div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>Upload your file</div>
+                <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>Fill in the template and upload it here.</div>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileUpload} style={{ display: 'none' }} />
                 <div
                   onClick={() => fileRef.current?.click()}
@@ -225,9 +219,9 @@ function AgentsImport() {
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
                   style={{
-                    border: `2px dashed ${dragOver ? '#0369a1' : fileName ? '#7dd3fc' : '#e2e8f0'}`,
+                    border: `2px dashed ${dragOver ? '#0369a1' : fileName ? '#7dd3fc' : 'var(--border-2)'}`,
                     borderRadius: 10, padding: '20px 24px', textAlign: 'center', cursor: 'pointer',
-                    background: dragOver ? '#f0f9ff' : fileName ? '#f0f9ff' : '#fafbfc',
+                    background: dragOver ? '#f0f9ff' : fileName ? '#f0f9ff' : 'var(--surface-2)',
                     transition: 'all 0.15s',
                   }}
                 >
@@ -238,16 +232,16 @@ function AgentsImport() {
                         <polyline points="14,2 14,8 20,8"/>
                       </svg>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0369a1' }}>{fileName}</span>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>· click to replace</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-4)' }}>· click to replace</span>
                     </div>
                   ) : (
                     <>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/>
                       </svg>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>Choose file or drag & drop</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>.xlsx / .xls</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-3)' }}>Choose file or drag & drop</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 2 }}>.xlsx / .xls</div>
                     </>
                   )}
                 </div>
@@ -257,33 +251,33 @@ function AgentsImport() {
             {/* Step 3 preview */}
             {rows.length > 0 && (
               <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>3</div>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>3</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>Review & Import</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>Review & Import</div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
                     <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>{validCount} valid</span>
                     {invalidCount > 0 && <span style={{ padding: '3px 12px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 12, border: '1px solid #fca5a5' }}>{invalidCount} invalid</span>}
-                    <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f1f5f9', color: '#64748b', fontWeight: 600, fontSize: 12 }}>{rows.length} total</span>
+                    <span style={{ padding: '3px 12px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-3)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border-2)' }}>{rows.length} total</span>
                   </div>
-                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 16 }}>
+                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)', marginBottom: 16 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
-                        <tr style={{ background: '#f8fafc' }}>
+                        <tr style={{ background: 'var(--surface-2)' }}>
                           {['#', 'Name', 'Type', 'Add Date', 'Account Number', 'Address', 'Phone', 'Status'].map((h, i) => (
-                            <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                            <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)' }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {rows.map((row, i) => (
-                          <tr key={i} style={{ background: row._valid ? (i % 2 === 0 ? '#fff' : '#fafbfc') : '#fef2f2' }}>
-                            <td style={{ padding: '7px 10px', color: '#94a3b8' }}>{i + 1}</td>
-                            <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : '#1e293b', fontWeight: 600 }}>{row.name || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.type || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.add_date || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.account_number || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.address || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.phone || '—'}</td>
+                          <tr key={i} style={{ background: row._valid ? (i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)') : '#fef2f2' }}>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-4)' }}>{i + 1}</td>
+                            <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : 'var(--text)', fontWeight: 600 }}>{row.name || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.type || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.add_date || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.account_number || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.address || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.phone || '—'}</td>
                             <td style={{ padding: '7px 10px' }}>
                               {row._valid
                                 ? <span style={{ padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 11, border: '1px solid #bbf7d0' }}>OK</span>
@@ -295,10 +289,10 @@ function AgentsImport() {
                     </table>
                   </div>
                   <button onClick={handleSave} disabled={saving || validCount === 0} style={{
-                    padding: '10px 24px', background: saving || validCount === 0 ? '#e2e8f0' : '#0369a1',
-                    color: saving || validCount === 0 ? '#94a3b8' : '#fff',
+                    padding: '10px 24px', background: saving || validCount === 0 ? 'var(--surface-3)' : '#0369a1',
+                    color: saving || validCount === 0 ? 'var(--text-4)' : '#fff',
                     border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13,
-                    cursor: saving || validCount === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                    cursor: saving || validCount === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
                   }}>
                     {saving ? 'Saving…' : `Import ${validCount} Agent${validCount !== 1 ? 's' : ''}`}
                   </button>
@@ -313,46 +307,46 @@ function AgentsImport() {
           <div style={{ padding: '16px 24px' }}>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 200 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
                 <input type="text" placeholder="Search name, type, phone…" value={search} onChange={e => setSearch(e.target.value)}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px 8px 32px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
-                  onFocus={e => e.target.style.borderColor = '#0369a1'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px 8px 32px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }}
+                  onFocus={e => e.target.style.borderColor = '#0369a1'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
               </div>
               {search && (
-                <button onClick={() => setSearch('')} style={{ padding: '7px 14px', background: 'none', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, color: '#64748b', cursor: 'pointer' }}>
+                <button onClick={() => setSearch('')} style={{ padding: '7px 14px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>
                   Clear
                 </button>
               )}
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-4)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {filteredRecords.length} of {records.length} records
               </span>
             </div>
 
             {loadingRecords ? (
-              <div style={{ padding: '32px 0', color: '#94a3b8', fontSize: 13 }}>Loading…</div>
+              <div style={{ padding: '32px 0', color: 'var(--text-4)', fontSize: 13 }}>Loading…</div>
             ) : records.length === 0 ? (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8' }}>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-4)' }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🤝</div>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>No agents imported yet</div>
               </div>
             ) : filteredRecords.length === 0 ? (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>No records match your search.</div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-4)', fontSize: 14 }}>No records match your search.</div>
             ) : (
-              <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+              <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                   <thead>
-                    <tr style={{ background: '#f8fafc' }}>
+                    <tr style={{ background: 'var(--surface-2)' }}>
                       {['Name', 'Type', 'Add Date', 'Account Number', 'Address', 'Phone', ''].map((h, i) => (
-                        <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                        <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {filteredRecords.map((rec, i) => (
-                      <tr key={rec.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                      <tr key={rec.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                         {editId === rec.id ? (
                           <>
                             <td style={{ padding: '6px 8px' }}><input style={INPUT_STYLE} value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></td>
@@ -366,25 +360,25 @@ function AgentsImport() {
                             <td style={{ padding: '6px 8px' }}><input style={INPUT_STYLE} value={editForm.address} onChange={e => setEditForm({ ...editForm, address: e.target.value })} /></td>
                             <td style={{ padding: '6px 8px' }}><input style={INPUT_STYLE} value={editForm.phone} onChange={e => setEditForm({ ...editForm, phone: e.target.value })} /></td>
                             <td style={{ padding: '6px 8px', display: 'flex', gap: 6 }}>
-                              <button onClick={handleUpdate} style={{ padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>Save</button>
-                              <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 11, color: '#64748b', cursor: 'pointer' }}>Cancel</button>
+                              <button onClick={handleUpdate} style={{ padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
+                              <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                             </td>
                           </>
                         ) : (
                           <>
-                            <td style={{ padding: '8px 10px', fontWeight: 600, color: '#1e293b' }}>{rec.name}</td>
-                            <td style={{ padding: '8px 10px', color: '#64748b' }}>{rec.type}</td>
-                            <td style={{ padding: '8px 10px', color: '#64748b' }}>{rec.add_date || '—'}</td>
-                            <td style={{ padding: '8px 10px', color: '#64748b', fontSize: 11 }}>{rec.account_number || '—'}</td>
-                            <td style={{ padding: '8px 10px', color: '#64748b' }}>{rec.address || '—'}</td>
-                            <td style={{ padding: '8px 10px', color: '#64748b' }}>{rec.phone || '—'}</td>
+                            <td style={{ padding: '8px 10px', fontWeight: 600, color: 'var(--text)' }}>{rec.name}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.type}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.add_date || '—'}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-3)', fontSize: 11 }}>{rec.account_number || '—'}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.address || '—'}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.phone || '—'}</td>
                             <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
-                              <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#0369a1'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                              <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#0369a1'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                               </button>
-                              <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                              <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                               </button>
                             </td>

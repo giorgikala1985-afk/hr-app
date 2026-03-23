@@ -92,7 +92,7 @@ router.post('/import', async (req, res) => {
       return res.status(400).json({ error: 'No employees data provided' });
     }
 
-    const required = ['first_name', 'last_name', 'personal_id', 'birthdate', 'position', 'salary', 'overtime_rate', 'start_date'];
+    const required = ['first_name', 'last_name', 'personal_id', 'position', 'salary', 'start_date'];
     const errors = [];
     const valid = [];
 
@@ -106,10 +106,11 @@ router.post('/import', async (req, res) => {
           first_name: String(emp.first_name).trim(),
           last_name: String(emp.last_name).trim(),
           personal_id: String(emp.personal_id).trim(),
-          birthdate: emp.birthdate,
+          birthdate: emp.birthdate || null,
           position: String(emp.position).trim(),
           salary: parseFloat(emp.salary),
-          overtime_rate: parseFloat(emp.overtime_rate),
+          overtime_rate: parseFloat(emp.overtime_rate) || 0,
+          pension: emp.pension || false,
           start_date: emp.start_date,
           end_date: emp.end_date || null,
           account_number: emp.account_number ? String(emp.account_number).trim() : null,
@@ -204,7 +205,58 @@ router.post('/', upload.single('photo'), async (req, res) => {
       return res.status(500).json({ error: 'Failed to create employee' });
     }
 
-    res.status(201).json({ message: 'Employee created successfully', employee: data });
+    // Look up bookkeeping accounts by code
+    const { data: accs } = await supabase
+      .from('bookkeeping_accounts')
+      .select('code, name')
+      .eq('user_id', req.userId)
+      .in('code', ['3130', '1210']);
+
+    const accMap = {};
+    (accs || []).forEach(a => { accMap[a.code] = `${a.code} - ${a.name}`; });
+
+    const debitAccount = accMap['3130'] || '3130';
+    const creditAccount = accMap['1210'] || '1210';
+    const description = `თანამშრომელი: ${first_name.trim()} ${last_name.trim()}`;
+
+    // Auto-create double-entry bookkeeping entries
+    const bookkeepingEntries = [
+      {
+        user_id: req.userId,
+        transaction_id: data.id,
+        date: start_date,
+        description,
+        account: debitAccount,
+        debit: parseFloat(salary),
+        credit: 0,
+      },
+      {
+        user_id: req.userId,
+        transaction_id: data.id,
+        date: start_date,
+        description,
+        account: creditAccount,
+        debit: 0,
+        credit: parseFloat(salary),
+      },
+    ];
+
+    const { data: bookkeepingData, error: bookkeepingError } = await supabase
+      .from('bookkeeping_entries')
+      .insert(bookkeepingEntries)
+      .select();
+
+    if (bookkeepingError) {
+      console.error('Error creating bookkeeping entries:', bookkeepingError);
+    }
+
+    res.status(201).json({
+      message: 'Employee created successfully',
+      employee: data,
+      bookkeeping: bookkeepingError
+        ? { success: false, error: bookkeepingError.message }
+        : { success: true, entries: bookkeepingData },
+    });
   } catch (error) {
     console.error('Create employee error:', error);
     res.status(500).json({ error: 'An error occurred while creating employee' });
@@ -937,6 +989,30 @@ router.post('/:id/units', async (req, res) => {
 });
 
 // DELETE unit
+// PUT /api/employees/:id/units/:unitId - update unit
+router.put('/:id/units/:unitId', async (req, res) => {
+  try {
+    const { type, amount, date } = req.body;
+    const updates = {};
+    if (type !== undefined) updates.type = type;
+    if (amount !== undefined) updates.amount = parseFloat(amount);
+    if (date !== undefined) updates.date = date;
+
+    const { data, error } = await supabase
+      .from('employee_units')
+      .update(updates)
+      .eq('id', req.params.unitId)
+      .eq('user_id', req.userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.json({ unit: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.delete('/:id/units/:unitId', async (req, res) => {
   try {
     const { error } = await supabase

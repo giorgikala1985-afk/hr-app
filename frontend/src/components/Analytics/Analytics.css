@@ -91,10 +91,15 @@
 .stat-card-purple .stat-card-icon{ background: #faf5ff; color: #7c3aed; }
 .stat-card-teal .stat-card-icon  { background: #f0fdfa; color: #0891b2; }
 
-[data-theme="dark"] .stat-card-blue .stat-card-icon  { background: #1e3a5f; }
-[data-theme="dark"] .stat-card-green .stat-card-icon { background: #0f2a1e; }
-[data-theme="dark"] .stat-card-purple .stat-card-icon{ background: #2e1a47; }
-[data-theme="dark"] .stat-card-teal .stat-card-icon  { background: #0a2a2e; }
+[data-theme="dark"] .stat-card-blue .stat-card-icon  { background: rgba(49,133,252,0.15); }
+[data-theme="dark"] .stat-card-green .stat-card-icon { background: rgba(22,163,74,0.15); }
+[data-theme="dark"] .stat-card-purple .stat-card-icon{ background: rgba(124,58,237,0.15); }
+[data-theme="dark"] .stat-card-teal .stat-card-icon  { background: rgba(8,145,178,0.15); }
+
+[data-theme="dark"] .error {
+  background: rgba(220,38,38,0.1);
+  border-color: rgba(220,38,38,0.3);
+}
 
 .stat-card::after {
   content: '';

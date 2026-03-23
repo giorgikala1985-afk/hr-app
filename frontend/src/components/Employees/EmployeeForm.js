@@ -195,8 +195,14 @@ function EmployeeForm() {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         const newId = res.data.employee?.id;
+        const bk = res.data.bookkeeping;
+        if (bk && !bk.success) {
+          setError(`თანამშრომელი დაემატა, მაგრამ გატარებები ვერ შეიქმნა: ${bk.error}`);
+          setLoading(false);
+          return;
+        }
         if (newId) {
-          navigate(`/employees/${newId}/edit`);
+          navigate(`/employees/${newId}/edit?bookkeeping=created`);
         } else {
           navigate('/documents?tab=employees&inner=employees');
         }
@@ -237,6 +243,11 @@ function EmployeeForm() {
       </div>
 
       {error && <div className="msg-error">{error}</div>}
+      {searchParams.get('bookkeeping') === 'created' && (
+        <div className="msg-success" style={{ marginBottom: 12 }}>
+          Employee Has Been Added
+        </div>
+      )}
 
       <div className="emp-edit-layout">
         {/* Sidebar Tabs */}

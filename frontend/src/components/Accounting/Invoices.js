@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 
-const DEFAULT_WIDTHS = [80, 160, 110, 110, 120, 100, 80];
+const DEFAULT_WIDTHS = [80, 160, 110, 110, 120, 100, 160, 80];
 
 function IconEdit() {
   return (
@@ -34,10 +34,11 @@ function IconEye() {
 }
 
 const EMPTY_ITEM = { description: '', qty: 1, unit_price: '' };
-const EMPTY_FORM = { client: '', client_email: '', invoice_number: '', date: '', due_date: '', currency: 'USD', status: 'draft', notes: '', items: [{ ...EMPTY_ITEM }] };
+const EMPTY_FORM = { client: '', client_email: '', invoice_number: '', date: '', due_date: '', currency: 'USD', status: 'draft', notes: '', account_number: '', items: [{ ...EMPTY_ITEM }] };
 
 function Invoices() {
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
+  const [tab, setTab] = useState('list');
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -48,6 +49,102 @@ function Invoices() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [previewInv, setPreviewInv] = useState(null);
   const printRef = useRef();
+
+  // Scanner state
+  const [scanFile, setScanFile] = useState(null);
+  const [scanPreview, setScanPreview] = useState(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+  const [scanError, setScanError] = useState('');
+  const [scanSaving, setScanSaving] = useState(false);
+  const [scanSaved, setScanSaved] = useState(false);
+  const scanInputRef = useRef();
+
+  const handleScanFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setScanFile(file);
+    setScanResult(null);
+    setScanError('');
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setScanPreview(ev.target.result);
+      reader.readAsDataURL(file);
+    } else {
+      setScanPreview(null);
+    }
+  };
+
+  const handleScan = async () => {
+    if (!scanFile) return;
+    setScanning(true);
+    setScanError('');
+    setScanResult(null);
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(scanFile);
+      });
+      const res = await api.post('/accounting/invoices/scan', {
+        data: base64,
+        mimeType: scanFile.type,
+      });
+      setScanResult(res.data.result);
+    } catch (err) {
+      setScanError(err.response?.data?.error || err.message);
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const resetScan = () => {
+    setScanFile(null);
+    setScanPreview(null);
+    setScanResult(null);
+    setScanError('');
+    setScanSaved(false);
+    if (scanInputRef.current) scanInputRef.current.value = '';
+  };
+
+  const handleSaveScanned = async () => {
+    if (!scanResult) return;
+    setScanSaving(true);
+    setScanError('');
+    try {
+      const bankDetails = [
+        scanResult.bank_name && `Bank: ${scanResult.bank_name}`,
+        scanResult.account_number && `Account: ${scanResult.account_number}`,
+        scanResult.swift_bic && `SWIFT/BIC: ${scanResult.swift_bic}`,
+        scanResult.notes,
+      ].filter(Boolean).join('\n');
+
+      const num = scanResult.invoice_number || `INV-${Date.now().toString().slice(-6)}`;
+      const items = [{ description: scanResult.description || 'Invoice payment', qty: 1, unit_price: parseFloat(scanResult.amount) || 0 }];
+      const total = parseFloat(scanResult.amount) || 0;
+
+      await api.post('/accounting/invoices', {
+        client: scanResult.payee || 'Unknown',
+        client_email: '',
+        invoice_number: num,
+        date: scanResult.invoice_date || today(),
+        due_date: scanResult.due_date || null,
+        currency: scanResult.currency || 'USD',
+        status: 'draft',
+        notes: bankDetails,
+        account_number: scanResult.account_number || null,
+        items,
+        total,
+      });
+      setScanSaved(true);
+      load();
+    } catch (err) {
+      setScanError(err.response?.data?.error || err.message);
+    } finally {
+      setScanSaving(false);
+    }
+  };
 
   useEffect(() => { load(); }, []);
 
@@ -69,7 +166,7 @@ function Invoices() {
   };
 
   const openEdit = (r) => {
-    setForm({ client: r.client, client_email: r.client_email || '', invoice_number: r.invoice_number, date: r.date, due_date: r.due_date || '', currency: r.currency, status: r.status, notes: r.notes || '', items: r.items || [{ ...EMPTY_ITEM }] });
+    setForm({ client: r.client, client_email: r.client_email || '', invoice_number: r.invoice_number, date: r.date, due_date: r.due_date || '', currency: r.currency, status: r.status, notes: r.notes || '', account_number: r.account_number || '', items: r.items || [{ ...EMPTY_ITEM }] });
     setEditId(r.id); setShowForm(true); setError('');
   };
 
@@ -85,7 +182,7 @@ function Invoices() {
   const handleSave = async () => {
     if (!form.client || !form.invoice_number || !form.date) { setError('Client, invoice number and date are required.'); return; }
     setSaving(true); setError('');
-    const payload = { ...form, total: calcTotal(form.items) };
+    const payload = { ...form, account_number: form.account_number || null, total: calcTotal(form.items) };
     try {
       if (editId) await api.put(`/accounting/invoices/${editId}`, payload);
       else await api.post('/accounting/invoices', payload);
@@ -151,6 +248,139 @@ function Invoices() {
       <h2>Invoices</h2>
       <p className="acc-subtitle">Create and manage client invoices.</p>
 
+      {/* Sub-tabs */}
+      <div className="docs-inner-tabs" style={{ marginBottom: 24 }}>
+        <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>Invoice List</button>
+        <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
+          🔍 Invoice Scanner
+        </button>
+      </div>
+
+      {/* ── SCANNER TAB ─────────────────────────── */}
+      {tab === 'scanner' && (
+        <div style={{ maxWidth: 780 }}>
+          {/* Upload area */}
+          {!scanResult && (
+            <div
+              onClick={() => scanInputRef.current.click()}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setScanFile(f); setScanResult(null); setScanError(''); if (f.type.startsWith('image/')) { const r = new FileReader(); r.onload = ev => setScanPreview(ev.target.result); r.readAsDataURL(f); } else setScanPreview(null); } }}
+              style={{
+                border: '2px dashed var(--border)', borderRadius: 14, padding: '48px 32px',
+                textAlign: 'center', cursor: 'pointer', background: 'var(--surface-2)',
+                transition: 'border-color 0.2s', marginBottom: 20,
+              }}
+              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+            >
+              <input ref={scanInputRef} type="file" accept="image/*,.pdf" onChange={handleScanFile} style={{ display: 'none' }} />
+              <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
+              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 6 }}>
+                {scanFile ? scanFile.name : 'Drop invoice here or click to upload'}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Supports JPG, PNG, WEBP, PDF · Max 20MB</div>
+            </div>
+          )}
+
+          {/* Image preview */}
+          {scanPreview && !scanResult && (
+            <div style={{ marginBottom: 20, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', maxHeight: 320 }}>
+              <img src={scanPreview} alt="Invoice preview" style={{ width: '100%', objectFit: 'contain', display: 'block' }} />
+            </div>
+          )}
+
+          {/* Action buttons */}
+          {scanFile && !scanResult && (
+            <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+              <button
+                className="btn-add"
+                onClick={handleScan}
+                disabled={scanning}
+                style={{ opacity: scanning ? 0.7 : 1 }}
+              >
+                {scanning ? '🔍 Analyzing…' : '🔍 Analyze Invoice'}
+              </button>
+              <button className="btn-secondary-outline" onClick={resetScan}>Clear</button>
+            </div>
+          )}
+
+          {scanError && (
+            <div className="msg-error" style={{ marginBottom: 16 }}>{scanError}</div>
+          )}
+
+          {/* Scanning spinner */}
+          {scanning && (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-3)', fontSize: 15 }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>⚙️</div>
+              Gemini is reading your invoice…
+            </div>
+          )}
+
+          {/* Results */}
+          {scanResult && (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>✅ Invoice Analyzed</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>Extracted payment details below</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {scanSaved ? (
+                    <span style={{ color: '#16a34a', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>✅ Saved to Invoices</span>
+                  ) : (
+                    <button className="btn-add" onClick={handleSaveScanned} disabled={scanSaving} style={{ fontSize: 13 }}>
+                      {scanSaving ? 'Saving…' : '💾 Save to Invoices'}
+                    </button>
+                  )}
+                  <button className="btn-secondary-outline" onClick={resetScan} style={{ fontSize: 13 }}>Scan Another</button>
+                </div>
+              </div>
+
+              <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                {/* Amount highlight */}
+                <div style={{ gridColumn: '1 / -1', background: 'rgba(37,99,235,0.08)', border: '1.5px solid rgba(37,99,235,0.2)', borderRadius: 10, padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 20 }}>
+                  <div style={{ fontSize: 36 }}>💰</div>
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-3)', marginBottom: 4 }}>Amount to Transfer</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
+                      {scanResult.amount ? `${scanResult.amount} ${scanResult.currency || ''}` : '—'}
+                    </div>
+                  </div>
+                </div>
+
+                {[
+                  { icon: '🏢', label: 'Pay To', value: scanResult.payee },
+                  { icon: '📅', label: 'Due Date', value: scanResult.due_date },
+                  { icon: '📋', label: 'Invoice Date', value: scanResult.invoice_date },
+                  { icon: '🔢', label: 'Invoice #', value: scanResult.invoice_number },
+                  { icon: '🏦', label: 'Bank', value: scanResult.bank_name },
+                  { icon: '💳', label: 'Account / IBAN', value: scanResult.account_number },
+                  { icon: '🌐', label: 'SWIFT / BIC', value: scanResult.swift_bic },
+                  { icon: '📝', label: 'Description', value: scanResult.description },
+                ].map(({ icon, label, value }) => (
+                  <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-4)' }}>{icon} {label}</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: value ? 'var(--text)' : 'var(--text-4)', fontStyle: value ? 'normal' : 'italic' }}>
+                      {value || 'Not found'}
+                    </div>
+                  </div>
+                ))}
+
+                {scanResult.notes && (
+                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-2)', paddingTop: 16, marginTop: 4 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-4)', marginBottom: 6 }}>📌 Notes</div>
+                    <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>{scanResult.notes}</div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── LIST TAB ─────────────────────────────── */}
+      {tab === 'list' && <>
+
       <div className="acc-summary">
         <div className="acc-summary-card"><span className="acc-summary-label">Total</span><span className="acc-summary-value">{records.length}</span></div>
         <div className="acc-summary-card"><span className="acc-summary-label">Paid</span><span className="acc-summary-value green">${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
@@ -207,7 +437,8 @@ function Invoices() {
               <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>Due Date<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>Total<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>Status<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>Account / IBAN<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[7], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
             </tr></thead>
             <tbody>
               {records.map((r) => (
@@ -226,6 +457,7 @@ function Invoices() {
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.due_date || '—'}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount">{r.currency} {parseFloat(r.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className={statusClass(r.status)}>{r.status}</span></td>
+                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>{r.account_number || '—'}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     <div className="action-btns">
                       <button className="btn-icon" title="Preview" onClick={() => setPreviewInv(r)} style={{ color: '#64748b' }}><IconEye /></button>
@@ -326,6 +558,7 @@ function Invoices() {
             </div>
 
             <div className="acc-form-grid">
+              <div className="acc-form-group"><label>Account / IBAN</label><input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} placeholder="GE00TB0000000000000000" /></div>
               <div className="acc-form-group full"><label>Notes</label><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Payment terms, bank details…" /></div>
             </div>
 
@@ -336,6 +569,8 @@ function Invoices() {
           </div>
         </div>
       )}
+      </>}
+
     </>
   );
 }

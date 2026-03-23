@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import ImportEmployees from './ImportEmployees';
 import HolidayList from '../Holidays/HolidayList';
 import PaginationSettings from './PaginationSettings';
 import UnitTypesSettings from './UnitTypesSettings';
@@ -10,10 +9,9 @@ import OvertimeSettings from './OvertimeSettings';
 import StockSettings from './StockSettings';
 import LanguageSettings from './LanguageSettings';
 import TaxSettings from './TaxSettings';
-import InsuranceImport from './InsuranceImport';
-import AgentsImport from './AgentsImport';
 import NavOrderSettings from './NavOrderSettings';
 import UsersSettings from './UsersSettings';
+import AccountsSettings from './AccountsSettings';
 import ToolsPage from './Tools/ToolsPage';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Options.css';
@@ -31,9 +29,8 @@ const CHEVRON_RIGHT = (
 
 function OptionsPage() {
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'importdata');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'holidays');
   const [infoView, setInfoView] = useState('positions');
-  const [importView, setImportView] = useState('employees');
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('opt_sidebar_collapsed') === 'true'; } catch { return false; }
   });
@@ -46,12 +43,6 @@ function OptionsPage() {
   });
 
   const tabs = [
-    { key: 'importdata', label: 'Import Data', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-        <polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/>
-      </svg>
-    )},
     { key: 'holidays', label: t('options.holidays'), icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -90,6 +81,13 @@ function OptionsPage() {
     { key: 'navorder', label: t('options.navOrder'), icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    )},
+    { key: 'accounts', label: 'Accounts', icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 2h16v22l-3-2-2 2-2-2-2 2-2-2-3 2V2z"/>
+        <line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/>
+        <line x1="9" y1="15" x2="13" y2="15"/>
       </svg>
     )},
     { key: 'users', label: 'Users & Roles', icon: (
@@ -134,24 +132,6 @@ function OptionsPage() {
         ))}
       </aside>
       <main className="acc-content">
-        {activeTab === 'importdata' && (
-          <div>
-            <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-              {[{ key: 'employees', label: 'Import Employees' }, { key: 'insurance', label: 'Insurance Import' }, { key: 'agents', label: 'Import Agents' }].map(tab => (
-                <button key={tab.key} onClick={() => setImportView(tab.key)} style={{
-                  padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                  background: importView === tab.key ? 'var(--surface)' : 'transparent',
-                  color: importView === tab.key ? 'var(--text)' : 'var(--text-3)',
-                  boxShadow: importView === tab.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-                  transition: 'all 0.15s',
-                }}>{tab.label}</button>
-              ))}
-            </div>
-            {importView === 'employees' && <ImportEmployees />}
-            {importView === 'insurance' && <InsuranceImport />}
-            {importView === 'agents' && <AgentsImport />}
-          </div>
-        )}
         {activeTab === 'holidays' && <HolidayList />}
         {activeTab === 'info' && (
           <div>
@@ -177,6 +157,7 @@ function OptionsPage() {
         {activeTab === 'tax' && <TaxSettings />}
 {activeTab === 'language' && <LanguageSettings />}
         {activeTab === 'navorder' && <NavOrderSettings />}
+        {activeTab === 'accounts' && <AccountsSettings />}
         {activeTab === 'users' && <UsersSettings />}
         {activeTab === 'tools' && <ToolsPage />}
         {activeTab === 'about' && (

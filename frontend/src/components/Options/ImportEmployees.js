@@ -61,18 +61,27 @@ function ImportEmployees() {
         const wb = XLSX.read(evt.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        // Build case-insensitive column lookup
+        const getVal = (row, ...keys) => {
+          for (const k of keys) {
+            for (const col of Object.keys(row)) {
+              if (col.toLowerCase().trim() === k.toLowerCase()) return row[col];
+            }
+          }
+          return '';
+        };
         const mapped = data.map((row) => ({
-          first_name: row['First Name'] || '',
-          last_name: row['Last Name'] || '',
-          personal_id: String(row['Personal ID'] || ''),
-          birthdate: formatExcelDate(row['Birthdate']),
-          position: row['Position'] || '',
-          salary: row['Salary'] || '',
-          overtime_rate: row['OT Rate'] || '',
-          start_date: formatExcelDate(row['Start Date']),
-          end_date: formatExcelDate(row['End Date']),
-          account_number: row['Account Number'] || '',
-          pension: row['Pension'] ? String(row['Pension']).toLowerCase().trim() === 'yes' : false,
+          first_name: getVal(row, 'First Name', 'FirstName', 'first_name', 'სახელი') || '',
+          last_name: getVal(row, 'Last Name', 'LastName', 'last_name', 'გვარი') || '',
+          personal_id: String(getVal(row, 'Personal ID', 'PersonalID', 'personal_id', 'პირადი ნომერი') || ''),
+          birthdate: formatExcelDate(getVal(row, 'Birthdate', 'Birth Date', 'birthdate', 'დაბადების თარიღი')),
+          position: getVal(row, 'Position', 'position', 'პოზიცია') || '',
+          salary: getVal(row, 'Salary', 'salary', 'ხელფასი') || '',
+          overtime_rate: getVal(row, 'OT Rate', 'OT rate', 'overtime_rate', 'Overtime Rate', 'ზეგანაკვეთური') || '',
+          start_date: formatExcelDate(getVal(row, 'Start Date', 'StartDate', 'start_date', 'დაწყების თარიღი')),
+          end_date: formatExcelDate(getVal(row, 'End Date', 'EndDate', 'end_date', 'დასრულების თარიღი')),
+          account_number: getVal(row, 'Account Number', 'AccountNumber', 'account_number', 'ანგარიშის ნომერი') || '',
+          pension: ['yes', '1', 'true', 'კი'].includes(String(getVal(row, 'Pension', 'pension', 'პენსია')).toLowerCase().trim()),
           _valid: true
         }));
         mapped.forEach((row) => {
@@ -80,10 +89,8 @@ function ImportEmployees() {
           if (!row.first_name) missing.push('First Name');
           if (!row.last_name) missing.push('Last Name');
           if (!row.personal_id) missing.push('Personal ID');
-          if (!row.birthdate) missing.push('Birthdate');
           if (!row.position) missing.push('Position');
           if (!row.salary && row.salary !== 0) missing.push('Salary');
-          if (!row.overtime_rate && row.overtime_rate !== 0) missing.push('OT Rate');
           if (!row.start_date) missing.push('Start Date');
           if (missing.length > 0) { row._valid = false; row._missing = missing; }
         });
@@ -130,8 +137,8 @@ function ImportEmployees() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Header card */}
-      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-        <div style={{ padding: '20px 24px', background: '#fafbfc', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+        <div style={{ padding: '20px 24px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 9, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -139,8 +146,8 @@ function ImportEmployees() {
             </svg>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>{t('import.title')}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>{t('import.desc')}</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{t('import.title')}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 1 }}>{t('import.desc')}</div>
           </div>
         </div>
 
@@ -159,20 +166,12 @@ function ImportEmployees() {
         <div style={{ padding: '8px 0' }}>
 
           {/* Step 1 */}
-          <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: '1px solid #f8fafc' }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>1</div>
+          <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: '1px solid var(--border-3)' }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>1</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>{t('import.step1Title')}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>{t('import.step1Desc')}</div>
-              <button onClick={downloadTemplate} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '9px 18px', background: '#f0fdf4', color: '#16a34a',
-                border: '1.5px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-                onMouseEnter={e => { e.currentTarget.style.background = '#dcfce7'; e.currentTarget.style.borderColor = '#86efac'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#bbf7d0'; }}
-              >
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('import.step1Title')}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>{t('import.step1Desc')}</div>
+              <button onClick={downloadTemplate} className="btn-excel">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                   <polyline points="14,2 14,8 20,8"/>
@@ -184,11 +183,11 @@ function ImportEmployees() {
           </div>
 
           {/* Step 2 */}
-          <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: rows.length > 0 ? '1px solid #f8fafc' : 'none' }}>
-            <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>2</div>
+          <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: rows.length > 0 ? '1px solid var(--border-3)' : 'none' }}>
+            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>2</div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>{t('import.step2Title')}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>{t('import.step2Desc')}</div>
+              <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('import.step2Title')}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>{t('import.step2Desc')}</div>
               <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileUpload} id="excel-upload" style={{ display: 'none' }} />
               <div
                 onClick={() => fileRef.current?.click()}
@@ -196,13 +195,11 @@ function ImportEmployees() {
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
                 style={{
-                  border: `2px dashed ${dragOver ? '#3b82f6' : fileName ? '#86efac' : '#e2e8f0'}`,
+                  border: `2px dashed ${dragOver ? '#3b82f6' : fileName ? '#86efac' : 'var(--border-2)'}`,
                   borderRadius: 10, padding: '20px 24px', textAlign: 'center', cursor: 'pointer',
-                  background: dragOver ? '#eff6ff' : fileName ? '#f0fdf4' : '#fafbfc',
+                  background: dragOver ? '#eff6ff' : fileName ? '#f0fdf4' : 'var(--surface-2)',
                   transition: 'all 0.15s',
                 }}
-                onMouseEnter={e => { if (!dragOver) e.currentTarget.style.borderColor = '#94a3b8'; }}
-                onMouseLeave={e => { if (!dragOver) e.currentTarget.style.borderColor = fileName ? '#86efac' : '#e2e8f0'; }}
               >
                 {fileName ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -211,16 +208,16 @@ function ImportEmployees() {
                       <polyline points="14,2 14,8 20,8"/>
                     </svg>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#16a34a' }}>{fileName}</span>
-                    <span style={{ fontSize: 12, color: '#94a3b8' }}>· click to replace</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-4)' }}>· click to replace</span>
                   </div>
                 ) : (
                   <>
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                       <polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/>
                     </svg>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>{t('import.chooseFile')}</div>
-                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>or drag & drop .xlsx / .xls</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-3)' }}>{t('import.chooseFile')}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 2 }}>or drag & drop .xlsx / .xls</div>
                   </>
                 )}
               </div>
@@ -230,9 +227,9 @@ function ImportEmployees() {
           {/* Step 3 – preview */}
           {rows.length > 0 && (
             <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>3</div>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>3</div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>{t('import.step3Title')}</div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('import.step3Title')}</div>
 
                 {/* Stats pills */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
@@ -244,43 +241,36 @@ function ImportEmployees() {
                       {invalidCount} invalid
                     </span>
                   )}
-                  <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f1f5f9', color: '#64748b', fontWeight: 600, fontSize: 12 }}>
+                  <span style={{ padding: '3px 12px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-3)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border-2)' }}>
                     {rows.length} total
                   </span>
                 </div>
 
                 {/* Table */}
-                <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
-                      <tr style={{ background: '#f8fafc' }}>
-                        {['#', t('import.firstName'), t('import.lastName'), t('import.personalId'), t('import.birthdate'), t('import.position'), t('import.salary'), t('import.otRate'), t('import.startDate'), t('import.endDate'), t('import.account'), 'Pension', t('import.status')].map((h, i) => (
-                          <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                      <tr style={{ background: 'var(--surface-2)' }}>
+                        {['#', t('import.firstName'), t('import.lastName'), t('import.personalId'), t('import.birthdate'), t('import.position'), t('import.salary'), t('import.otRate'), t('import.startDate'), t('import.endDate'), t('import.account'), 'Pension'].map((h, i) => (
+                          <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)' }}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((row, i) => (
-                        <tr key={i} style={{ background: row._valid ? (i % 2 === 0 ? '#fff' : '#fafbfc') : '#fef2f2' }}>
-                          <td style={{ padding: '7px 10px', color: '#94a3b8', fontWeight: 500 }}>{i + 1}</td>
-                          <td style={{ padding: '7px 10px', color: !row.first_name ? '#dc2626' : '#1e293b' }}>{row.first_name || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: !row.last_name ? '#dc2626' : '#1e293b' }}>{row.last_name || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : '#1e293b' }}>{row.personal_id || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: !row.birthdate ? '#dc2626' : '#1e293b' }}>{row.birthdate || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: !row.position ? '#dc2626' : '#1e293b' }}>{row.position || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: !row.salary && row.salary !== 0 ? '#dc2626' : '#1e293b' }}>{row.salary}</td>
-                          <td style={{ padding: '7px 10px', color: !row.overtime_rate && row.overtime_rate !== 0 ? '#dc2626' : '#1e293b' }}>{row.overtime_rate}</td>
-                          <td style={{ padding: '7px 10px', color: !row.start_date ? '#dc2626' : '#1e293b' }}>{row.start_date || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.end_date || '—'}</td>
-                          <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.account_number || '—'}</td>
-                          <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : '#94a3b8' }}>{row.pension ? '✔' : '—'}</td>
-                          <td style={{ padding: '7px 10px' }}>
-                            {row._valid ? (
-                              <span style={{ padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 11, border: '1px solid #bbf7d0' }}>{t('import.ok')}</span>
-                            ) : (
-                              <span title={`Missing: ${row._missing?.join(', ')}`} style={{ padding: '2px 8px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 11, border: '1px solid #fca5a5', cursor: 'help' }}>{t('import.missingFields')}</span>
-                            )}
-                          </td>
+                        <tr key={i} style={{ background: row._valid ? (i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)') : '#fef2f2' }}>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-4)', fontWeight: 500 }}>{i + 1}</td>
+                          <td style={{ padding: '7px 10px', color: !row.first_name ? '#dc2626' : 'var(--text)' }}>{row.first_name || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: !row.last_name ? '#dc2626' : 'var(--text)' }}>{row.last_name || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : 'var(--text)' }}>{row.personal_id || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: !row.birthdate ? '#dc2626' : 'var(--text)' }}>{row.birthdate || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: !row.position ? '#dc2626' : 'var(--text)' }}>{row.position || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: !row.salary && row.salary !== 0 ? '#dc2626' : 'var(--text)' }}>{row.salary}</td>
+                          <td style={{ padding: '7px 10px', color: !row.overtime_rate && row.overtime_rate !== 0 ? '#dc2626' : 'var(--text)' }}>{row.overtime_rate}</td>
+                          <td style={{ padding: '7px 10px', color: !row.start_date ? '#dc2626' : 'var(--text)' }}>{row.start_date || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.end_date || '—'}</td>
+                          <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.account_number || '—'}</td>
+                          <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -293,14 +283,12 @@ function ImportEmployees() {
                   disabled={importing || validCount === 0}
                   style={{
                     marginTop: 16, padding: '10px 24px',
-                    background: importing || validCount === 0 ? '#e2e8f0' : '#1e293b',
-                    color: importing || validCount === 0 ? '#94a3b8' : '#fff',
+                    background: importing || validCount === 0 ? 'var(--surface-3)' : 'var(--accent)',
+                    color: importing || validCount === 0 ? 'var(--text-4)' : '#fff',
                     border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13,
                     cursor: importing || validCount === 0 ? 'not-allowed' : 'pointer',
-                    transition: 'all 0.15s',
+                    transition: 'all 0.15s', fontFamily: 'inherit',
                   }}
-                  onMouseEnter={e => { if (validCount > 0 && !importing) e.currentTarget.style.background = '#334155'; }}
-                  onMouseLeave={e => { if (validCount > 0 && !importing) e.currentTarget.style.background = '#1e293b'; }}
                 >
                   {importing ? t('import.importing') : t('import.importBtn').replace('{count}', validCount).replace('{s}', validCount !== 1 ? 's' : '')}
                 </button>

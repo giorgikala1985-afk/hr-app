@@ -17,14 +17,18 @@ const EMPTY_AGR = {
 
 const EMPTY_BONUS = { employee_id: '', amount: '', reason: '', note: '', date: '' };
 
-function HiringDocuments() {
+// mode: 'all' (default) | 'actions-only' | 'list-only' | 'add-employee-only'
+function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
+  const actionsOnly      = mode === 'actions-only';
+  const listOnly         = mode === 'list-only';
+  const addEmployeeOnly  = mode === 'add-employee-only';
   const [documents, setDocuments] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [positions, setPositions] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [taxCodes, setTaxCodes] = useState([]);
 
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(autoOpen);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
@@ -245,8 +249,8 @@ function HiringDocuments() {
 
   return (
     <>
-      <h2>HR</h2>
-      <p className="docs-content-subtitle">Add new employees and send them a hiring agreement to sign.</p>
+      {!actionsOnly && !addEmployeeOnly && <h2>HR</h2>}
+      {!actionsOnly && !addEmployeeOnly && <p className="docs-content-subtitle">Add new employees and send them a hiring agreement to sign.</p>}
 
       {/* ── Sign link result (new employee) ─────────── */}
       {signResult && (
@@ -292,29 +296,35 @@ function HiringDocuments() {
         </div>
       )}
 
+      {!listOnly && (
       <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
         <button
-          className={showForm ? 'btn-add' : 'btn-secondary-outline'}
+          className="btn-add"
           style={showForm ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
           onClick={() => { setShowForm(f => !f); setShowAgrOnly(false); setShowBonus(false); setFormError(''); }}
         >
-          + Add Employee &amp; Create Agreement
+          + Add Employee &amp; Agreement
         </button>
-        <button
-          className={showAgrOnly ? 'btn-add' : 'btn-secondary-outline'}
-          style={showAgrOnly ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
-          onClick={() => { setShowAgrOnly(f => !f); setShowForm(false); setShowBonus(false); setAgrOnlyError(''); }}
-        >
-          + Agreement for Existing Employee
-        </button>
-        <button
-          className={showBonus ? 'btn-add' : 'btn-secondary-outline'}
-          style={showBonus ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
-          onClick={() => { setShowBonus(f => !f); setShowForm(false); setShowAgrOnly(false); setBonusError(''); setBonusSuccess(''); }}
-        >
-          + Add Bonus
-        </button>
+        {!addEmployeeOnly && (
+          <button
+            className={showAgrOnly ? 'btn-add' : 'btn-secondary-outline'}
+            style={showAgrOnly ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
+            onClick={() => { setShowAgrOnly(f => !f); setShowForm(false); setShowBonus(false); setAgrOnlyError(''); }}
+          >
+            + Agreement for Existing Employee
+          </button>
+        )}
+        {!addEmployeeOnly && (
+          <button
+            className={showBonus ? 'btn-add' : 'btn-secondary-outline'}
+            style={showBonus ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
+            onClick={() => { setShowBonus(f => !f); setShowForm(false); setShowAgrOnly(false); setBonusError(''); setBonusSuccess(''); }}
+          >
+            + Add Bonus
+          </button>
+        )}
       </div>
+      )}
 
       {/* ── Merged form ───────────────────────────────── */}
       {showForm && (
@@ -387,7 +397,7 @@ function HiringDocuments() {
               <button type="submit" className="btn-primary" disabled={saving}>
                 {saving ? 'Saving…' : 'Add Employee & Get Sign Link'}
               </button>
-              <button type="button" className="ut-cancel-btn" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setFormError(''); }}>Cancel</button>
+              <button type="button" className="ut-cancel-btn" onClick={() => { setShowForm(false); setForm(EMPTY_FORM); setFormError(''); if (onClose) onClose(); }}>Cancel</button>
             </div>
           </form>
         </div>
@@ -436,10 +446,10 @@ function HiringDocuments() {
         </div>
       )}
 
-      {documents.length > 0 && <div style={{ borderTop: '1px solid #e2e8f0', margin: '8px 0 24px' }} />}
+      {!actionsOnly && documents.length > 0 && <div style={{ borderTop: '1px solid #e2e8f0', margin: '8px 0 24px' }} />}
 
-      {listError && <div className="msg-error" style={{ marginBottom: 12 }}>{listError}</div>}
-      {documents.length > 0 && (
+      {!actionsOnly && listError && <div className="msg-error" style={{ marginBottom: 12 }}>{listError}</div>}
+      {!actionsOnly && documents.length > 0 && (
         <div className="docs-list">
           {documents.map((doc) => (
             <div key={doc.id} className="docs-card">
@@ -555,7 +565,7 @@ function HiringDocuments() {
       )}
 
       {/* ── Bonus list ───────────────────────────────── */}
-      {bonuses.length > 0 && (
+      {!actionsOnly && bonuses.length > 0 && (
         <div className="docs-list">
           {bonuses.map(b => (
             <div key={b.id} className="docs-card">

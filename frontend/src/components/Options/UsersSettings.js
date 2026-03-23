@@ -99,21 +99,22 @@ function UsersSettings() {
       <p className="pagination-desc">Manage team members and their access rights.</p>
 
       {/* Inner tabs */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid #e2e8f0', marginBottom: 24 }}>
+      <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
         {['users', 'roles'].map((t) => (
           <button
             key={t}
             onClick={() => setActiveTab(t)}
             style={{
-              padding: '8px 20px',
+              padding: '7px 20px',
               border: 'none',
-              background: 'none',
+              borderRadius: 7,
               fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
-              color: activeTab === t ? '#16a34a' : '#64748b',
-              borderBottom: activeTab === t ? '2px solid #16a34a' : '2px solid transparent',
-              marginBottom: -2,
+              fontFamily: 'inherit',
+              background: activeTab === t ? 'var(--surface)' : 'transparent',
+              color: activeTab === t ? 'var(--text)' : 'var(--text-3)',
+              boxShadow: activeTab === t ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
               transition: 'all 0.15s',
               textTransform: 'capitalize',
             }}
@@ -132,14 +133,14 @@ function UsersSettings() {
           </div>
 
           {loading ? (
-            <div style={{ padding: '20px 0', color: '#888' }}>Loading…</div>
+            <div style={{ padding: '20px 0', color: 'var(--text-4)' }}>Loading…</div>
           ) : users.length === 0 ? (
             <div className="ut-empty">No users yet. Add one above.</div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                  <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
                     <th style={thStyle}>Name</th>
                     <th style={thStyle}>ID</th>
                     <th style={thStyle}>Email</th>
@@ -152,11 +153,11 @@ function UsersSettings() {
                   {users.map((u) => {
                     const rs = RIGHTS_STYLE[u.rights] || RIGHTS_STYLE['Member'];
                     return (
-                      <tr key={u.id} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                        <td style={tdStyle}><strong>{u.name}</strong></td>
-                        <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12, color: '#94a3b8' }} title={u.id}>{truncateId(u.id)}</td>
-                        <td style={{ ...tdStyle, color: '#64748b' }}>{u.email || '—'}</td>
-                        <td style={{ ...tdStyle, color: '#64748b' }}>{u.phone || '—'}</td>
+                      <tr key={u.id} style={{ borderBottom: '1px solid var(--border-3)' }}>
+                        <td style={tdStyle}><strong style={{ color: 'var(--text)' }}>{u.name}</strong></td>
+                        <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-4)' }} title={u.id}>{truncateId(u.id)}</td>
+                        <td style={{ ...tdStyle, color: 'var(--text-3)' }}>{u.email || '—'}</td>
+                        <td style={{ ...tdStyle, color: 'var(--text-3)' }}>{u.phone || '—'}</td>
                         <td style={tdStyle}>
                           <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, ...rs }}>
                             {u.rights || 'Member'}
@@ -185,14 +186,14 @@ function UsersSettings() {
       {activeTab === 'roles' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {ROLES_INFO.map(({ role, style, description, permissions }) => (
-            <div key={role} style={{ border: '1px solid #e2e8f0', borderRadius: 12, padding: '20px 24px', background: '#fff' }}>
+            <div key={role} style={{ border: '1px solid var(--border-2)', borderRadius: 12, padding: '20px 24px', background: 'var(--surface)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 6, ...style }}>{role}</span>
-                <span style={{ fontSize: 13, color: '#64748b' }}>{description}</span>
+                <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{description}</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
                 {permissions.map((p) => (
-                  <span key={p} style={{ fontSize: 12, padding: '4px 10px', background: '#f1f5f9', color: '#475569', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+                  <span key={p} style={{ fontSize: 12, padding: '4px 10px', background: 'var(--surface-2)', color: 'var(--text-2)', borderRadius: 6, border: '1px solid var(--border-2)' }}>
                     {p}
                   </span>
                 ))}
@@ -215,7 +216,7 @@ function UsersSettings() {
               {editId && (
                 <div className="acc-form-group full">
                   <label>ID</label>
-                  <input value={editId} readOnly style={{ background: '#f8fafc', color: '#94a3b8', fontFamily: 'monospace', fontSize: 12, cursor: 'default' }} />
+                  <input value={editId} readOnly style={{ background: 'var(--surface-2)', color: 'var(--text-4)', fontFamily: 'monospace', fontSize: 12, cursor: 'default' }} />
                 </div>
               )}
               <div className="acc-form-group">
@@ -251,7 +252,7 @@ const thStyle = {
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
-  color: '#64748b',
+  color: 'var(--text-3)',
   whiteSpace: 'nowrap',
 };
 

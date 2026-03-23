@@ -8,6 +8,8 @@ import Bookkeeping from './Bookkeeping';
 import Transfers from './Transfers';
 import PaymentCalendar from './PaymentCalendar';
 import Stock from './Stock';
+import TbcBanking from './TbcBanking';
+import RsGeIntegration from './RsGeIntegration';
 import './Accounting.css';
 
 const ICONS = {
@@ -65,6 +67,20 @@ const ICONS = {
       <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
     </svg>
   ),
+  banking: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18"/>
+      <path d="M3 10h18"/>
+      <path d="M12 3l9 7H3l9-7z"/>
+      <path d="M5 10v11"/><path d="M9 10v11"/><path d="M15 10v11"/><path d="M19 10v11"/>
+    </svg>
+  ),
+  rsge: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <path d="M9 12l2 2 4-4"/>
+    </svg>
+  ),
 };
 
 const TABS = [
@@ -76,6 +92,8 @@ const TABS = [
   { key: 'stock',          label: 'Stock',            icon: ICONS.stock },
   { key: 'calendar',       label: 'Calendar',         icon: ICONS.calendar },
   { key: 'transfers',      label: 'Transfers',        icon: ICONS.transfers },
+  { key: 'banking',        label: 'TBC Bank',         icon: ICONS.banking },
+  { key: 'rsge',           label: 'RS.ge',            icon: ICONS.rsge },
 ];
 
 const CHEVRON_LEFT = (
@@ -137,6 +155,8 @@ function AccountingPage() {
         {activeTab === 'stock'          && <Stock />}
         {activeTab === 'calendar'       && <PaymentCalendar />}
         {activeTab === 'transfers'      && <Transfers />}
+        {activeTab === 'banking'        && <TbcBanking />}
+        {activeTab === 'rsge'           && <RsGeIntegration />}
       </main>
     </div>
   );

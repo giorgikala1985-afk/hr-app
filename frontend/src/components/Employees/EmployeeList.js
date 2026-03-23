@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import HiringDocuments from '../Documents/HiringDocuments';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Employees.css';
@@ -45,6 +46,7 @@ function EmployeeList() {
     return new Set(DEFAULT_VISIBLE);
   });
   const [showColMenu, setShowColMenu] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [filters, setFilters] = useState({
     name: '', personalId: '', birthdate: '', position: '',
     salary: '', otRate: '', startDate: '', endDate: '', status: '', account: ''
@@ -260,11 +262,44 @@ function EmployeeList() {
               </div>
             )}
           </div>
-          <button onClick={() => navigate('/employees/new')} className="btn-add">
-            {t('emp.addNew')}
+          {selected.size === 1 && (() => {
+            const selId = [...selected][0];
+            return (
+              <div className="action-btns" style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => navigate(`/employees/${selId}/edit`)} className="btn-icon" title={t('action.edit')}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button onClick={() => navigate(`/employees/${selId}/edit?tab=salary`)} className="btn-icon" title={t('action.salaryChanges')}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                </button>
+                <button onClick={() => navigate(`/employees/${selId}/edit?tab=account`)} className="btn-icon" title={t('action.accountChanges')}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><line x1="12" y1="15" x2="12" y2="17"/></svg>
+                </button>
+                <button onClick={() => navigate(`/employees/${selId}/edit?tab=documents`)} className="btn-icon" title={t('action.documents')}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                </button>
+                <button onClick={() => navigate(`/employees/${selId}/edit?tab=members`)} className="btn-icon" title={t('action.members')}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                </button>
+                <button onClick={() => handleDelete(employees.find(e => e.id === selId))} className="btn-icon btn-delete" title={t('action.delete')}>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                </button>
+              </div>
+            );
+          })()}
+          <button className="btn-add" onClick={() => setShowAddForm(true)}>
+            + Add Employee &amp; Agreement
           </button>
         </div>
       </div>
+
+      {showAddForm && (
+        <HiringDocuments
+          mode="add-employee-only"
+          autoOpen
+          onClose={() => setShowAddForm(false)}
+        />
+      )}
 
       {error && <div className="msg-error">{error}</div>}
       {success && <div className="msg-success">{success}</div>}
@@ -325,7 +360,6 @@ function EmployeeList() {
                 {isCol('startDate') && <th>{t('col.startDate')}</th>}
                 {isCol('endDate') && <th>{t('col.endDate')}</th>}
                 {isCol('pension') && <th>Pension</th>}
-                <th>{t('col.actions')}</th>
               </tr>
               <tr className="filter-row">
                 <th></th>
@@ -345,8 +379,7 @@ function EmployeeList() {
                     <option value="inactive">{t('emp.ended')}</option>
                   </select>
                 </th>}
-                {isCol('pension') && <th></th>}
-                <th>{hasFilters && <button className="btn-clear-filters" onClick={clearFilters} title={t('action.clearFilters')}>&times;</button>}</th>
+                {isCol('pension') && <th>{hasFilters && <button className="btn-clear-filters" onClick={clearFilters} title={t('action.clearFilters')}>&times;</button>}</th>}
               </tr>
             </thead>
             <tbody>
@@ -384,77 +417,6 @@ function EmployeeList() {
                   {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
                   {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="position-badge">{t('emp.active')}</span>}</td>}
                   {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 16 }}>✔</span> : '—'}</td>}
-                  <td>
-                    <div className="action-btns">
-                      <button
-                        onClick={() => navigate(`/employees/${emp.id}/edit`)}
-                        className="btn-icon"
-                        title={t('action.edit')}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=salary`)}
-                        className="btn-icon"
-                        title={t('action.salaryChanges')}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="12" y1="1" x2="12" y2="23"/>
-                          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=account`)}
-                        className="btn-icon"
-                        title={t('action.accountChanges')}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="11" width="18" height="10" rx="2"/>
-                          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                          <line x1="12" y1="15" x2="12" y2="17"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=documents`)}
-                        className="btn-icon"
-                        title={t('action.documents')}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                          <polyline points="14,2 14,8 20,8"/>
-                          <line x1="16" y1="13" x2="8" y2="13"/>
-                          <line x1="16" y1="17" x2="8" y2="17"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => navigate(`/employees/${emp.id}/edit?tab=members`)}
-                        className="btn-icon"
-                        title={t('action.members')}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                          <circle cx="9" cy="7" r="4"/>
-                          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDelete(emp)}
-                        className="btn-icon btn-delete"
-                        title={t('action.delete')}
-                      >
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="3,6 5,6 21,6"/>
-                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                          <path d="M10 11v6"/><path d="M14 11v6"/>
-                          <path d="M9 6V4h6v2"/>
-                        </svg>
-                      </button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>

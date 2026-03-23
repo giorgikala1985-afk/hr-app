@@ -60,7 +60,7 @@ const NAV_ICONS = {
 
 function GripIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style={{ color: '#c4c9d4', flexShrink: 0 }}>
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" style={{ color: 'var(--text-3)', flexShrink: 0 }}>
       <circle cx="4.5" cy="2.5" r="1.3"/><circle cx="9.5" cy="2.5" r="1.3"/>
       <circle cx="4.5" cy="7" r="1.3"/><circle cx="9.5" cy="7" r="1.3"/>
       <circle cx="4.5" cy="11.5" r="1.3"/><circle cx="9.5" cy="11.5" r="1.3"/>
@@ -107,7 +107,7 @@ function NavOrderSettings() {
 
   return (
     <div>
-      <h2 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+      <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
         {t('options.navOrder')}
       </h2>
       <p className="acc-subtitle">Drag items to reorder the navigation menu. Changes apply immediately.</p>
@@ -128,27 +128,27 @@ function NavOrderSettings() {
                 alignItems: 'center',
                 gap: 12,
                 padding: '12px 16px',
-                background: isOver ? '#eff6ff' : 'white',
-                border: `1.5px solid ${isOver ? '#3185FC' : '#e5e7eb'}`,
+                background: isOver ? 'rgba(59,130,246,0.1)' : 'var(--surface)',
+                border: `1.5px solid ${isOver ? '#3b82f6' : 'var(--border-2)'}`,
                 borderRadius: 9,
                 cursor: 'grab',
                 userSelect: 'none',
                 transition: 'border-color 0.12s, background 0.12s, transform 0.1s',
                 transform: isOver ? 'scale(1.01)' : 'scale(1)',
-                boxShadow: isOver ? '0 4px 12px rgba(49,133,252,0.12)' : '0 1px 3px rgba(0,0,0,0.04)',
+                boxShadow: isOver ? '0 4px 12px rgba(59,130,246,0.15)' : '0 1px 3px rgba(0,0,0,0.1)',
               }}
             >
               <GripIcon />
-              <span style={{ color: isOver ? '#2563eb' : '#6b7280', display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: isOver ? '#60a5fa' : 'var(--text-3)', display: 'flex', alignItems: 'center' }}>
                 {NAV_ICONS[key]}
               </span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: isOver ? '#1d4ed8' : '#111827', flex: 1 }}>
+              <span style={{ fontSize: 14, fontWeight: 600, color: isOver ? '#60a5fa' : 'var(--text)', flex: 1 }}>
                 {t(`nav.${key}`)}
               </span>
               <span style={{
-                fontSize: 11, fontWeight: 700, color: isOver ? '#3185FC' : '#d1d5db',
-                background: isOver ? '#dbeafe' : '#f9fafb',
-                border: `1px solid ${isOver ? '#bfdbfe' : '#e5e7eb'}`,
+                fontSize: 11, fontWeight: 700, color: isOver ? '#60a5fa' : 'var(--text-3)',
+                background: isOver ? 'rgba(59,130,246,0.15)' : 'var(--surface-2)',
+                border: `1px solid ${isOver ? 'rgba(59,130,246,0.35)' : 'var(--border-2)'}`,
                 borderRadius: 5, padding: '2px 7px',
                 transition: 'all 0.12s',
               }}>
@@ -163,14 +163,14 @@ function NavOrderSettings() {
         onClick={() => saveOrder([...NAV_KEYS_DEFAULT])}
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
-          padding: '7px 16px', background: 'white',
-          border: '1.5px solid #e5e7eb', borderRadius: 7,
-          fontSize: 13, fontWeight: 500, color: '#374151',
+          padding: '7px 16px', background: 'var(--surface)',
+          border: '1.5px solid var(--border-2)', borderRadius: 7,
+          fontSize: 13, fontWeight: 500, color: 'var(--text-2)',
           cursor: 'pointer', fontFamily: 'inherit',
           transition: 'border-color 0.15s, background 0.15s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#d1d5db'; }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#e5e7eb'; }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)'; e.currentTarget.style.borderColor = 'var(--text-3)'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.borderColor = 'var(--border-2)'; }}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/>

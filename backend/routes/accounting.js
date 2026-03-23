@@ -1,6 +1,63 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
+const OpenAI = require('openai');
+const pdfParse = require('pdf-parse');
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const INVOICE_PROMPT = `You are an invoice analysis expert. Extract the following information in JSON format ONLY (no markdown, no explanation):
+{
+  "payee": "name of the company or person to pay",
+  "bank_name": "bank name if visible",
+  "account_number": "bank account number or IBAN if visible",
+  "swift_bic": "SWIFT/BIC code if visible",
+  "amount": "numeric amount to pay (just the number)",
+  "currency": "currency code e.g. USD, EUR, GEL",
+  "due_date": "payment due date in YYYY-MM-DD format",
+  "invoice_date": "invoice date in YYYY-MM-DD format",
+  "invoice_number": "invoice number or reference",
+  "description": "brief description of what is being paid for",
+  "notes": "any other important payment instructions"
+}
+If a field is not found, use null. Return only valid JSON.`;
+
+// ── INVOICE SCANNER ─────────────────────────────────────
+router.post('/invoices/scan', async (req, res) => {
+  try {
+    const { data, mimeType } = req.body;
+    if (!data) return res.status(400).json({ error: 'No file data provided.' });
+
+    let messages;
+
+    if (mimeType === 'application/pdf') {
+      // Extract text from PDF, then send as text prompt
+      const buffer = Buffer.from(data, 'base64');
+      const pdf = await pdfParse(buffer);
+      const pdfText = pdf.text.trim();
+      if (!pdfText) return res.status(400).json({ error: 'Could not extract text from PDF. Try uploading an image instead.' });
+      messages = [{ role: 'user', content: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
+    } else {
+      // Image: use vision
+      messages = [{
+        role: 'user',
+        content: [
+          { type: 'text', text: INVOICE_PROMPT },
+          { type: 'image_url', image_url: { url: `data:${mimeType || 'image/jpeg'};base64,${data}` } },
+        ],
+      }];
+    }
+
+    const response = await openai.chat.completions.create({ model: 'gpt-4o', messages, max_tokens: 1000 });
+    const text = response.choices[0].message.content.trim();
+    const jsonText = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+    const parsed = JSON.parse(jsonText);
+
+    res.json({ result: parsed });
+  } catch (err) {
+    console.error('Invoice scan error:', err.message);
+    res.status(500).json({ error: 'Failed to analyze invoice: ' + err.message });
+  }
+});
 
 // ── PURCHASES ──────────────────────────────────────────
 router.get('/purchases', async (req, res) => {
@@ -95,8 +152,8 @@ router.get('/invoices', async (req, res) => {
 
 router.post('/invoices', async (req, res) => {
   try {
-    const { client, client_email, invoice_number, date, due_date, currency, status, notes, items, total } = req.body;
-    const { data, error } = await supabase.from('accounting_invoices').insert([{ user_id: req.userId, client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes, items, total: parseFloat(total) }]).select().single();
+    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total } = req.body;
+    const { data, error } = await supabase.from('accounting_invoices').insert([{ user_id: req.userId, client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes, account_number: account_number || null, items, total: parseFloat(total) }]).select().single();
     if (error) throw error;
     res.status(201).json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -104,8 +161,8 @@ router.post('/invoices', async (req, res) => {
 
 router.put('/invoices/:id', async (req, res) => {
   try {
-    const { client, client_email, invoice_number, date, due_date, currency, status, notes, items, total } = req.body;
-    const { data, error } = await supabase.from('accounting_invoices').update({ client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes, items, total: parseFloat(total) }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total } = req.body;
+    const { data, error } = await supabase.from('accounting_invoices').update({ client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes, account_number: account_number || null, items, total: parseFloat(total) }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }

@@ -10,6 +10,7 @@ import ImportEmployees from '../Options/ImportEmployees';
 import InsuranceImport from '../Options/InsuranceImport';
 import AgentsImport from '../Options/AgentsImport';
 import FitPassImport from '../Options/FitPassImport';
+import Orders from './Orders';
 import './Documents.css';
 
 const TABS = [
@@ -55,6 +56,14 @@ const TABS = [
       <circle cx="9" cy="15" r="1" fill="#ec4899"/>
       <circle cx="15" cy="15" r="1" fill="#ec4899"/>
       <path d="M9 19h6"/>
+    </svg>
+  )},
+  { key: 'orders', label: 'Orders', icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="18" rx="2"/>
+      <line x1="8" y1="8" x2="16" y2="8"/>
+      <line x1="8" y1="12" x2="16" y2="12"/>
+      <line x1="8" y1="16" x2="12" y2="16"/>
     </svg>
   )},
   { key: 'importdata', label: 'Import Data', icon: (
@@ -106,26 +115,7 @@ function DocumentsPage() {
       </aside>
 
       <main className="docs-content">
-        {activeTab === 'employees' && (
-          <div>
-            <div className="docs-inner-tabs">
-              <button
-                className={`docs-inner-tab${innerTab === 'hr' ? ' active' : ''}`}
-                onClick={() => setInnerTab('hr')}
-              >
-                HR
-              </button>
-              <button
-                className={`docs-inner-tab${innerTab === 'employees' ? ' active' : ''}`}
-                onClick={() => setInnerTab('employees')}
-              >
-                Employees
-              </button>
-            </div>
-            {innerTab === 'hr' && <HiringDocuments />}
-            {innerTab === 'employees' && <EmployeeList />}
-          </div>
-        )}
+        {activeTab === 'employees' && <EmployeeList />}
         {activeTab === 'agents' && <Agents />}
         {activeTab === 'agreements' && <Agreements />}
         {activeTab === 'nbg-rates' && <CurrencyRates />}
@@ -149,6 +139,7 @@ function DocumentsPage() {
             {importView === 'fitpass' && <FitPassImport />}
           </div>
         )}
+        {activeTab === 'orders' && <Orders />}
         {activeTab === 'devices' && (
           <div className="docs-blank">
             <div className="docs-blank-icon">

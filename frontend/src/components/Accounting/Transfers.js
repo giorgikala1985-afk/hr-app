@@ -12,10 +12,10 @@ const STATUS_OPTIONS = [
 
 const statusStyle = (status) =>
   status === 'super_urgent'
-    ? { background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5' }
+    ? { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)' }
     : status === 'urgent'
-    ? { background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa' }
-    : { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' };
+    ? { background: 'rgba(234,88,12,0.12)', color: '#fb923c', border: '1px solid rgba(234,88,12,0.25)' }
+    : { background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)' };
 
 const statusLabel = (status) =>
   status === 'super_urgent' ? '🔴 Super Urgent' : status === 'urgent' ? '🟠 Urgent' : '🟢 Normal';
@@ -101,8 +101,8 @@ function Transfers() {
     <div style={{ padding: '24px 0' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#1e293b' }}>Transfers</h2>
-          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>Manage payment transfers</p>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Transfers</h2>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-3)', fontSize: 14 }}>Manage payment transfers</p>
         </div>
         <button onClick={openNew} className="btn-add">+ New Transfer</button>
       </div>
@@ -110,18 +110,18 @@ function Transfers() {
       {error && <div style={errBox}>{error}</div>}
 
       {loading ? (
-        <div style={{ color: '#94a3b8', padding: 24 }}>Loading…</div>
+        <div style={{ color: 'var(--text-3)', padding: 24 }}>Loading…</div>
       ) : transfers.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 0', color: '#94a3b8' }}>
+        <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-3)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>💸</div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#64748b' }}>No transfers yet</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)' }}>No transfers yet</div>
           <div style={{ fontSize: 13, marginTop: 4 }}>Click "+ New Transfer" to add one.</div>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
                 <th style={th}>Status</th>
                 <th style={th}>Client</th>
                 <th style={{ ...th, textAlign: 'right' }}>Amount</th>
@@ -132,16 +132,16 @@ function Transfers() {
             </thead>
             <tbody>
               {transfers.map((tr, i) => (
-                <tr key={tr.id} style={{ borderBottom: '1px solid #f1f5f9', background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                <tr key={tr.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   <td style={td}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 5, ...statusStyle(tr.status) }}>
                       {statusLabel(tr.status)}
                     </span>
                   </td>
-                  <td style={{ ...td, fontWeight: 600, color: '#1e293b' }}>{tr.client_name}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#1e293b' }}>{fmt(tr.amount)}</td>
-                  <td style={{ ...td, color: '#64748b', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>
-                  <td style={{ ...td, color: '#334155' }}>{tr.description}</td>
+                  <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{tr.client_name}</td>
+                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>
+                  <td style={{ ...td, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>
+                  <td style={{ ...td, color: 'var(--text-2)' }}>{tr.description}</td>
                   <td style={td}>
                     <div style={{ display: 'flex', gap: 2 }}>
                       <button onClick={() => openEdit(tr)} title="Edit"
@@ -174,7 +174,7 @@ function Transfers() {
       {showForm && (
         <div style={overlay} onClick={() => setShowForm(false)}>
           <div style={{ ...modal, maxWidth: 520 }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: '#1e293b' }}>{editId ? 'Edit Transfer' : 'New Transfer'}</h3>
+            <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{editId ? 'Edit Transfer' : 'New Transfer'}</h3>
             {formError && <div style={{ ...errBox, marginBottom: 14 }}>{formError}</div>}
 
             <div style={{ marginBottom: 14 }}>
@@ -182,9 +182,9 @@ function Transfers() {
               <div style={{ display: 'flex', gap: 8 }}>
                 {STATUS_OPTIONS.map(s => (
                   <button key={s.value} type="button" onClick={() => setStatus(s.value)} style={{
-                    flex: 1, padding: '8px 0', border: `2px solid ${status === s.value ? '#2563eb' : '#e2e8f0'}`,
-                    borderRadius: 8, background: status === s.value ? '#eff6ff' : '#fff',
-                    color: status === s.value ? '#1d4ed8' : '#64748b',
+                    flex: 1, padding: '8px 0', border: `2px solid ${status === s.value ? 'var(--accent, #2563eb)' : 'var(--border-2)'}`,
+                    borderRadius: 8, background: status === s.value ? 'rgba(37,99,235,0.12)' : 'var(--surface-2)',
+                    color: status === s.value ? 'var(--accent, #60a5fa)' : 'var(--text-3)',
                     fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
                   }}>{s.label}</button>
                 ))}
@@ -202,15 +202,15 @@ function Transfers() {
                 style={inpStyle}
               />
               {agentOpen && agents.filter(a => a.name.toLowerCase().includes((agentSearch || clientName).toLowerCase())).length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', zIndex: 10, maxHeight: 180, overflowY: 'auto' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.3)', zIndex: 10, maxHeight: 180, overflowY: 'auto' }}>
                   {agents.filter(a => a.name.toLowerCase().includes((agentSearch || clientName).toLowerCase())).map(a => (
                     <div key={a.id}
                       onMouseDown={() => { setAgentId(a.id); setClientName(a.name); setAgentSearch(a.name); setAgentOpen(false); }}
-                      style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 14, borderBottom: '1px solid #f1f5f9' }}
-                      onMouseEnter={e => e.currentTarget.style.background = '#f0f4ff'}
-                      onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                      style={{ padding: '8px 12px', cursor: 'pointer', fontSize: 14, borderBottom: '1px solid var(--border-2)', color: 'var(--text)' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}>
                       <span style={{ fontWeight: 600 }}>{a.name}</span>
-                      {a.type && <span style={{ color: '#94a3b8', fontSize: 12, marginLeft: 8 }}>{a.type}</span>}
+                      {a.type && <span style={{ color: 'var(--text-3)', fontSize: 12, marginLeft: 8 }}>{a.type}</span>}
                     </div>
                   ))}
                 </div>
@@ -244,14 +244,14 @@ function Transfers() {
   );
 }
 
-const th = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', whiteSpace: 'nowrap' };
+const th = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)', whiteSpace: 'nowrap' };
 const td = { padding: '9px 14px', verticalAlign: 'middle' };
-const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 5 };
-const inpStyle = { width: '100%', padding: '8px 10px', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 14, outline: 'none', boxSizing: 'border-box' };
-const errBox = { background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px' };
-const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' };
-const modal = { background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' };
-const cancelBtn = { padding: '8px 18px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#f8fafc', cursor: 'pointer', fontSize: 14 };
+const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5 };
+const inpStyle = { width: '100%', padding: '8px 10px', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--surface-2)', color: 'var(--text)' };
+const errBox = { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, padding: '10px 14px' };
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const modal = { background: 'var(--surface)', borderRadius: 14, padding: 28, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)' };
+const cancelBtn = { padding: '8px 18px', border: '1px solid var(--border-2)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-2)', cursor: 'pointer', fontSize: 14 };
 const primaryBtn = { padding: '8px 22px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' };
 
 export default Transfers;

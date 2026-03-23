@@ -97,6 +97,12 @@
 
 .acc-sidebar-btn:hover { background: var(--surface-3); color: var(--text); }
 .acc-sidebar-btn.active { background: var(--surface-3); color: var(--text); border-left-color: var(--text); font-weight: 600; }
+
+[data-theme="dark"] .acc-sidebar-btn.active {
+  background: rgba(77,124,254,0.1);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
 .acc-sidebar-icon { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
 .acc-sidebar-btn-label {
@@ -191,6 +197,14 @@
 .acc-amount.income { color: #16a34a; }
 .acc-amount.expense { color: #e53e3e; }
 
+/* Colored unit cells — override dark-mode !important */
+[data-theme="dark"] .acc-content table td.cell-addition,
+.acc-table td.cell-addition { color: #16a34a !important; }
+[data-theme="dark"] .acc-content table td.cell-deduction,
+.acc-table td.cell-deduction { color: #e53e3e !important; }
+[data-theme="dark"] .acc-content table td.cell-muted,
+.acc-table td.cell-muted { color: var(--text-4) !important; }
+
 .acc-category-badge {
   font-size: 11px;
   padding: 2px 8px;
@@ -263,6 +277,16 @@
 
 .inv-total-row { display: flex; justify-content: flex-end; margin-top: 6px; }
 .inv-total { font-size: 16px; font-weight: 700; color: var(--text); }
+
+/* Dark overrides for status badges & category */
+[data-theme="dark"] .acc-category-badge {
+  background: rgba(77,124,254,0.15);
+  color: var(--accent);
+}
+[data-theme="dark"] .acc-status-draft  { background: var(--surface-3); color: var(--text-3); }
+[data-theme="dark"] .acc-status-sent   { background: rgba(234,88,12,0.15); color: #fb923c; }
+[data-theme="dark"] .acc-status-paid   { background: rgba(22,163,74,0.15); color: #4ade80; }
+[data-theme="dark"] .acc-status-overdue{ background: rgba(220,38,38,0.15); color: #f87171; }
 
 .acc-empty { padding: 60px; text-align: center; color: var(--text-4); }
 .acc-empty-icon { font-size: 40px; margin-bottom: 12px; }

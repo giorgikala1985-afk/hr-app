@@ -1,36 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
 
 /* ── Theme variables ───────────────────────────────────────────── */
 :root {
-  --bg:          #f9fafb;
+  --bg:          #f4f6fa;
   --surface:     #ffffff;
   --surface-2:   #f8fafc;
-  --surface-3:   #f3f4f6;
+  --surface-3:   #f0f2f7;
   --text:        #111827;
   --text-2:      #374151;
   --text-3:      #64748b;
   --text-4:      #94a3b8;
-  --border:      #e5e7eb;
-  --border-2:    #e2e8f0;
-  --border-3:    #f1f5f9;
-  --accent:      #0f3460;
-  --accent-hover:#1a2a4e;
+  --border:      #e2e6ef;
+  --border-2:    #dde1ea;
+  --border-3:    #f0f2f7;
+  --accent:      #2563eb;
+  --accent-hover:#1d4ed8;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:   0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg:   0 10px 40px rgba(0,0,0,0.1);
+  --radius:      12px;
 }
 
 [data-theme="dark"] {
-  --bg:          #0f172a;
-  --surface:     #1e293b;
-  --surface-2:   #243045;
-  --surface-3:   #2d3f5a;
-  --text:        #f1f5f9;
-  --text-2:      #cbd5e1;
-  --text-3:      #94a3b8;
-  --text-4:      #64748b;
-  --border:      #334155;
-  --border-2:    #2d3748;
-  --border-3:    #1e293b;
-  --accent:      #3b82f6;
-  --accent-hover:#2563eb;
+  --bg:          #080e1c;
+  --surface:     #0e1829;
+  --surface-2:   #132035;
+  --surface-3:   #1a2a44;
+  --text:        #e4eaf6;
+  --text-2:      #8fa3bf;
+  --text-3:      #4d6580;
+  --text-4:      #2d4060;
+  --border:      #1a2a44;
+  --border-2:    #132035;
+  --border-3:    #0e1829;
+  --accent:      #4d7cfe;
+  --accent-hover:#3b6df0;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md:   0 4px 20px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg:   0 16px 48px rgba(0,0,0,0.6);
 }
 
 body {
@@ -40,8 +47,36 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg);
   color: var(--text);
-  transition: background 0.2s, color 0.2s;
+  transition: background 0.25s, color 0.25s;
 }
+
+/* ── Dark mode global polish ─────────────────────────────────────── */
+
+/* Card depth */
+[data-theme="dark"] .docs-sidebar,
+[data-theme="dark"] .acc-panel,
+[data-theme="dark"] [class*="-card"],
+[data-theme="dark"] [class*="-box"],
+[data-theme="dark"] [class*="-modal"] {
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* Subtle top highlight on cards for depth */
+[data-theme="dark"] .docs-sidebar {
+  border-right-color: rgba(255,255,255,0.04) !important;
+  background: linear-gradient(180deg, #0f1e33 0%, #0e1829 100%) !important;
+}
+
+[data-theme="dark"] .header-nav a.active {
+  color: #7ba7ff !important;
+  background: rgba(77,124,254,0.12) !important;
+}
+
+/* Better scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
 
 /* ── Dark mode overrides ─────────────────────────────────────────── */
 
@@ -128,3 +163,62 @@ body {
 [data-theme="dark"] ::-webkit-scrollbar { width: 6px; height: 6px; }
 [data-theme="dark"] ::-webkit-scrollbar-track { background: var(--bg); }
 [data-theme="dark"] ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── Gym / Holidays / Insurance / Portal — broad dark overrides ──── */
+
+/* Container headings */
+[data-theme="dark"] [class*="-header"] h1,
+[data-theme="dark"] [class*="-header"] h2,
+[data-theme="dark"] [class*="-header"] h3 {
+  color: var(--text) !important;
+}
+[data-theme="dark"] [class*="-header"] p,
+[data-theme="dark"] [class*="-header"] span:not(.badge):not([class*="-status"]) {
+  color: var(--text-3) !important;
+}
+
+/* Cards / panels with white/light backgrounds */
+[data-theme="dark"] [class*="-card"],
+[data-theme="dark"] [class*="-panel"],
+[data-theme="dark"] [class*="-box"] {
+  background: var(--surface) !important;
+  border-color: var(--border-2) !important;
+  color: var(--text) !important;
+}
+
+/* Month picker / white containers */
+[data-theme="dark"] [class*="month-picker"],
+[data-theme="dark"] [class*="-picker"] {
+  background: var(--surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* Table wrappers */
+[data-theme="dark"] [class*="-table-wrapper"],
+[data-theme="dark"] [class*="-table-wrap"] {
+  background: var(--surface) !important;
+  border-color: var(--border-2) !important;
+}
+
+/* Generic headings in component containers */
+[data-theme="dark"] [class*="gym-"] h1,
+[data-theme="dark"] [class*="gym-"] h2,
+[data-theme="dark"] [class*="gym-"] h3,
+[data-theme="dark"] [class*="gym-"] h4 { color: var(--text) !important; }
+[data-theme="dark"] [class*="gym-"] p   { color: var(--text-3) !important; }
+
+[data-theme="dark"] [class*="hol-"] h1,
+[data-theme="dark"] [class*="hol-"] h2,
+[data-theme="dark"] [class*="hol-"] h3,
+[data-theme="dark"] [class*="hol-"] h4 { color: var(--text) !important; }
+[data-theme="dark"] [class*="hol-"] p   { color: var(--text-3) !important; }
+
+[data-theme="dark"] [class*="ins-"] h1,
+[data-theme="dark"] [class*="ins-"] h2,
+[data-theme="dark"] [class*="ins-"] h3,
+[data-theme="dark"] [class*="ins-"] h4 { color: var(--text) !important; }
+[data-theme="dark"] [class*="ins-"] p   { color: var(--text-3) !important; }
+
+[data-theme="dark"] [class*="sal-"] h1,
+[data-theme="dark"] [class*="sal-"] h2 { color: var(--text) !important; }
+[data-theme="dark"] [class*="sal-"] p   { color: var(--text-3) !important; }

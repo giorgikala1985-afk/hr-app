@@ -13,3 +13,21 @@ services:
         sync: false
       - key: SUPABASE_SERVICE_KEY
         sync: false
+      - key: TBC_API_BASE_URL
+        value: https://api.tbcbank.ge/v1
+      - key: TBC_API_KEY
+        sync: false
+      - key: TBC_CLIENT_ID
+        sync: false
+      - key: TBC_CLIENT_SECRET
+        sync: false
+      - key: BACKEND_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: RS_SERVICE_USER
+        sync: false
+      - key: RS_SERVICE_PASSWORD
+        sync: false
+      - key: RS_COMPANY_TIN
+        sync: false

@@ -9,8 +9,8 @@ const TEMPLATE_COLUMNS = ['Name', 'Last Name', 'ID', 'Amount 1', 'Amount 2', 'Da
 
 const INPUT_STYLE = {
   width: '100%', boxSizing: 'border-box', padding: '6px 8px',
-  border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 12,
-  outline: 'none', fontFamily: 'inherit',
+  border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12,
+  outline: 'none', fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)',
 };
 
 function InsuranceImport() {
@@ -158,35 +158,36 @@ function InsuranceImport() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: '#fff', borderRadius: 14, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
 
         {/* Header */}
-        <div style={{ padding: '20px 24px', background: '#fafbfc', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ padding: '20px 24px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 9, background: '#f0f9ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
             </svg>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#1e293b' }}>{t('insImport.title')}</div>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>{t('insImport.desc')}</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{t('insImport.title')}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 1 }}>{t('insImport.desc')}</div>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: '#64748b', background: '#f1f5f9', borderRadius: 20, padding: '3px 10px' }}>
+          <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', background: 'var(--surface-3)', borderRadius: 20, padding: '3px 10px' }}>
             {records.length} records
           </div>
         </div>
 
         {/* Sub-tab bar */}
-        <div style={{ padding: '12px 24px', borderBottom: '1px solid #f1f5f9', background: '#fff' }}>
-          <div style={{ display: 'flex', gap: 2, background: '#f1f5f9', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+        <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface)' }}>
+          <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
             {[
               { key: 'import', label: t('insImport.title') },
               { key: 'records', label: `${t('insImport.savedTitle')}${records.length ? ` (${records.length})` : ''}` },
             ].map(tab => (
               <button key={tab.key} onClick={() => setSubTab(tab.key)} style={{
                 padding: '6px 18px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                background: subTab === tab.key ? '#fff' : 'transparent',
-                color: subTab === tab.key ? '#1e293b' : '#64748b',
+                fontFamily: 'inherit',
+                background: subTab === tab.key ? 'var(--surface)' : 'transparent',
+                color: subTab === tab.key ? 'var(--text)' : 'var(--text-3)',
                 boxShadow: subTab === tab.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
                 transition: 'all 0.15s',
               }}>{tab.label}</button>
@@ -203,19 +204,12 @@ function InsuranceImport() {
           <div style={{ padding: '8px 0' }}>
 
             {/* Step 1 */}
-            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: '1px solid #f8fafc' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>1</div>
+            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: '1px solid var(--border-3)' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>1</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>{t('insImport.step1Title')}</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>{t('insImport.step1Desc')}</div>
-                <button onClick={downloadTemplate} style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '9px 18px', background: '#f0fdf4', color: '#16a34a',
-                  border: '1.5px solid #bbf7d0', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#dcfce7'; e.currentTarget.style.borderColor = '#86efac'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = '#f0fdf4'; e.currentTarget.style.borderColor = '#bbf7d0'; }}
-                >
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('insImport.step1Title')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>{t('insImport.step1Desc')}</div>
+                <button onClick={downloadTemplate} className="btn-excel">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
@@ -227,11 +221,11 @@ function InsuranceImport() {
             </div>
 
             {/* Step 2 */}
-            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: rows.length > 0 ? '1px solid #f8fafc' : 'none' }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>2</div>
+            <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start', borderBottom: rows.length > 0 ? '1px solid var(--border-3)' : 'none' }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>2</div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>{t('insImport.step2Title')}</div>
-                <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 12 }}>{t('insImport.step2Desc')}</div>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('insImport.step2Title')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>{t('insImport.step2Desc')}</div>
                 <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileUpload} id="insurance-excel-upload" style={{ display: 'none' }} />
                 <div
                   onClick={() => fileRef.current?.click()}
@@ -239,13 +233,11 @@ function InsuranceImport() {
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
                   style={{
-                    border: `2px dashed ${dragOver ? '#0369a1' : fileName ? '#7dd3fc' : '#e2e8f0'}`,
+                    border: `2px dashed ${dragOver ? '#0369a1' : fileName ? '#7dd3fc' : 'var(--border-2)'}`,
                     borderRadius: 10, padding: '20px 24px', textAlign: 'center', cursor: 'pointer',
-                    background: dragOver ? '#f0f9ff' : fileName ? '#f0f9ff' : '#fafbfc',
+                    background: dragOver ? '#f0f9ff' : fileName ? '#f0f9ff' : 'var(--surface-2)',
                     transition: 'all 0.15s',
                   }}
-                  onMouseEnter={e => { if (!dragOver) e.currentTarget.style.borderColor = '#94a3b8'; }}
-                  onMouseLeave={e => { if (!dragOver) e.currentTarget.style.borderColor = fileName ? '#7dd3fc' : '#e2e8f0'; }}
                 >
                   {fileName ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -254,16 +246,16 @@ function InsuranceImport() {
                         <polyline points="14,2 14,8 20,8"/>
                       </svg>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#0369a1' }}>{fileName}</span>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>· click to replace</span>
+                      <span style={{ fontSize: 12, color: 'var(--text-4)' }}>· click to replace</span>
                     </div>
                   ) : (
                     <>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                         <polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/>
                       </svg>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#64748b' }}>{t('insImport.chooseFile')}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>or drag & drop .xlsx / .xls</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-3)' }}>{t('insImport.chooseFile')}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 2 }}>or drag & drop .xlsx / .xls</div>
                     </>
                   )}
                 </div>
@@ -273,34 +265,34 @@ function InsuranceImport() {
             {/* Step 3 preview */}
             {rows.length > 0 && (
               <div style={{ padding: '16px 24px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#1e293b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>3</div>
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, flexShrink: 0, marginTop: 1 }}>3</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#1e293b', marginBottom: 4 }}>{t('insImport.step3Title')}</div>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('insImport.step3Title')}</div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
                     <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>{validCount} valid</span>
                     {invalidCount > 0 && <span style={{ padding: '3px 12px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 12, border: '1px solid #fca5a5' }}>{invalidCount} invalid</span>}
-                    <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f1f5f9', color: '#64748b', fontWeight: 600, fontSize: 12 }}>{rows.length} total</span>
+                    <span style={{ padding: '3px 12px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-3)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border-2)' }}>{rows.length} total</span>
                   </div>
-                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 16 }}>
+                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)', marginBottom: 16 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
-                        <tr style={{ background: '#f8fafc' }}>
+                        <tr style={{ background: 'var(--surface-2)' }}>
                           {['#', t('insImport.colName'), t('insImport.colLastName'), t('insImport.colId'), t('insImport.colAmount1'), t('insImport.colAmount2'), t('insImport.colDate'), 'Pension', t('insImport.colStatus')].map((h, i) => (
-                            <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0' }}>{h}</th>
+                            <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)' }}>{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {rows.map((row, i) => (
-                          <tr key={i} style={{ background: row._valid ? (i % 2 === 0 ? '#fff' : '#fafbfc') : '#fef2f2' }}>
-                            <td style={{ padding: '7px 10px', color: '#94a3b8' }}>{i + 1}</td>
-                            <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : '#1e293b' }}>{row.name || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.last_name ? '#dc2626' : '#1e293b' }}>{row.last_name || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : '#1e293b' }}>{row.personal_id || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.amount1 && row.amount1 !== 0 ? '#dc2626' : '#1e293b' }}>{row.amount1}</td>
-                            <td style={{ padding: '7px 10px', color: '#64748b' }}>{row.amount2 || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : '#1e293b' }}>{row.date || '—'}</td>
-                            <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : '#94a3b8' }}>{row.pension ? '✔' : '—'}</td>
+                          <tr key={i} style={{ background: row._valid ? (i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)') : '#fef2f2' }}>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-4)' }}>{i + 1}</td>
+                            <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : 'var(--text)' }}>{row.name || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: !row.last_name ? '#dc2626' : 'var(--text)' }}>{row.last_name || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : 'var(--text)' }}>{row.personal_id || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: !row.amount1 && row.amount1 !== 0 ? '#dc2626' : 'var(--text)' }}>{row.amount1}</td>
+                            <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.amount2 || '—'}</td>
+                            <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : 'var(--text)' }}>{row.date || '—'}</td>
+                            <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
                             <td style={{ padding: '7px 10px' }}>
                               {row._valid
                                 ? <span style={{ padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 11, border: '1px solid #bbf7d0' }}>{t('insImport.ok')}</span>
@@ -312,14 +304,11 @@ function InsuranceImport() {
                     </table>
                   </div>
                   <button onClick={handleSave} disabled={saving || validCount === 0} style={{
-                    padding: '10px 24px', background: saving || validCount === 0 ? '#e2e8f0' : '#0369a1',
-                    color: saving || validCount === 0 ? '#94a3b8' : '#fff',
+                    padding: '10px 24px', background: saving || validCount === 0 ? 'var(--surface-3)' : '#0369a1',
+                    color: saving || validCount === 0 ? 'var(--text-4)' : '#fff',
                     border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13,
-                    cursor: saving || validCount === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                  }}
-                    onMouseEnter={e => { if (validCount > 0 && !saving) e.currentTarget.style.background = '#0284c7'; }}
-                    onMouseLeave={e => { if (validCount > 0 && !saving) e.currentTarget.style.background = '#0369a1'; }}
-                  >
+                    cursor: saving || validCount === 0 ? 'not-allowed' : 'pointer', transition: 'all 0.15s', fontFamily: 'inherit',
+                  }}>
                     {saving ? t('insImport.saving') : t('insImport.saveBtn').replace('{count}', validCount)}
                   </button>
                 </div>
@@ -334,28 +323,28 @@ function InsuranceImport() {
             {/* Search & filter bar */}
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
               <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 200 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
                 <input type="text" placeholder="Search name, last name, ID…" value={search} onChange={e => setSearch(e.target.value)}
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px 8px 32px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, outline: 'none', fontFamily: 'inherit' }}
-                  onFocus={e => e.target.style.borderColor = '#0369a1'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px 8px 32px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)' }}
+                  onFocus={e => e.target.style.borderColor = '#0369a1'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
               </div>
               <div style={{ position: 'relative' }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                   style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                   <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
                 <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)}
-                  style={{ padding: '8px 10px 8px 30px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white' }}
-                  onFocus={e => e.target.style.borderColor = '#0369a1'} onBlur={e => e.target.style.borderColor = '#e2e8f0'} />
+                  style={{ padding: '8px 10px 8px 30px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }}
+                  onFocus={e => e.target.style.borderColor = '#0369a1'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
               </div>
               {(search || filterMonth) && (
                 <button onClick={() => { setSearch(''); setFilterMonth(''); }} style={{
-                  padding: '7px 14px', background: 'none', border: '1px solid #e2e8f0', borderRadius: 8,
-                  fontSize: 13, color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 14px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 8,
+                  fontSize: 13, color: 'var(--text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit',
                 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -363,32 +352,32 @@ function InsuranceImport() {
                   Clear
                 </button>
               )}
-              <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-4)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {filteredRecords.length} of {records.length} records
               </span>
             </div>
 
             {loadingRecords ? (
-              <div style={{ padding: '32px 0', color: '#94a3b8', fontSize: 13 }}>{t('insImport.loading')}</div>
+              <div style={{ padding: '32px 0', color: 'var(--text-4)', fontSize: 13 }}>{t('insImport.loading')}</div>
             ) : records.length === 0 ? (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8' }}>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-4)' }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🛡</div>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>{t('insImport.noRecords')}</div>
               </div>
             ) : filteredRecords.length === 0 ? (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>No records match your search.</div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-4)', fontSize: 14 }}>No records match your search.</div>
             ) : (
-              <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+              <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)' }}>
                 <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
                   <colgroup>{colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
                   <thead>
-                    <tr style={{ background: '#f8fafc' }}>
+                    <tr style={{ background: 'var(--surface-2)' }}>
                       {[
                         [t('insImport.colName'), 0], [t('insImport.colLastName'), 1], [t('insImport.colId'), 2],
                         [t('insImport.colAmount1'), 3], [t('insImport.colAmount2'), 4], [t('insImport.colDate'), 5],
                         ['Pension', 6], ['', 7],
                       ].map(([label, idx]) => (
-                        <th key={idx} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: '#64748b', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid #e2e8f0', position: 'relative', width: colWidths[idx], overflow: 'hidden' }}>
+                        <th key={idx} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)', position: 'relative', width: colWidths[idx], overflow: 'hidden' }}>
                           {label}
                           <div onMouseDown={e => onResizeMouseDown(e, idx)} style={RESIZE_HANDLE_STYLE}
                             onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
@@ -399,7 +388,7 @@ function InsuranceImport() {
                   </thead>
                   <tbody>
                     {filteredRecords.map((rec, i) => (
-                      <tr key={rec.id} style={{ background: i % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                      <tr key={rec.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                         {editId === rec.id ? (
                           <>
                             <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></td>
@@ -410,32 +399,32 @@ function InsuranceImport() {
                             <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} /></td>
                             <td style={{ padding: '6px 8px', textAlign: 'center' }}><input type="checkbox" checked={!!editForm.pension} onChange={e => setEditForm({ ...editForm, pension: e.target.checked })} /></td>
                             <td style={{ padding: '6px 8px', display: 'flex', gap: 6 }}>
-                              <button onClick={handleUpdate} style={{ padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer' }}>{t('insImport.save')}</button>
-                              <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, fontSize: 11, color: '#64748b', cursor: 'pointer' }}>{t('insImport.cancel')}</button>
+                              <button onClick={handleUpdate} style={{ padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>{t('insImport.save')}</button>
+                              <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>{t('insImport.cancel')}</button>
                             </td>
                           </>
                         ) : (
                           <>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#1e293b' }}>
+                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
                               {search ? <Highlight text={rec.name} query={search} /> : rec.name}
                             </td>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#1e293b' }}>
+                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
                               {search ? <Highlight text={rec.last_name} query={search} /> : rec.last_name}
                             </td>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>
+                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)' }}>
                               {search ? <Highlight text={rec.personal_id} query={search} /> : rec.personal_id}
                             </td>
-                            <td style={{ padding: '8px 10px', color: '#1e293b' }}>{rec.amount1}</td>
-                            <td style={{ padding: '8px 10px', color: '#64748b' }}>{rec.amount2 || '—'}</td>
-                            <td style={{ padding: '8px 10px', color: '#64748b' }}>{rec.date}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'center', color: rec.pension ? '#16a34a' : '#94a3b8' }}>{rec.pension ? '✔' : '—'}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text)' }}>{rec.amount1}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.amount2 || '—'}</td>
+                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.date}</td>
+                            <td style={{ padding: '8px 10px', textAlign: 'center', color: rec.pension ? '#16a34a' : 'var(--text-4)' }}>{rec.pension ? '✔' : '—'}</td>
                             <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
-                              <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#0369a1'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                              <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#0369a1'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                               </button>
-                              <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                              <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                               </button>
                             </td>
