@@ -3,7 +3,7 @@ const router = express.Router();
 const supabase = require('../config/supabase');
 const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 const INVOICE_PROMPT = `You are an invoice analysis expert. Extract the following information in JSON format ONLY (no markdown, no explanation):
 {
@@ -24,6 +24,7 @@ If a field is not found, use null. Return only valid JSON.`;
 // ── INVOICE SCANNER ─────────────────────────────────────
 router.post('/invoices/scan', async (req, res) => {
   try {
+    if (!openai) return res.status(500).json({ error: 'OpenAI API key not configured.' });
     const { data, mimeType } = req.body;
     if (!data) return res.status(400).json({ error: 'No file data provided.' });
 
