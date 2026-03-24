@@ -7,6 +7,22 @@ import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResiz
 const INS_IMPORT_DEFAULT_WIDTHS = [130, 130, 110, 110, 110, 110, 90, 80];
 const TEMPLATE_COLUMNS = ['Name', 'Last Name', 'ID', 'Amount 1', 'Amount 2', 'Date', 'Pension'];
 
+const COMPANIES = [
+  { key: 'imedi', label: 'Imedi L' },
+  { key: 'irao', label: 'Irao' },
+  { key: 'ardi', label: 'Ardi' },
+  { key: 'aldagi', label: 'Aldagi' },
+  { key: 'tbc', label: 'TBC' },
+];
+
+// Imedi L template columns (Georgian)
+const IMEDI_COLS = [
+  'აიდი', 'პროგრამული პოლისის ნომერი', 'პოლისი', 'დაზღვეული პირი', 'პირადი ნომერი',
+  'დაბადების თარიღი', 'ასაკი', 'სქესი', 'პროდუქტის პრიორიტეტი', 'პროდუქტი',
+  'კავშირის ტიპი', 'პერიოდის დასაწყისი', 'პერიოდის დასასრული',
+  'კომპანიის წილი', 'თანამშრომლის წილი',
+];
+
 const INPUT_STYLE = {
   width: '100%', boxSizing: 'border-box', padding: '6px 8px',
   border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12,
@@ -17,6 +33,7 @@ function InsuranceImport() {
   const { t } = useLanguage();
   const { colWidths, onResizeMouseDown } = useColumnResize(INS_IMPORT_DEFAULT_WIDTHS);
   const [subTab, setSubTab] = useState('import');
+  const [company, setCompany] = useState('imedi');
   const [rows, setRows] = useState([]);
   const [fileName, setFileName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -30,6 +47,8 @@ function InsuranceImport() {
   const [editForm, setEditForm] = useState({});
   const [search, setSearch] = useState('');
   const [filterMonth, setFilterMonth] = useState('');
+  const [applyDate, setApplyDate] = useState('');
+  const [expandedDates, setExpandedDates] = useState(new Set());
 
   useEffect(() => { loadRecords(); }, []);
 
@@ -48,6 +67,25 @@ function InsuranceImport() {
     if (filterMonth && (!rec.date || !rec.date.startsWith(filterMonth))) return false;
     return true;
   });
+
+  const downloadImediTemplate = () => {
+    const exampleRow = {};
+    IMEDI_COLS.forEach(col => { exampleRow[col] = ''; });
+    exampleRow['აიდი'] = '1';
+    exampleRow['დაზღვეული პირი'] = 'გიორგი მაგალითი';
+    exampleRow['პირადი ნომერი'] = '01234567890';
+    exampleRow['დაბადების თარიღი'] = '1990-01-01';
+    exampleRow['სქესი'] = 'მამრობითი';
+    exampleRow['პერიოდის დასაწყისი'] = '2025-11-25';
+    exampleRow['პერიოდის დასასრული'] = '2026-10-25';
+    exampleRow['კომპანიის წილი'] = 100;
+    exampleRow['თანამშრომლის წილი'] = 50;
+    const ws = XLSX.utils.json_to_sheet([exampleRow], { header: IMEDI_COLS });
+    ws['!cols'] = IMEDI_COLS.map(() => ({ wch: 20 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Imedi L');
+    XLSX.writeFile(wb, 'ImediL_Insurance_Template.xlsx');
+  };
 
   const downloadTemplate = () => {
     const exampleRow = {
@@ -69,6 +107,12 @@ function InsuranceImport() {
     }
     const str = String(value).trim();
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+    // DD.MM.YYYY
+    const dotMatch = str.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (dotMatch) return `${dotMatch[3]}-${dotMatch[2]}-${dotMatch[1]}`;
+    // DD/MM/YYYY
+    const slashMatch = str.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (slashMatch) return `${slashMatch[3]}-${slashMatch[2]}-${slashMatch[1]}`;
     const parsed = new Date(str);
     if (!isNaN(parsed.getTime())) {
       return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}-${String(parsed.getDate()).padStart(2, '0')}`;
@@ -85,25 +129,58 @@ function InsuranceImport() {
         const wb = XLSX.read(evt.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-        const mapped = data.map((row) => ({
-          name: row['Name'] || '',
-          last_name: row['Last Name'] || '',
-          personal_id: String(row['ID'] || ''),
-          amount1: row['Amount 1'] || '',
-          amount2: row['Amount 2'] || '',
-          date: formatExcelDate(row['Date']),
-          pension: row['Pension'] ? String(row['Pension']).toLowerCase().trim() === 'yes' : false,
-          _valid: true
-        }));
-        mapped.forEach((row) => {
-          const missing = [];
-          if (!row.name) missing.push('Name');
-          if (!row.last_name) missing.push('Last Name');
-          if (!row.personal_id) missing.push('ID');
-          if (!row.amount1 && row.amount1 !== 0) missing.push('Amount 1');
-          if (!row.date) missing.push('Date');
-          if (missing.length > 0) { row._valid = false; row._missing = missing; }
-        });
+
+        let mapped;
+        if (company === 'imedi') {
+          mapped = data.map((row) => ({
+            name: String(row['დაზღვეული პირი'] || '').trim(),
+            last_name: '',
+            personal_id: String(row['პირადი ნომერი'] || '').trim(),
+            amount1: row['კომპანიის წილი'] !== '' ? row['კომპანიის წილი'] : '',
+            amount2: row['თანამშრომლის წილი'] !== '' ? row['თანამშრომლის წილი'] : '',
+            date: formatExcelDate(row['პერიოდის დასაწყისი']),
+            date_end: formatExcelDate(row['პერიოდის დასასრული']),
+            policy: String(row['პოლისი'] || '').trim(),
+            policy_program: String(row['პროგრამული პოლისის ნომერი'] || '').trim(),
+            birth_date: formatExcelDate(row['დაბადების თარიღი']),
+            age: row['ასაკი'] || '',
+            gender: String(row['სქესი'] || '').trim(),
+            product_priority: String(row['პროდუქტის პრიორიტეტი'] || '').trim(),
+            product: String(row['პროდუქტი'] || '').trim(),
+            relation_type: String(row['კავშირის ტიპი'] || '').trim(),
+            pension: false,
+            _valid: true,
+          }));
+          mapped.forEach((row) => {
+            const missing = [];
+            if (!row.name) missing.push('დაზღვეული პირი');
+            if (!row.personal_id) missing.push('პირადი ნომერი');
+            if (row.amount1 === '' && row.amount1 !== 0) missing.push('კომპანიის წილი');
+            if (!row.date) missing.push('პერიოდის დასაწყისი');
+            if (missing.length > 0) { row._valid = false; row._missing = missing; }
+          });
+        } else {
+          mapped = data.map((row) => ({
+            name: row['Name'] || '',
+            last_name: row['Last Name'] || '',
+            personal_id: String(row['ID'] || ''),
+            amount1: row['Amount 1'] || '',
+            amount2: row['Amount 2'] || '',
+            date: formatExcelDate(row['Date']),
+            pension: row['Pension'] ? String(row['Pension']).toLowerCase().trim() === 'yes' : false,
+            _valid: true
+          }));
+          mapped.forEach((row) => {
+            const missing = [];
+            if (!row.name) missing.push('Name');
+            if (!row.last_name) missing.push('Last Name');
+            if (!row.personal_id) missing.push('ID');
+            if (!row.amount1 && row.amount1 !== 0) missing.push('Amount 1');
+            if (!row.date) missing.push('Date');
+            if (missing.length > 0) { row._valid = false; row._missing = missing; }
+          });
+        }
+
         setRows(mapped);
       } catch (err) {
         setError(t('insImport.parseFailed') + err.message);
@@ -176,6 +253,18 @@ function InsuranceImport() {
           </div>
         </div>
 
+        {/* Company tabs */}
+        <div style={{ padding: '12px 24px 0', borderBottom: '1px solid var(--border-3)', background: 'var(--surface)', display: 'flex', gap: 4 }}>
+          {COMPANIES.map(c => (
+            <button key={c.key} onClick={() => { setCompany(c.key); setRows([]); setFileName(''); setError(''); setSuccess(''); }} style={{
+              padding: '7px 18px', border: 'none', borderBottom: company === c.key ? '2px solid var(--accent, #3b82f6)' : '2px solid transparent',
+              background: 'transparent', fontWeight: company === c.key ? 700 : 500, fontSize: 13, cursor: 'pointer',
+              fontFamily: 'inherit', color: company === c.key ? 'var(--text)' : 'var(--text-3)', transition: 'all 0.15s',
+              marginBottom: -1,
+            }}>{c.label}</button>
+          ))}
+        </div>
+
         {/* Sub-tab bar */}
         <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface)' }}>
           <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
@@ -209,13 +298,13 @@ function InsuranceImport() {
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('insImport.step1Title')}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-4)', marginBottom: 12 }}>{t('insImport.step1Desc')}</div>
-                <button onClick={downloadTemplate} className="btn-excel">
+                <button onClick={company === 'imedi' ? downloadImediTemplate : downloadTemplate} className="btn-excel">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
                     <line x1="12" y1="12" x2="12" y2="18"/><polyline points="9,15 12,18 15,15"/>
                   </svg>
-                  {t('insImport.downloadTemplate')}
+                  {company === 'imedi' ? 'Download Imedi L Template' : t('insImport.downloadTemplate')}
                 </button>
               </div>
             </div>
@@ -273,11 +362,33 @@ function InsuranceImport() {
                     {invalidCount > 0 && <span style={{ padding: '3px 12px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 12, border: '1px solid #fca5a5' }}>{invalidCount} invalid</span>}
                     <span style={{ padding: '3px 12px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-3)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border-2)' }}>{rows.length} total</span>
                   </div>
+                  {/* Apply date to all */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-2)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>Apply date to all entries:</span>
+                    <input type="date" value={applyDate} onChange={e => setApplyDate(e.target.value)}
+                      style={{ padding: '5px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                    <button onClick={() => {
+                      if (!applyDate) return;
+                      setRows(prev => prev.map(r => ({ ...r, period: applyDate })));
+                    }} disabled={!applyDate} style={{
+                      padding: '5px 14px', background: applyDate ? '#0369a1' : 'var(--surface-3)', color: applyDate ? '#fff' : 'var(--text-4)',
+                      border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: applyDate ? 'pointer' : 'not-allowed', fontFamily: 'inherit', transition: 'all 0.15s',
+                    }}>Apply to all</button>
+                    {applyDate && <button onClick={() => setApplyDate('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', fontSize: 11, fontFamily: 'inherit', padding: '4px 6px' }}>✕ Clear</button>}
+                  </div>
+
                   <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)', marginBottom: 16 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
                         <tr style={{ background: 'var(--surface-2)' }}>
-                          {['#', t('insImport.colName'), t('insImport.colLastName'), t('insImport.colId'), t('insImport.colAmount1'), t('insImport.colAmount2'), t('insImport.colDate'), 'Pension', t('insImport.colStatus')].map((h, i) => (
+                          {(company === 'imedi'
+                            ? ['#', 'დაზღვეული პირი', 'პირადი ნომერი', 'პოლისი', 'კავშირის ტიპი', 'პერიოდის დასაწყისი', 'პერიოდის დასასრული', 'კომპანიის წილი', 'თანამშრომლის წილი', t('insImport.colStatus')]
+                            : ['#', t('insImport.colName'), t('insImport.colLastName'), t('insImport.colId'), t('insImport.colAmount1'), t('insImport.colAmount2'), t('insImport.colDate'), 'Pension', t('insImport.colStatus')]
+                          ).map((h, i) => (
                             <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)' }}>{h}</th>
                           ))}
                         </tr>
@@ -286,13 +397,24 @@ function InsuranceImport() {
                         {rows.map((row, i) => (
                           <tr key={i} style={{ background: row._valid ? (i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)') : '#fef2f2' }}>
                             <td style={{ padding: '7px 10px', color: 'var(--text-4)' }}>{i + 1}</td>
-                            <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : 'var(--text)' }}>{row.name || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.last_name ? '#dc2626' : 'var(--text)' }}>{row.last_name || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : 'var(--text)' }}>{row.personal_id || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.amount1 && row.amount1 !== 0 ? '#dc2626' : 'var(--text)' }}>{row.amount1}</td>
-                            <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.amount2 || '—'}</td>
-                            <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : 'var(--text)' }}>{row.date || '—'}</td>
-                            <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
+                            {company === 'imedi' ? (<>
+                              <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : 'var(--text)' }}>{row.name || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : 'var(--text)' }}>{row.personal_id || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.policy || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.relation_type || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : 'var(--text)' }}>{row.date || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.date_end || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: row.amount1 === '' ? '#dc2626' : 'var(--text)' }}>{row.amount1 !== '' ? row.amount1 : '—'}</td>
+                              <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.amount2 !== '' ? row.amount2 : '—'}</td>
+                            </>) : (<>
+                              <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : 'var(--text)' }}>{row.name || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: !row.last_name ? '#dc2626' : 'var(--text)' }}>{row.last_name || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : 'var(--text)' }}>{row.personal_id || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: !row.amount1 && row.amount1 !== 0 ? '#dc2626' : 'var(--text)' }}>{row.amount1}</td>
+                              <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.amount2 || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : 'var(--text)' }}>{row.date || '—'}</td>
+                              <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
+                            </>)}
                             <td style={{ padding: '7px 10px' }}>
                               {row._valid
                                 ? <span style={{ padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 11, border: '1px solid #bbf7d0' }}>{t('insImport.ok')}</span>
@@ -366,76 +488,151 @@ function InsuranceImport() {
               </div>
             ) : filteredRecords.length === 0 ? (
               <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-4)', fontSize: 14 }}>No records match your search.</div>
-            ) : (
-              <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)' }}>
-                <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
-                  <colgroup>{colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-                  <thead>
-                    <tr style={{ background: 'var(--surface-2)' }}>
-                      {[
-                        [t('insImport.colName'), 0], [t('insImport.colLastName'), 1], [t('insImport.colId'), 2],
-                        [t('insImport.colAmount1'), 3], [t('insImport.colAmount2'), 4], [t('insImport.colDate'), 5],
-                        ['Pension', 6], ['', 7],
-                      ].map(([label, idx]) => (
-                        <th key={idx} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)', position: 'relative', width: colWidths[idx], overflow: 'hidden' }}>
-                          {label}
-                          <div onMouseDown={e => onResizeMouseDown(e, idx)} style={RESIZE_HANDLE_STYLE}
-                            onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map((rec, i) => (
-                      <tr key={rec.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                        {editId === rec.id ? (
-                          <>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.personal_id} onChange={e => setEditForm({ ...editForm, personal_id: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="number" value={editForm.amount1} onChange={e => setEditForm({ ...editForm, amount1: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="number" value={editForm.amount2} onChange={e => setEditForm({ ...editForm, amount2: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', textAlign: 'center' }}><input type="checkbox" checked={!!editForm.pension} onChange={e => setEditForm({ ...editForm, pension: e.target.checked })} /></td>
-                            <td style={{ padding: '6px 8px', display: 'flex', gap: 6 }}>
-                              <button onClick={handleUpdate} style={{ padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>{t('insImport.save')}</button>
-                              <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>{t('insImport.cancel')}</button>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
-                              {search ? <Highlight text={rec.name} query={search} /> : rec.name}
-                            </td>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
-                              {search ? <Highlight text={rec.last_name} query={search} /> : rec.last_name}
-                            </td>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)' }}>
-                              {search ? <Highlight text={rec.personal_id} query={search} /> : rec.personal_id}
-                            </td>
-                            <td style={{ padding: '8px 10px', color: 'var(--text)' }}>{rec.amount1}</td>
-                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.amount2 || '—'}</td>
-                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.date}</td>
-                            <td style={{ padding: '8px 10px', textAlign: 'center', color: rec.pension ? '#16a34a' : 'var(--text-4)' }}>{rec.pension ? '✔' : '—'}</td>
-                            <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
-                              <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#0369a1'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                              </button>
-                              <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                              </button>
-                            </td>
-                          </>
+            ) : (() => {
+              // Group by month (YYYY-MM)
+              const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              const fmtMonthKey = (key) => {
+                const m = key.match(/^(\d{4})-(\d{2})$/);
+                if (m) return `${MONTH_NAMES[parseInt(m[2], 10) - 1]} ${m[1]}`;
+                return key;
+              };
+              const groups = {};
+              filteredRecords.forEach(rec => {
+                const raw = rec.period || rec.date || '';
+                const key = raw ? raw.slice(0, 7) : '—';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(rec);
+              });
+              const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+              const toggleDate = (d) => setExpandedDates(prev => {
+                const next = new Set(prev);
+                next.has(d) ? next.delete(d) : next.add(d);
+                return next;
+              });
+              const deleteGroup = async (groupRecs) => {
+                if (!window.confirm(`Delete all ${groupRecs.length} records in this period?`)) return;
+                try {
+                  await Promise.all(groupRecs.map(r => api.delete(`/insurance-list/${r.id}`)));
+                  loadRecords();
+                } catch { setError('Failed to delete some records.'); }
+              };
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {sortedDates.map(dateKey => {
+                    const isOpen = expandedDates.has(dateKey);
+                    const groupRecs = groups[dateKey];
+                    return (
+                      <div key={dateKey} style={{ borderRadius: 10, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+                        {/* Date header row */}
+                        <div style={{
+                          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                          padding: '10px 16px', background: 'var(--surface-2)',
+                          borderBottom: isOpen ? '1px solid var(--border-2)' : 'none',
+                        }}>
+                          <button onClick={() => toggleDate(dateKey)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1, fontFamily: 'inherit', textAlign: 'left' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                              style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}>
+                              <polyline points="9,18 15,12 9,6"/>
+                            </svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{fmtMonthKey(dateKey)}</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>{groupRecs.length} records</span>
+                          </button>
+                          <button onClick={() => deleteGroup(groupRecs)} title="Delete all in this period" style={{
+                            background: 'none', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer',
+                            color: '#ef4444', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5,
+                            fontSize: 11, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
+                          }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                              <path d="M10 11v6"/><path d="M14 11v6"/>
+                            </svg>
+                            Delete all
+                          </button>
+                        </div>
+
+                        {/* Expanded table */}
+                        {isOpen && (
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+                              <colgroup>{colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+                              <thead>
+                                <tr style={{ background: 'var(--surface-2)' }}>
+                                  {[
+                                    [t('insImport.colName'), 0], [t('insImport.colLastName'), 1], [t('insImport.colId'), 2],
+                                    [t('insImport.colAmount1'), 3], [t('insImport.colAmount2'), 4], [t('insImport.colDate'), 5],
+                                    ['Pension', 6], ['', 7],
+                                  ].map(([label, idx]) => (
+                                    <th key={idx} style={{ padding: '7px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)', position: 'relative', width: colWidths[idx], overflow: 'hidden' }}>
+                                      {label}
+                                      <div onMouseDown={e => onResizeMouseDown(e, idx)} style={RESIZE_HANDLE_STYLE}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {groupRecs.map((rec, i) => (
+                                  <tr key={rec.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
+                                    {editId === rec.id ? (
+                                      <>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.personal_id} onChange={e => setEditForm({ ...editForm, personal_id: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="number" value={editForm.amount1} onChange={e => setEditForm({ ...editForm, amount1: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="number" value={editForm.amount2} onChange={e => setEditForm({ ...editForm, amount2: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="date" value={editForm.date} onChange={e => setEditForm({ ...editForm, date: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', textAlign: 'center' }}><input type="checkbox" checked={!!editForm.pension} onChange={e => setEditForm({ ...editForm, pension: e.target.checked })} /></td>
+                                        <td style={{ padding: '6px 8px', display: 'flex', gap: 6 }}>
+                                          <button onClick={handleUpdate} style={{ padding: '5px 10px', background: '#0369a1', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>{t('insImport.save')}</button>
+                                          <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>{t('insImport.cancel')}</button>
+                                        </td>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
+                                          {search ? <Highlight text={rec.name} query={search} /> : rec.name}
+                                        </td>
+                                        <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
+                                          {search ? <Highlight text={rec.last_name} query={search} /> : rec.last_name}
+                                        </td>
+                                        <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)' }}>
+                                          {search ? <Highlight text={rec.personal_id} query={search} /> : rec.personal_id}
+                                        </td>
+                                        <td style={{ padding: '8px 10px', color: 'var(--text)' }}>{rec.amount1}</td>
+                                        <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.amount2 || '—'}</td>
+                                        <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.date}</td>
+                                        <td style={{ padding: '8px 10px', textAlign: 'center', color: rec.pension ? '#16a34a' : 'var(--text-4)' }}>{rec.pension ? '✔' : '—'}</td>
+                                        <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
+                                          <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                            onMouseEnter={e => e.currentTarget.style.color = '#0369a1'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                          </button>
+                                          <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                          </button>
+                                        </td>
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 

@@ -69,9 +69,7 @@ router.get('/', async (req, res) => {
       supabase
         .from('insurance_list')
         .select('*')
-        .eq('user_id', req.userId)
-        .gte('date', monthStartStr)
-        .lte('date', monthEndStr),
+        .eq('user_id', req.userId),
       supabase
         .from('fitpass_list')
         .select('*')
@@ -108,12 +106,13 @@ router.get('/', async (req, res) => {
       if (d.month === prevMonth) prevDeferralMap[d.employee_id] = parseFloat(d.deferred_amount);
     }
 
-    // Build a map: personal_id -> amount1 for quick lookup
+    // Build a map: personal_id -> amount1, matching by period month (fallback to date)
     const insuranceByPersonalId = {};
     for (const rec of insuranceRecords) {
-      if (rec.personal_id) {
-        insuranceByPersonalId[String(rec.personal_id).trim()] = parseFloat(rec.amount1) || 0;
-      }
+      if (!rec.personal_id) continue;
+      const matchField = rec.period || rec.date || '';
+      if (!matchField.startsWith(month)) continue;
+      insuranceByPersonalId[String(rec.personal_id).trim()] = parseFloat(rec.amount1) || 0;
     }
 
     // Build a map: personal_id -> amount for fitpass
@@ -125,7 +124,8 @@ router.get('/', async (req, res) => {
     }
 
     // Build a set of addition type names from user-defined unit types
-    const additionTypes = new Set(unitTypeDefs.filter((ut) => ut.direction === 'addition').map((ut) => ut.name));
+    const additionTypes  = new Set(unitTypeDefs.filter((ut) => ut.direction === 'addition').map((ut) => ut.name));
+    const deductionTypes = new Set(unitTypeDefs.filter((ut) => ut.direction === 'deduction').map((ut) => ut.name));
     function isAddition(type) {
       return additionTypes.has(type);
     }
@@ -149,8 +149,8 @@ router.get('/', async (req, res) => {
 
       // Get units active for this employee in this month (date <= month end)
       const empUnits = allUnits.filter((u) => u.employee_id === emp.id);
-      const totalDeductions = empUnits.filter((u) => !isAddition(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
-      const totalAdditions = empUnits.filter((u) => isAddition(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
+      const totalDeductions = empUnits.filter((u) => deductionTypes.has(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
+      const totalAdditions  = empUnits.filter((u) => additionTypes.has(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
 
       // Insurance deduction: match by personal_id
       const insuranceDeduction = emp.personal_id
@@ -166,6 +166,10 @@ router.get('/', async (req, res) => {
       const deferral = currentDeferralMap[emp.id] || null;
       const isDeferred = !!deferral;
       const carryOver = prevDeferralMap[emp.id] || 0;
+
+
+
+
       const isMidMonthStarter = emp.start_date > monthStartStr && emp.start_date <= monthEndStr;
 
       // Employee hasn't started yet or ended before this month
@@ -239,7 +243,7 @@ router.get('/', async (req, res) => {
 
         const roundedAccrued = Math.round(accruedSalary * 100) / 100;
         const effectiveAccrued = isDeferred ? 0 : roundedAccrued;
-        const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction - fitpassDeduction) * 100) / 100;
+        const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - fitpassDeduction - insuranceDeduction) * 100) / 100;
 
         return {
           employee: emp,
@@ -265,7 +269,7 @@ router.get('/', async (req, res) => {
       const dailyRate = totalWorkingDays > 0 ? baseSalary / totalWorkingDays : 0;
       const accruedSalary = Math.round(dailyRate * daysWorked * 100) / 100;
       const effectiveAccrued = isDeferred ? 0 : accruedSalary;
-      const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - insuranceDeduction - fitpassDeduction) * 100) / 100;
+      const netSalary = Math.round((effectiveAccrued + totalAdditions + carryOver - totalDeductions - fitpassDeduction - insuranceDeduction) * 100) / 100;
 
       return {
         employee: { ...emp, salary: baseSalary },

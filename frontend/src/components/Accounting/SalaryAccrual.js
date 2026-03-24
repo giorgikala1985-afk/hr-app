@@ -9,14 +9,13 @@ const COLUMNS = [
   { key: 'firstName',   label: 'Name',          align: 'left',  defaultWidth: 110 },
   { key: 'lastName',    label: 'Last Name',      align: 'left',  defaultWidth: 120 },
   { key: 'netSalary',   label: 'Salary Net',    align: 'right', defaultWidth: 120 },
-  { key: 'bonus',       label: 'Bonus',          align: 'right', defaultWidth: 100 },
-  { key: 'teamBuild',   label: 'Team Building', align: 'right', defaultWidth: 120 },
-  { key: 'reimburse',   label: 'Reimbursement', align: 'right', defaultWidth: 120 },
+  { key: 'adjustment',  label: 'Adjustments',   align: 'left',  defaultWidth: 200 },
   { key: 'fitpass',     label: 'Fitpass',        align: 'right', defaultWidth: 100 },
   { key: 'insurance',   label: 'Insurance',     align: 'right', defaultWidth: 100 },
-  { key: 'totalSum',    label: 'Total Sum',     align: 'right', defaultWidth: 120 },
-  { key: 'grossSalary', label: 'Gross Salary',  align: 'right', defaultWidth: 120 },
   { key: 'pension',     label: 'Pension',        align: 'right', defaultWidth: 100 },
+  { key: 'totalSum',    label: 'Total Sum',     align: 'right', defaultWidth: 120 },
+  { key: 'totalGEL',   label: 'Total GEL',     align: 'right', defaultWidth: 120 },
+  { key: 'grossSalary', label: 'Gross Salary',  align: 'right', defaultWidth: 120 },
 ];
 
 const DEFAULT_WIDTHS = COLUMNS.map(c => c.defaultWidth);
@@ -52,7 +51,7 @@ function calcGross(netSalary, pensionOn) {
   return pensionOn ? net / 0.95 / 0.98 : net / 0.95;
 }
 
-const HARDCODED_UNIT_NAMES = new Set(['Bonus', 'Team Building', 'Reimbursement', 'Fitpass']);
+const HARDCODED_UNIT_NAMES = new Set(['Bonus', 'Team Building', 'Reimbursement', 'Fitpass', 'ფიზკულტურის მასწავლებელი']);
 
 const UNIT_CURRENCIES = [
   { code: 'GEL', symbol: '₾', flag: '🇬🇪' },
@@ -85,9 +84,14 @@ const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: 'var(--text)' };
 function SalaryAccrual() {
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [month, setMonth] = useState(todayMonth());
+  const [accrualDate, setAccrualDate] = useState(() => {
+    const m = todayMonth();
+    try { return localStorage.getItem(`sal_accrual_date_${m}`) || ''; } catch { return ''; }
+  });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [gelRate, setGelRate] = useState(null);
 
   const [unitTypes, setUnitTypes] = useState([]);
   const [overtimeRates, setOvertimeRates] = useState([]);
@@ -99,7 +103,12 @@ function SalaryAccrual() {
   const [visibleCols, setVisibleCols] = useState(() => {
     try {
       const saved = localStorage.getItem(COL_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : COLUMNS.map(c => c.key);
+      if (!saved) return COLUMNS.map(c => c.key);
+      const parsed = JSON.parse(saved);
+      // always include new columns not yet in saved list
+      const allKeys = COLUMNS.map(c => c.key);
+      const newKeys = allKeys.filter(k => !parsed.includes(k));
+      return [...parsed.filter(k => allKeys.includes(k)), ...newKeys];
     } catch { return COLUMNS.map(c => c.key); }
   });
   const [showColChooser, setShowColChooser] = useState(false);
@@ -125,7 +134,14 @@ function SalaryAccrual() {
   }, [visibleCols]);
 
   useEffect(() => { load(month); }, [month]);
+  useEffect(() => {
+    try { setAccrualDate(localStorage.getItem(`sal_accrual_date_${month}`) || ''); } catch {}
+  }, [month]);
   useEffect(() => { loadUnitTypes(); }, []);
+  useEffect(() => {
+    fetch('https://api.exchangerate-api.com/v4/latest/USD')
+      .then(r => r.json()).then(d => { if (d.rates?.GEL) setGelRate(d.rates.GEL); }).catch(() => {});
+  }, []);
 
   const load = async (m) => {
     setLoading(true); setError('');
@@ -203,30 +219,15 @@ function SalaryAccrual() {
   const salaries = data?.salaries || [];
   const active = salaries.filter(r => r.accrued_salary > 0 || r.net_salary > 0 || r.total_additions > 0);
 
-  const totNetSalary = active.reduce((s, r) => s + parseFloat(r.net_salary || 0), 0);
-  const totBonus     = active.reduce((s, r) => s + unitAmt(r.deductions, 'Bonus'), 0);
-  const totTeam      = active.reduce((s, r) => s + unitAmt(r.deductions, 'Team Building'), 0);
-  const totReimburse = active.reduce((s, r) => s + unitAmt(r.deductions, 'Reimbursement'), 0);
+  const totNetSalary = active.reduce((s, r) => s + parseFloat(r.accrued_salary || 0), 0);
   const totFitpass   = active.reduce((s, r) => s + parseFloat(r.fitpass_deduction || 0), 0);
   const totInsurance = active.reduce((s, r) => s + parseFloat(r.insurance_deduction || 0), 0);
-  const totSum       = active.reduce((s, r) => s + parseFloat(r.net_salary || 0), 0);
   const totGross     = active.reduce((s, r) => s + calcGross(r.net_salary, r.employee.pension), 0);
   const totPension   = active.reduce((s, r) => s + (r.employee.pension ? calcGross(r.net_salary, true) * 0.02 : 0), 0);
+  const totSum       = active.reduce((s, r) => s + parseFloat(r.net_salary || 0), 0) - totPension;
 
-  // Dynamic unit columns: any unit type used this month that isn't already a hardcoded column
-  const dynUnitCols = (() => {
-    const map = new Map();
-    active.forEach(r => {
-      (r.deductions || []).forEach(d => {
-        if (!HARDCODED_UNIT_NAMES.has(d.type) && !map.has(d.type)) {
-          const ut = unitTypes.find(u => u.name === d.type);
-          const dir = ut ? ut.direction : (d.type === 'OT' || d.type === 'Overtime' ? 'addition' : 'deduction');
-          map.set(d.type, dir);
-        }
-      });
-    });
-    return Array.from(map.entries()).map(([name, direction]) => ({ name, direction }));
-  })();
+  // Dynamic unit columns: only show unit types that still exist in settings
+  const dynUnitCols = [];
 
   const dr = selectedRow;
   const drEmp = dr?.employee;
@@ -258,12 +259,14 @@ function SalaryAccrual() {
   const footerVal = (key) => {
     switch (key) {
       case 'netSalary':   return { val: moneyTotal(totNetSalary), style: TD_BOLD };
-      case 'bonus':       return { val: moneyTotalSign(totBonus,     'addition'),  cls: 'cell-addition',  style: { ...TD_NUM, fontWeight: 700 } };
-      case 'teamBuild':   return { val: moneyTotalSign(totTeam,      'addition'),  cls: 'cell-addition',  style: { ...TD_NUM, fontWeight: 700 } };
-      case 'reimburse':   return { val: moneyTotalSign(totReimburse, 'addition'),  cls: 'cell-addition',  style: { ...TD_NUM, fontWeight: 700 } };
+      case 'adjustment':  return { val: '', style: TD_NUM };
       case 'fitpass':     return { val: moneyTotalSign(totFitpass,   'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
       case 'insurance':   return { val: moneyTotalSign(totInsurance, 'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
       case 'totalSum':    return { val: moneyTotal(totSum),       style: { ...TD_BOLD, fontSize: 14 } };
+      case 'totalGEL': {
+        const totGEL = gelRate ? Math.round(totSum * gelRate * 100) / 100 : null;
+        return { val: totGEL != null ? `₾${totGEL.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—', style: { ...TD_BOLD, fontSize: 14, color: '#f59e0b' } };
+      }
       case 'grossSalary': return { val: moneyTotal(totGross),     style: { ...TD_BOLD, fontSize: 14, color: '#3b82f6' } };
       case 'pension':     return { val: moneyTotal(totPension),   style: { ...TD_NUM, color: '#8b5cf6', fontWeight: 700 } };
       default:            return { val: '', style: TD_NUM };
@@ -272,17 +275,49 @@ function SalaryAccrual() {
 
   const rowVal = (key, r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt) => {
     switch (key) {
-      case 'date':        return <td key={key} style={{ color: 'var(--text-3)', fontSize: 13, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtMonth(month)}</td>;
+      case 'date':        return <td key={key} style={{ color: 'var(--text-3)', fontSize: 13, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{accrualDate || fmtMonth(month)}</td>;
       case 'personalId':  return <td key={key} style={{ fontFamily: FONT_MONO, fontSize: 13, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.personal_id || '—'}</td>;
       case 'firstName':   return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.first_name}</td>;
       case 'lastName':    return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.last_name}</td>;
-      case 'netSalary':   return <td key={key} style={{ ...TD_BOLD, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(r.net_salary)}</td>;
-      case 'bonus':       return <td key={key} className={bonus > 0 ? 'cell-addition' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(bonus, 'addition')}</td>;
-      case 'teamBuild':   return <td key={key} className={teamBuild > 0 ? 'cell-addition' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(teamBuild, 'addition')}</td>;
-      case 'reimburse':   return <td key={key} className={reimburse > 0 ? 'cell-addition' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(reimburse, 'addition')}</td>;
+      case 'netSalary':   return <td key={key} style={{ ...TD_BOLD, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(r.accrued_salary)}</td>;
+      case 'adjustment': {
+        const units = (r.deductions || []).filter(u => {
+          const ut = unitTypes.find(t => t.name === u.type);
+          return ut != null;
+        });
+        if (units.length === 0) return <td key={key} style={{ ...TD_NUM, color: 'var(--text-4)' }}>—</td>;
+        return (
+          <td key={key} style={{ padding: '6px 10px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {units.map((u, i) => {
+                const ut = unitTypes.find(t => t.name === u.type);
+                const isAdd = ut?.direction === 'addition';
+                const sym = currSymbol(u.currency || 'GEL');
+                return (
+                  <span key={i} title={`${u.type}: ${isAdd ? '+' : '-'}${sym}${parseFloat(u.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    padding: '2px 7px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+                    background: isAdd ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)',
+                    color: isAdd ? '#4ade80' : '#f87171',
+                    border: `1px solid ${isAdd ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}`,
+                    whiteSpace: 'nowrap', cursor: 'default',
+                  }}>
+                    {isAdd ? '+' : '-'}{sym}{parseFloat(u.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </span>
+                );
+              })}
+            </div>
+          </td>
+        );
+      }
       case 'fitpass':     return <td key={key} className={fitpass > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(fitpass, 'deduction')}</td>;
       case 'insurance':   return <td key={key} className={insurance > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(insurance, 'deduction')}</td>;
-      case 'totalSum':    return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(r.net_salary)}</td>;
+      case 'totalSum':    return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(parseFloat(r.net_salary || 0) - pensionAmt)}</td>;
+      case 'totalGEL': {
+        const netAfterPension = parseFloat(r.net_salary || 0) - pensionAmt;
+        const gel = gelRate ? Math.round(netAfterPension * gelRate * 100) / 100 : null;
+        return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#f59e0b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{gel != null ? `₾${gel.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>;
+      }
       case 'grossSalary': return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#3b82f6', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(grossSalary)}</td>;
       case 'pension':     return <td key={key} style={{ ...TD_NUM, color: emp.pension ? '#8b5cf6' : 'var(--text-4)', fontWeight: emp.pension ? 700 : 400, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.pension ? moneyTotal(pensionAmt) : '—'}</td>;
       default:            return null;
@@ -299,9 +334,7 @@ function SalaryAccrual() {
     // Data rows
     const rows = active.map(r => {
       const emp        = r.employee;
-      const bonus      = unitAmt(r.deductions, 'Bonus');
-      const teamBuild  = unitAmt(r.deductions, 'Team Building');
-      const reimburse  = unitAmt(r.deductions, 'Reimbursement');
+
       const fitpass    = parseFloat(r.fitpass_deduction || 0);
       const insurance  = parseFloat(r.insurance_deduction || 0);
       const grossSalary = calcGross(r.net_salary, emp.pension);
@@ -309,17 +342,16 @@ function SalaryAccrual() {
       const rowData = [];
       visColsMain.forEach(col => {
         switch (col.key) {
-          case 'date':        rowData.push(fmtMonth(month)); break;
+          case 'date':        rowData.push(accrualDate || fmtMonth(month)); break;
           case 'personalId':  rowData.push(emp.personal_id || ''); break;
           case 'firstName':   rowData.push(emp.first_name); break;
           case 'lastName':    rowData.push(emp.last_name); break;
-          case 'netSalary':   rowData.push(parseFloat(r.net_salary || 0)); break;
-          case 'bonus':       rowData.push(bonus || ''); break;
-          case 'teamBuild':   rowData.push(teamBuild || ''); break;
-          case 'reimburse':   rowData.push(reimburse || ''); break;
+          case 'netSalary':   rowData.push(parseFloat(r.accrued_salary || 0)); break;
+          case 'adjustment':  rowData.push((r.deductions || []).filter(u => unitTypes.find(t => t.name === u.type)).map(u => { const ut = unitTypes.find(t => t.name === u.type); return `${ut?.direction === 'addition' ? '+' : '-'}${u.type}`; }).join(', ')); break;
           case 'fitpass':     rowData.push(fitpass || ''); break;
           case 'insurance':   rowData.push(insurance || ''); break;
-          case 'totalSum':    rowData.push(parseFloat(r.net_salary || 0)); break;
+          case 'totalSum':    rowData.push(parseFloat(r.net_salary || 0) - pensionAmt); break;
+          case 'totalGEL':    rowData.push(gelRate ? Math.round((parseFloat(r.net_salary || 0) - pensionAmt) * gelRate * 100) / 100 : ''); break;
           case 'pension':     rowData.push(emp.pension ? pensionAmt : ''); break;
           default:            rowData.push('');
         }
@@ -338,9 +370,6 @@ function SalaryAccrual() {
         case 'firstName':   totalsRow.push(''); break;
         case 'lastName':    totalsRow.push(''); break;
         case 'netSalary':   totalsRow.push(totNetSalary); break;
-        case 'bonus':       totalsRow.push(totBonus); break;
-        case 'teamBuild':   totalsRow.push(totTeam); break;
-        case 'reimburse':   totalsRow.push(totReimburse); break;
         case 'fitpass':     totalsRow.push(totFitpass); break;
         case 'insurance':   totalsRow.push(totInsurance); break;
         case 'totalSum':    totalsRow.push(totSum); break;
@@ -374,6 +403,24 @@ function SalaryAccrual() {
         <button className="sa-arrow" onClick={() => setMonth(nextMonth(month))}>›</button>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="sa-month-input" />
         {data && <span className="sa-meta">{data.working_days} working days · {data.holidays_count} holidays</span>}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 12 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>Accrual Date:</span>
+          <input
+            type="text"
+            placeholder="e.g. 31.03.2026"
+            value={accrualDate}
+            onChange={e => {
+              const val = e.target.value;
+              setAccrualDate(val);
+              try { localStorage.setItem(`sal_accrual_date_${month}`, val); } catch {}
+            }}
+            style={{
+              padding: '4px 8px', fontSize: 12, borderRadius: 6,
+              border: '1.5px solid var(--border-2)', background: 'var(--surface)',
+              color: 'var(--text)', fontFamily: FONT_MONO, width: 110,
+            }}
+          />
+        </span>
       </div>
 
       {/* Summary cards */}
@@ -386,10 +433,6 @@ function SalaryAccrual() {
           <div className="acc-summary-card">
             <span className="acc-summary-label">Net Payroll</span>
             <span className="acc-summary-value">{moneyTotal(totNetSalary)}</span>
-          </div>
-          <div className="acc-summary-card">
-            <span className="acc-summary-label">Total Bonus</span>
-            <span className="acc-summary-value green">{moneyTotal(totBonus)}</span>
           </div>
           {totFitpass > 0 && (
             <div className="acc-summary-card">

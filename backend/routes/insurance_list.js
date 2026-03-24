@@ -31,7 +31,8 @@ router.post('/bulk', async (req, res) => {
       personal_id: String(r.personal_id).trim(),
       amount1: parseFloat(r.amount1),
       amount2: r.amount2 ? parseFloat(r.amount2) : null,
-      date: r.date,
+      date: r.date || null,
+      period: r.period || null,
     }));
     const { data, error } = await supabase.from('insurance_list').insert(rows).select();
     if (error) throw error;

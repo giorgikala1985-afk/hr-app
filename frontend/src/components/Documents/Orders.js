@@ -169,6 +169,7 @@ export default function Orders() {
         type: form.type,
         amount: amountUSD,
         date: monthLastDay,
+        currency: 'USD',
       });
       setShowForm(false);
       setForm(EMPTY_FORM);
@@ -204,6 +205,7 @@ export default function Orders() {
       await api.put(`/employees/${editingUnit.employeeId}/units/${editingUnit.id}`, {
         type: form.type,
         amount: amountUSD,
+        currency: 'USD',
       });
       setShowForm(false);
       setForm(EMPTY_FORM);
@@ -241,7 +243,7 @@ export default function Orders() {
 
   // ── Render ───────────────────────────────────────────────────
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 960 }}>
+    <div style={{ padding: '28px 32px', maxWidth: 1400 }}>
 
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
@@ -331,7 +333,18 @@ export default function Orders() {
           <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '56px 0', fontSize: 13 }}>Loading orders…</div>
         ) : filteredUnits.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '64px 24px' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+            <div style={{ marginBottom: 16 }}>
+              <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="10" y="6" width="28" height="36" rx="4" stroke="var(--text-3)" strokeWidth="2" opacity="0.5"/>
+                <rect x="10" y="6" width="28" height="10" rx="4" fill="var(--text-3)" opacity="0.12"/>
+                <line x1="17" y1="24" x2="31" y2="24" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" opacity="0.35"/>
+                <line x1="17" y1="30" x2="27" y2="30" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" opacity="0.25"/>
+                <line x1="17" y1="36" x2="24" y2="36" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" opacity="0.15"/>
+                <circle cx="36" cy="36" r="9" fill="var(--surface)" stroke="var(--text-3)" strokeWidth="2" opacity="0.5"/>
+                <line x1="36" y1="32" x2="36" y2="40" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+                <line x1="32" y1="36" x2="40" y2="36" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+              </svg>
+            </div>
             <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>No orders for {monthLabel}</div>
             <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>Click "Add New Order" to create the first one.</div>
             <button
@@ -345,7 +358,7 @@ export default function Orders() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {[['Employee', false], ['Type', false], ['Direction', false], ['Amount', true], ['Date', true], ['', true], ['', true]].map(([h, right], i) => (
+                {[['Employee', false], ['Type', false], ['Direction', false], ['Amount', true], ['Date', true], ['Created', true], ['Modified', true], ['', true], ['', true]].map(([h, right], i) => (
                   <th key={i} style={{ padding: '11px 16px', textAlign: right ? 'right' : 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>
                     {h}
                   </th>
@@ -393,6 +406,16 @@ export default function Orders() {
                   {/* Date */}
                   <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-3)', fontSize: 12 }}>
                     {u.date}
+                  </td>
+
+                  {/* Created */}
+                  <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-4)', fontSize: 11 }}>
+                    {u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                  </td>
+
+                  {/* Modified */}
+                  <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-4)', fontSize: 11 }}>
+                    {u.updated_at && u.updated_at !== u.created_at ? new Date(u.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                   </td>
 
                   {/* Actions */}

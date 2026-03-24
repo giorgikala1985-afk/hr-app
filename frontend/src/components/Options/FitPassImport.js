@@ -30,6 +30,8 @@ function FitPassImport() {
   const [editForm, setEditForm] = useState({});
   const [search, setSearch] = useState('');
   const [filterPeriod, setFilterPeriod] = useState('');
+  const [applyDate, setApplyDate] = useState('');
+  const [expandedDates, setExpandedDates] = useState(new Set());
 
   useEffect(() => { loadRecords(); }, []);
 
@@ -270,6 +272,25 @@ function FitPassImport() {
                     {invalidCount > 0 && <span style={{ padding: '3px 12px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 12, border: '1px solid #fca5a5' }}>{invalidCount} invalid</span>}
                     <span style={{ padding: '3px 12px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-3)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border-2)' }}>{rows.length} total</span>
                   </div>
+                  {/* Apply date to all */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border-2)' }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>Apply date to all entries:</span>
+                    <input type="date" value={applyDate} onChange={e => setApplyDate(e.target.value)}
+                      style={{ padding: '5px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, fontFamily: 'inherit', outline: 'none', background: 'var(--surface)', color: 'var(--text)' }} />
+                    <button onClick={() => {
+                      if (!applyDate) return;
+                      setRows(prev => prev.map(r => ({ ...r, period: applyDate })));
+                    }} disabled={!applyDate} style={{
+                      padding: '5px 14px', background: applyDate ? ACCENT : 'var(--surface-3)', color: applyDate ? '#fff' : 'var(--text-4)',
+                      border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 12, cursor: applyDate ? 'pointer' : 'not-allowed', fontFamily: 'inherit', transition: 'all 0.15s',
+                    }}>Apply to all</button>
+                    {applyDate && <button onClick={() => setApplyDate('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', fontSize: 11, fontFamily: 'inherit', padding: '4px 6px' }}>✕ Clear</button>}
+                  </div>
+
                   <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)', marginBottom: 16 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                       <thead>
@@ -361,70 +382,140 @@ function FitPassImport() {
               </div>
             ) : filteredRecords.length === 0 ? (
               <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-4)', fontSize: 14 }}>No records match your search.</div>
-            ) : (
-              <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)' }}>
-                <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
-                  <colgroup>{colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
-                  <thead>
-                    <tr style={{ background: 'var(--surface-2)' }}>
-                      {[['Name', 0], ['Last Name', 1], ['ID', 2], ['Amount', 3], ['Period', 4], ['Note', 5], ['', 6]].map(([label, idx]) => (
-                        <th key={idx} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)', position: 'relative', width: colWidths[idx], overflow: 'hidden' }}>
-                          {label}
-                          <div onMouseDown={e => onResizeMouseDown(e, idx)} style={RESIZE_HANDLE_STYLE}
-                            onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map((rec, i) => (
-                      <tr key={rec.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                        {editId === rec.id ? (
-                          <>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.personal_id} onChange={e => setEditForm({ ...editForm, personal_id: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="date" value={editForm.period} onChange={e => setEditForm({ ...editForm, period: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.note} onChange={e => setEditForm({ ...editForm, note: e.target.value })} /></td>
-                            <td style={{ padding: '6px 8px', display: 'flex', gap: 6 }}>
-                              <button onClick={handleUpdate} style={{ padding: '5px 10px', background: ACCENT, color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
-                              <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
-                            </td>
-                          </>
-                        ) : (
-                          <>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
-                              {search ? <Highlight text={rec.name} query={search} /> : rec.name}
-                            </td>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
-                              {search ? <Highlight text={rec.last_name} query={search} /> : rec.last_name}
-                            </td>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)' }}>
-                              {search ? <Highlight text={rec.personal_id} query={search} /> : rec.personal_id}
-                            </td>
-                            <td style={{ padding: '8px 10px', color: 'var(--text)', fontWeight: 600 }}>{rec.amount}</td>
-                            <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.period || '—'}</td>
-                            <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)' }}>{rec.note || '—'}</td>
-                            <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
-                              <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = ACCENT} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                              </button>
-                              <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                              </button>
-                            </td>
-                          </>
+            ) : (() => {
+              const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+              const fmtMonthKey = (key) => {
+                const m = key.match(/^(\d{4})-(\d{2})$/);
+                if (m) return `${MONTH_NAMES[parseInt(m[2], 10) - 1]} ${m[1]}`;
+                return key;
+              };
+              const groups = {};
+              filteredRecords.forEach(rec => {
+                const raw = rec.period || rec.date || '';
+                const key = raw ? raw.slice(0, 7) : '—';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(rec);
+              });
+              const sortedKeys = Object.keys(groups).sort((a, b) => b.localeCompare(a));
+              const toggleDate = (d) => setExpandedDates(prev => {
+                const next = new Set(prev);
+                next.has(d) ? next.delete(d) : next.add(d);
+                return next;
+              });
+              const deleteGroup = async (groupRecs) => {
+                if (!window.confirm(`Delete all ${groupRecs.length} records in this period?`)) return;
+                try {
+                  await Promise.all(groupRecs.map(r => api.delete(`/fitpass-list/${r.id}`)));
+                  loadRecords();
+                } catch { setError('Failed to delete some records.'); }
+              };
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {sortedKeys.map(dateKey => {
+                    const isOpen = expandedDates.has(dateKey);
+                    const groupRecs = groups[dateKey];
+                    return (
+                      <div key={dateKey} style={{ borderRadius: 10, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+                        {/* Group header */}
+                        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', background: 'var(--surface-2)', borderBottom: isOpen ? '1px solid var(--border-2)' : 'none' }}>
+                          <button onClick={() => toggleDate(dateKey)} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flex: 1, fontFamily: 'inherit', textAlign: 'left' }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                              style={{ transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s', flexShrink: 0 }}>
+                              <polyline points="9,18 15,12 9,6"/>
+                            </svg>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text)' }}>{fmtMonthKey(dateKey)}</span>
+                            <span style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>{groupRecs.length} records</span>
+                          </button>
+                          <button onClick={() => deleteGroup(groupRecs)} title="Delete all in this period" style={{
+                            background: 'none', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer',
+                            color: '#ef4444', padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5,
+                            fontSize: 11, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s',
+                          }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#fef2f2'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                              <path d="M10 11v6"/><path d="M14 11v6"/>
+                            </svg>
+                            Delete all
+                          </button>
+                        </div>
+
+                        {/* Expanded table */}
+                        {isOpen && (
+                          <div style={{ overflowX: 'auto' }}>
+                            <table style={{ borderCollapse: 'collapse', fontSize: 12, tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+                              <colgroup>{colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+                              <thead>
+                                <tr style={{ background: 'var(--surface-2)' }}>
+                                  {[['Name', 0], ['Last Name', 1], ['ID', 2], ['Amount', 3], ['Period', 4], ['Note', 5], ['', 6]].map(([label, idx]) => (
+                                    <th key={idx} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)', position: 'relative', width: colWidths[idx], overflow: 'hidden' }}>
+                                      {label}
+                                      <div onMouseDown={e => onResizeMouseDown(e, idx)} style={RESIZE_HANDLE_STYLE}
+                                        onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
+                                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
+                                    </th>
+                                  ))}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {groupRecs.map((rec, i) => (
+                                  <tr key={rec.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
+                                    {editId === rec.id ? (
+                                      <>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.last_name} onChange={e => setEditForm({ ...editForm, last_name: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.personal_id} onChange={e => setEditForm({ ...editForm, personal_id: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="number" value={editForm.amount} onChange={e => setEditForm({ ...editForm, amount: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} type="date" value={editForm.period} onChange={e => setEditForm({ ...editForm, period: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', overflow: 'hidden' }}><input style={INPUT_STYLE} value={editForm.note} onChange={e => setEditForm({ ...editForm, note: e.target.value })} /></td>
+                                        <td style={{ padding: '6px 8px', display: 'flex', gap: 6 }}>
+                                          <button onClick={handleUpdate} style={{ padding: '5px 10px', background: ACCENT, color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
+                                          <button onClick={() => setEditId(null)} style={{ padding: '5px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                                        </td>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
+                                          {search ? <Highlight text={rec.name} query={search} /> : rec.name}
+                                        </td>
+                                        <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text)' }}>
+                                          {search ? <Highlight text={rec.last_name} query={search} /> : rec.last_name}
+                                        </td>
+                                        <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)' }}>
+                                          {search ? <Highlight text={rec.personal_id} query={search} /> : rec.personal_id}
+                                        </td>
+                                        <td style={{ padding: '8px 10px', color: 'var(--text)', fontWeight: 600 }}>{rec.amount}</td>
+                                        <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.period || '—'}</td>
+                                        <td style={{ padding: '8px 10px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)' }}>{rec.note || '—'}</td>
+                                        <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
+                                          <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                            onMouseEnter={e => e.currentTarget.style.color = ACCENT} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                          </button>
+                                          <button onClick={() => handleDelete(rec.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
+                                            onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>
+                                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                                          </button>
+                                        </td>
+                                      </>
+                                    )}
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
                         )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
         )}
 
