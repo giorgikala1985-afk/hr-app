@@ -20,7 +20,7 @@ const TABS = [
       <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   )},
-  { key: 'agents', label: 'Agents', icon: (
+  { key: 'agents', label: 'Coagents', icon: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="7" width="20" height="14" rx="2"/>
       <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
@@ -123,7 +123,7 @@ function DocumentsPage() {
         {activeTab === 'importdata' && (
           <div>
             <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-              {[{ key: 'employees', label: 'Import Employees' }, { key: 'insurance', label: 'Insurance Import' }, { key: 'agents', label: 'Import Agents' }, { key: 'fitpass', label: 'FitPass' }].map(tab => (
+              {[{ key: 'employees', label: 'Import Employees' }, { key: 'insurance', label: 'Insurance Import' }, { key: 'agents', label: 'Import Coagents' }, { key: 'fitpass', label: 'FitPass' }].map(tab => (
                 <button key={tab.key} onClick={() => setImportView(tab.key)} style={{
                   padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
                   background: importView === tab.key ? 'var(--surface)' : 'transparent',

@@ -156,7 +156,7 @@ function AgentsImport() {
             </svg>
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Import Agents</div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Import Coagents</div>
             <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 1 }}>Bulk import agent records from an Excel file</div>
           </div>
           <div style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', background: 'var(--surface-3)', borderRadius: 20, padding: '3px 10px' }}>
@@ -168,7 +168,7 @@ function AgentsImport() {
         <div style={{ padding: '12px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface)' }}>
           <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
             {[
-              { key: 'import', label: 'Import Agents' },
+              { key: 'import', label: 'Import Coagents' },
               { key: 'records', label: `Saved Records${records.length ? ` (${records.length})` : ''}` },
             ].map(tab => (
               <button key={tab.key} onClick={() => setSubTab(tab.key)} style={{

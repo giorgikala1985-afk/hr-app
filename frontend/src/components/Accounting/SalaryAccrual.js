@@ -81,7 +81,7 @@ const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", "Fira Mono", Menlo,
 const TD_NUM = { textAlign: 'right', fontFamily: FONT_MONO, fontSize: 13, padding: '11px 14px' };
 const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: 'var(--text)' };
 
-function SalaryAccrual() {
+function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [month, setMonth] = useState(todayMonth());
   const [accrualDate, setAccrualDate] = useState(() => {
@@ -99,6 +99,9 @@ function SalaryAccrual() {
   const [unitForm, setUnitForm] = useState({ type: '', amount: '', otRate: '', otHours: '', currency: 'GEL' });
   const [savingUnit, setSavingUnit] = useState(false);
   const [unitDropdownOpen, setUnitDropdownOpen] = useState(false);
+  const [transferDate, setTransferDate] = useState('');
+  const [transferRate, setTransferRate] = useState(null);
+  const [loadingRate, setLoadingRate] = useState(false);
 
   const [visibleCols, setVisibleCols] = useState(() => {
     try {
@@ -133,7 +136,10 @@ function SalaryAccrual() {
     localStorage.setItem(COL_STORAGE_KEY, JSON.stringify(visibleCols));
   }, [visibleCols]);
 
-  useEffect(() => { load(month); }, [month]);
+  useEffect(() => {
+    load(month); setTransferDate(''); setTransferRate(null);
+    if (onMonthChange) onMonthChange(month);
+  }, [month]);
   useEffect(() => {
     try { setAccrualDate(localStorage.getItem(`sal_accrual_date_${month}`) || ''); } catch {}
   }, [month]);
@@ -142,6 +148,20 @@ function SalaryAccrual() {
     fetch('https://api.exchangerate-api.com/v4/latest/USD')
       .then(r => r.json()).then(d => { if (d.rates?.GEL) setGelRate(d.rates.GEL); }).catch(() => {});
   }, []);
+  useEffect(() => {
+    if (!transferDate) { setTransferRate(null); return; }
+    setLoadingRate(true);
+    fetch(`https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/?date=${transferDate}&lang=en`)
+      .then(r => r.json())
+      .then(json => {
+        const list = json?.[0]?.currencies || [];
+        const usd = list.find(c => c.code === 'USD');
+        if (usd) setTransferRate(usd.rate / (usd.quantity || 1));
+        else setTransferRate(null);
+      })
+      .catch(() => setTransferRate(null))
+      .finally(() => setLoadingRate(false));
+  }, [transferDate]);
 
   const load = async (m) => {
     setLoading(true); setError('');
@@ -283,7 +303,7 @@ function SalaryAccrual() {
       case 'adjustment': {
         const units = (r.deductions || []).filter(u => {
           const ut = unitTypes.find(t => t.name === u.type);
-          return ut != null;
+          return ut != null && u.include_in_salary !== false;
         });
         if (units.length === 0) return <td key={key} style={{ ...TD_NUM, color: 'var(--text-4)' }}>—</td>;
         return (
@@ -423,8 +443,90 @@ function SalaryAccrual() {
         </span>
       </div>
 
-      {/* Summary cards */}
-      {data && (
+      {/* Transfer date + Summary cards in one row */}
+      {data && active.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+          {/* Transfer date block */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 9, border: '1px solid var(--border-2)', flexWrap: 'wrap' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>Transfer date:</span>
+            <input
+              type="date"
+              value={transferDate}
+              onChange={e => setTransferDate(e.target.value)}
+              style={{ padding: '5px 8px', fontSize: 12, borderRadius: 6, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', outline: 'none' }}
+            />
+            {transferDate && (
+              loadingRate
+                ? <span style={{ fontSize: 11, color: 'var(--text-4)', fontFamily: FONT_MONO }}>fetching rate…</span>
+                : transferRate
+                  ? <span style={{ fontSize: 12, fontFamily: FONT_MONO, color: '#f59e0b', fontWeight: 700 }}>1 USD = ₾{transferRate.toFixed(4)}</span>
+                  : <span style={{ fontSize: 11, color: '#ef4444' }}>Rate unavailable</span>
+            )}
+            <button
+              onClick={() => {
+                if (!onCreateSalaryFile) return;
+                const rate = transferRate || gelRate || 1;
+                const rows = active.map(r => {
+                  const emp = r.employee;
+                  const grossSal = calcGross(r.net_salary, emp.pension);
+                  const pensionAmt = emp.pension ? grossSal * 0.02 : 0;
+                  const amountUSD = Math.round((parseFloat(r.net_salary || 0) - pensionAmt) * 100) / 100;
+                  const amountGEL = Math.round(amountUSD * rate * 100) / 100;
+                  return {
+                    first_name: emp.first_name,
+                    last_name: emp.last_name,
+                    iban: emp.account_number || '',
+                    amount: amountGEL,
+                    description: `Salary ${fmtMonth(month)}`,
+                  };
+                });
+                onCreateSalaryFile({ transferDate, month, rate, rows });
+              }}
+              disabled={!transferDate || loadingRate || loading}
+              style={{
+                padding: '6px 16px', background: (transferDate && !loadingRate && !loading) ? '#8b5cf6' : 'var(--surface-3)',
+                color: (transferDate && !loadingRate && !loading) ? '#fff' : 'var(--text-4)',
+                border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 12,
+                cursor: (transferDate && !loadingRate && !loading) ? 'pointer' : 'not-allowed', fontFamily: 'inherit', transition: 'all 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Create Salary File
+            </button>
+          </div>
+
+          {/* Summary cards — compact, inline with transfer date */}
+          <div className="acc-summary" style={{ margin: 0 }}>
+            <div className="acc-summary-card acc-summary-card--sm">
+              <span className="acc-summary-label">Employees</span>
+              <span className="acc-summary-value acc-summary-value--sm">{active.length}</span>
+            </div>
+            <div className="acc-summary-card acc-summary-card--sm">
+              <span className="acc-summary-label">Net Payroll</span>
+              <span className="acc-summary-value acc-summary-value--sm">{moneyTotal(totNetSalary)}</span>
+            </div>
+            {totFitpass > 0 && (
+              <div className="acc-summary-card acc-summary-card--sm">
+                <span className="acc-summary-label">Total Fitpass</span>
+                <span className="acc-summary-value acc-summary-value--sm red">{moneyTotal(totFitpass)}</span>
+              </div>
+            )}
+            {totInsurance > 0 && (
+              <div className="acc-summary-card acc-summary-card--sm">
+                <span className="acc-summary-label">Total Insurance</span>
+                <span className="acc-summary-value acc-summary-value--sm red">{moneyTotal(totInsurance)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Summary cards for when transfer date block is hidden */}
+      {data && active.length === 0 && (
         <div className="acc-summary">
           <div className="acc-summary-card">
             <span className="acc-summary-label">Employees</span>
@@ -434,18 +536,6 @@ function SalaryAccrual() {
             <span className="acc-summary-label">Net Payroll</span>
             <span className="acc-summary-value">{moneyTotal(totNetSalary)}</span>
           </div>
-          {totFitpass > 0 && (
-            <div className="acc-summary-card">
-              <span className="acc-summary-label">Total Fitpass</span>
-              <span className="acc-summary-value red">{moneyTotal(totFitpass)}</span>
-            </div>
-          )}
-          {totInsurance > 0 && (
-            <div className="acc-summary-card">
-              <span className="acc-summary-label">Total Insurance</span>
-              <span className="acc-summary-value red">{moneyTotal(totInsurance)}</span>
-            </div>
-          )}
         </div>
       )}
 

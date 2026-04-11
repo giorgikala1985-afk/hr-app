@@ -17,7 +17,7 @@ const TYPE_COLORS = {
 };
 
 const COLS = [
-  { label: 'Agent Name', key: 'name',           type: 'text' },
+  { label: 'Coagent Name', key: 'name',           type: 'text' },
   { label: 'Type',       key: 'type',            type: 'text' },
   { label: 'Date Added', key: 'add_date',        type: 'date' },
   { label: 'Account №',  key: 'account_number',  type: 'text' },
@@ -65,7 +65,7 @@ function Agents() {
   const openEdit = r => { setForm({ name: r.name || '', type: r.type || 'LLC', add_date: r.add_date || '', account_number: r.account_number || '', address: r.address || '', phone: r.phone || '' }); setEditId(r.id); setShowForm(true); setError(''); };
 
   const handleSave = async () => {
-    if (!form.name) { setError('Agent name is required.'); return; }
+    if (!form.name) { setError('Coagent name is required.'); return; }
     setSaving(true); setError('');
     try {
       if (editId) await api.put(`/accounting/agents/${editId}`, form);
@@ -94,8 +94,8 @@ function Agents() {
 
   return (
     <div>
-      <h2>Agents</h2>
-      <p className="acc-subtitle">Manage counterparty agents — companies and individuals you work with.</p>
+      <h2>Coagents</h2>
+      <p className="acc-subtitle">Manage counterparty coagents — companies and individuals you work with.</p>
 
       <div className="acc-summary">
         <div className="acc-summary-card">
@@ -124,7 +124,7 @@ function Agents() {
           </button>
           <button className="btn-add" onClick={openNew}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Agent
+            Add Coagent
           </button>
         </div>
       </div>
@@ -184,10 +184,10 @@ function Agents() {
       {showForm && (
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={e => e.stopPropagation()}>
-            <h3>{editId ? 'Edit Agent' : 'New Agent'}</h3>
+            <h3>{editId ? 'Edit Coagent' : 'New Coagent'}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="acc-form-grid">
-              <div className="acc-form-group full"><label>Agent Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Acme Corp" /></div>
+              <div className="acc-form-group full"><label>Coagent Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Acme Corp" /></div>
               <div className="acc-form-group"><label>Type</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>{AGENT_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
               <div className="acc-form-group"><label>Date Added</label><input type="date" value={form.add_date} onChange={e => setForm({ ...form, add_date: e.target.value })} /></div>
               <div className="acc-form-group full"><label>Account Number</label><input value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} placeholder="e.g. GE00TB0000000000001234" /></div>
@@ -196,7 +196,7 @@ function Agents() {
             </div>
             <div className="acc-modal-actions">
               <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Agent'}</button>
+              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Coagent'}</button>
             </div>
           </div>
         </div>

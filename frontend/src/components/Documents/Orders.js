@@ -28,7 +28,316 @@ function fmt(val) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 }
 
+const ORDER_SUBTABS = [
+  { key: 'adjusting', label: 'Adjusting' },
+  { key: 'promotion', label: 'Promotion' },
+  { key: 'hiring',    label: 'Hiring'    },
+  { key: 'firing',    label: 'Firing'    },
+];
+
+// ── Shared helpers ───────────────────────────────────────────────────────────
+function useLocalOrders(key) {
+  const [orders, setOrders] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+  });
+  const save = (next) => { setOrders(next); localStorage.setItem(key, JSON.stringify(next)); };
+  const add = (row) => save([{ id: Date.now(), createdAt: new Date().toISOString(), ...row }, ...orders]);
+  const update = (id, row) => save(orders.map(o => o.id === id ? { ...o, ...row } : o));
+  const remove = (id) => save(orders.filter(o => o.id !== id));
+  return { orders, add, update, remove };
+}
+
+function SubTabModal({ title, onClose, children }) {
+  return (
+    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+        <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-2)' }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>{title}</div>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        </div>
+        <div style={{ padding: 24 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function SubTabActions({ onSave, onCancel, saving, disabled }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+      <button type="button" onClick={onCancel} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+      <button type="submit" disabled={saving || disabled} style={{ padding: '9px 24px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 13, background: saving || disabled ? 'var(--surface-2)' : 'var(--accent,#3b82f6)', color: saving || disabled ? 'var(--text-3)' : '#fff', cursor: saving || disabled ? 'not-allowed' : 'pointer' }}>
+        {saving ? 'Saving…' : 'Save'}
+      </button>
+    </div>
+  );
+}
+
+function EmptyState({ label, onAdd }) {
+  return (
+    <div style={{ textAlign: 'center', padding: '64px 24px' }}>
+      <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>No {label} orders yet</div>
+      <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>Click "Add New Order" to create the first one.</div>
+      <button onClick={onAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+    </div>
+  );
+}
+
+// ── Promotion Tab ─────────────────────────────────────────────────────────────
+function PromotionTab({ employees }) {
+  const { orders, add, update, remove } = useLocalOrders('hr_promotion_orders');
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const EMPTY = { employeeId: '', newPosition: '', oldSalary: '', newSalary: '', effectiveDate: '', notes: '' };
+  const [form, setForm] = useState(EMPTY);
+  const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
+  const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); };
+  const close = () => { setShowForm(false); setEditing(null); };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const emp = employees.find(x => x.id === form.employeeId);
+    const row = { ...form, empName: emp ? `${emp.first_name} ${emp.last_name}` : '', oldPosition: emp?.position || '' };
+    editing ? update(editing, row) : add(row);
+    close();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+      </div>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
+        {orders.length === 0 ? <EmptyState label="promotion" onAdd={openAdd} /> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {['Date', 'Employee', 'Old Position', 'New Position', 'Old Salary', 'New Salary', 'Effective Date', 'Notes', ''].map((h, i) => (
+                  <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.oldPosition || '—'}</td>
+                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{o.newPosition}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.oldSalary || '—'}</td>
+                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{o.newSalary}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.effectiveDate}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
+                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
+                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {showForm && (
+        <SubTabModal title={editing ? 'Edit Promotion Order' : 'New Promotion Order'} onClose={close}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div><label style={LABEL}>Employee *</label>
+                <select value={form.employeeId} onChange={f('employeeId')} required style={{ ...INPUT, width: '100%' }}>
+                  <option value="">Select employee…</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div><label style={LABEL}>Old Position</label><input value={form.oldPosition || employees.find(e => e.id === form.employeeId)?.position || ''} readOnly style={{ ...INPUT, width: '100%', opacity: 0.6 }} /></div>
+                <div><label style={LABEL}>New Position *</label><input value={form.newPosition} onChange={f('newPosition')} required style={{ ...INPUT, width: '100%' }} /></div>
+                <div><label style={LABEL}>Old Salary</label><input type="number" value={form.oldSalary} onChange={f('oldSalary')} style={{ ...INPUT, width: '100%' }} /></div>
+                <div><label style={LABEL}>New Salary *</label><input type="number" value={form.newSalary} onChange={f('newSalary')} required style={{ ...INPUT, width: '100%' }} /></div>
+              </div>
+              <div><label style={LABEL}>Effective Date *</label><input type="date" value={form.effectiveDate} onChange={f('effectiveDate')} required style={{ ...INPUT, width: '100%' }} /></div>
+              <div><label style={LABEL}>Notes</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
+            </div>
+            <SubTabActions onCancel={close} disabled={!form.employeeId || !form.newPosition || !form.newSalary || !form.effectiveDate} />
+          </form>
+        </SubTabModal>
+      )}
+    </div>
+  );
+}
+
+// ── Hiring Tab ────────────────────────────────────────────────────────────────
+function HiringTab() {
+  const { orders, add, update, remove } = useLocalOrders('hr_hiring_orders');
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const EMPTY = { firstName: '', lastName: '', personalId: '', position: '', department: '', startDate: '', salary: '', notes: '' };
+  const [form, setForm] = useState(EMPTY);
+  const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
+  const openEdit = (o) => { setEditing(o.id); setForm({ firstName: o.firstName, lastName: o.lastName, personalId: o.personalId, position: o.position, department: o.department, startDate: o.startDate, salary: o.salary, notes: o.notes || '' }); setShowForm(true); };
+  const close = () => { setShowForm(false); setEditing(null); };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    editing ? update(editing, form) : add(form);
+    close();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+      </div>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
+        {orders.length === 0 ? <EmptyState label="hiring" onAdd={openAdd} /> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {['Date', 'Full Name', 'Personal ID', 'Position', 'Department', 'Start Date', 'Salary', 'Notes', ''].map((h, i) => (
+                  <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.firstName} {o.lastName}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.personalId || '—'}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.position}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.department || '—'}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.startDate}</td>
+                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{o.salary}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
+                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
+                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {showForm && (
+        <SubTabModal title={editing ? 'Edit Hiring Order' : 'New Hiring Order'} onClose={close}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div><label style={LABEL}>First Name *</label><input value={form.firstName} onChange={f('firstName')} required style={{ ...INPUT, width: '100%' }} /></div>
+                <div><label style={LABEL}>Last Name *</label><input value={form.lastName} onChange={f('lastName')} required style={{ ...INPUT, width: '100%' }} /></div>
+                <div><label style={LABEL}>Personal ID</label><input value={form.personalId} onChange={f('personalId')} style={{ ...INPUT, width: '100%' }} /></div>
+                <div><label style={LABEL}>Salary *</label><input type="number" value={form.salary} onChange={f('salary')} required style={{ ...INPUT, width: '100%' }} /></div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div><label style={LABEL}>Position *</label><input value={form.position} onChange={f('position')} required style={{ ...INPUT, width: '100%' }} /></div>
+                <div><label style={LABEL}>Department</label><input value={form.department} onChange={f('department')} style={{ ...INPUT, width: '100%' }} /></div>
+              </div>
+              <div><label style={LABEL}>Start Date *</label><input type="date" value={form.startDate} onChange={f('startDate')} required style={{ ...INPUT, width: '100%' }} /></div>
+              <div><label style={LABEL}>Notes</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
+            </div>
+            <SubTabActions onCancel={close} disabled={!form.firstName || !form.lastName || !form.position || !form.startDate || !form.salary} />
+          </form>
+        </SubTabModal>
+      )}
+    </div>
+  );
+}
+
+// ── Firing Tab ────────────────────────────────────────────────────────────────
+function FiringTab({ employees }) {
+  const { orders, add, update, remove } = useLocalOrders('hr_firing_orders');
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const EMPTY = { employeeId: '', terminationDate: '', reason: '', notes: '' };
+  const [form, setForm] = useState(EMPTY);
+  const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
+  const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, terminationDate: o.terminationDate, reason: o.reason, notes: o.notes || '' }); setShowForm(true); };
+  const close = () => { setShowForm(false); setEditing(null); };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const emp = employees.find(x => x.id === form.employeeId);
+    const row = { ...form, empName: emp ? `${emp.first_name} ${emp.last_name}` : '', position: emp?.position || '' };
+    editing ? update(editing, row) : add(row);
+    close();
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+      </div>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
+        {orders.length === 0 ? <EmptyState label="firing" onAdd={openAdd} /> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {['Date', 'Employee', 'Position', 'Termination Date', 'Reason', 'Notes', ''].map((h, i) => (
+                  <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.position || '—'}</td>
+                  <td style={{ padding: '11px 14px', color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.terminationDate}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.reason}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
+                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
+                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {showForm && (
+        <SubTabModal title={editing ? 'Edit Firing Order' : 'New Firing Order'} onClose={close}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div><label style={LABEL}>Employee *</label>
+                <select value={form.employeeId} onChange={f('employeeId')} required style={{ ...INPUT, width: '100%' }}>
+                  <option value="">Select employee…</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+                </select>
+              </div>
+              <div><label style={LABEL}>Termination Date *</label><input type="date" value={form.terminationDate} onChange={f('terminationDate')} required style={{ ...INPUT, width: '100%' }} /></div>
+              <div><label style={LABEL}>Reason *</label><input value={form.reason} onChange={f('reason')} required style={{ ...INPUT, width: '100%' }} /></div>
+              <div><label style={LABEL}>Notes</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
+            </div>
+            <SubTabActions onCancel={close} disabled={!form.employeeId || !form.terminationDate || !form.reason} />
+          </form>
+        </SubTabModal>
+      )}
+    </div>
+  );
+}
+
+// ── Shared icon/button styles ─────────────────────────────────────────────────
+const actionBtn = { width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-3)', fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' };
+function EditIcon() {
+  return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+}
+
 export default function Orders() {
+  const [subTab, setSubTab] = useState('adjusting');
   const [month, setMonth] = useState(currentMonth);
   const [employees, setEmployees] = useState([]);
   const [unitTypes, setUnitTypes] = useState([]);
@@ -45,7 +354,7 @@ export default function Orders() {
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
-  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '', otHours: '', currency: 'USD' };
+  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '', otHours: '', currency: 'USD', includeInSalary: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
 
@@ -170,7 +479,22 @@ export default function Orders() {
         amount: amountUSD,
         date: monthLastDay,
         currency: 'USD',
+        include_in_salary: form.includeInSalary,
       });
+
+      if (!form.includeInSalary) {
+        const emp = employees.find(e => e.id === form.employeeId);
+        const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
+        await api.post('/accounting/transfers', {
+          client_name: empName,
+          agent_id: null,
+          amount: amountUSD,
+          due_date: monthLastDay,
+          description: `${form.type} — ${empName}`,
+          status: 'normal',
+        });
+      }
+
       setShowForm(false);
       setForm(EMPTY_FORM);
       loadSalaries(month);
@@ -190,6 +514,7 @@ export default function Orders() {
       otRate: '',
       otHours: '',
       currency: 'USD',
+      includeInSalary: u.include_in_salary !== false,
     });
     setError('');
     setShowForm(true);
@@ -206,6 +531,7 @@ export default function Orders() {
         type: form.type,
         amount: amountUSD,
         currency: 'USD',
+        include_in_salary: form.includeInSalary,
       });
       setShowForm(false);
       setForm(EMPTY_FORM);
@@ -253,7 +579,7 @@ export default function Orders() {
             Bonuses, deductions, overtime and adjustments · {monthLabel}
           </p>
         </div>
-        <button
+        {subTab === 'adjusting' && <button
           onClick={() => { setShowForm(true); setError(''); }}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
@@ -269,16 +595,42 @@ export default function Orders() {
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
           Add New Order
-        </button>
+        </button>}
       </div>
 
-      {/* Month picker */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+      {/* Subtabs */}
+      <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content', marginBottom: 24 }}>
+        {ORDER_SUBTABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setSubTab(tab.key)}
+            style={{
+              padding: '7px 22px', border: 'none', borderRadius: 7,
+              fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+              background: subTab === tab.key ? 'var(--surface)' : 'transparent',
+              color: subTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+              boxShadow: subTab === tab.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Non-adjusting tabs */}
+      {subTab === 'promotion' && <PromotionTab employees={employees} />}
+      {subTab === 'hiring'    && <HiringTab />}
+      {subTab === 'firing'    && <FiringTab employees={employees} />}
+
+      {/* Month picker — adjusting only */}
+      {subTab === 'adjusting' && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
         <button onClick={prevMonth} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} style={{ ...INPUT, width: 'auto', padding: '6px 12px', colorScheme: 'dark' }} />
         <button onClick={nextMonth} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
-      </div>
+      </div>}
 
+      {subTab === 'adjusting' && <>
       {/* Summary pills */}
       {allUnits.length > 0 && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
@@ -367,7 +719,7 @@ export default function Orders() {
             </thead>
             <tbody>
               {filteredUnits.map((u, i) => (
-                <tr key={`${u.id}-${i}`} style={{ borderBottom: '1px solid var(--border-2)', transition: 'background 0.1s' }}
+                <tr key={`${u.id}-${i}`} style={{ borderBottom: '1px solid var(--border-2)', transition: 'background 0.1s', opacity: u.include_in_salary === false ? 0.6 : 1 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
@@ -378,6 +730,14 @@ export default function Orders() {
                     </div>
                     {u.employee?.position && (
                       <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{u.employee.position}</div>
+                    )}
+                    {u.include_in_salary === false && (
+                      <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700, marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                        Not in salary
+                      </div>
                     )}
                   </td>
 
@@ -580,6 +940,32 @@ export default function Orders() {
                 </div>
               </div>
 
+              {/* Include in salary toggle */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 18, padding: '12px 14px', borderRadius: 9, border: '1px solid var(--border-2)', background: 'var(--surface-2)' }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>Include in salary calculation</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                    {form.includeInSalary ? 'This order will affect the net salary' : 'This order will not affect the net salary'}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, includeInSalary: !p.includeInSalary }))}
+                  style={{
+                    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                    background: form.includeInSalary ? '#16a34a' : 'var(--border-2)',
+                    position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                  }}
+                >
+                  <span style={{
+                    position: 'absolute', top: 3, left: form.includeInSalary ? 22 : 3,
+                    width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                    transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                    display: 'block',
+                  }} />
+                </button>
+              </div>
+
               {/* Actions */}
               <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowForm(false)}
@@ -613,6 +999,7 @@ export default function Orders() {
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </>}
     </div>
   );
 }

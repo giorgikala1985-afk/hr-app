@@ -680,7 +680,7 @@ const en = {
   'home.selectTabs': 'Select tabs to pin',
   'home.noTabs': 'No pinned tabs. Click Customize to add shortcuts.',
   'home.tab.hr': 'HR',
-  'home.tab.agents': 'Agents',
+  'home.tab.agents': 'Coagents',
   'home.tab.agreements': 'Agreements',
   'home.tab.nbgRates': 'NBG Rates',
   'home.tab.finbot': 'FinBot',

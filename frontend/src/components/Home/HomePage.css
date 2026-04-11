@@ -141,6 +141,14 @@
   flex-shrink: 0;
 }
 
+[data-theme="dark"] .home-pinned-card .home-card-icon,
+[data-theme="light"] .home-pinned-card .home-card-icon,
+.home-pinned-card .home-card-icon,
+.home-section-card .home-card-icon {
+  color: var(--section-color) !important;
+}
+
+
 .home-card-label {
   font-size: 15px;
   font-weight: 600;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import './HomePage.css';
@@ -17,7 +18,7 @@ const ALL_TABS = [
     ),
   },
   {
-    key: 'doc-agents', label: 'Agents', section: 'Documents', route: '/documents?tab=agents',
+    key: 'doc-agents', label: 'Coagents', section: 'Documents', route: '/documents?tab=agents',
     color: '#0891b2', bg: '#f0fdfa',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -222,6 +223,7 @@ const DEFAULT_PINS = ['doc-hr', 'opt-units', 'acc-purchases', 'employees'];
 
 function HomePage() {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const [pinned, setPinned] = useState(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
@@ -311,8 +313,8 @@ function HomePage() {
                           </svg>
                         )}
                       </div>
-                      <div className="home-card-icon" style={{ background: tab.bg, color: tab.color }}>{tab.icon}</div>
-                      <div className="home-card-label">{t(tab.labelKey)}</div>
+                      <div className="home-card-icon" style={{ background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : tab.bg, color: tab.color }}>{tab.icon}</div>
+                      <div className="home-card-label">{tab.label}</div>
                     </button>
                   ))}
                 </div>
@@ -328,9 +330,9 @@ function HomePage() {
         <div className="home-pinned-grid">
           {pinnedTabs.map(tab => (
             <Link key={tab.key} to={tab.route} className="home-pinned-card" style={{ '--section-color': tab.color, '--section-bg': tab.bg }}>
-              <div className="home-card-icon" style={{ background: tab.bg, color: tab.color }}>{tab.icon}</div>
+              <div className="home-card-icon" style={{ background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : tab.bg, color: tab.color }}>{tab.icon}</div>
               <div>
-                <div className="home-card-label">{t(tab.labelKey)}</div>
+                <div className="home-card-label">{tab.label}</div>
                 <div className="home-card-section">{t(tab.section)}</div>
               </div>
               <svg className="home-card-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
