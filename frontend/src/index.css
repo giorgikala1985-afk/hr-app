@@ -1,5 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap');
 
+@font-face {
+  font-family: 'BPGLEStudio02';
+  src: url('../public/fonts/BPGLEStudio02.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  unicode-range: U+10D0-U+10FF, U+2D00-U+2D2F, U+10FB, U+10FC, U+10FD, U+10FE, U+10FF;
+}
+
 /* ── Theme variables ───────────────────────────────────────────── */
 :root {
   --bg:          #f4f6fa;
@@ -42,7 +50,7 @@
 
 body {
   margin: 0;
-  font-family: 'Lexend', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Lexend', 'BPGLEStudio02', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg);

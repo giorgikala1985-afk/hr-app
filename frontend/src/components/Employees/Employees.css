@@ -10,20 +10,23 @@
   align-items: center;
   margin-bottom: 32px;
   gap: 20px;
+  padding-left: 50px;
 }
 
 .emp-header h1 {
-  color: #111827;
-  font-size: 26px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  letter-spacing: -0.3px;
+  color: var(--text);
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin-bottom: 3px;
+  letter-spacing: -0.5px;
+  line-height: 1.15;
 }
 
 .emp-header p {
-  color: #666;
-  font-size: 15px;
+  color: var(--text-3);
+  font-size: 13px;
   margin: 0;
+  font-weight: 400;
 }
 
 .emp-loading {
@@ -318,11 +321,29 @@
   border-radius: 10px;
   border: 1px solid #e5e7eb;
   overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(150,150,150,0.4) transparent;
 }
 
 .emp-table {
   width: 100%;
+  min-width: 1600px;
   border-collapse: collapse;
+}
+
+.emp-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+.emp-table-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.emp-table-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(150,150,150,0.3);
+  border-radius: 3px;
+}
+.emp-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(150,150,150,0.5);
 }
 
 .emp-table thead {
@@ -1144,8 +1165,6 @@ select.col-filter {
 }
 
 /* ==================== DARK THEME ==================== */
-[data-theme="dark"] .emp-header h1 { color: var(--text); }
-[data-theme="dark"] .emp-header p  { color: var(--text-3); }
 [data-theme="dark"] .emp-loading   { color: var(--text-3); }
 
 /* Row selection */
@@ -1213,6 +1232,7 @@ select.col-filter {
 [data-theme="dark"] .emp-table-wrapper {
   background: var(--surface);
   border-color: var(--border-2);
+  scrollbar-color: rgba(200,200,200,0.25) transparent;
 }
 [data-theme="dark"] .emp-table thead { background: var(--surface-2); }
 [data-theme="dark"] .emp-table th {

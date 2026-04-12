@@ -8,6 +8,7 @@ import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import Register from './components/Auth/Register';
 import PrivateRoute from './components/Layout/PrivateRoute';
+import AdminRoute from './components/Layout/AdminRoute';
 import Header from './components/Layout/Header';
 import EmployeeForm from './components/Employees/EmployeeForm';
 import OptionsPage from './components/Options/OptionsPage';
@@ -124,12 +125,12 @@ function App() {
           <Route
             path="/admin"
             element={
-              <PrivateRoute>
+              <AdminRoute>
                 <>
                   <Header />
                   <AdminPage />
                 </>
-              </PrivateRoute>
+              </AdminRoute>
             }
           />
 

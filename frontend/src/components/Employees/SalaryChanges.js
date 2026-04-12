@@ -102,10 +102,6 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
               <input type="number" step="0.01" min="0" value={newSalary} onChange={(e) => setNewSalary(e.target.value)} placeholder="e.g. 500.00" required />
             </div>
             <div className="form-group">
-              <label>{t('sc.newOtRate')}</label>
-              <input type="number" step="0.01" min="0" value={newOvertimeRate} onChange={(e) => setNewOvertimeRate(e.target.value)} placeholder={t('sc.otPlaceholder')} />
-            </div>
-            <div className="form-group">
               <label>{t('sc.effectiveDate')}</label>
               <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} required />
             </div>
