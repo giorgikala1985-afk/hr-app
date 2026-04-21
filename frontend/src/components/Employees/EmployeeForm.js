@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { jsPDF } from 'jspdf';
 import api from '../../services/api';
 import SalaryChanges from './SalaryChanges';
 import AccountChanges from './AccountChanges';
@@ -169,8 +170,11 @@ function EmployeeForm() {
     e.preventDefault();
     setError('');
 
-    if (formData.account_number && formData.account_number.length !== 15) {
-      setError(t('empForm.accountError'));
+    const acctUpper = (formData.account_number || '').toUpperCase();
+    const acctIsTB = acctUpper.includes('TB') || acctUpper.includes('BG');
+    const acctRequiredLen = acctIsTB ? 22 : 15;
+    if (formData.account_number && formData.account_number.length !== acctRequiredLen) {
+      setError(acctIsTB ? 'Account number must be 22 characters for TBC accounts' : t('empForm.accountError'));
       return;
     }
 
@@ -362,13 +366,21 @@ function EmployeeForm() {
                     <input id="end_date" name="end_date" type="date" value={formData.end_date} onChange={handleChange} />
                     <span className="photo-hint">{t('empForm.endDateHint')}</span>
                   </div>
-                  <div className={`form-group ${formData.account_number && formData.account_number.toUpperCase().includes('TB') ? 'acct-field-tb' : formData.account_number && formData.account_number.toUpperCase().includes('BG') ? 'acct-field-bg' : ''}`}>
+                  {(() => {
+                    const acctUp = (formData.account_number || '').toUpperCase();
+                    const isTB = acctUp.includes('TB');
+                    const isBG = acctUp.includes('BG');
+                    const reqLen = (isTB || isBG) ? 22 : 15;
+                    return (
+                  <div className={`form-group ${isTB ? 'acct-field-tb' : formData.account_number && formData.account_number.toUpperCase().includes('BG') ? 'acct-field-bg' : ''}`}>
                     <label htmlFor="account_number">{t('empForm.accountNumber')}</label>
-                    <input id="account_number" name="account_number" type="text" value={formData.account_number} onChange={handleChange} placeholder="e.g. GE29TB7894545082100008" maxLength={15} minLength={15} />
-                    {formData.account_number && formData.account_number.length !== 15 && (
-                      <span className="field-error">{t('empForm.accountChars', { count: formData.account_number.length })}</span>
+                    <input id="account_number" name="account_number" type="text" value={formData.account_number} onChange={handleChange} placeholder="e.g. GE29TB7894545082100008" maxLength={reqLen} minLength={reqLen} style={isTB ? { borderColor: '#60a5fa', background: 'rgba(59,130,246,0.08)' } : isBG ? { borderColor: '#d9673a', background: 'rgba(217,103,58,0.08)' } : {}} />
+                    {formData.account_number && formData.account_number.length !== reqLen && (
+                      <span className="field-error">{formData.account_number.length}/{reqLen} characters</span>
                     )}
                   </div>
+                    );
+                  })()}
                   <div className="form-group">
                     <label htmlFor="tax_code">{t('empForm.taxCode')}</label>
                     {taxCodes.length > 0 ? (
@@ -463,6 +475,10 @@ function AgreementTab({ employeeId, employee }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [sendingId, setSendingId] = useState(null);
+  const [signUrls, setSignUrls] = useState({});
+  const [emailOverride, setEmailOverride] = useState('');
+  const [emailPromptId, setEmailPromptId] = useState(null);
 
   useEffect(() => { loadAgreements(); }, [employeeId]);
 
@@ -501,6 +517,192 @@ function AgreementTab({ employeeId, employee }) {
     } catch { setError('Failed to delete.'); }
   };
 
+  const downloadPDF = (ag) => {
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const margin = 20;
+    const pageW = 210;
+    const contentW = pageW - margin * 2;
+    let y = 25;
+
+    // Header bar
+    doc.setFillColor(37, 99, 235);
+    doc.rect(0, 0, pageW, 14, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(255, 255, 255);
+    doc.text('EMPLOYMENT AGREEMENT', margin, 9.5);
+    doc.text(new Date().toLocaleDateString('en-GB'), pageW - margin, 9.5, { align: 'right' });
+
+    // Title
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(20);
+    doc.text(ag.title || 'Employment Agreement', pageW / 2, y + 10, { align: 'center' });
+    y += 22;
+
+    // Status badge area
+    const statusColors = { active: [220, 252, 231], inactive: [241, 245, 249], terminated: [254, 242, 242] };
+    const statusText = { active: [21, 128, 61], inactive: [71, 85, 105], terminated: [220, 38, 38] };
+    const [sbg, stxt] = [statusColors[ag.status] || statusColors.inactive, statusText[ag.status] || statusText.inactive];
+    doc.setFillColor(...sbg);
+    doc.roundedRect(pageW / 2 - 20, y, 40, 7, 3, 3, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...stxt);
+    doc.text((ag.status || 'active').toUpperCase(), pageW / 2, y + 4.8, { align: 'center' });
+    y += 16;
+
+    // Divider
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y, pageW - margin, y);
+    y += 10;
+
+    const sectionTitle = (title) => {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(37, 99, 235);
+      doc.text(title, margin, y);
+      y += 1;
+      doc.setDrawColor(37, 99, 235);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y + 1, margin + doc.getTextWidth(title), y + 1);
+      y += 7;
+    };
+
+    const row = (label, value) => {
+      if (!value) return;
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      doc.text(label + ':', margin, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(15, 23, 42);
+      doc.text(String(value), margin + 45, y);
+      y += 7;
+    };
+
+    sectionTitle('PARTIES');
+    row('Party Name', ag.party_name || '—');
+    row('Agreement Type', ag.type || '—');
+    y += 3;
+
+    sectionTitle('TERMS & CONDITIONS');
+    row('Start Date', ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB') : '—');
+    row('End Date', ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB') : 'Open-ended');
+    row('Amount', ag.amount ? `${Number(ag.amount).toLocaleString()} ${ag.currency}` : '—');
+    y += 3;
+
+    if (ag.notes) {
+      sectionTitle('ADDITIONAL NOTES');
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor(71, 85, 105);
+      const lines = doc.splitTextToSize(ag.notes, contentW);
+      doc.text(lines, margin, y);
+      y += lines.length * 5.5 + 8;
+    }
+
+    // Signatures section
+    y = Math.max(y + 10, 210);
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.4);
+    doc.line(margin, y, pageW - margin, y);
+    y += 10;
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(37, 99, 235);
+    doc.text('SIGNATURES', margin, y);
+    y += 12;
+
+    // Employer signature box
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, y, 75, 28, 3, 3, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(margin, y, 75, 28, 3, 3, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('EMPLOYER', margin + 4, y + 6);
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(148, 163, 184);
+    doc.line(margin + 4, y + 20, margin + 70, y + 20);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text('Authorized Signature & Date', margin + 4, y + 25);
+
+    // Employee signature box
+    const ex = pageW - margin - 75;
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(ex, y, 75, 28, 3, 3, 'F');
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(ex, y, 75, 28, 3, 3, 'S');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(71, 85, 105);
+    doc.text('EMPLOYEE', ex + 4, y + 6);
+    doc.setLineWidth(0.3);
+    doc.setDrawColor(148, 163, 184);
+    doc.line(ex + 4, y + 20, ex + 70, y + 20);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`${ag.party_name || 'Employee'} & Date`, ex + 4, y + 25);
+
+    // Footer
+    doc.setFillColor(37, 99, 235);
+    doc.rect(0, 282, pageW, 15, 'F');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Generated on ${new Date().toLocaleDateString('en-GB')}  |  Agreement ID: ${ag.id}`, pageW / 2, 290, { align: 'center' });
+
+    doc.save(`${(ag.title || 'agreement').replace(/\s+/g, '-')}.pdf`);
+  };
+
+  const doSendSignLink = async (ag, email) => {
+    setSendingId(ag.id);
+    setError('');
+    setSuccess('');
+    setEmailPromptId(null);
+    try {
+      const createRes = await api.post('/documents', {
+        employee_id: employeeId,
+        employee_name: ag.party_name,
+        type: 'hiring',
+        title: ag.title,
+        content: {
+          job_title: ag.type,
+          start_date: ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB') : '',
+          end_date: ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB') : '',
+          salary: ag.amount,
+          currency: ag.currency,
+          notes: ag.notes,
+        },
+      });
+      const docId = createRes.data.document.id;
+      const sendRes = await api.post(`/documents/${docId}/send`, {
+        email: email || null,
+        employee_name: ag.party_name,
+      });
+      setSignUrls(prev => ({ ...prev, [ag.id]: sendRes.data.sign_url }));
+      setSuccess(email ? `Sign link sent to ${email}` : 'Sign link created (no email — copy the link below)');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to send sign link.');
+    } finally { setSendingId(null); }
+  };
+
+  const handleSendSignLink = (ag) => {
+    const email = employee?.personal_email;
+    if (!email) {
+      setEmailPromptId(ag.id);
+      setEmailOverride('');
+    } else {
+      doSendSignLink(ag, email);
+    }
+  };
+
   const statusBadge = (s) => {
     const map = { active: ['#dcfce7','#15803d'], inactive: ['#f1f5f9','#475569'], terminated: ['#fef2f2','#dc2626'] };
     const [bg, color] = map[s] || map.inactive;
@@ -508,25 +710,25 @@ function AgreementTab({ employeeId, employee }) {
   };
 
   return (
-    <div style={{ padding: '24px 0', maxWidth: 680 }}>
+    <div style={{ padding: '24px 0', maxWidth: 700 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#1e293b' }}>Agreements</h3>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>Employment agreements for this employee</p>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Agreements</h3>
+          <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-3)' }}>Employment agreements for this employee</p>
         </div>
         <button
           onClick={() => { setShowForm(f => !f); setError(''); setSuccess(''); }}
-          style={{ padding: '8px 18px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+          style={{ padding: '8px 18px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
         >
           {showForm ? 'Cancel' : '+ Create Agreement'}
         </button>
       </div>
 
-      {error && <div style={{ padding: '10px 14px', background: '#fef2f2', color: '#dc2626', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid #fca5a5' }}>{error}</div>}
-      {success && <div style={{ padding: '10px 14px', background: '#f0fdf4', color: '#16a34a', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid #bbf7d0' }}>{success}</div>}
+      {error && <div style={{ padding: '10px 14px', background: 'rgba(220,38,38,0.15)', color: '#f87171', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(220,38,38,0.3)' }}>{error}</div>}
+      {success && <div style={{ padding: '10px 14px', background: 'rgba(22,163,74,0.15)', color: '#4ade80', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(22,163,74,0.3)' }}>{success}</div>}
 
       {showForm && (
-        <form onSubmit={handleCreate} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+        <form onSubmit={handleCreate} style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             {[
               ['Title', 'title', 'text'],
@@ -573,7 +775,7 @@ function AgreementTab({ employeeId, employee }) {
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-            <button type="submit" disabled={saving} style={{ padding: '9px 24px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            <button type="submit" disabled={saving} style={{ padding: '9px 24px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               {saving ? 'Saving…' : 'Create Agreement'}
             </button>
           </div>
@@ -581,35 +783,104 @@ function AgreementTab({ employeeId, employee }) {
       )}
 
       {loading ? (
-        <p style={{ color: '#94a3b8', fontSize: 14 }}>Loading…</p>
+        <p style={{ color: 'var(--text-4)', fontSize: 14 }}>Loading…</p>
       ) : agreements.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px 0', color: '#94a3b8', fontSize: 14, border: '1px dashed #e2e8f0', borderRadius: 10 }}>
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-4)', fontSize: 14, border: '1px dashed var(--border-2)', borderRadius: 10 }}>
           No agreements yet. Click "+ Create Agreement" to add one.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {agreements.map(ag => (
-            <div key={ag.id} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#1e293b' }}>{ag.title}</span>
-                  {statusBadge(ag.status)}
-                  <span style={{ fontSize: 12, color: '#94a3b8', background: '#f1f5f9', padding: '2px 8px', borderRadius: 12 }}>{ag.type}</span>
+            <div key={ag.id} style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 10, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{ag.title}</span>
+                    {statusBadge(ag.status)}
+                    <span style={{ fontSize: 12, color: 'var(--text-4)', background: 'var(--surface-3)', padding: '2px 8px', borderRadius: 12 }}>{ag.type}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                    {ag.party_name && <span>Party: {ag.party_name}</span>}
+                    {ag.amount && <span>Amount: {ag.amount} {ag.currency}</span>}
+                    {ag.start_date && <span>From: {new Date(ag.start_date).toLocaleDateString('en-GB')}</span>}
+                    {ag.end_date && <span>To: {new Date(ag.end_date).toLocaleDateString('en-GB')}</span>}
+                  </div>
+                  {ag.notes && <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-4)' }}>{ag.notes}</p>}
                 </div>
-                <div style={{ fontSize: 12, color: '#64748b', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                  {ag.party_name && <span>Party: {ag.party_name}</span>}
-                  {ag.amount && <span>Amount: {ag.amount} {ag.currency}</span>}
-                  {ag.start_date && <span>From: {new Date(ag.start_date).toLocaleDateString('en-GB')}</span>}
-                  {ag.end_date && <span>To: {new Date(ag.end_date).toLocaleDateString('en-GB')}</span>}
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+                  {/* Download PDF */}
+                  <button
+                    onClick={() => downloadPDF(ag)}
+                    title="Download PDF"
+                    style={{ background: 'none', border: '1px solid var(--border-2)', color: 'var(--text-3)', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    PDF
+                  </button>
+                  {/* Send Sign Link */}
+                  <button
+                    onClick={() => handleSendSignLink(ag)}
+                    disabled={sendingId === ag.id}
+                    title="Send sign link by email"
+                    style={{ background: 'none', border: '1px solid var(--border-2)', color: 'var(--accent)', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                    </svg>
+                    {sendingId === ag.id ? 'Sending…' : 'Send Sign Link'}
+                  </button>
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDelete(ag.id)}
+                    style={{ background: 'none', border: '1px solid rgba(220,38,38,0.4)', color: '#f87171', borderRadius: 6, padding: '5px 10px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    Delete
+                  </button>
                 </div>
-                {ag.notes && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#94a3b8' }}>{ag.notes}</p>}
               </div>
-              <button
-                onClick={() => handleDelete(ag.id)}
-                style={{ background: 'none', border: '1px solid #fca5a5', color: '#dc2626', borderRadius: 6, padding: '4px 10px', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >
-                Delete
-              </button>
+
+              {/* Email prompt when no personal_email on employee */}
+              {emailPromptId === ag.id && (
+                <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--surface-3)', borderRadius: 8, border: '1px solid var(--border-2)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                  <input
+                    type="email"
+                    placeholder="Enter employee email…"
+                    value={emailOverride}
+                    onChange={e => setEmailOverride(e.target.value)}
+                    style={{ ...ls.input, flex: 1, padding: '6px 10px', fontSize: 12 }}
+                  />
+                  <button
+                    onClick={() => doSendSignLink(ag, emailOverride || null)}
+                    disabled={!emailOverride}
+                    style={{ padding: '6px 14px', background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >
+                    Send
+                  </button>
+                  <button
+                    onClick={() => setEmailPromptId(null)}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: 18, lineHeight: 1 }}
+                  >×</button>
+                </div>
+              )}
+
+              {/* Sign URL display after sending */}
+              {signUrls[ag.id] && (
+                <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(22,163,74,0.08)', borderRadius: 8, border: '1px solid rgba(22,163,74,0.25)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
+                  </svg>
+                  <span style={{ fontSize: 11, color: 'var(--text-3)', flex: 1, wordBreak: 'break-all' }}>{signUrls[ag.id]}</span>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(signUrls[ag.id]); }}
+                    style={{ background: 'none', border: '1px solid var(--border-2)', borderRadius: 5, padding: '3px 8px', fontSize: 11, color: 'var(--text-3)', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                  >Copy</button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -619,8 +890,8 @@ function AgreementTab({ employeeId, employee }) {
 }
 
 const ls = {
-  label: { display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' },
-  input: { width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: '#fff' },
+  label: { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' },
+  input: { width: '100%', padding: '9px 12px', border: '1.5px solid var(--border-2)', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', background: 'var(--surface)', color: 'var(--text)' },
 };
 
 function PortalAccessTab({ id, pinStatus, loadPinStatus, pinInput, setPinInput, pinLoading, pinMsg, setPinMsg, handleSetPin }) {

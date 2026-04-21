@@ -12,10 +12,8 @@ const COLUMNS = [
   { key: 'adjustment',  label: 'Adjustments',   align: 'left',  defaultWidth: 200 },
   { key: 'fitpass',     label: 'Fitpass',        align: 'right', defaultWidth: 100 },
   { key: 'insurance',   label: 'Insurance',     align: 'right', defaultWidth: 100 },
-  { key: 'pension',     label: 'Pension',        align: 'right', defaultWidth: 100 },
   { key: 'totalSum',    label: 'Total Sum',     align: 'right', defaultWidth: 120 },
   { key: 'totalGEL',   label: 'Total GEL',     align: 'right', defaultWidth: 120 },
-  { key: 'grossSalary', label: 'Gross Salary',  align: 'right', defaultWidth: 120 },
 ];
 
 const DEFAULT_WIDTHS = COLUMNS.map(c => c.defaultWidth);
@@ -244,7 +242,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const totInsurance = active.reduce((s, r) => s + parseFloat(r.insurance_deduction || 0), 0);
   const totGross     = active.reduce((s, r) => s + calcGross(r.net_salary, r.employee.pension), 0);
   const totPension   = active.reduce((s, r) => s + (r.employee.pension ? calcGross(r.net_salary, true) * 0.02 : 0), 0);
-  const totSum       = active.reduce((s, r) => s + parseFloat(r.net_salary || 0), 0) - totPension;
+  const totSum       = active.reduce((s, r) => s + parseFloat(r.net_salary || 0), 0);
 
   // Dynamic unit columns: only show unit types that still exist in settings
   const dynUnitCols = [];
@@ -332,10 +330,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       }
       case 'fitpass':     return <td key={key} className={fitpass > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(fitpass, 'deduction')}</td>;
       case 'insurance':   return <td key={key} className={insurance > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(insurance, 'deduction')}</td>;
-      case 'totalSum':    return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(parseFloat(r.net_salary || 0) - pensionAmt)}</td>;
+      case 'totalSum':    return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(parseFloat(r.net_salary || 0))}</td>;
       case 'totalGEL': {
-        const netAfterPension = parseFloat(r.net_salary || 0) - pensionAmt;
-        const gel = gelRate ? Math.round(netAfterPension * gelRate * 100) / 100 : null;
+        const gel = gelRate ? Math.round(parseFloat(r.net_salary || 0) * gelRate * 100) / 100 : null;
         return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#f59e0b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{gel != null ? `₾${gel.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>;
       }
       case 'grossSalary': return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#3b82f6', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(grossSalary)}</td>;
@@ -370,8 +367,8 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           case 'adjustment':  rowData.push((r.deductions || []).filter(u => unitTypes.find(t => t.name === u.type)).map(u => { const ut = unitTypes.find(t => t.name === u.type); return `${ut?.direction === 'addition' ? '+' : '-'}${u.type}`; }).join(', ')); break;
           case 'fitpass':     rowData.push(fitpass || ''); break;
           case 'insurance':   rowData.push(insurance || ''); break;
-          case 'totalSum':    rowData.push(parseFloat(r.net_salary || 0) - pensionAmt); break;
-          case 'totalGEL':    rowData.push(gelRate ? Math.round((parseFloat(r.net_salary || 0) - pensionAmt) * gelRate * 100) / 100 : ''); break;
+          case 'totalSum':    rowData.push(parseFloat(r.net_salary || 0)); break;
+          case 'totalGEL':    rowData.push(gelRate ? Math.round(parseFloat(r.net_salary || 0) * gelRate * 100) / 100 : ''); break;
           case 'pension':     rowData.push(emp.pension ? pensionAmt : ''); break;
           default:            rowData.push('');
         }
@@ -411,6 +408,10 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
     XLSX.writeFile(wb, `salaries-${month}.xlsx`);
   };
 
+  const inlinePill = { display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 7, padding: '4px 10px', whiteSpace: 'nowrap' };
+  const pillLabel = { fontSize: 10, fontWeight: 600, color: 'var(--text-4)', textTransform: 'uppercase', letterSpacing: '0.4px' };
+  const pillVal = { fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--text)' };
+
   return (
     <div>
       <h2>Salaries</h2>
@@ -423,32 +424,11 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         <button className="sa-arrow" onClick={() => setMonth(nextMonth(month))}>›</button>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="sa-month-input" />
         {data && <span className="sa-meta">{data.working_days} working days · {data.holidays_count} holidays</span>}
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 12 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>Accrual Date:</span>
-          <input
-            type="text"
-            placeholder="e.g. 31.03.2026"
-            value={accrualDate}
-            onChange={e => {
-              const val = e.target.value;
-              setAccrualDate(val);
-              try { localStorage.setItem(`sal_accrual_date_${month}`, val); } catch {}
-            }}
-            style={{
-              padding: '4px 8px', fontSize: 12, borderRadius: 6,
-              border: '1.5px solid var(--border-2)', background: 'var(--surface)',
-              color: 'var(--text)', fontFamily: FONT_MONO, width: 110,
-            }}
-          />
-        </span>
-      </div>
 
-      {/* Transfer date + Summary cards in one row */}
-      {data && active.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-          {/* Transfer date block */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--surface-2)', borderRadius: 9, border: '1px solid var(--border-2)', flexWrap: 'wrap' }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        {/* Transfer date + Create Salary File — moved into month bar */}
+        {data && active.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
               <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
@@ -498,46 +478,11 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               Create Salary File
             </button>
           </div>
+        )}
+      </div>
 
-          {/* Summary cards — compact, inline with transfer date */}
-          <div className="acc-summary" style={{ margin: 0 }}>
-            <div className="acc-summary-card acc-summary-card--sm">
-              <span className="acc-summary-label">Employees</span>
-              <span className="acc-summary-value acc-summary-value--sm">{active.length}</span>
-            </div>
-            <div className="acc-summary-card acc-summary-card--sm">
-              <span className="acc-summary-label">Net Payroll</span>
-              <span className="acc-summary-value acc-summary-value--sm">{moneyTotal(totNetSalary)}</span>
-            </div>
-            {totFitpass > 0 && (
-              <div className="acc-summary-card acc-summary-card--sm">
-                <span className="acc-summary-label">Total Fitpass</span>
-                <span className="acc-summary-value acc-summary-value--sm red">{moneyTotal(totFitpass)}</span>
-              </div>
-            )}
-            {totInsurance > 0 && (
-              <div className="acc-summary-card acc-summary-card--sm">
-                <span className="acc-summary-label">Total Insurance</span>
-                <span className="acc-summary-value acc-summary-value--sm red">{moneyTotal(totInsurance)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Summary cards for when transfer date block is hidden */}
-      {data && active.length === 0 && (
-        <div className="acc-summary">
-          <div className="acc-summary-card">
-            <span className="acc-summary-label">Employees</span>
-            <span className="acc-summary-value">{active.length}</span>
-          </div>
-          <div className="acc-summary-card">
-            <span className="acc-summary-label">Net Payroll</span>
-            <span className="acc-summary-value">{moneyTotal(totNetSalary)}</span>
-          </div>
-        </div>
-      )}
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
@@ -564,12 +509,6 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           </svg>
           Excel
         </button>
-        {/* Font size controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 2, background: 'var(--surface)', border: '1.5px solid var(--border-2)', borderRadius: 7, overflow: 'hidden' }}>
-          <button onClick={zoomOut} title="Decrease font size" style={{ padding: '5px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text-2)', lineHeight: 1, display: 'flex', alignItems: 'center' }}>−</button>
-          <span onClick={zoomReset} title="Reset font size" style={{ fontSize: 12, color: 'var(--text-3)', minWidth: 32, textAlign: 'center', cursor: 'pointer', userSelect: 'none', fontWeight: 500 }}>{fontSize}px</span>
-          <button onClick={zoomIn}  title="Increase font size" style={{ padding: '5px 10px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text-2)', lineHeight: 1, display: 'flex', alignItems: 'center' }}>+</button>
-        </div>
         <div style={{ position: 'relative' }}>
           <button
             onClick={() => setShowColChooser(v => !v)}

@@ -78,7 +78,7 @@ function EmptyState({ label, onAdd }) {
     <div style={{ textAlign: 'center', padding: '64px 24px' }}>
       <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>No {label} orders yet</div>
       <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>Click "Add New Order" to create the first one.</div>
-      <button onClick={onAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+      <button onClick={onAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
     </div>
   );
 }
@@ -107,7 +107,7 @@ function PromotionTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {orders.length === 0 ? <EmptyState label="promotion" onAdd={openAdd} /> : (
@@ -191,7 +191,7 @@ function HiringTab() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {orders.length === 0 ? <EmptyState label="hiring" onAdd={openAdd} /> : (
@@ -275,7 +275,7 @@ function FiringTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: 'var(--accent,#3b82f6)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ Add New Order</button>
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {orders.length === 0 ? <EmptyState label="firing" onAdd={openAdd} /> : (
@@ -584,9 +584,9 @@ export default function Orders() {
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '9px 20px', borderRadius: 9, border: 'none',
-            background: 'var(--accent, #3b82f6)', color: '#fff',
+            background: '#16a34a', color: '#fff',
             fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(59,130,246,0.3)', transition: 'all 0.15s',
+            boxShadow: '0 2px 8px rgba(22,163,74,0.3)', transition: 'all 0.15s',
           }}
           onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
           onMouseLeave={e => e.currentTarget.style.opacity = '1'}
@@ -701,7 +701,7 @@ export default function Orders() {
             <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>Click "Add New Order" to create the first one.</div>
             <button
               onClick={() => { setShowForm(true); setError(''); }}
-              style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--accent, #3b82f6)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
             >
               + Add New Order
             </button>

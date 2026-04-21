@@ -97,18 +97,8 @@ function Agents() {
       <h2>Coagents</h2>
       <p className="acc-subtitle">Manage counterparty coagents — companies and individuals you work with.</p>
 
-      <div className="acc-summary">
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">Total</span>
-          <span className="acc-summary-value">{filtered.length}{hasFilters && filtered.length !== records.length ? ` / ${records.length}` : ''}</span>
-        </div>
-        {AGENT_TYPES.map(t => {
-          const s = TYPE_COLORS[t]; const n = filtered.filter(r => r.type === t).length;
-          return n ? <div key={t} className="acc-summary-card"><span className="acc-summary-label">{t}</span><span className="acc-summary-value" style={{ color: s.color }}>{n}</span></div> : null;
-        })}
-      </div>
 
-      <div className="acc-header-row">
+<div className="acc-header-row">
         <div>
           {hasFilters && (
             <button onClick={() => setFilters(EMPTY_F)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 7, fontSize: 12, fontWeight: 500, color: '#92400e', cursor: 'pointer', fontFamily: 'inherit' }}>

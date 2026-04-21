@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import SalaryAccrual from './SalaryAccrual';
 import SalariesFile from './SalariesFile';
+import PersonalIncomeTax from './PersonalIncomeTax';
 
 const SUBTABS = [
   { key: 'accrual', label: 'Calculation' },
   { key: 'file',    label: 'Salaries File' },
+  { key: 'pit',     label: 'Personal Income Tax' },
 ];
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
@@ -20,7 +22,7 @@ function loadFile(month) {
 function SalariesPage() {
   const [currentMonth, setCurrentMonth] = useState(todayMonth);
   const [salaryFile, setSalaryFile] = useState(() => loadFile(todayMonth()));
-  const [subTab, setSubTab] = useState(() => loadFile(todayMonth()) ? 'file' : 'accrual');
+  const [subTab, setSubTab] = useState('accrual');
 
   const handleMonthChange = (month) => {
     setCurrentMonth(month);
@@ -69,6 +71,9 @@ function SalariesPage() {
       )}
       {subTab === 'file' && (
         <SalariesFile data={salaryFile} onClear={handleClear} />
+      )}
+      {subTab === 'pit' && (
+        <PersonalIncomeTax />
       )}
     </div>
   );

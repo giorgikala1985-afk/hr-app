@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import HiringDocuments from '../Documents/HiringDocuments';
+import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Employees.css';
@@ -10,7 +10,7 @@ import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResiz
 // Widths for always-visible columns: name (0), salary (1)
 const EMP_STATIC_WIDTHS = [160, 120];
 
-const DEFAULT_COLUMN_KEYS = ['photo', 'name', 'personalId', 'birthdate', 'position', 'salary', 'otRate', 'account', 'startDate', 'endDate', 'pension'];
+const DEFAULT_COLUMN_KEYS = ['photo', 'name', 'personalId', 'birthdate', 'position', 'salary', 'account', 'startDate', 'endDate', 'pension'];
 const DEFAULT_VISIBLE = new Set(DEFAULT_COLUMN_KEYS);
 
 function EmployeeList() {
@@ -24,7 +24,6 @@ function EmployeeList() {
     { key: 'birthdate', label: t('col.birthdate'), hideable: true },
     { key: 'position', label: t('col.position'), hideable: true },
     { key: 'salary', label: t('col.salary'), hideable: false },
-    { key: 'otRate', label: t('col.otRate'), hideable: true },
     { key: 'account', label: t('col.account'), hideable: true },
     { key: 'startDate', label: t('col.startDate'), hideable: true },
     { key: 'endDate', label: t('col.endDate'), hideable: true },
@@ -49,7 +48,7 @@ function EmployeeList() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [filters, setFilters] = useState({
     name: '', personalId: '', birthdate: '', position: '',
-    salary: '', otRate: '', startDate: '', endDate: '', status: '', account: ''
+    salary: '', startDate: '', endDate: '', status: '', account: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationSettings, setPaginationSettings] = useState(() => {
@@ -202,7 +201,6 @@ function EmployeeList() {
     if (filters.birthdate && !emp.birthdate.includes(filters.birthdate)) return false;
     if (filters.position && !emp.position.toLowerCase().includes(filters.position.toLowerCase())) return false;
     if (filters.salary && !String(emp.salary).includes(filters.salary)) return false;
-    if (filters.otRate && !String(emp.overtime_rate).includes(filters.otRate)) return false;
     if (filters.startDate && !emp.start_date.includes(filters.startDate)) return false;
     if (filters.endDate) {
       if (!emp.end_date || !emp.end_date.includes(filters.endDate)) return false;
@@ -221,6 +219,29 @@ function EmployeeList() {
     ? filteredEmployees.slice((safePage - 1) * pageSize, safePage * pageSize)
     : filteredEmployees;
 
+  const exportToExcel = () => {
+    const today = new Date().toISOString().slice(0, 10);
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['Name', 'Personal ID', 'Birthdate', 'Position', 'Department', 'Salary', 'Account Number', 'Start Date', 'End Date', 'Pension'],
+      ...filteredEmployees.map(e => [
+        `${e.first_name} ${e.last_name}`,
+        e.personal_id,
+        e.birthdate ? new Date(e.birthdate).toLocaleDateString('en-GB') : '',
+        e.position,
+        e.department,
+        e.salary,
+        e.account_number,
+        e.start_date ? new Date(e.start_date).toLocaleDateString('en-GB') : '',
+        e.end_date ? new Date(e.end_date).toLocaleDateString('en-GB') : '',
+        e.pension ? 'Yes' : 'No',
+      ]),
+    ]);
+    ws['!cols'] = [22, 14, 12, 22, 18, 10, 24, 12, 12, 8].map(wch => ({ wch }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+    XLSX.writeFile(wb, `employees-${today}.xlsx`);
+  };
+
   if (loading && employees.length === 0) {
     return <div className="emp-loading">{t('emp.loading')}</div>;
   }
@@ -233,11 +254,15 @@ function EmployeeList() {
           <p>{t('emp.subtitle')}</p>
         </div>
         <div className="emp-header-actions">
-          {selected.size > 0 && (
-            <button onClick={handleBulkDelete} className="btn-bulk-delete" disabled={bulkDeleting}>
-              {bulkDeleting ? t('emp.deleting') : t('emp.deleteSelected', { count: selected.size })}
-            </button>
-          )}
+          <button
+            onClick={exportToExcel}
+            disabled={!filteredEmployees.length}
+            title="Download as Excel"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#16a34a', cursor: filteredEmployees.length ? 'pointer' : 'not-allowed', opacity: filteredEmployees.length ? 1 : 0.5, fontFamily: 'inherit' }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Excel
+          </button>
           <div className="col-toggle-wrapper">
             <button
               className="btn-col-toggle"
@@ -262,6 +287,12 @@ function EmployeeList() {
               </div>
             )}
           </div>
+          {selected.size > 1 && (
+            <button onClick={handleBulkDelete} className="btn-icon btn-delete" disabled={bulkDeleting} title={t('emp.deleteSelected', { count: selected.size })}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+              <span style={{ fontSize: 11, marginLeft: 4 }}>{selected.size}</span>
+            </button>
+          )}
           {selected.size === 1 && (() => {
             const selId = [...selected][0];
             return (
@@ -287,19 +318,11 @@ function EmployeeList() {
               </div>
             );
           })()}
-          <button className="btn-add" onClick={() => setShowAddForm(true)}>
-            + Add Employee &amp; Agreement
+          <button className="btn-add" onClick={() => navigate('/employees/new')}>
+            + Add Employee
           </button>
         </div>
       </div>
-
-      {showAddForm && (
-        <HiringDocuments
-          mode="add-employee-only"
-          autoOpen
-          onClose={() => setShowAddForm(false)}
-        />
-      )}
 
       {error && <div className="msg-error">{error}</div>}
       {success && <div className="msg-success">{success}</div>}
@@ -355,31 +378,10 @@ function EmployeeList() {
                 {isCol('birthdate') && <th>{t('col.birthdate')}</th>}
                 {isCol('position') && <th>{t('col.position')}</th>}
                 {isCol('salary') && <th style={{ position: 'relative', width: empColWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('col.salary')}<div onMouseDown={e => empOnResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>}
-                {isCol('otRate') && <th>{t('col.otRate')}</th>}
                 {isCol('account') && <th>{t('col.account')}</th>}
                 {isCol('startDate') && <th>{t('col.startDate')}</th>}
                 {isCol('endDate') && <th>{t('col.endDate')}</th>}
                 {isCol('pension') && <th>Pension</th>}
-              </tr>
-              <tr className="filter-row">
-                <th></th>
-                {isCol('photo') && <th></th>}
-                {isCol('name') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.name} onChange={(e) => updateFilter('name', e.target.value)} /></th>}
-                {isCol('personalId') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.personalId} onChange={(e) => updateFilter('personalId', e.target.value)} /></th>}
-                {isCol('birthdate') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.birthdate} onChange={(e) => updateFilter('birthdate', e.target.value)} /></th>}
-                {isCol('position') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.position} onChange={(e) => updateFilter('position', e.target.value)} /></th>}
-                {isCol('salary') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.salary} onChange={(e) => updateFilter('salary', e.target.value)} /></th>}
-                {isCol('otRate') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.otRate} onChange={(e) => updateFilter('otRate', e.target.value)} /></th>}
-                {isCol('account') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.account} onChange={(e) => updateFilter('account', e.target.value)} /></th>}
-                {isCol('startDate') && <th><input type="text" className="col-filter" placeholder={t('emp.filter')} value={filters.startDate} onChange={(e) => updateFilter('startDate', e.target.value)} /></th>}
-                {isCol('endDate') && <th>
-                  <select className="col-filter" value={filters.status} onChange={(e) => updateFilter('status', e.target.value)}>
-                    <option value="">{t('emp.all')}</option>
-                    <option value="active">{t('emp.active')}</option>
-                    <option value="inactive">{t('emp.ended')}</option>
-                  </select>
-                </th>}
-                {isCol('pension') && <th>{hasFilters && <button className="btn-clear-filters" onClick={clearFilters} title={t('action.clearFilters')}>&times;</button>}</th>}
               </tr>
             </thead>
             <tbody>
@@ -412,7 +414,6 @@ function EmployeeList() {
                   {isCol('birthdate') && <td>{formatDate(emp.birthdate)}</td>}
                   {isCol('position') && <td><span className="position-badge">{emp.position}</span></td>}
                   {isCol('salary') && <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(emp.salary)}</td>}
-                  {isCol('otRate') && <td className="salary">{formatCurrency(emp.overtime_rate)}</td>}
                   {isCol('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
                   {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
                   {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="position-badge">{t('emp.active')}</span>}</td>}
