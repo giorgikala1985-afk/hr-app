@@ -2,7 +2,8 @@ import React from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const LANGS = [
-  { code: 'en', label: 'English',   sub: 'English',    flag: 'https://flagcdn.com/w40/gb.png', alt: 'GB' },
+  { code: 'en', label: 'English',  sub: 'English',  flag: 'https://flagcdn.com/w40/gb.png', alt: 'GB' },
+  { code: 'ka', label: 'ქართული', sub: 'Georgian', flag: 'https://flagcdn.com/w40/ge.png', alt: 'GE' },
 ];
 
 function LanguageSettings() {

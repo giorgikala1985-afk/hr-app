@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace';
 
 function SalariesFile({ data, onClear }) {
+  const { t } = useLanguage();
   const [rows, setRows] = useState([]);
 
   useEffect(() => {
@@ -15,7 +17,7 @@ function SalariesFile({ data, onClear }) {
   };
 
   const exportToExcel = () => {
-    const headers = ['Name', 'Last Name', 'IBAN', 'Amount (GEL)', 'Description'];
+    const headers = [t('salFile.colName'), t('salFile.colLastName'), t('salFile.colIban'), t('salFile.colAmount'), t('salFile.colDescription')];
     const wsData = [
       headers,
       ...rows.map(r => [r.first_name, r.last_name, r.iban, parseFloat(r.amount || 0), r.description]),
@@ -30,12 +32,12 @@ function SalariesFile({ data, onClear }) {
   if (!data) {
     return (
       <div>
-        <h2>Salaries File</h2>
-        <p className="acc-subtitle">Select a transfer date in the Accrual tab and click "Create Salary File".</p>
+        <h2>{t('salFile.title')}</h2>
+        <p className="acc-subtitle">{t('salFile.subtitle')}</p>
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-4)' }}>
           <div style={{ fontSize: 36, marginBottom: 10 }}>📄</div>
-          <div style={{ fontSize: 14, fontWeight: 500 }}>No salary file created yet</div>
-          <div style={{ fontSize: 12, marginTop: 4 }}>Go to the Accrual tab, set a transfer date, and click "Create Salary File"</div>
+          <div style={{ fontSize: 14, fontWeight: 500 }}>{t('salFile.noFile')}</div>
+          <div style={{ fontSize: 12, marginTop: 4 }}>{t('salFile.hint')}</div>
         </div>
       </div>
     );
@@ -47,10 +49,10 @@ function SalariesFile({ data, onClear }) {
     <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 6, flexWrap: 'wrap' }}>
-        <h2 style={{ margin: 0 }}>Salaries File</h2>
+        <h2 style={{ margin: 0 }}>{t('salFile.title')}</h2>
         {data.transferDate && (
           <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 500 }}>
-            Transfer date: <strong style={{ color: 'var(--text)' }}>{data.transferDate}</strong>
+            {t('salFile.transferDate')} <strong style={{ color: 'var(--text)' }}>{data.transferDate}</strong>
           </span>
         )}
         {data.rate && (
@@ -64,7 +66,7 @@ function SalariesFile({ data, onClear }) {
           </span>
         )}
       </div>
-      <p className="acc-subtitle">Amounts in GEL at NBG rate for the transfer date. Click a cell to edit.</p>
+      <p className="acc-subtitle">{t('salFile.rateNote')}</p>
 
       {/* Toolbar */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 10 }}>
@@ -79,10 +81,10 @@ function SalariesFile({ data, onClear }) {
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Excel
+          {t('salFile.excel')}
         </button>
         {onClear && (
-          <button onClick={() => { if (window.confirm('Clear the salary file?')) onClear(); }} style={{
+          <button onClick={() => { if (window.confirm(t('salFile.clearConfirm'))) onClear(); }} style={{
             display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
             background: 'var(--surface)', border: '1.5px solid #fca5a5', borderRadius: 7,
             fontSize: 13, fontWeight: 500, color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit',
@@ -91,7 +93,7 @@ function SalariesFile({ data, onClear }) {
               <polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
               <path d="M10 11v6"/><path d="M14 11v6"/>
             </svg>
-            Clear
+            {t('salFile.clear')}
           </button>
         )}
       </div>
@@ -102,13 +104,13 @@ function SalariesFile({ data, onClear }) {
           <colgroup>
             <col style={{ width: 140 }} />
             <col style={{ width: 150 }} />
-            <col style={{ width: 260 }} />
+            <col style={{ width: 160 }} />
             <col style={{ width: 130 }} />
             <col style={{ width: 220 }} />
           </colgroup>
           <thead>
             <tr style={{ background: 'var(--surface-2)' }}>
-              {[['Name', 'left'], ['Last Name', 'left'], ['IBAN', 'left'], ['Amount (GEL)', 'right'], ['Description', 'left']].map(([h, align], i) => (
+              {[[t('salFile.colName'), 'left'], [t('salFile.colLastName'), 'left'], [t('salFile.colIban'), 'left'], [t('salFile.colAmount'), 'right'], [t('salFile.colDescription'), 'left']].map(([h, align], i) => (
                 <th key={i} style={{ padding: '10px 14px', textAlign: align, fontWeight: 600, color: 'var(--text-3)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>{h}</th>
               ))}
             </tr>
@@ -160,7 +162,7 @@ function SalariesFile({ data, onClear }) {
           </tbody>
           <tfoot>
             <tr style={{ background: 'var(--surface-2)', borderTop: '2px solid var(--border-2)' }}>
-              <td colSpan={3} style={{ padding: '10px 14px', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right', fontWeight: 700 }}>Total</td>
+              <td colSpan={3} style={{ padding: '10px 14px', fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', textAlign: 'right', fontWeight: 700 }}>{t('salFile.total')}</td>
               <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: FONT_MONO, fontSize: 14, color: 'var(--text)', fontWeight: 700 }}>
                 ₾{totalAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </td>

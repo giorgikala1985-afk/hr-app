@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { loadSidebarOrder, ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT } from '../Options/NavOrderSettings';
+import { useLanguage } from '../../contexts/LanguageContext';
 import Purchases from './Purchases';
 import Sales from './Sales';
 import Invoices from './Invoices';
-import SalaryAccrual from './SalaryAccrual';
+import SalariesPage from './SalariesPage';
 import Bookkeeping from './Bookkeeping';
 import Transfers from './Transfers';
 import PaymentCalendar from './PaymentCalendar';
@@ -83,17 +85,17 @@ const ICONS = {
   ),
 };
 
-const TABS = [
-  { key: 'bookkeeping',    label: 'Bookkeeping',      icon: ICONS.bookkeeping },
-  { key: 'purchases',      label: 'Purchases',        icon: ICONS.purchases },
-  { key: 'sales',          label: 'Sales',            icon: ICONS.sales },
-  { key: 'invoices',       label: 'Invoices',         icon: ICONS.invoices },
-  { key: 'salary-accrual', label: 'Salaries',         icon: ICONS.salaryAccrual },
-  { key: 'stock',          label: 'Stock',            icon: ICONS.stock },
-  { key: 'calendar',       label: 'Calendar',         icon: ICONS.calendar },
-  { key: 'transfers',      label: 'Transfers',        icon: ICONS.transfers },
-  { key: 'banking',        label: 'TBC Bank',         icon: ICONS.banking },
-  { key: 'rsge',           label: 'RS.ge',            icon: ICONS.rsge },
+const TAB_KEYS = [
+  { key: 'bookkeeping',    labelKey: 'acc.bookkeeping', icon: ICONS.bookkeeping },
+  { key: 'purchases',      labelKey: 'acc.purchases',   icon: ICONS.purchases },
+  { key: 'sales',          labelKey: 'acc.sales',       icon: ICONS.sales },
+  { key: 'invoices',       labelKey: 'acc.invoices',    icon: ICONS.invoices },
+  { key: 'salary-accrual', labelKey: 'acc.salaries',    icon: ICONS.salaryAccrual },
+  { key: 'stock',          labelKey: 'acc.stock',       icon: ICONS.stock },
+  { key: 'calendar',       labelKey: 'acc.calendar',    icon: ICONS.calendar },
+  { key: 'transfers',      labelKey: 'acc.transfers',   icon: ICONS.transfers },
+  { key: 'banking',        labelKey: 'acc.banking',     icon: ICONS.banking },
+  { key: 'rsge',           labelKey: 'acc.rsge',        icon: ICONS.rsge },
 ];
 
 const CHEVRON_LEFT = (
@@ -108,8 +110,21 @@ const CHEVRON_RIGHT = (
 );
 
 function AccountingPage() {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'bookkeeping');
+  const [sidebarOrder, setSidebarOrder] = useState(() => loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT));
+  const TABS = TAB_KEYS.map(tab => ({ ...tab, label: t(tab.labelKey) }));
+
+  useEffect(() => {
+    const sync = (e) => {
+      if (!e.key || e.key === ACC_SIDEBAR_ORDER_KEY) setSidebarOrder(loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT));
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, []);
+
+  const orderedTabs = [...TABS].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key));
 
   const handleTabChange = (key) => {
     setActiveTab(key);
@@ -129,12 +144,12 @@ function AccountingPage() {
     <div className="acc-layout">
       <aside className={`acc-sidebar${collapsed ? ' collapsed' : ''}`}>
         <div className="acc-sidebar-header">
-          <span className="acc-sidebar-title">Accounting</span>
-          <button className="acc-sidebar-toggle" onClick={toggleSidebar} title={collapsed ? 'Expand' : 'Collapse'}>
+          <span className="acc-sidebar-title">{t('acc.title')}</span>
+          <button className="acc-sidebar-toggle" onClick={toggleSidebar} title={collapsed ? t('acc.expand') : t('acc.collapse')}>
             {collapsed ? CHEVRON_RIGHT : CHEVRON_LEFT}
           </button>
         </div>
-        {TABS.map((tab) => (
+        {orderedTabs.map((tab) => (
           <button
             key={tab.key}
             className={`acc-sidebar-btn${activeTab === tab.key ? ' active' : ''}`}
@@ -150,7 +165,7 @@ function AccountingPage() {
         {activeTab === 'purchases'      && <Purchases />}
         {activeTab === 'sales'          && <Sales />}
         {activeTab === 'invoices'       && <Invoices />}
-        {activeTab === 'salary-accrual' && <SalaryAccrual />}
+        {activeTab === 'salary-accrual' && <SalariesPage />}
         {activeTab === 'bookkeeping'    && <Bookkeeping />}
         {activeTab === 'stock'          && <Stock />}
         {activeTab === 'calendar'       && <PaymentCalendar />}

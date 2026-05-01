@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const DEFAULT_WIDTHS = [110, 160, 150, 110, 220, 70];
 
@@ -64,6 +65,7 @@ function IconClear() {
 }
 
 function Transactions() {
+  const { t } = useLanguage();
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,7 @@ function Transactions() {
     try {
       const res = await api.get('/accounting/transactions');
       setRecords(res.data.records || []);
-    } catch { setError('Failed to load purchases.'); }
+    } catch { setError(t('tx.failedLoad')); }
     finally { setLoading(false); }
   };
 
@@ -133,12 +135,12 @@ function Transactions() {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Delete ${selectedIds.size} selected purchase(s)?`)) return;
+    if (!window.confirm(t('tx.deleteSelectedConfirm', { count: selectedIds.size }))) return;
     try {
       await api.delete('/accounting/transactions/bulk', { data: { ids: Array.from(selectedIds) } });
       setRecords(prev => prev.filter(r => !selectedIds.has(r.id)));
       setSelectedIds(new Set());
-    } catch (err) { setError(err.response?.data?.error || err.message || 'Failed to delete selected purchases.'); }
+    } catch (err) { setError(err.response?.data?.error || err.message || t('tx.failedDeleteSelected')); }
   };
 
   /* ── Suggestion logic ── */
@@ -172,21 +174,21 @@ function Transactions() {
 
   const handleSave = async () => {
     if (!form.client || !form.item_type || !form.amount || !form.date) {
-      setError('Date, client, item type and amount are required.'); return;
+      setError(t('tx.validationError')); return;
     }
     setSaving(true); setError('');
     try {
       if (editId) await api.put(`/accounting/transactions/${editId}`, form);
       else await api.post('/accounting/transactions', form);
       setShowForm(false); load();
-    } catch (err) { setError(err.response?.data?.error || 'Failed to save.'); }
+    } catch (err) { setError(err.response?.data?.error || t('tx.failedSave')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this purchase?')) return;
+    if (!window.confirm(t('tx.deleteOneConfirm'))) return;
     try { await api.delete(`/accounting/transactions/${id}`); load(); }
-    catch { setError('Failed to delete.'); }
+    catch { setError(t('tx.failedDelete')); }
   };
 
   /* ── Excel export ── */
@@ -226,19 +228,8 @@ function Transactions() {
 
   return (
     <div>
-      <h2>Purchases</h2>
-      <p className="acc-subtitle">Track purchase transactions. Item type is suggested based on past entries per client.</p>
-
-      <div className="acc-summary">
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">Total Records</span>
-          <span className="acc-summary-value">{filtered.length}{hasFilters && records.length !== filtered.length ? ` / ${records.length}` : ''}</span>
-        </div>
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">Total Amount</span>
-          <span className="acc-summary-value red">${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-        </div>
-      </div>
+      <h2>{t('tx.title')}</h2>
+      <p className="acc-subtitle">{t('tx.subtitle')}</p>
 
       <div className="acc-header-row">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -253,7 +244,7 @@ function Transactions() {
                 cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              <IconClear /> Clear filters ({records.length - filtered.length} hidden)
+              <IconClear /> {t('tx.clearFilters', { hidden: records.length - filtered.length })}
             </button>
           )}
         </div>
@@ -272,10 +263,10 @@ function Transactions() {
               fontFamily: 'inherit',
             }}
           >
-            <IconExcel /> Excel
+            <IconExcel /> {t('tx.excel')}
           </button>
           <button className="btn-add" onClick={openNew}>
-            <IconPlus /> Add Purchase
+            <IconPlus /> {t('tx.addPurchase')}
           </button>
         </div>
       </div>
@@ -284,36 +275,36 @@ function Transactions() {
 
       {selectedIds.size > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff8e1', border: '1px solid #ffd54f', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, fontWeight: 500, color: '#555' }}>
-          <span>{selectedIds.size} purchase(s) selected</span>
+          <span>{t('tx.selectedCount', { count: selectedIds.size })}</span>
           <button
             onClick={handleBulkDelete}
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#e53935', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <IconDelete /> Delete Selected
+            <IconDelete /> {t('tx.deleteSelected')}
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
             style={{ background: '#f5f5f5', color: '#666', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            Clear
+            {t('tx.clear')}
           </button>
         </div>
       )}
 
       <div className="acc-table-wrapper">
-        {loading ? <div className="acc-empty"><p>Loading…</p></div> : records.length === 0 ? (
+        {loading ? <div className="acc-empty"><p>{t('tx.loading')}</p></div> : records.length === 0 ? (
           <div className="acc-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
               <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
             </svg>
-            <p>No purchases yet. Add your first one.</p>
+            <p>{t('tx.noPurchases')}</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="acc-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
               <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
             </svg>
-            <p>No results match your filters.</p>
+            <p>{t('tx.noResults')}</p>
           </div>
         ) : (
           <table className="acc-table">
@@ -328,16 +319,16 @@ function Transactions() {
                     type="checkbox"
                     checked={selectedIds.size === filtered.length && filtered.length > 0}
                     onChange={toggleSelectAll}
-                    title="Select all"
+                    title={t('tx.selectAll')}
                     style={{ width: 15, height: 15, cursor: 'pointer' }}
                   />
                 </th>
                 {[
-                  { label: 'Date', key: 'date', type: 'date' },
-                  { label: 'Client', key: 'client', type: 'text' },
-                  { label: 'Item Type', key: 'item_type', type: 'text' },
-                  { label: 'Amount', key: 'amount', type: 'text' },
-                  { label: 'Note', key: 'note', type: 'text' },
+                  { label: t('tx.colDate'), key: 'date', type: 'date' },
+                  { label: t('tx.colClient'), key: 'client', type: 'text' },
+                  { label: t('tx.colItemType'), key: 'item_type', type: 'text' },
+                  { label: t('tx.colAmount'), key: 'amount', type: 'text' },
+                  { label: t('tx.colNote'), key: 'note', type: 'text' },
                   { label: '', key: null },
                 ].map((col, i) => (
                   <th key={i} style={{ position: 'relative', width: colWidths[i], verticalAlign: 'top', paddingBottom: 6 }}>
@@ -352,7 +343,7 @@ function Transactions() {
                         type={col.type}
                         value={filters[col.key]}
                         onChange={e => setFilter(col.key, e.target.value)}
-                        placeholder={col.type === 'date' ? 'YYYY-MM-DD' : `Filter…`}
+                        placeholder={col.type === 'date' ? t('tx.filterDate') : t('agents.filterPlaceholder')}
                         style={filterInputStyle}
                       />
                     )}
@@ -402,21 +393,21 @@ function Transactions() {
       {showForm && (
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{editId ? 'Edit Purchase' : 'New Purchase'}</h3>
+            <h3>{editId ? t('tx.editPurchase') : t('tx.newPurchase')}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="acc-form-grid">
               <div className="acc-form-group">
-                <label>Date *</label>
+                <label>{t('tx.date')}</label>
                 <input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
               </div>
 
               <div className="acc-form-group">
-                <label>Client *</label>
+                <label>{t('tx.client')}</label>
                 <select
                   value={form.client}
                   onChange={(e) => handleClientChange(e.target.value)}
                 >
-                  <option value="">— Select client —</option>
+                  <option value="">{t('tx.selectClient')}</option>
                   {agents.map((a) => (
                     <option key={a.id} value={a.name}>{a.name}</option>
                   ))}
@@ -424,10 +415,10 @@ function Transactions() {
               </div>
 
               <div className="acc-form-group full">
-                <label>Item Type *</label>
+                <label>{t('tx.itemType')}</label>
                 {suggestion.length > 0 && !suggestionDismissed && (
                   <div className="tx-suggestion">
-                    <span>Previous:</span>
+                    <span>{t('tx.previous')}</span>
                     {suggestion.filter(s => s !== form.item_type).map(s => (
                       <button key={s} className="tx-sug-accept" onClick={() => setForm(p => ({ ...p, item_type: s }))}>{s}</button>
                     ))}
@@ -438,28 +429,28 @@ function Transactions() {
                   list="tx-item-types"
                   value={form.item_type}
                   onChange={(e) => setForm({ ...form, item_type: e.target.value })}
-                  placeholder="Type or select item type"
+                  placeholder={t('tx.typeOrSelectItemType')}
                   autoComplete="off"
                 />
                 <datalist id="tx-item-types">
-                  {itemTypeOptions.map(t => <option key={t} value={t} />)}
+                  {itemTypeOptions.map(opt => <option key={opt} value={opt} />)}
                 </datalist>
               </div>
 
               <div className="acc-form-group">
-                <label>Amount *</label>
+                <label>{t('tx.amount')}</label>
                 <input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" />
               </div>
 
               <div className="acc-form-group full">
-                <label>Note</label>
-                <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Optional note…" />
+                <label>{t('tx.note')}</label>
+                <textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={t('tx.optionalNote')} />
               </div>
             </div>
 
             <div className="acc-modal-actions">
-              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Purchase'}</button>
+              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('tx.cancel')}</button>
+              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('tx.saving') : t('tx.savePurchase')}</button>
             </div>
           </div>
         </div>

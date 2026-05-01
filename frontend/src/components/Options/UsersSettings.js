@@ -32,6 +32,43 @@ const ROLES_INFO = [
 
 const EMPTY = { name: '', email: '', phone: '', rights: 'Member' };
 
+const PERMISSION_COLS = [
+  { key: 'initiate_transfer',  label: 'Initiate Transfer' },
+  { key: 'approve_transfer',   label: 'Approve Transfer' },
+  { key: 'reject_transfer',    label: 'Reject Transfer' },
+  { key: 'view_transactions',  label: 'View Transactions' },
+  { key: 'cancel_transaction', label: 'Cancel Transaction' },
+  { key: 'set_limits',         label: 'Set Limits' },
+  { key: 'manage_users',       label: 'Manage Users' },
+  { key: 'audit_reports',      label: 'Audit / Reports' },
+  { key: 'transfer_limit',     label: 'Transfer Limit', isText: true },
+];
+
+const PERM_OPTIONS = ['Yes', 'No', 'Own only', 'Conditional', 'View only'];
+
+const PERM_COLORS = {
+  'Yes':         { background: '#d1fae5', color: '#065f46' },
+  'No':          { background: '#fee2e2', color: '#991b1b' },
+  'Own only':    { background: '#fef9c3', color: '#854d0e' },
+  'Conditional': { background: '#fef9c3', color: '#854d0e' },
+  'View only':   { background: '#fef9c3', color: '#854d0e' },
+};
+
+const DEFAULT_MATRIX = [
+  { role: 'Client / End User',         description: 'Account holder making transfers from own account',            initiate_transfer: 'Yes', approve_transfer: 'No',          reject_transfer: 'No',  view_transactions: 'Own only',    cancel_transaction: 'Conditional', set_limits: 'No',          manage_users: 'No',          audit_reports: 'No',       transfer_limit: '10,000' },
+  { role: 'Teller',                     description: 'Front-line staff handling daily customer transactions',       initiate_transfer: 'Yes', approve_transfer: 'No',          reject_transfer: 'No',  view_transactions: 'Yes',         cancel_transaction: 'Conditional', set_limits: 'No',          manage_users: 'No',          audit_reports: 'No',       transfer_limit: '25,000' },
+  { role: 'Maker (Operations Officer)', description: 'Initiates payments and transfers in the system',             initiate_transfer: 'Yes', approve_transfer: 'No',          reject_transfer: 'No',  view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'No',          manage_users: 'No',          audit_reports: 'No',       transfer_limit: '100,000' },
+  { role: 'Checker (Approver L1)',      description: 'Reviews and approves transactions submitted by Maker',       initiate_transfer: 'No',  approve_transfer: 'Yes',         reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'No',          manage_users: 'No',          audit_reports: 'View only', transfer_limit: '500,000' },
+  { role: 'Senior Approver (L2)',       description: 'Approves high-value transfers above L1 threshold',           initiate_transfer: 'No',  approve_transfer: 'Yes',         reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'Conditional', manage_users: 'No',          audit_reports: 'View only', transfer_limit: '5,000,000' },
+  { role: 'Branch Manager',            description: 'Oversees branch operations and exceptional approvals',        initiate_transfer: 'Yes', approve_transfer: 'Yes',         reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'Yes',         manage_users: 'Conditional', audit_reports: 'Yes',      transfer_limit: '10,000,000' },
+  { role: 'Compliance Officer',        description: 'Reviews transactions for AML/KYC and regulatory compliance',  initiate_transfer: 'No',  approve_transfer: 'Conditional', reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'No',          manage_users: 'No',          audit_reports: 'Yes',      transfer_limit: 'N/A' },
+  { role: 'Risk Officer',              description: 'Monitors risk exposure and can block suspicious activity',     initiate_transfer: 'No',  approve_transfer: 'No',          reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'Yes',         manage_users: 'No',          audit_reports: 'Yes',      transfer_limit: 'N/A' },
+  { role: 'Finance Controller',        description: 'Manages reconciliation, GL postings, internal transfers',      initiate_transfer: 'Yes', approve_transfer: 'Yes',         reject_transfer: 'No',  view_transactions: 'Yes',         cancel_transaction: 'Conditional', set_limits: 'Yes',         manage_users: 'No',          audit_reports: 'Yes',      transfer_limit: '2,000,000' },
+  { role: 'Auditor',                   description: 'Read-only access for internal/external audits',               initiate_transfer: 'No',  approve_transfer: 'No',          reject_transfer: 'No',  view_transactions: 'Yes',         cancel_transaction: 'No',          set_limits: 'No',          manage_users: 'No',          audit_reports: 'Yes',      transfer_limit: 'N/A' },
+  { role: 'System Administrator',      description: 'Manages user accounts, roles, and system configuration',      initiate_transfer: 'No',  approve_transfer: 'No',          reject_transfer: 'No',  view_transactions: 'Yes',         cancel_transaction: 'No',          set_limits: 'Yes',         manage_users: 'Yes',         audit_reports: 'View only', transfer_limit: 'N/A' },
+  { role: 'Super Admin / CFO',         description: 'Highest authority — overrides and policy-level decisions',    initiate_transfer: 'Yes', approve_transfer: 'Yes',         reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'Yes',         manage_users: 'Yes',         audit_reports: 'Yes',      transfer_limit: 'Unlimited' },
+];
+
 function UsersSettings() {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
@@ -41,8 +78,28 @@ function UsersSettings() {
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [pwdModal, setPwdModal] = useState(null);
+  const [pwd, setPwd] = useState('');
+  const [pwdConfirm, setPwdConfirm] = useState('');
+  const [pwdError, setPwdError] = useState('');
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdSuccess, setPwdSuccess] = useState(false);
 
-  useEffect(() => { load(); }, []);
+  const [matrixRows, setMatrixRows] = useState(null);
+  const [matrixDirty, setMatrixDirty] = useState(false);
+  const [matrixSaving, setMatrixSaving] = useState(false);
+  const [matrixError, setMatrixError] = useState('');
+
+  const [roleModal, setRoleModal] = useState(null);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleError, setRoleError] = useState('');
+
+  const currentRights = (() => {
+    try { const s = localStorage.getItem('member_user'); return s ? JSON.parse(s).rights : 'Super Admin'; } catch { return 'Super Admin'; }
+  })();
+  const canEditMatrix = currentRights === 'Super Admin' || currentRights === 'Admin';
+
+  useEffect(() => { load(); loadMatrix(); }, []);
 
   const load = async () => {
     setLoading(true);
@@ -91,6 +148,81 @@ function UsersSettings() {
     }
   };
 
+  const openPwd = (u) => { setPwdModal(u); setPwd(''); setPwdConfirm(''); setPwdError(''); setPwdSuccess(false); };
+
+  const handleSetPassword = async () => {
+    if (pwd.length < 6) { setPwdError('Password must be at least 6 characters.'); return; }
+    if (pwd !== pwdConfirm) { setPwdError('Passwords do not match.'); return; }
+    setPwdSaving(true); setPwdError('');
+    try {
+      await api.put(`/users/${pwdModal.id}/password`, { password: pwd });
+      setPwdSuccess(true);
+      setTimeout(() => setPwdModal(null), 1200);
+    } catch (err) {
+      setPwdError(err.response?.data?.error || 'Failed to set password.');
+    } finally { setPwdSaving(false); }
+  };
+
+  const loadMatrix = async () => {
+    setMatrixError('');
+    try {
+      const res = await api.get('/user-matrix');
+      setMatrixRows(res.data.rows && res.data.rows.length > 0 ? res.data.rows : DEFAULT_MATRIX);
+    } catch { setMatrixRows(DEFAULT_MATRIX); }
+  };
+
+  const saveMatrix = async () => {
+    setMatrixSaving(true); setMatrixError('');
+    try {
+      await api.put('/user-matrix', { rows: matrixRows });
+      setMatrixDirty(false);
+    } catch (err) {
+      setMatrixError(err.response?.data?.error || 'Failed to save.');
+    } finally { setMatrixSaving(false); }
+  };
+
+  const updateCell = (rowIdx, key, value) => {
+    setMatrixRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [key]: value } : r));
+    setMatrixDirty(true);
+  };
+
+  const openRoleModal = (idx) => {
+    const row = idx === null
+      ? { role: '', description: '' }
+      : { role: matrixRows[idx].role, description: matrixRows[idx].description || '' };
+    setRoleModal({ idx, ...row });
+    setRoleError('');
+  };
+
+  const handleSaveRole = async () => {
+    if (!roleModal.role.trim()) { setRoleError('Role name is required.'); return; }
+    setRoleSaving(true); setRoleError('');
+    const emptyRow = { initiate_transfer: 'No', approve_transfer: 'No', reject_transfer: 'No', view_transactions: 'No', cancel_transaction: 'No', set_limits: 'No', manage_users: 'No', audit_reports: 'No', transfer_limit: 'N/A' };
+    const newRows = roleModal.idx === null
+      ? [...(matrixRows || []), { ...emptyRow, role: roleModal.role, description: roleModal.description }]
+      : matrixRows.map((r, i) => i === roleModal.idx ? { ...r, role: roleModal.role, description: roleModal.description } : r);
+    try {
+      await api.put('/user-matrix', { rows: newRows });
+      setMatrixRows(newRows);
+      setMatrixDirty(false);
+      setRoleModal(null);
+    } catch (err) {
+      setRoleError(err.response?.data?.error || 'Failed to save.');
+    } finally { setRoleSaving(false); }
+  };
+
+  const handleDeleteRole = async (idx) => {
+    if (!window.confirm(`Delete role "${matrixRows[idx].role}"?`)) return;
+    const newRows = matrixRows.filter((_, i) => i !== idx);
+    try {
+      await api.put('/user-matrix', { rows: newRows });
+      setMatrixRows(newRows);
+      setMatrixDirty(false);
+    } catch (err) {
+      setMatrixError(err.response?.data?.error || 'Failed to delete role.');
+    }
+  };
+
   const truncateId = (id) => id ? `${id.slice(0, 8)}…` : '—';
 
   return (
@@ -100,10 +232,10 @@ function UsersSettings() {
 
       {/* Inner tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {['users', 'roles'].map((t) => (
+        {['users', 'roles', 'matrix'].map((t) => (
           <button
             key={t}
-            onClick={() => setActiveTab(t)}
+            onClick={() => { setActiveTab(t); if ((t === 'matrix' || t === 'roles') && !matrixRows) loadMatrix(); }}
             style={{
               padding: '7px 20px',
               border: 'none',
@@ -119,7 +251,7 @@ function UsersSettings() {
               textTransform: 'capitalize',
             }}
           >
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === 'matrix' ? 'User Matrix' : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -165,6 +297,9 @@ function UsersSettings() {
                         </td>
                         <td style={tdStyle}>
                           <div className="action-btns">
+                            <button className="btn-icon" onClick={() => openPwd(u)} title="Set Password" style={{ color: '#8b5cf6' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </button>
                             <button className="btn-icon" onClick={() => openEdit(u)} title="Edit" style={{ color: '#3b82f6' }}>
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
@@ -184,22 +319,184 @@ function UsersSettings() {
       )}
 
       {activeTab === 'roles' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {ROLES_INFO.map(({ role, style, description, permissions }) => (
-            <div key={role} style={{ border: '1px solid var(--border-2)', borderRadius: 12, padding: '20px 24px', background: 'var(--surface)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 6, ...style }}>{role}</span>
-                <span style={{ fontSize: 13, color: 'var(--text-3)' }}>{description}</span>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+            <button className="btn-add btn-sm" onClick={() => { if (!matrixRows) loadMatrix(); openRoleModal(null); }}>+ Add Role</button>
+          </div>
+          {!matrixRows ? (
+            <div style={{ padding: '20px 0', color: 'var(--text-4)' }}>Loading…</div>
+          ) : matrixRows.length === 0 ? (
+            <div className="ut-empty">No roles yet. Add one above.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {matrixRows.map((row, ri) => (
+                <div key={ri} style={{ border: '1px solid var(--border-2)', borderRadius: 10, padding: '14px 18px', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 16 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{row.role}</div>
+                    {row.description && <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3, fontStyle: 'italic' }}>{row.description}</div>}
+                  </div>
+                  <div className="action-btns">
+                    <button className="btn-icon" onClick={() => openRoleModal(ri)} title="Edit" style={{ color: '#3b82f6' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button className="btn-icon btn-delete" onClick={() => handleDeleteRole(ri)} title="Delete">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'matrix' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
+              Define permission levels for each role. {!canEditMatrix && <strong style={{ color: '#991b1b' }}>View only — Super Admin or Admin required to edit.</strong>}
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {canEditMatrix && <button className="btn-add btn-sm" onClick={() => {
+                const firstRole = matrixRows && matrixRows.length > 0 ? matrixRows[0].role : '';
+                setMatrixRows(prev => [...(prev || []), { role: firstRole, description: '', initiate_transfer: 'No', approve_transfer: 'No', reject_transfer: 'No', view_transactions: 'No', cancel_transaction: 'No', set_limits: 'No', manage_users: 'No', audit_reports: 'No', transfer_limit: 'N/A' }]);
+                setMatrixDirty(true);
+              }}>+ Add Row</button>}
+              {canEditMatrix && (
+                <button className="btn-primary btn-sm" onClick={saveMatrix} disabled={!matrixDirty || matrixSaving}>
+                  {matrixSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              )}
+            </div>
+          </div>
+          {matrixError && <div className="msg-error" style={{ marginBottom: 12 }}>{matrixError}</div>}
+          {!matrixRows ? (
+            <div style={{ padding: '20px 0', color: 'var(--text-4)' }}>Loading…</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#1e3a5f', color: '#fff' }}>
+                    <th style={{ ...mxTh, minWidth: 160, textAlign: 'left' }}>Role</th>
+                    <th style={{ ...mxTh, minWidth: 200, textAlign: 'left' }}>Description</th>
+                    {PERMISSION_COLS.map(c => (
+                      <th key={c.key} style={{ ...mxTh, minWidth: c.isText ? 120 : 100, textAlign: 'center' }}>{c.label}</th>
+                    ))}
+                    {canEditMatrix && <th style={{ ...mxTh, width: 40 }}></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {matrixRows.map((row, ri) => (
+                    <tr key={ri} style={{ background: ri % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)', borderBottom: '1px solid var(--border-3)' }}>
+                      <td style={{ ...mxTd, whiteSpace: 'nowrap' }}>
+                        {canEditMatrix ? (
+                          <select
+                            value={row.role}
+                            onChange={e => updateCell(ri, 'role', e.target.value)}
+                            style={{ fontWeight: 700, fontSize: 13, border: '1px solid var(--border-2)', borderRadius: 6, padding: '4px 8px', background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer', minWidth: 160 }}
+                          >
+                            {matrixRows.map((r, i) => (
+                              <option key={i} value={r.role}>{r.role}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <strong style={{ color: 'var(--text)' }}>{row.role}</strong>
+                        )}
+                      </td>
+                      <td style={{ ...mxTd, color: 'var(--text-3)', fontStyle: 'italic', fontSize: 12 }}>{row.description}</td>
+                      {PERMISSION_COLS.map(c => {
+                        const val = row[c.key] || (c.isText ? 'N/A' : 'No');
+                        const color = PERM_COLORS[val] || {};
+                        if (!canEditMatrix) {
+                          return (
+                            <td key={c.key} style={{ ...mxTd, textAlign: 'center' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5, ...color }}>{val}</span>
+                            </td>
+                          );
+                        }
+                        if (c.isText) {
+                          return (
+                            <td key={c.key} style={{ ...mxTd, textAlign: 'center' }}>
+                              <input
+                                value={val}
+                                onChange={e => updateCell(ri, c.key, e.target.value)}
+                                style={{ width: 90, textAlign: 'center', fontSize: 12, border: '1px solid var(--border-2)', borderRadius: 5, padding: '3px 6px', background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                              />
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={c.key} style={{ ...mxTd, textAlign: 'center' }}>
+                            <select
+                              value={val}
+                              onChange={e => updateCell(ri, c.key, e.target.value)}
+                              style={{ fontSize: 11, fontWeight: 700, padding: '3px 6px', borderRadius: 5, border: 'none', cursor: 'pointer', fontFamily: 'inherit', ...color }}
+                            >
+                              {PERM_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </td>
+                        );
+                      })}
+                      {canEditMatrix && (
+                        <td style={{ ...mxTd, textAlign: 'center' }}>
+                          <button className="btn-icon btn-delete" onClick={() => handleDeleteRole(ri)} title="Remove role">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {roleModal && (
+        <div className="acc-modal-overlay" onClick={() => setRoleModal(null)}>
+          <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>{roleModal.idx === null ? 'Add Role' : 'Edit Role'}</h3>
+            {roleError && <div className="msg-error" style={{ marginBottom: 12 }}>{roleError}</div>}
+            <div className="acc-form-grid">
+              <div className="acc-form-group full">
+                <label>Role Name *</label>
+                <input value={roleModal.role} onChange={(e) => setRoleModal({ ...roleModal, role: e.target.value })} placeholder="e.g. Finance Controller" autoFocus />
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
-                {permissions.map((p) => (
-                  <span key={p} style={{ fontSize: 12, padding: '4px 10px', background: 'var(--surface-2)', color: 'var(--text-2)', borderRadius: 6, border: '1px solid var(--border-2)' }}>
-                    {p}
-                  </span>
-                ))}
+              <div className="acc-form-group full">
+                <label>Description</label>
+                <input value={roleModal.description} onChange={(e) => setRoleModal({ ...roleModal, description: e.target.value })} placeholder="Brief description of the role" />
               </div>
             </div>
-          ))}
+            <div className="acc-modal-actions">
+              <button className="ut-cancel-btn" onClick={() => setRoleModal(null)}>Cancel</button>
+              <button className="btn-primary" onClick={handleSaveRole} disabled={roleSaving}>{roleSaving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {pwdModal && (
+        <div className="acc-modal-overlay" onClick={() => setPwdModal(null)}>
+          <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Set Password — {pwdModal.name}</h3>
+            {pwdError && <div className="msg-error" style={{ marginBottom: 12 }}>{pwdError}</div>}
+            {pwdSuccess && <div className="msg-success" style={{ marginBottom: 12 }}>Password set successfully!</div>}
+            <div className="acc-form-grid">
+              <div className="acc-form-group full">
+                <label>New Password</label>
+                <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} placeholder="At least 6 characters" autoFocus />
+              </div>
+              <div className="acc-form-group full">
+                <label>Confirm Password</label>
+                <input type="password" value={pwdConfirm} onChange={(e) => setPwdConfirm(e.target.value)} placeholder="Repeat password" />
+              </div>
+            </div>
+            <div className="acc-modal-actions">
+              <button className="ut-cancel-btn" onClick={() => setPwdModal(null)}>Cancel</button>
+              <button className="btn-primary" onClick={handleSetPassword} disabled={pwdSaving}>{pwdSaving ? 'Saving…' : 'Set Password'}</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -230,7 +527,7 @@ function UsersSettings() {
               <div className="acc-form-group full">
                 <label>Rights</label>
                 <select value={form.rights} onChange={(e) => setForm({ ...form, rights: e.target.value })}>
-                  {RIGHTS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {(matrixRows ? matrixRows.map(r => r.role) : RIGHTS).map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
             </div>
@@ -258,6 +555,19 @@ const thStyle = {
 
 const tdStyle = {
   padding: '12px 14px',
+  verticalAlign: 'middle',
+};
+
+const mxTh = {
+  padding: '10px 12px',
+  fontWeight: 700,
+  fontSize: 11,
+  letterSpacing: '0.3px',
+  whiteSpace: 'nowrap',
+};
+
+const mxTd = {
+  padding: '9px 12px',
   verticalAlign: 'middle',
 };
 

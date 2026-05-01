@@ -164,7 +164,7 @@ router.get('/:id', async (req, res) => {
 // POST /api/employees - create
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension, personal_email, department } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, salary_currency, overtime_rate, start_date, end_date, account_number, tax_code, pension, personal_email, mobile_number, department, pit_rate } = req.body;
 
     // Validate required fields
     if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !start_date) {
@@ -187,6 +187,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
         birthdate,
         position: position.trim(),
         salary: parseFloat(salary),
+        salary_currency: ['GEL', 'USD', 'EUR'].includes(salary_currency) ? salary_currency : 'GEL',
         overtime_rate: overtime_rate ? parseFloat(overtime_rate) : 0,
         start_date,
         end_date: end_date || null,
@@ -194,7 +195,9 @@ router.post('/', upload.single('photo'), async (req, res) => {
         tax_code: tax_code ? tax_code.trim() : null,
         pension: pension === 'true' || pension === true,
         personal_email: personal_email ? personal_email.trim() : null,
+        mobile_number: mobile_number ? mobile_number.trim() : null,
         department: department ? department.trim() : null,
+        pit_rate: pit_rate ? parseInt(pit_rate) : 20,
         photo_url
       })
       .select()
@@ -267,7 +270,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
 router.put('/:id', upload.single('photo'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { first_name, last_name, personal_id, birthdate, position, salary, overtime_rate, start_date, end_date, account_number, tax_code, pension, personal_email, department } = req.body;
+    const { first_name, last_name, personal_id, birthdate, position, salary, salary_currency, overtime_rate, start_date, end_date, account_number, tax_code, pension, personal_email, mobile_number, department, pit_rate } = req.body;
 
     if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !start_date) {
       return res.status(400).json({ error: 'All fields are required (end date is optional)' });
@@ -303,6 +306,7 @@ router.put('/:id', upload.single('photo'), async (req, res) => {
         birthdate,
         position: position.trim(),
         salary: parseFloat(salary),
+        salary_currency: ['GEL', 'USD', 'EUR'].includes(salary_currency) ? salary_currency : (existing.salary_currency || 'GEL'),
         overtime_rate: overtime_rate ? parseFloat(overtime_rate) : existing.overtime_rate,
         start_date,
         end_date: end_date || null,
@@ -310,7 +314,9 @@ router.put('/:id', upload.single('photo'), async (req, res) => {
         tax_code: tax_code ? tax_code.trim() : null,
         pension: pension === 'true' || pension === true,
         personal_email: personal_email ? personal_email.trim() : null,
+        mobile_number: mobile_number ? mobile_number.trim() : null,
         department: department ? department.trim() : null,
+        pit_rate: pit_rate ? parseInt(pit_rate) : 20,
         photo_url,
         updated_at: new Date().toISOString()
       })
@@ -962,7 +968,7 @@ router.get('/:id/units', async (req, res) => {
 // POST create unit for employee
 router.post('/:id/units', async (req, res) => {
   try {
-    const { type, amount, date, currency } = req.body;
+    const { type, amount, date, currency, include_in_salary } = req.body;
 
     if (!type || amount === undefined || !date) {
       return res.status(400).json({ error: 'Type, amount, and date are required' });
@@ -977,6 +983,7 @@ router.post('/:id/units', async (req, res) => {
         amount: parseFloat(amount),
         date,
         currency: currency || 'GEL',
+        include_in_salary: include_in_salary !== false,
       })
       .select()
       .single();
@@ -992,11 +999,13 @@ router.post('/:id/units', async (req, res) => {
 // PUT /api/employees/:id/units/:unitId - update unit
 router.put('/:id/units/:unitId', async (req, res) => {
   try {
-    const { type, amount, date } = req.body;
+    const { type, amount, date, currency, include_in_salary } = req.body;
     const updates = {};
     if (type !== undefined) updates.type = type;
     if (amount !== undefined) updates.amount = parseFloat(amount);
     if (date !== undefined) updates.date = date;
+    if (currency !== undefined) updates.currency = currency;
+    if (include_in_salary !== undefined) updates.include_in_salary = include_in_salary;
 
     const { data, error } = await supabase
       .from('employee_units')

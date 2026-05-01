@@ -27,10 +27,13 @@ function EmployeeForm() {
     position: '',
     department: '',
     salary: '',
+    salary_currency: 'GEL',
+    mobile_number: '',
     start_date: '',
     end_date: '',
     account_number: '',
     tax_code: '',
+    pit_rate: 20,
     pension: false,
     personal_email: ''
   });
@@ -124,12 +127,15 @@ function EmployeeForm() {
         position: emp.position,
         department: emp.department || '',
         salary: emp.salary.toString(),
+        salary_currency: emp.salary_currency || 'GEL',
+        mobile_number: emp.mobile_number || '',
         start_date: emp.start_date || '',
         end_date: emp.end_date || '',
         account_number: emp.account_number || '',
         tax_code: emp.tax_code || '',
         pension: emp.pension || false,
-        personal_email: emp.personal_email || ''
+        personal_email: emp.personal_email || '',
+        pit_rate: emp.pit_rate ?? 20
       });
       if (emp.photo_url) {
         setExistingPhotoUrl(emp.photo_url);
@@ -142,8 +148,8 @@ function EmployeeForm() {
   };
 
   const handleChange = (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setFormData({ ...formData, [e.target.name]: value });
+    const { name, type, checked, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
   };
 
   const handlePhotoChange = (e) => {
@@ -170,11 +176,8 @@ function EmployeeForm() {
     e.preventDefault();
     setError('');
 
-    const acctUpper = (formData.account_number || '').toUpperCase();
-    const acctIsTB = acctUpper.includes('TB') || acctUpper.includes('BG');
-    const acctRequiredLen = acctIsTB ? 22 : 15;
-    if (formData.account_number && formData.account_number.length !== acctRequiredLen) {
-      setError(acctIsTB ? 'Account number must be 22 characters for TBC accounts' : t('empForm.accountError'));
+    if (formData.account_number && formData.account_number.length !== 22) {
+      setError('Account number must be exactly 22 characters');
       return;
     }
 
@@ -310,7 +313,7 @@ function EmployeeForm() {
                 </div>
 
                 {/* Form Fields */}
-                <div className="form-grid">
+                <div className="form-grid-4">
                   <div className="form-group">
                     <label htmlFor="first_name">{t('empForm.firstName')}</label>
                     <input id="first_name" name="first_name" type="text" value={formData.first_name} onChange={handleChange} placeholder="John" required />
@@ -355,7 +358,37 @@ function EmployeeForm() {
                   </div>
                   <div className="form-group">
                     <label htmlFor="salary">{t('empForm.salary')}</label>
-                    <input id="salary" name="salary" type="number" step="0.01" min="0" value={formData.salary} onChange={handleChange} placeholder="e.g. 5000.00" required />
+                    <div style={{ display: 'flex', gap: 0, alignItems: 'stretch' }}>
+                      <input
+                        id="salary" name="salary" type="number" step="0.01" min="0"
+                        value={formData.salary} onChange={handleChange}
+                        placeholder="e.g. 5000.00" required
+                        style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
+                      />
+                      {['GEL', 'USD', 'EUR'].map((cur, i, arr) => (
+                        <button
+                          key={cur}
+                          type="button"
+                          onClick={() => setFormData(p => ({ ...p, salary_currency: cur }))}
+                          style={{
+                            padding: '0 11px',
+                            fontSize: 12, fontWeight: 700,
+                            border: '1px solid var(--border, #d1d5db)',
+                            borderLeft: i === 0 ? '1px solid var(--border, #d1d5db)' : 'none',
+                            borderTopRightRadius: i === arr.length - 1 ? 'var(--radius, 8px)' : 0,
+                            borderBottomRightRadius: i === arr.length - 1 ? 'var(--radius, 8px)' : 0,
+                            borderTopLeftRadius: 0, borderBottomLeftRadius: 0,
+                            cursor: 'pointer',
+                            background: formData.salary_currency === cur ? '#2563eb' : 'var(--surface, #fff)',
+                            color: formData.salary_currency === cur ? '#fff' : 'var(--text-2, #6b7280)',
+                            transition: 'background 0.13s, color 0.13s',
+                            height: '100%',
+                          }}
+                        >
+                          {cur}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div className="form-group">
                     <label htmlFor="start_date">{t('empForm.startDate')}</label>
@@ -370,42 +403,42 @@ function EmployeeForm() {
                     const acctUp = (formData.account_number || '').toUpperCase();
                     const isTB = acctUp.includes('TB');
                     const isBG = acctUp.includes('BG');
-                    const reqLen = (isTB || isBG) ? 22 : 15;
                     return (
-                  <div className={`form-group ${isTB ? 'acct-field-tb' : formData.account_number && formData.account_number.toUpperCase().includes('BG') ? 'acct-field-bg' : ''}`}>
+                  <div className={`form-group ${isTB ? 'acct-field-tb' : isBG ? 'acct-field-bg' : ''}`}>
                     <label htmlFor="account_number">{t('empForm.accountNumber')}</label>
-                    <input id="account_number" name="account_number" type="text" value={formData.account_number} onChange={handleChange} placeholder="e.g. GE29TB7894545082100008" maxLength={reqLen} minLength={reqLen} style={isTB ? { borderColor: '#60a5fa', background: 'rgba(59,130,246,0.08)' } : isBG ? { borderColor: '#d9673a', background: 'rgba(217,103,58,0.08)' } : {}} />
-                    {formData.account_number && formData.account_number.length !== reqLen && (
-                      <span className="field-error">{formData.account_number.length}/{reqLen} characters</span>
+                    <input id="account_number" name="account_number" type="text" value={formData.account_number} onChange={handleChange} placeholder="e.g. GE29TB7894545082100008" maxLength={22} minLength={22} style={isTB ? { borderColor: '#60a5fa', background: 'rgba(59,130,246,0.08)' } : isBG ? { borderColor: '#d9673a', background: 'rgba(217,103,58,0.08)' } : {}} />
+                    {formData.account_number && formData.account_number.length !== 22 && (
+                      <span className="field-error">{formData.account_number.length}/22 characters</span>
                     )}
                   </div>
                     );
                   })()}
                   <div className="form-group">
-                    <label htmlFor="tax_code">{t('empForm.taxCode')}</label>
-                    {taxCodes.length > 0 ? (
-                      <select id="tax_code" name="tax_code" value={formData.tax_code} onChange={handleChange}>
-                        <option value="">{t('empForm.selectTaxCode')}</option>
-                        {taxCodes.map((tc) => (
-                          <option key={tc.id} value={tc.code}>{tc.code}</option>
-                        ))}
-                      </select>
-                    ) : (
-                      <input id="tax_code" name="tax_code" type="text" value={formData.tax_code} onChange={handleChange} placeholder={t('empForm.taxCodePlaceholder')} />
-                    )}
+                    <label htmlFor="pit_rate">PIT Rate</label>
+                    <select id="pit_rate" name="pit_rate" value={formData.pit_rate} onChange={handleChange}>
+                      <option value={5}>5%</option>
+                      <option value={20}>20%</option>
+                    </select>
                   </div>
                   <div className="form-group">
                     <label htmlFor="personal_email">Personal Email</label>
                     <input id="personal_email" name="personal_email" type="email" value={formData.personal_email} onChange={handleChange} placeholder="e.g. john@example.com" />
                   </div>
                   <div className="form-group">
-                    <div className="pension-toggle-row">
-                      <label className="toggle-switch">
+                    <label htmlFor="mobile_number">Mobile Number</label>
+                    <input id="mobile_number" name="mobile_number" type="tel" value={formData.mobile_number} onChange={handleChange} placeholder="e.g. +995 555 123456" />
+                  </div>
+                  <div className="form-group">
+                    <label className="pension-toggle-row" onClick={() => setFormData(p => ({ ...p, pension: !p.pension }))}>
+                      <label className="toggle-switch" onClick={e => e.stopPropagation()}>
                         <input type="checkbox" name="pension" checked={formData.pension} onChange={handleChange} />
                         <span className="toggle-track" />
                       </label>
-                      <span className="pension-label">{t('empForm.pension')}</span>
-                    </div>
+                      <span className="pension-label">
+                        {t('empForm.pension')}
+                        <span className="pension-label-sub">Employee participates in pension scheme</span>
+                      </span>
+                    </label>
                   </div>
                 </div>
 

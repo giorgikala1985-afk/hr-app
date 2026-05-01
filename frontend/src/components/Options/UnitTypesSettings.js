@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useTheme } from '../../contexts/ThemeContext';
 
 function UnitTypesSettings() {
   const { t } = useLanguage();
+  const { theme } = useTheme();
   const [unitTypes, setUnitTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -142,11 +144,11 @@ function UnitTypesSettings() {
                 </>
               ) : (
                 <>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: ut.direction === 'addition' ? '#f0fdf4' : '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 14, color: ut.direction === 'addition' ? '#16a34a' : '#dc2626' }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(22,163,74,0.18)' : '#f0fdf4') : (theme === 'dark' ? 'rgba(220,38,38,0.18)' : '#fef2f2'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 14, color: ut.direction === 'addition' ? (theme === 'dark' ? '#4ade80' : '#16a34a') : (theme === 'dark' ? '#f87171' : '#dc2626') }}>
                     {ut.direction === 'addition' ? '+' : '−'}
                   </div>
                   <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{ut.name}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: ut.direction === 'addition' ? '#f0fdf4' : '#fef2f2', color: ut.direction === 'addition' ? '#16a34a' : '#dc2626', border: `1px solid ${ut.direction === 'addition' ? '#bbf7d0' : '#fca5a5'}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(22,163,74,0.18)' : '#f0fdf4') : (theme === 'dark' ? 'rgba(220,38,38,0.18)' : '#fef2f2'), color: ut.direction === 'addition' ? (theme === 'dark' ? '#4ade80' : '#16a34a') : (theme === 'dark' ? '#f87171' : '#dc2626'), border: `1px solid ${ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(74,222,128,0.35)' : '#bbf7d0') : (theme === 'dark' ? 'rgba(248,113,113,0.35)' : '#fca5a5')}` }}>
                     {ut.direction === 'addition' ? 'Addition' : 'Deduction'}
                   </span>
                   <button onClick={() => startEdit(ut)} title={t('ut.edit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--border)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}

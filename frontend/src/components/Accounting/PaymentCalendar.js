@@ -20,13 +20,13 @@ function buildEventMap(purchases, sales, invoices, transactions, labels) {
     map[dateKey].push(event);
   };
 
-  purchases.forEach(r => add(toDateKey(r.date), { type: 'purchase', label: r.vendor || r.description || labels.purchase, amount: r.amount, currency: r.currency, id: r.id }));
-  sales.forEach(r => add(toDateKey(r.date), { type: 'sale', label: r.client || r.description || labels.sale, amount: r.amount, currency: r.currency, id: r.id }));
+  purchases.forEach(r => add(toDateKey(r.date), { type: 'purchase', label: r.vendor || labels.purchase, amount: r.amount, currency: r.currency, id: r.id, sub: r.description }));
+  sales.forEach(r => add(toDateKey(r.date), { type: 'sale', label: r.client || labels.sale, amount: r.amount, currency: r.currency, id: r.id, sub: r.description }));
   invoices.forEach(r => {
-    add(toDateKey(r.date), { type: 'invoice', label: r.client || r.invoice_number || labels.invoice, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
-    if (r.due_date) add(toDateKey(r.due_date), { type: 'invoice_due', label: r.client || r.invoice_number || labels.invoiceDue, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
+    add(toDateKey(r.date), { type: 'invoice', label: r.client || labels.invoice, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
+    if (r.due_date) add(toDateKey(r.due_date), { type: 'invoice_due', label: r.client || labels.invoiceDue, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
   });
-  transactions.forEach(r => add(toDateKey(r.date), { type: 'transaction', label: r.client || r.item_type || labels.transaction, amount: r.amount, currency: null, id: r.id }));
+  transactions.forEach(r => add(toDateKey(r.date), { type: 'transaction', label: r.client || labels.transaction, amount: r.amount, currency: null, id: r.id, sub: r.item_type, note: r.note }));
 
   return map;
 }
@@ -144,7 +144,7 @@ export default function PaymentCalendar() {
     <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
       {/* Calendar card */}
-      <div style={{ flex: '1 1 520px', background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden', minWidth: 320 }}>
+      <div style={{ flex: 1, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden', minWidth: 320 }}>
 
         {/* Header */}
         <div style={{ padding: '16px 20px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -265,7 +265,7 @@ export default function PaymentCalendar() {
       </div>
 
       {/* Detail panel */}
-      <div style={{ flex: '0 1 300px', minWidth: 260 }}>
+      <div style={{ flex: 1, minWidth: 260 }}>
         {selectedDay ? (
           <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
             <div style={{ padding: '14px 18px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -292,7 +292,8 @@ export default function PaymentCalendar() {
                         {ev.amount != null && <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{fmtAmount(ev.amount, ev.currency)}</span>}
                       </div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginTop: 3 }}>{ev.label}</div>
-                      {ev.sub && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>#{ev.sub}</div>}
+                      {ev.sub && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{ev.sub}</div>}
+                      {ev.note && <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 2, fontStyle: 'italic' }}>{ev.note}</div>}
                     </div>
                   );
                 })}

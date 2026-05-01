@@ -262,7 +262,7 @@ function HolidayList() {
           <button
             onClick={handleImportGeorgian}
             disabled={importing}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', background: importing ? 'var(--surface-3)' : '#dc2626', color: importing ? 'var(--text-3)' : '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: importing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 18px', height: 36, boxSizing: 'border-box', background: importing ? 'var(--surface-3)' : '#dc2626', color: importing ? 'var(--text-3)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: importing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
             title="Import all official Georgian public holidays for the selected year"
           >
             🇬🇪 {importing ? 'Importing…' : 'Import Georgian Holidays'}
@@ -290,17 +290,7 @@ function HolidayList() {
                     <th key={i} style={{ position: 'relative', width: colWidths[i], overflow: 'hidden', verticalAlign: 'top', paddingBottom: 6 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
                         {col.label}
-                        {col.key && filters[col.key] && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>}
                       </div>
-                      {col.key && (
-                        <input
-                          type="text"
-                          value={filters[col.key]}
-                          onChange={e => setFilters(p => ({ ...p, [col.key]: e.target.value }))}
-                          placeholder="Filter…"
-                          style={filterInput}
-                        />
-                      )}
                       <div onMouseDown={e => onResizeMouseDown(e, i)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
                     </th>
                   ))}

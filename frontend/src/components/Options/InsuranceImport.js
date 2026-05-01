@@ -84,7 +84,11 @@ function InsuranceImport() {
     ws['!cols'] = IMEDI_COLS.map(() => ({ wch: 20 }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Imedi L');
-    XLSX.writeFile(wb, 'ImediL_Insurance_Template.xlsx');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+    a.download = 'ImediL_Insurance_Template.xlsx';
+    a.click();
   };
 
   const downloadTemplate = () => {
@@ -96,7 +100,11 @@ function InsuranceImport() {
     ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Insurance');
-    XLSX.writeFile(wb, 'Insurance_Import_Template.xlsx');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+    a.download = 'Insurance_Import_Template.xlsx';
+    a.click();
   };
 
   const formatExcelDate = (value) => {
@@ -155,8 +163,6 @@ function InsuranceImport() {
             const missing = [];
             if (!row.name) missing.push('დაზღვეული პირი');
             if (!row.personal_id) missing.push('პირადი ნომერი');
-            if (row.amount1 === '' && row.amount1 !== 0) missing.push('კომპანიის წილი');
-            if (!row.date) missing.push('პერიოდის დასაწყისი');
             if (missing.length > 0) { row._valid = false; row._missing = missing; }
           });
         } else {
@@ -199,7 +205,11 @@ function InsuranceImport() {
   };
 
   const handleSave = async () => {
-    const valid = rows.filter((r) => r._valid).map(({ _valid, _missing, ...rest }) => rest);
+    const valid = rows.filter((r) => r._valid).map(({ _valid, _missing, ...rest }) => ({
+      ...rest,
+      amount1: rest.amount1 !== '' && rest.amount1 !== null && rest.amount1 !== undefined ? rest.amount1 : 0,
+      date: rest.date || new Date().toISOString().slice(0, 10),
+    }));
     if (valid.length === 0) { setError(t('insImport.noValid')); return; }
     setSaving(true); setError(''); setSuccess('');
     try {
@@ -304,7 +314,7 @@ function InsuranceImport() {
                     <polyline points="14,2 14,8 20,8"/>
                     <line x1="12" y1="12" x2="12" y2="18"/><polyline points="9,15 12,18 15,15"/>
                   </svg>
-                  {company === 'imedi' ? 'Download Imedi L Template' : t('insImport.downloadTemplate')}
+                  {`Download ${COMPANIES.find(c => c.key === company)?.label || ''} Template`}
                 </button>
               </div>
             </div>
@@ -386,8 +396,8 @@ function InsuranceImport() {
                       <thead>
                         <tr style={{ background: 'var(--surface-2)' }}>
                           {(company === 'imedi'
-                            ? ['#', 'დაზღვეული პირი', 'პირადი ნომერი', 'პოლისი', 'კავშირის ტიპი', 'პერიოდის დასაწყისი', 'პერიოდის დასასრული', 'კომპანიის წილი', 'თანამშრომლის წილი', t('insImport.colStatus')]
-                            : ['#', t('insImport.colName'), t('insImport.colLastName'), t('insImport.colId'), t('insImport.colAmount1'), t('insImport.colAmount2'), t('insImport.colDate'), 'Pension', t('insImport.colStatus')]
+                            ? ['#', 'დაზღვეული პირი', 'პირადი ნომერი', 'პოლისი', 'კავშირის ტიპი', 'პერიოდის დასაწყისი', 'პერიოდის დასასრული', 'კომპანიის წილი', 'თანამშრომლის წილი']
+                            : ['#', t('insImport.colName'), t('insImport.colLastName'), t('insImport.colId'), t('insImport.colAmount1'), t('insImport.colAmount2'), t('insImport.colDate'), 'Pension']
                           ).map((h, i) => (
                             <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)' }}>{h}</th>
                           ))}
@@ -402,9 +412,9 @@ function InsuranceImport() {
                               <td style={{ padding: '7px 10px', color: !row.personal_id ? '#dc2626' : 'var(--text)' }}>{row.personal_id || '—'}</td>
                               <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.policy || '—'}</td>
                               <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.relation_type || '—'}</td>
-                              <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : 'var(--text)' }}>{row.date || '—'}</td>
+                              <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.date || '—'}</td>
                               <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.date_end || '—'}</td>
-                              <td style={{ padding: '7px 10px', color: row.amount1 === '' ? '#dc2626' : 'var(--text)' }}>{row.amount1 !== '' ? row.amount1 : '—'}</td>
+                              <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.amount1 !== '' ? row.amount1 : '—'}</td>
                               <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.amount2 !== '' ? row.amount2 : '—'}</td>
                             </>) : (<>
                               <td style={{ padding: '7px 10px', color: !row.name ? '#dc2626' : 'var(--text)' }}>{row.name || '—'}</td>
@@ -415,11 +425,6 @@ function InsuranceImport() {
                               <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : 'var(--text)' }}>{row.date || '—'}</td>
                               <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
                             </>)}
-                            <td style={{ padding: '7px 10px' }}>
-                              {row._valid
-                                ? <span style={{ padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 11, border: '1px solid #bbf7d0' }}>{t('insImport.ok')}</span>
-                                : <span title={row._missing?.join(', ')} style={{ padding: '2px 8px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 11, border: '1px solid #fca5a5', cursor: 'help' }}>{t('insImport.missing')}</span>}
-                            </td>
                           </tr>
                         ))}
                       </tbody>

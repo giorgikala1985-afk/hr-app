@@ -413,7 +413,7 @@ function EmployeeList() {
                   {isCol('personalId') && <td>{emp.personal_id}</td>}
                   {isCol('birthdate') && <td>{formatDate(emp.birthdate)}</td>}
                   {isCol('position') && <td><span className="position-badge">{emp.position}</span></td>}
-                  {isCol('salary') && <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatCurrency(emp.salary)}</td>}
+                  {isCol('salary') && <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontFamily: 'var(--font-mono), monospace' }}>{Number(emp.salary).toLocaleString('en-US', { minimumFractionDigits: 2 })} {emp.salary_currency || 'GEL'}</td>}
                   {isCol('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
                   {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
                   {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="position-badge">{t('emp.active')}</span>}</td>}

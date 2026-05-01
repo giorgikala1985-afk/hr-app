@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 
 const COLUMNS = [
-  { key: 'date',        label: 'Accrual Date',  align: 'left',  defaultWidth: 120 },
-  { key: 'personalId',  label: 'Personal ID',   align: 'left',  defaultWidth: 110 },
-  { key: 'firstName',   label: 'Name',          align: 'left',  defaultWidth: 110 },
-  { key: 'lastName',    label: 'Last Name',      align: 'left',  defaultWidth: 120 },
-  { key: 'netSalary',   label: 'Salary Net',    align: 'right', defaultWidth: 120 },
-  { key: 'adjustment',  label: 'Adjustments',   align: 'left',  defaultWidth: 200 },
-  { key: 'fitpass',     label: 'Fitpass',        align: 'right', defaultWidth: 100 },
-  { key: 'insurance',   label: 'Insurance',     align: 'right', defaultWidth: 100 },
-  { key: 'totalSum',    label: 'Total Sum',     align: 'right', defaultWidth: 120 },
-  { key: 'totalGEL',   label: 'Total GEL',     align: 'right', defaultWidth: 120 },
+  { key: 'date',        labelKey: 'salAccrual.colAccrualDate', label: 'Accrual Date',  align: 'left',  defaultWidth: 120 },
+  { key: 'personalId',  labelKey: 'salAccrual.colPersonalId',  label: 'Personal ID',   align: 'left',  defaultWidth: 110 },
+  { key: 'firstName',   labelKey: 'salAccrual.colName',        label: 'Name',          align: 'left',  defaultWidth: 110 },
+  { key: 'lastName',    labelKey: 'salAccrual.colLastName',     label: 'Last Name',     align: 'left',  defaultWidth: 120 },
+  { key: 'netSalary',   labelKey: 'salAccrual.colSalaryNet',   label: 'Salary Net',    align: 'right', defaultWidth: 120 },
+  { key: 'fitpass',     labelKey: 'salAccrual.colFitpass',     label: 'Fitpass',       align: 'right', defaultWidth: 100 },
+  { key: 'insurance',   labelKey: 'salAccrual.colInsurance',   label: 'Insurance',     align: 'right', defaultWidth: 100 },
+  { key: 'totalSum',    labelKey: 'salAccrual.colTotalSum',    label: 'Total Sum',     align: 'right', defaultWidth: 120 },
+  { key: 'totalGEL',    labelKey: 'salAccrual.colTotalGEL',   label: 'Total GEL',     align: 'right', defaultWidth: 120 },
 ];
 
 const DEFAULT_WIDTHS = COLUMNS.map(c => c.defaultWidth);
@@ -80,6 +80,8 @@ const TD_NUM = { textAlign: 'right', fontFamily: FONT_MONO, fontSize: 13, paddin
 const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: 'var(--text)' };
 
 function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
+  const { t } = useLanguage();
+  const TCOLS = COLUMNS.map(c => ({ ...c, label: t(c.labelKey) }));
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [month, setMonth] = useState(todayMonth());
   const [accrualDate, setAccrualDate] = useState(() => {
@@ -90,6 +92,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [gelRate, setGelRate] = useState(null);
+  const [nbgRate, setNbgRate] = useState(null);
+  const [nbgDate, setNbgDate] = useState('');
+  const [insuranceList, setInsuranceList] = useState([]);
 
   const [unitTypes, setUnitTypes] = useState([]);
   const [overtimeRates, setOvertimeRates] = useState([]);
@@ -147,6 +152,17 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       .then(r => r.json()).then(d => { if (d.rates?.GEL) setGelRate(d.rates.GEL); }).catch(() => {});
   }, []);
   useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    fetch(`https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/?date=${today}&lang=en`)
+      .then(r => r.json())
+      .then(json => {
+        const list = json?.[0]?.currencies || [];
+        const usd = list.find(c => c.code === 'USD');
+        if (usd) { setNbgRate(usd.rate / (usd.quantity || 1)); setNbgDate(today); }
+      })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
     if (!transferDate) { setTransferRate(null); return; }
     setLoadingRate(true);
     fetch(`https://nbg.gov.ge/gw/api/ct/monetarypolicy/currencies/?date=${transferDate}&lang=en`)
@@ -161,12 +177,36 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       .finally(() => setLoadingRate(false));
   }, [transferDate]);
 
+  const normalizeId = (id) => String(id || '').trim().replace(/\s+/g, '');
+  const idsMatch = (a, b) => {
+    const na = normalizeId(a), nb = normalizeId(b);
+    if (!na || !nb) return false;
+    return na === nb || na.replace(/^0+/, '') === nb.replace(/^0+/, '');
+  };
+  const dateMatchesMonth = (date, m) => {
+    if (!date) return false;
+    const d = String(date).trim();
+    if (d.startsWith(m)) return true;
+    try { const p = new Date(d); if (!isNaN(p)) return `${p.getFullYear()}-${String(p.getMonth()+1).padStart(2,'0')}` === m; } catch {}
+    return false;
+  };
+  const getInsAmount2 = (personalId, m) => {
+    if (!personalId) return 0;
+    return insuranceList
+      .filter(rec => idsMatch(rec.personal_id, personalId) && dateMatchesMonth(rec.period || rec.date, m))
+      .reduce((s, rec) => s + parseFloat(rec.amount2 || 0), 0);
+  };
+
   const load = async (m) => {
     setLoading(true); setError('');
     try {
-      const res = await api.get(`/salaries?month=${m}`);
-      setData(res.data);
-    } catch { setError('Failed to load salary data.'); }
+      const [salRes, insRes] = await Promise.all([
+        api.get(`/salaries?month=${m}`),
+        api.get('/insurance-list'),
+      ]);
+      setData(salRes.data);
+      setInsuranceList(insRes.data?.records || []);
+    } catch { setError(t('salAccrual.failedLoad')); }
     finally { setLoading(false); }
   };
 
@@ -217,19 +257,19 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       setData(res.data);
       const updated = (res.data.salaries || []).find(r => r.employee.id === employeeId);
       if (updated) setSelectedRow(updated);
-    } catch { setError('Failed to add unit.'); }
+    } catch { setError(t('salAccrual.failedAdd')); }
     finally { setSavingUnit(false); }
   };
 
   const handleDeleteUnit = async (employeeId, unitId) => {
-    if (!window.confirm('Remove this unit?')) return;
+    if (!window.confirm(t('salAccrual.removeUnit'))) return;
     try {
       await api.delete(`/employees/${employeeId}/units/${unitId}`);
       const res = await api.get(`/salaries?month=${month}`);
       setData(res.data);
       const updated = (res.data.salaries || []).find(r => r.employee.id === employeeId);
       if (updated) setSelectedRow(updated);
-    } catch { setError('Failed to remove unit.'); }
+    } catch { setError(t('salAccrual.failedRemove')); }
   };
 
   const closeDrawer = () => { setSelectedRow(null); setUnitDropdownOpen(false); };
@@ -239,29 +279,41 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
 
   const totNetSalary = active.reduce((s, r) => s + parseFloat(r.accrued_salary || 0), 0);
   const totFitpass   = active.reduce((s, r) => s + parseFloat(r.fitpass_deduction || 0), 0);
-  const totInsurance = active.reduce((s, r) => s + parseFloat(r.insurance_deduction || 0), 0);
+  const totInsurance = active.reduce((s, r) => s + getInsAmount2(r.employee?.personal_id, month), 0);
   const totGross     = active.reduce((s, r) => s + calcGross(r.net_salary, r.employee.pension), 0);
   const totPension   = active.reduce((s, r) => s + (r.employee.pension ? calcGross(r.net_salary, true) * 0.02 : 0), 0);
-  const totSum       = active.reduce((s, r) => s + parseFloat(r.net_salary || 0), 0);
+  const totSum       = active.reduce((s, r) => {
+    const ins2 = getInsAmount2(r.employee?.personal_id, month);
+    return s + parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - ins2;
+  }, 0);
 
-  // Dynamic unit columns: only show unit types that still exist in settings
-  const dynUnitCols = [];
+  // Dynamic unit columns: one column per unit type actually used this month
+  const usedTypeNames = new Set(
+    active.flatMap(r => (r.deductions || [])
+      .filter(u => unitTypes.find(t => t.name === u.type) && u.include_in_salary !== false)
+      .map(u => u.type)
+    )
+  );
+  const dynUnitCols = unitTypes.filter(ut => usedTypeNames.has(ut.name));
 
   const dr = selectedRow;
   const drEmp = dr?.employee;
   const drGross = dr ? calcGross(dr.net_salary, drEmp.pension) : 0;
-  const drInsurance = parseFloat(dr?.insurance_deduction || 0);
+  const drInsurance = dr ? getInsAmount2(drEmp?.personal_id, month) : 0;
   const drFitpass = parseFloat(dr?.fitpass_deduction || 0);
 
-  // Derive visible columns in order; grossSalary is always rendered last
-  const visCols       = COLUMNS.filter(c => visibleCols.includes(c.key));
-  const visColsMain   = visCols.filter(c => c.key !== 'grossSalary');
+  // Derive visible columns in order; totalSum/totalGEL/grossSalary always rendered after dynUnitCols
+  const TAIL_KEYS = ['totalSum', 'totalGEL', 'grossSalary'];
+  const visCols        = TCOLS.filter(c => visibleCols.includes(c.key));
+  const visColsMain    = visCols.filter(c => !TAIL_KEYS.includes(c.key));
+  const tailCols       = TAIL_KEYS.map(k => visCols.find(c => c.key === k)).filter(Boolean);
   const grossSalaryCol = visCols.find(c => c.key === 'grossSalary') || null;
-  const tableWidth    = visColsMain.reduce((sum, col) => sum + scaledW(COLUMNS.indexOf(col)), 0)
-                      + dynUnitCols.length * dynColW
-                      + (grossSalaryCol ? scaledW(COLUMNS.indexOf(grossSalaryCol)) : 0);
+  const colIdx         = (col) => COLUMNS.findIndex(c => c.key === col.key);
+  const tableWidth     = visColsMain.reduce((sum, col) => sum + scaledW(colIdx(col)), 0)
+                       + dynUnitCols.length * dynColW
+                       + tailCols.reduce((sum, col) => sum + scaledW(colIdx(col)), 0);
   const visTextCols = visColsMain.filter(c => TEXT_KEYS.includes(c.key));
-  const visNumCols  = visColsMain.filter(c => !TEXT_KEYS.includes(c.key));
+  const visNumCols  = visColsMain.filter(c => !TEXT_KEYS.includes(c.key) && !TAIL_KEYS.includes(c.key));
 
   // Sticky left positions for text columns
   const stickyLeftMap = {};
@@ -269,7 +321,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   visColsMain.forEach(col => {
     if (TEXT_KEYS.includes(col.key)) {
       stickyLeftMap[col.key] = _stickyLeft;
-      _stickyLeft += scaledW(COLUMNS.indexOf(col));
+      _stickyLeft += scaledW(colIdx(col));
     }
   });
   const lastStickyKey = [...visColsMain].reverse().find(c => TEXT_KEYS.includes(c.key))?.key;
@@ -282,7 +334,8 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       case 'insurance':   return { val: moneyTotalSign(totInsurance, 'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
       case 'totalSum':    return { val: moneyTotal(totSum),       style: { ...TD_BOLD, fontSize: 14 } };
       case 'totalGEL': {
-        const totGEL = gelRate ? Math.round(totSum * gelRate * 100) / 100 : null;
+        const activeRate = transferRate || nbgRate || gelRate;
+        const totGEL = activeRate ? Math.round(totSum * activeRate * 100) / 100 : null;
         return { val: totGEL != null ? `₾${totGEL.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—', style: { ...TD_BOLD, fontSize: 14, color: '#f59e0b' } };
       }
       case 'grossSalary': return { val: moneyTotal(totGross),     style: { ...TD_BOLD, fontSize: 14, color: '#3b82f6' } };
@@ -330,9 +383,14 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       }
       case 'fitpass':     return <td key={key} className={fitpass > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(fitpass, 'deduction')}</td>;
       case 'insurance':   return <td key={key} className={insurance > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(insurance, 'deduction')}</td>;
-      case 'totalSum':    return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(parseFloat(r.net_salary || 0))}</td>;
+      case 'totalSum': {
+        const corrected = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+        return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(corrected)}</td>;
+      }
       case 'totalGEL': {
-        const gel = gelRate ? Math.round(parseFloat(r.net_salary || 0) * gelRate * 100) / 100 : null;
+        const corrected = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+        const activeRate = transferRate || nbgRate || gelRate;
+        const gel = activeRate ? Math.round(corrected * activeRate * 100) / 100 : null;
         return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#f59e0b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{gel != null ? `₾${gel.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>;
       }
       case 'grossSalary': return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#3b82f6', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(grossSalary)}</td>;
@@ -353,7 +411,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       const emp        = r.employee;
 
       const fitpass    = parseFloat(r.fitpass_deduction || 0);
-      const insurance  = parseFloat(r.insurance_deduction || 0);
+      const insurance  = getInsAmount2(emp?.personal_id, month);
       const grossSalary = calcGross(r.net_salary, emp.pension);
       const pensionAmt = emp.pension ? grossSalary * 0.02 : 0;
       const rowData = [];
@@ -367,8 +425,15 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           case 'adjustment':  rowData.push((r.deductions || []).filter(u => unitTypes.find(t => t.name === u.type)).map(u => { const ut = unitTypes.find(t => t.name === u.type); return `${ut?.direction === 'addition' ? '+' : '-'}${u.type}`; }).join(', ')); break;
           case 'fitpass':     rowData.push(fitpass || ''); break;
           case 'insurance':   rowData.push(insurance || ''); break;
-          case 'totalSum':    rowData.push(parseFloat(r.net_salary || 0)); break;
-          case 'totalGEL':    rowData.push(gelRate ? Math.round(parseFloat(r.net_salary || 0) * gelRate * 100) / 100 : ''); break;
+          case 'totalSum': {
+            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+            rowData.push(c); break;
+          }
+          case 'totalGEL': {
+            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+            const activeRate = transferRate || nbgRate || gelRate;
+            rowData.push(activeRate ? Math.round(c * activeRate * 100) / 100 : ''); break;
+          }
           case 'pension':     rowData.push(emp.pension ? pensionAmt : ''); break;
           default:            rowData.push('');
         }
@@ -414,8 +479,24 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
 
   return (
     <div>
-      <h2>Salaries</h2>
-      <p className="acc-subtitle">Monthly payroll accrual breakdown per employee. Click a row to manage units.</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 2 }}>
+        <h2 style={{ margin: 0 }}>{t('sal.title')}</h2>
+        {nbgRate && (
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '4px 12px', borderRadius: 20,
+            background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)',
+            fontSize: 12, fontFamily: FONT_MONO, fontWeight: 700, color: '#f59e0b',
+            whiteSpace: 'nowrap',
+          }}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="23,6 13.5,15.5 8.5,10.5 1,18"/><polyline points="17,6 23,6 23,12"/>
+            </svg>
+            NBG {nbgDate}: 1 USD = ₾{nbgRate.toFixed(4)}
+          </span>
+        )}
+      </div>
+      <p className="acc-subtitle">{t('salAccrual.subtitle')}</p>
 
       {/* Month picker */}
       <div className="sa-month-bar">
@@ -423,7 +504,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         <span className="sa-month-label">{fmtMonth(month)}</span>
         <button className="sa-arrow" onClick={() => setMonth(nextMonth(month))}>›</button>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="sa-month-input" />
-        {data && <span className="sa-meta">{data.working_days} working days · {data.holidays_count} holidays</span>}
+        {data && <span className="sa-meta">{data.working_days} {t('salAccrual.workingDays')} · {data.holidays_count} {t('salAccrual.holidays')}</span>}
 
         {/* Transfer date + Create Salary File — moved into month bar */}
         {data && active.length > 0 && (
@@ -432,7 +513,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
               <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>Transfer date:</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{t('salAccrual.transferDate')}</span>
             <input
               type="date"
               value={transferDate}
@@ -441,10 +522,10 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
             />
             {transferDate && (
               loadingRate
-                ? <span style={{ fontSize: 11, color: 'var(--text-4)', fontFamily: FONT_MONO }}>fetching rate…</span>
+                ? <span style={{ fontSize: 11, color: 'var(--text-4)', fontFamily: FONT_MONO }}>{t('salAccrual.fetchingRate')}</span>
                 : transferRate
                   ? <span style={{ fontSize: 12, fontFamily: FONT_MONO, color: '#f59e0b', fontWeight: 700 }}>1 USD = ₾{transferRate.toFixed(4)}</span>
-                  : <span style={{ fontSize: 11, color: '#ef4444' }}>Rate unavailable</span>
+                  : <span style={{ fontSize: 11, color: '#ef4444' }}>{t('salAccrual.rateUnavailable')}</span>
             )}
             <button
               onClick={() => {
@@ -454,14 +535,32 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const emp = r.employee;
                   const grossSal = calcGross(r.net_salary, emp.pension);
                   const pensionAmt = emp.pension ? grossSal * 0.02 : 0;
-                  const amountUSD = Math.round((parseFloat(r.net_salary || 0) - pensionAmt) * 100) / 100;
+                  const ins2 = getInsAmount2(emp?.personal_id, month);
+                  const correctedNet = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - ins2;
+                  const amountUSD = Math.round((correctedNet - pensionAmt) * 100) / 100;
                   const amountGEL = Math.round(amountUSD * rate * 100) / 100;
+
+                  // Build description
+                  const [y, mo] = month.split('-').map(Number);
+                  const monthAbbr = new Date(y, mo - 1, 1).toLocaleString('en-US', { month: 'short' });
+                  const descParts = [
+                    `Salary for ${monthAbbr}. $${amountUSD.toFixed(2)}`,
+                    `Rate ${rate.toFixed(4)}`,
+                  ];
+                  const fitpassAmt = parseFloat(r.fitpass_deduction || 0);
+                  if (fitpassAmt > 0) descParts.push(`Inc. $${fitpassAmt.toFixed(2)} Fitpass`);
+                  (r.deductions || []).forEach(d => {
+                    const amt = parseFloat(d.amount || 0);
+                    if (amt > 0 && d.type) descParts.push(`Inc. $${amt.toFixed(2)} ${d.type}`);
+                  });
+                  const description = descParts.join(' | ');
+
                   return {
                     first_name: emp.first_name,
                     last_name: emp.last_name,
                     iban: emp.account_number || '',
                     amount: amountGEL,
-                    description: `Salary ${fmtMonth(month)}`,
+                    description,
                   };
                 });
                 onCreateSalaryFile({ transferDate, month, rate, rows });
@@ -475,7 +574,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 whiteSpace: 'nowrap',
               }}
             >
-              Create Salary File
+              {t('salAccrual.createFile')}
             </button>
           </div>
         )}
@@ -507,7 +606,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          Excel
+          {t('salAccrual.excel')}
         </button>
         <div style={{ position: 'relative' }}>
           <button
@@ -525,7 +624,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
               <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
             </svg>
-            Columns ({visCols.length}/{COLUMNS.length})
+            {t('salAccrual.columns')} ({visCols.length}/{TCOLS.length})
           </button>
 
           {showColChooser && (
@@ -539,7 +638,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 <div style={{ padding: '6px 14px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-4)', borderBottom: '1px solid var(--border-3)' }}>
                   Visible Columns
                 </div>
-                {COLUMNS.map(col => (
+                {TCOLS.map(col => (
                   <label key={col.key} style={{
                     display: 'flex', alignItems: 'center', gap: 9,
                     padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: 'var(--text-2)',
@@ -585,15 +684,15 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           <table className="acc-table" style={{ tableLayout: 'fixed', width: tableWidth, fontSize }}>
             <colgroup>
               {visColsMain.map(col => (
-                <col key={col.key} style={{ width: scaledW(COLUMNS.indexOf(col)) }} />
+                <col key={col.key} style={{ width: scaledW(colIdx(col)) }} />
               ))}
               {dynUnitCols.map(ut => <col key={`dyn-col-${ut.name}`} style={{ width: dynColW }} />)}
-              {grossSalaryCol && <col style={{ width: scaledW(COLUMNS.indexOf(grossSalaryCol)) }} />}
+              {tailCols.map(col => <col key={col.key} style={{ width: scaledW(colIdx(col)) }} />)}
             </colgroup>
             <thead>
               <tr>
                 {visColsMain.map(col => {
-                  const idx = COLUMNS.indexOf(col);
+                  const idx = colIdx(col);
                   const isSticky = TEXT_KEYS.includes(col.key);
                   const isLastSticky = col.key === lastStickyKey;
                   return (
@@ -626,20 +725,20 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     {ut.name}
                   </th>
                 ))}
-                {grossSalaryCol && (() => {
-                  const idx = COLUMNS.indexOf(grossSalaryCol);
+                {tailCols.map(col => {
+                  const idx = colIdx(col);
                   return (
-                    <th key="grossSalary" style={{
+                    <th key={col.key} style={{
                       position: 'relative', width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right',
                     }}>
-                      {grossSalaryCol.label}
+                      {col.label}
                       <div onMouseDown={e => onResizeMouseDown(e, idx)} style={RESIZE_HANDLE_STYLE}
                         onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
                     </th>
                   );
-                })()}
+                })}
               </tr>
             </thead>
             <tbody>
@@ -649,7 +748,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 const teamBuild   = unitAmt(r.deductions, 'Team Building');
                 const reimburse   = unitAmt(r.deductions, 'Reimbursement');
                 const fitpass     = parseFloat(r.fitpass_deduction || 0);
-                const insurance   = parseFloat(r.insurance_deduction || 0);
+                const insurance   = getInsAmount2(emp?.personal_id, month);
                 const grossSalary = calcGross(r.net_salary, emp.pension);
                 const pensionAmt  = emp.pension ? grossSalary * 0.02 : 0;
                 const isSelected  = selectedRow?.employee?.id === emp.id;
@@ -684,7 +783,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                         </td>
                       );
                     })}
-                    {grossSalaryCol && rowVal('grossSalary', r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt)}
+                    {tailCols.map(col => rowVal(col.key, r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt))}
                   </tr>
                 );
               })}
@@ -713,10 +812,10 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     </td>
                   );
                 })}
-                {grossSalaryCol && (() => {
-                  const { val, style } = footerVal('grossSalary');
-                  return <td key="gross-tf" style={{ ...style, borderTop: '2px solid var(--border-2)' }}>{val}</td>;
-                })()}
+                {tailCols.map(col => {
+                  const { val, style, cls } = footerVal(col.key);
+                  return <td key={`tail-tf-${col.key}`} className={cls || ''} style={{ ...style, borderTop: '2px solid var(--border-2)' }}>{val}</td>;
+                })}
               </tr>
             </tfoot>
           </table>

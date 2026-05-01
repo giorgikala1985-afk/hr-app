@@ -72,7 +72,11 @@ function FitPassImport() {
     ws['!cols'] = [{ wch: 18 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 14 }, { wch: 25 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'FitPass');
-    XLSX.writeFile(wb, 'FitPass_Import_Template.xlsx');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+    a.download = 'FitPass_Import_Template.xlsx';
+    a.click();
   };
 
   const processFile = (file) => {

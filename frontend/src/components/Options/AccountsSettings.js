@@ -139,7 +139,11 @@ function AccountsSettings() {
     ws['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 24 }, { wch: 24 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Accounts');
-    XLSX.writeFile(wb, 'accounts_template.xlsx');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+    a.download = 'accounts_template.xlsx';
+    a.click();
   };
 
   const handleUpload = async (e) => {

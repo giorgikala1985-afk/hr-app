@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const DEFAULT_WIDTHS = [180, 100, 110, 160, 200, 130, 60];
 const AGENT_TYPES = ['LLC', 'IS', 'JSC', 'Other'];
@@ -16,14 +17,14 @@ const TYPE_COLORS = {
   Other: { bg: '#f9fafb', color: '#374151', border: '#e5e7eb' },
 };
 
-const COLS = [
-  { label: 'Coagent Name', key: 'name',           type: 'text' },
-  { label: 'Type',       key: 'type',            type: 'text' },
-  { label: 'Date Added', key: 'add_date',        type: 'date' },
-  { label: 'Account №',  key: 'account_number',  type: 'text' },
-  { label: 'Address',    key: 'address',         type: 'text' },
-  { label: 'Phone',      key: 'phone',           type: 'text' },
-  { label: '',           key: null },
+const COL_KEYS = [
+  { labelKey: 'agents.colName',      key: 'name',           type: 'text' },
+  { labelKey: 'agents.colType',      key: 'type',           type: 'text' },
+  { labelKey: 'agents.colDateAdded', key: 'add_date',       type: 'date' },
+  { labelKey: 'agents.colAccount',   key: 'account_number', type: 'text' },
+  { labelKey: 'agents.colAddress',   key: 'address',        type: 'text' },
+  { labelKey: 'agents.colPhone',     key: 'phone',          type: 'text' },
+  { labelKey: '',                    key: null },
 ];
 
 const filterInput = {
@@ -33,6 +34,8 @@ const filterInput = {
 };
 
 function Agents() {
+  const { t } = useLanguage();
+  const COLS = COL_KEYS.map(c => ({ ...c, label: c.labelKey ? t(c.labelKey) : '' }));
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -48,12 +51,12 @@ function Agents() {
   const load = async () => {
     setLoading(true);
     try { const res = await api.get('/accounting/agents'); setRecords(res.data.records || []); }
-    catch (err) { setError(err.response?.data?.error || err.message || 'Failed to load agents.'); }
+    catch (err) { setError(err.response?.data?.error || err.message || t('agents.failedLoad')); }
     finally { setLoading(false); }
   };
 
   const filtered = useMemo(() => records.filter(r =>
-    COLS.filter(c => c.key).every(c =>
+    COL_KEYS.filter(c => c.key).every(c =>
       !filters[c.key] || (r[c.key] || '').toLowerCase().includes(filters[c.key].toLowerCase())
     )
   ), [records, filters]);
@@ -65,20 +68,20 @@ function Agents() {
   const openEdit = r => { setForm({ name: r.name || '', type: r.type || 'LLC', add_date: r.add_date || '', account_number: r.account_number || '', address: r.address || '', phone: r.phone || '' }); setEditId(r.id); setShowForm(true); setError(''); };
 
   const handleSave = async () => {
-    if (!form.name) { setError('Coagent name is required.'); return; }
+    if (!form.name) { setError(t('agents.nameRequired')); return; }
     setSaving(true); setError('');
     try {
       if (editId) await api.put(`/accounting/agents/${editId}`, form);
       else await api.post('/accounting/agents', form);
       setShowForm(false); load();
-    } catch (err) { setError(err.response?.data?.error || 'Failed to save.'); }
+    } catch (err) { setError(err.response?.data?.error || t('agents.failedSave')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async id => {
-    if (!window.confirm('Delete this agent?')) return;
+    if (!window.confirm(t('agents.deleteConfirm'))) return;
     try { await api.delete(`/accounting/agents/${id}`); load(); }
-    catch { setError('Failed to delete.'); }
+    catch { setError(t('agents.failedDelete')); }
   };
 
   const exportToExcel = () => {
@@ -94,8 +97,8 @@ function Agents() {
 
   return (
     <div>
-      <h2>Coagents</h2>
-      <p className="acc-subtitle">Manage counterparty coagents — companies and individuals you work with.</p>
+      <h2>{t('agents.title')}</h2>
+      <p className="acc-subtitle">{t('agents.subtitle')}</p>
 
 
 <div className="acc-header-row">
@@ -103,18 +106,18 @@ function Agents() {
           {hasFilters && (
             <button onClick={() => setFilters(EMPTY_F)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 7, fontSize: 12, fontWeight: 500, color: '#92400e', cursor: 'pointer', fontFamily: 'inherit' }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              Clear filters ({records.length - filtered.length} hidden)
+              {t('agents.clearFilters', { hidden: records.length - filtered.length })}
             </button>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={exportToExcel} disabled={!filtered.length} title="Download as Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 7, fontSize: 13, fontWeight: 500, color: '#16a34a', cursor: filtered.length ? 'pointer' : 'not-allowed', opacity: filtered.length ? 1 : 0.5, fontFamily: 'inherit' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Excel
+            {t('agents.excel')}
           </button>
           <button className="btn-add" onClick={openNew}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Add Coagent
+            {t('agents.addCoagent')}
           </button>
         </div>
       </div>
@@ -122,9 +125,9 @@ function Agents() {
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
       <div className="acc-table-wrapper">
-        {loading ? <div className="acc-empty"><p>Loading…</p></div>
-          : records.length === 0 ? <div className="acc-empty"><p>No agents yet. Add your first one.</p></div>
-          : filtered.length === 0 ? <div className="acc-empty"><p>No results match your filters.</p></div>
+        {loading ? <div className="acc-empty"><p>{t('agents.loading')}</p></div>
+          : records.length === 0 ? <div className="acc-empty"><p>{t('agents.noAgents')}</p></div>
+          : filtered.length === 0 ? <div className="acc-empty"><p>{t('agents.noResults')}</p></div>
           : (
           <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
             <colgroup>{colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
@@ -136,7 +139,7 @@ function Agents() {
                       {col.label}
                       {col.key && filters[col.key] && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>}
                     </div>
-                    {col.key && <input type={col.type} value={filters[col.key]} onChange={e => setF(col.key, e.target.value)} placeholder={col.type === 'date' ? 'YYYY-MM-DD' : 'Filter…'} style={filterInput} />}
+                    {col.key && <input type={col.type} value={filters[col.key]} onChange={e => setF(col.key, e.target.value)} placeholder={col.type === 'date' ? t('agents.filterDate') : t('agents.filterPlaceholder')} style={filterInput} />}
                     <div onMouseDown={e => onResizeMouseDown(e, i)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
                   </th>
                 ))}
@@ -174,19 +177,19 @@ function Agents() {
       {showForm && (
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={e => e.stopPropagation()}>
-            <h3>{editId ? 'Edit Coagent' : 'New Coagent'}</h3>
+            <h3>{editId ? t('agents.editCoagent') : t('agents.newCoagent')}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="acc-form-grid">
-              <div className="acc-form-group full"><label>Coagent Name *</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Acme Corp" /></div>
-              <div className="acc-form-group"><label>Type</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>{AGENT_TYPES.map(t => <option key={t}>{t}</option>)}</select></div>
-              <div className="acc-form-group"><label>Date Added</label><input type="date" value={form.add_date} onChange={e => setForm({ ...form, add_date: e.target.value })} /></div>
-              <div className="acc-form-group full"><label>Account Number</label><input value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} placeholder="e.g. GE00TB0000000000001234" /></div>
-              <div className="acc-form-group full"><label>Address</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="e.g. 123 Main St, Tbilisi" /></div>
-              <div className="acc-form-group"><label>Phone</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="e.g. +995 555 000 000" /></div>
+              <div className="acc-form-group full"><label>{t('agents.coagentName')}</label><input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Acme Corp" /></div>
+              <div className="acc-form-group"><label>{t('agents.type')}</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>{AGENT_TYPES.map(ty => <option key={ty}>{ty}</option>)}</select></div>
+              <div className="acc-form-group"><label>{t('agents.dateAdded')}</label><input type="date" value={form.add_date} onChange={e => setForm({ ...form, add_date: e.target.value })} /></div>
+              <div className="acc-form-group full"><label>{t('agents.accountNumber')}</label><input value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} placeholder="e.g. GE00TB0000000000001234" /></div>
+              <div className="acc-form-group full"><label>{t('agents.address')}</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="e.g. 123 Main St, Tbilisi" /></div>
+              <div className="acc-form-group"><label>{t('agents.phone')}</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="e.g. +995 555 000 000" /></div>
             </div>
             <div className="acc-modal-actions">
-              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Coagent'}</button>
+              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('agents.cancel')}</button>
+              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('agents.saving') : t('agents.saveCoagent')}</button>
             </div>
           </div>
         </div>

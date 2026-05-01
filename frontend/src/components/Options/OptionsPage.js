@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import HolidayList from '../Holidays/HolidayList';
 import PaginationSettings from './PaginationSettings';
@@ -9,10 +9,12 @@ import OvertimeSettings from './OvertimeSettings';
 import StockSettings from './StockSettings';
 import LanguageSettings from './LanguageSettings';
 import TaxSettings from './TaxSettings';
-import NavOrderSettings from './NavOrderSettings';
+import NavOrderSettings, { loadSidebarOrder, OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT } from './NavOrderSettings';
 import UsersSettings from './UsersSettings';
 import AccountsSettings from './AccountsSettings';
 import ToolsPage from './Tools/ToolsPage';
+import BgColorSettings from './BgColorSettings';
+import FontSettings from './FontSettings';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Options.css';
 
@@ -34,7 +36,16 @@ function OptionsPage() {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('opt_sidebar_collapsed') === 'true'; } catch { return false; }
   });
+  const [sidebarOrder, setSidebarOrder] = useState(() => loadSidebarOrder(OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT));
   const { t } = useLanguage();
+
+  useEffect(() => {
+    const sync = (e) => {
+      if (!e.key || e.key === OPT_SIDEBAR_ORDER_KEY) setSidebarOrder(loadSidebarOrder(OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT));
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, []);
 
   const toggleSidebar = () => setCollapsed(v => {
     const next = !v;
@@ -101,6 +112,15 @@ function OptionsPage() {
         <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
       </svg>
     )},
+    { key: 'appearance', label: 'Appearance', icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <circle cx="12" cy="12" r="3"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+      </svg>
+    )},
     { key: 'about', label: 'About', icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"/>
@@ -119,7 +139,7 @@ function OptionsPage() {
             {collapsed ? CHEVRON_RIGHT : CHEVRON_LEFT}
           </button>
         </div>
-        {tabs.map((tab) => (
+        {[...tabs].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key)).map((tab) => (
           <button
             key={tab.key}
             className={`acc-sidebar-btn${activeTab === tab.key ? ' active' : ''}`}
@@ -160,6 +180,12 @@ function OptionsPage() {
         {activeTab === 'accounts' && <AccountsSettings />}
         {activeTab === 'users' && <UsersSettings />}
         {activeTab === 'tools' && <ToolsPage />}
+        {activeTab === 'appearance' && (
+          <div>
+            <BgColorSettings />
+            <FontSettings />
+          </div>
+        )}
         {activeTab === 'about' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 16, textAlign: 'center' }}>
             <div style={{ fontSize: 72 }}>🍾</div>

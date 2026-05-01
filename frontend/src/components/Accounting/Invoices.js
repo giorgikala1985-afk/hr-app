@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const DEFAULT_WIDTHS = [80, 160, 110, 110, 120, 100, 160, 80];
 
@@ -37,6 +38,7 @@ const EMPTY_ITEM = { description: '', qty: 1, unit_price: '' };
 const EMPTY_FORM = { client: '', client_email: '', invoice_number: '', date: '', due_date: '', currency: 'USD', status: 'draft', notes: '', account_number: '', items: [{ ...EMPTY_ITEM }] };
 
 function Invoices() {
+  const { t } = useLanguage();
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [tab, setTab] = useState('list');
   const [records, setRecords] = useState([]);
@@ -153,7 +155,7 @@ function Invoices() {
     try {
       const res = await api.get('/accounting/invoices');
       setRecords(res.data.records || []);
-    } catch { setError('Failed to load invoices.'); }
+    } catch { setError(t('inv.failedLoad')); }
     finally { setLoading(false); }
   };
 
@@ -180,21 +182,21 @@ function Invoices() {
   const removeItem = (i) => setForm((prev) => ({ ...prev, items: prev.items.filter((_, idx) => idx !== i) }));
 
   const handleSave = async () => {
-    if (!form.client || !form.invoice_number || !form.date) { setError('Client, invoice number and date are required.'); return; }
+    if (!form.client || !form.invoice_number || !form.date) { setError(t('inv.validationError')); return; }
     setSaving(true); setError('');
     const payload = { ...form, account_number: form.account_number || null, total: calcTotal(form.items) };
     try {
       if (editId) await api.put(`/accounting/invoices/${editId}`, payload);
       else await api.post('/accounting/invoices', payload);
       setShowForm(false); load();
-    } catch (err) { setError(err.response?.data?.error || 'Failed to save.'); }
+    } catch (err) { setError(err.response?.data?.error || t('inv.failedSave')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this invoice?')) return;
+    if (!window.confirm(t('inv.deleteConfirm'))) return;
     try { await api.delete(`/accounting/invoices/${id}`); load(); if (previewInv?.id === id) setPreviewInv(null); }
-    catch { setError('Failed to delete.'); }
+    catch { setError(t('inv.failedDelete')); }
   };
 
   const toggleSelect = (id) => {
@@ -214,13 +216,13 @@ function Invoices() {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Delete ${selectedIds.size} selected invoice(s)?`)) return;
+    if (!window.confirm(t('inv.deleteSelectedConfirm', { count: selectedIds.size }))) return;
     try {
       await api.delete('/accounting/invoices/bulk', { data: { ids: Array.from(selectedIds) } });
       setRecords(prev => prev.filter(r => !selectedIds.has(r.id)));
       if (previewInv && selectedIds.has(previewInv.id)) setPreviewInv(null);
       setSelectedIds(new Set());
-    } catch { setError('Failed to delete selected invoices.'); }
+    } catch { setError(t('inv.failedDeleteSelected')); }
   };
 
   const handlePrint = () => {
@@ -245,14 +247,14 @@ function Invoices() {
 
   return (
     <>
-      <h2>Invoices</h2>
-      <p className="acc-subtitle">Create and manage client invoices.</p>
+      <h2>{t('inv.title')}</h2>
+      <p className="acc-subtitle">{t('inv.subtitle')}</p>
 
       {/* Sub-tabs */}
       <div className="docs-inner-tabs" style={{ marginBottom: 24 }}>
-        <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>Invoice List</button>
+        <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>{t('inv.invoiceList')}</button>
         <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
-          🔍 Invoice Scanner
+          {t('inv.scanner')}
         </button>
       </div>
 
@@ -276,9 +278,9 @@ function Invoices() {
               <input ref={scanInputRef} type="file" accept="image/*,.pdf" onChange={handleScanFile} style={{ display: 'none' }} />
               <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
               <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 6 }}>
-                {scanFile ? scanFile.name : 'Drop invoice here or click to upload'}
+                {scanFile ? scanFile.name : t('inv.dropHere')}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>Supports JPG, PNG, WEBP, PDF · Max 20MB</div>
+              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>{t('inv.supports')}</div>
             </div>
           )}
 
@@ -298,9 +300,9 @@ function Invoices() {
                 disabled={scanning}
                 style={{ opacity: scanning ? 0.7 : 1 }}
               >
-                {scanning ? '🔍 Analyzing…' : '🔍 Analyze Invoice'}
+                {scanning ? t('inv.analyzing') : t('inv.analyze')}
               </button>
-              <button className="btn-secondary-outline" onClick={resetScan}>Clear</button>
+              <button className="btn-secondary-outline" onClick={resetScan}>{t('inv.clearScan')}</button>
             </div>
           )}
 
@@ -312,7 +314,7 @@ function Invoices() {
           {scanning && (
             <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-3)', fontSize: 15 }}>
               <div style={{ fontSize: 32, marginBottom: 10 }}>⚙️</div>
-              Gemini is reading your invoice…
+              {t('inv.geminiReading')}
             </div>
           )}
 
@@ -321,18 +323,18 @@ function Invoices() {
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
               <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>✅ Invoice Analyzed</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>Extracted payment details below</div>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>{t('inv.analyzed')}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{t('inv.extractedDetails')}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   {scanSaved ? (
-                    <span style={{ color: '#16a34a', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>✅ Saved to Invoices</span>
+                    <span style={{ color: '#16a34a', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>{t('inv.savedToInvoices')}</span>
                   ) : (
                     <button className="btn-add" onClick={handleSaveScanned} disabled={scanSaving} style={{ fontSize: 13 }}>
-                      {scanSaving ? 'Saving…' : '💾 Save to Invoices'}
+                      {scanSaving ? t('inv.saving') : t('inv.saveToInvoices')}
                     </button>
                   )}
-                  <button className="btn-secondary-outline" onClick={resetScan} style={{ fontSize: 13 }}>Scan Another</button>
+                  <button className="btn-secondary-outline" onClick={resetScan} style={{ fontSize: 13 }}>{t('inv.scanAnother')}</button>
                 </div>
               </div>
 
@@ -341,7 +343,7 @@ function Invoices() {
                 <div style={{ gridColumn: '1 / -1', background: 'rgba(37,99,235,0.08)', border: '1.5px solid rgba(37,99,235,0.2)', borderRadius: 10, padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 20 }}>
                   <div style={{ fontSize: 36 }}>💰</div>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-3)', marginBottom: 4 }}>Amount to Transfer</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-3)', marginBottom: 4 }}>{t('inv.amountToTransfer')}</div>
                     <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
                       {scanResult.amount ? `${scanResult.amount} ${scanResult.currency || ''}` : '—'}
                     </div>
@@ -349,26 +351,26 @@ function Invoices() {
                 </div>
 
                 {[
-                  { icon: '🏢', label: 'Pay To', value: scanResult.payee },
-                  { icon: '📅', label: 'Due Date', value: scanResult.due_date },
-                  { icon: '📋', label: 'Invoice Date', value: scanResult.invoice_date },
-                  { icon: '🔢', label: 'Invoice #', value: scanResult.invoice_number },
-                  { icon: '🏦', label: 'Bank', value: scanResult.bank_name },
-                  { icon: '💳', label: 'Account / IBAN', value: scanResult.account_number },
-                  { icon: '🌐', label: 'SWIFT / BIC', value: scanResult.swift_bic },
-                  { icon: '📝', label: 'Description', value: scanResult.description },
+                  { icon: '🏢', label: t('inv.payTo'), value: scanResult.payee },
+                  { icon: '📅', label: t('inv.dueDate'), value: scanResult.due_date },
+                  { icon: '📋', label: t('inv.invoiceDate'), value: scanResult.invoice_date },
+                  { icon: '🔢', label: t('inv.invoiceNo'), value: scanResult.invoice_number },
+                  { icon: '🏦', label: t('inv.bank'), value: scanResult.bank_name },
+                  { icon: '💳', label: t('inv.accountIban'), value: scanResult.account_number },
+                  { icon: '🌐', label: t('inv.swiftBic'), value: scanResult.swift_bic },
+                  { icon: '📝', label: t('inv.description'), value: scanResult.description },
                 ].map(({ icon, label, value }) => (
                   <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-4)' }}>{icon} {label}</div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: value ? 'var(--text)' : 'var(--text-4)', fontStyle: value ? 'normal' : 'italic' }}>
-                      {value || 'Not found'}
+                      {value || t('inv.notFound')}
                     </div>
                   </div>
                 ))}
 
                 {scanResult.notes && (
                   <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-2)', paddingTop: 16, marginTop: 4 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-4)', marginBottom: 6 }}>📌 Notes</div>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-4)', marginBottom: 6 }}>{t('inv.notes')}</div>
                     <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>{scanResult.notes}</div>
                   </div>
                 )}
@@ -382,39 +384,39 @@ function Invoices() {
       {tab === 'list' && <>
 
       <div className="acc-summary">
-        <div className="acc-summary-card"><span className="acc-summary-label">Total</span><span className="acc-summary-value">{records.length}</span></div>
-        <div className="acc-summary-card"><span className="acc-summary-label">Paid</span><span className="acc-summary-value green">${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
-        <div className="acc-summary-card"><span className="acc-summary-label">Pending</span><span className="acc-summary-value blue">${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+        <div className="acc-summary-card"><span className="acc-summary-label">{t('inv.total')}</span><span className="acc-summary-value">{records.length}</span></div>
+        <div className="acc-summary-card"><span className="acc-summary-label">{t('inv.paid')}</span><span className="acc-summary-value green">${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+        <div className="acc-summary-card"><span className="acc-summary-label">{t('inv.pending')}</span><span className="acc-summary-value blue">${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
       </div>
 
       <div className="acc-header-row">
         <div />
-        <button className="btn-add" onClick={openNew}>+ New Invoice</button>
+        <button className="btn-add" onClick={openNew}>{t('inv.newInvoice')}</button>
       </div>
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
       {selectedIds.size > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff8e1', border: '1px solid #ffd54f', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, fontWeight: 500, color: '#555' }}>
-          <span>{selectedIds.size} invoice(s) selected</span>
+          <span>{t('inv.selectedCount', { count: selectedIds.size })}</span>
           <button
             onClick={handleBulkDelete}
             style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#e53935', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <IconDelete /> Delete Selected
+            <IconDelete /> {t('inv.deleteSelected')}
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
             style={{ background: '#f5f5f5', color: '#666', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            Clear
+            {t('inv.clear')}
           </button>
         </div>
       )}
 
       <div className="acc-table-wrapper">
-        {loading ? <div className="acc-empty"><p>Loading…</p></div> : records.length === 0 ? (
-          <div className="acc-empty"><div className="acc-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg></div><p>No invoices yet. Create your first one.</p></div>
+        {loading ? <div className="acc-empty"><p>{t('inv.loading')}</p></div> : records.length === 0 ? (
+          <div className="acc-empty"><div className="acc-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg></div><p>{t('inv.noInvoices')}</p></div>
         ) : (
           <table className="acc-table">
             <colgroup>
@@ -427,17 +429,17 @@ function Invoices() {
                   type="checkbox"
                   checked={selectedIds.size === records.length && records.length > 0}
                   onChange={toggleSelectAll}
-                  title="Select all"
+                  title={t('inv.selectAll')}
                   style={{ width: 15, height: 15, cursor: 'pointer' }}
                 />
               </th>
-              <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>#<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>Client<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>Date<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>Due Date<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>Total<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>Status<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>Account / IBAN<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>{t('inv.colNo')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>{t('inv.colClient')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('inv.colDate')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('inv.colDueDate')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('inv.colTotal')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('inv.colStatus')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>{t('inv.colAccountIban')}<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[7], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
             </tr></thead>
             <tbody>
@@ -476,14 +478,14 @@ function Invoices() {
       {previewInv && (
         <div style={{ marginTop: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <strong style={{ fontSize: 15 }}>Invoice Preview — {previewInv.invoice_number}</strong>
+            <strong style={{ fontSize: 15 }}>{t('inv.previewTitle')} — {previewInv.invoice_number}</strong>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-primary btn-sm" onClick={handlePrint}>🖨️ Print / PDF</button>
-              <button className="ut-cancel-btn" onClick={() => setPreviewInv(null)}>Close</button>
+              <button className="btn-primary btn-sm" onClick={handlePrint}>{t('inv.print')}</button>
+              <button className="ut-cancel-btn" onClick={() => setPreviewInv(null)}>{t('inv.close')}</button>
             </div>
           </div>
           <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 48px', fontFamily: 'Arial, sans-serif', fontSize: 14, color: '#1e293b' }} ref={printRef}>
-            <h1 style={{ color: '#0f3460', fontSize: 24, marginBottom: 4 }}>INVOICE</h1>
+            <h1 style={{ color: '#0f3460', fontSize: 24, marginBottom: 4 }}>{t('inv.invoiceLabel')}</h1>
             <div className="meta" style={{ color: '#64748b', fontSize: 13, marginBottom: 24 }}>
               <div><strong>Invoice #:</strong> {previewInv.invoice_number}</div>
               <div><strong>Date:</strong> {previewInv.date}</div>
@@ -493,16 +495,16 @@ function Invoices() {
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
               <thead><tr>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Description</th>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>Qty</th>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>Unit Price</th>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>Total</th>
+                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>{t('inv.description')}</th>
+                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>{t('inv.colQty')}</th>
+                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>{t('inv.colUnitPrice')}</th>
+                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>{t('inv.colTotal')}</th>
               </tr></thead>
               <tbody>
                 {(previewInv.items || []).map((it, i) => (
                   <tr key={i}><td style={{ padding: 10, borderBottom: '1px solid #f1f5f9' }}>{it.description}</td><td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f1f5f9' }}>{it.qty}</td><td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f1f5f9' }}>{previewInv.currency} {parseFloat(it.unit_price || 0).toFixed(2)}</td><td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f1f5f9', fontWeight: 600 }}>{previewInv.currency} {(parseFloat(it.qty || 0) * parseFloat(it.unit_price || 0)).toFixed(2)}</td></tr>
                 ))}
-                <tr><td colSpan="3" style={{ padding: 10, textAlign: 'right', fontWeight: 700, fontSize: 16 }}>TOTAL</td><td style={{ padding: 10, textAlign: 'right', fontWeight: 700, fontSize: 16 }}>{previewInv.currency} {parseFloat(previewInv.total || 0).toFixed(2)}</td></tr>
+                <tr><td colSpan="3" style={{ padding: 10, textAlign: 'right', fontWeight: 700, fontSize: 16 }}>{t('inv.invoiceTotal')}</td><td style={{ padding: 10, textAlign: 'right', fontWeight: 700, fontSize: 16 }}>{previewInv.currency} {parseFloat(previewInv.total || 0).toFixed(2)}</td></tr>
               </tbody>
             </table>
             {previewInv.notes && <div style={{ color: '#64748b', fontSize: 13 }}><strong>Notes:</strong> {previewInv.notes}</div>}
@@ -514,20 +516,20 @@ function Invoices() {
       {showForm && (
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" style={{ maxWidth: 680 }} onClick={(e) => e.stopPropagation()}>
-            <h3>{editId ? 'Edit Invoice' : 'New Invoice'}</h3>
+            <h3>{editId ? t('inv.editInvoice') : t('inv.newInvoiceModal')}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="acc-form-grid">
-              <div className="acc-form-group"><label>Invoice # *</label><input value={form.invoice_number} onChange={(e) => setForm({ ...form, invoice_number: e.target.value })} /></div>
-              <div className="acc-form-group"><label>Status</label>
+              <div className="acc-form-group"><label>{t('inv.invoiceNoRequired')}</label><input value={form.invoice_number} onChange={(e) => setForm({ ...form, invoice_number: e.target.value })} /></div>
+              <div className="acc-form-group"><label>{t('inv.status')}</label>
                 <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  <option value="draft">Draft</option><option value="sent">Sent</option><option value="paid">Paid</option><option value="overdue">Overdue</option>
+                  <option value="draft">{t('inv.statusDraft')}</option><option value="sent">{t('inv.statusSent')}</option><option value="paid">{t('inv.statusPaid')}</option><option value="overdue">{t('inv.statusOverdue')}</option>
                 </select>
               </div>
-              <div className="acc-form-group"><label>Client *</label><input value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} placeholder="Client name" /></div>
-              <div className="acc-form-group"><label>Client Email</label><input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} placeholder="client@example.com" /></div>
-              <div className="acc-form-group"><label>Date *</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
-              <div className="acc-form-group"><label>Due Date</label><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-              <div className="acc-form-group"><label>Currency</label>
+              <div className="acc-form-group"><label>{t('inv.client')}</label><input value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} placeholder="Client name" /></div>
+              <div className="acc-form-group"><label>{t('inv.clientEmail')}</label><input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} placeholder="client@example.com" /></div>
+              <div className="acc-form-group"><label>{t('inv.dateRequired')}</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+              <div className="acc-form-group"><label>{t('inv.dueDate')}</label><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
+              <div className="acc-form-group"><label>{t('inv.currency')}</label>
                 <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
                   <option>USD</option><option>GEL</option><option>EUR</option>
                 </select>
@@ -536,13 +538,13 @@ function Invoices() {
 
             {/* Line items */}
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>Line Items</label>
+              <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>{t('inv.lineItems')}</label>
               <table className="inv-items-table">
-                <thead><tr><th>Description</th><th style={{ width: 60 }}>Qty</th><th style={{ width: 110 }}>Unit Price</th><th style={{ width: 100 }}>Total</th><th style={{ width: 32 }}></th></tr></thead>
+                <thead><tr><th>{t('inv.description')}</th><th style={{ width: 60 }}>{t('inv.colQty')}</th><th style={{ width: 110 }}>{t('inv.colUnitPrice')}</th><th style={{ width: 100 }}>{t('inv.colTotal')}</th><th style={{ width: 32 }}></th></tr></thead>
                 <tbody>
                   {form.items.map((it, i) => (
                     <tr key={i}>
-                      <td><input value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} placeholder="Item description" /></td>
+                      <td><input value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} placeholder={t('inv.itemDescription')} /></td>
                       <td><input type="number" min="1" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} /></td>
                       <td><input type="number" min="0" step="0.01" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} placeholder="0.00" /></td>
                       <td style={{ fontWeight: 600, paddingLeft: 8 }}>{((parseFloat(it.qty) || 0) * (parseFloat(it.unit_price) || 0)).toFixed(2)}</td>
@@ -552,19 +554,19 @@ function Invoices() {
                 </tbody>
               </table>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button className="ut-cancel-btn" style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }} onClick={addItem}>+ Add Item</button>
-                <div className="inv-total-row"><span className="inv-total">Total: {form.currency} {calcTotal(form.items).toFixed(2)}</span></div>
+                <button className="ut-cancel-btn" style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }} onClick={addItem}>{t('inv.addItem')}</button>
+                <div className="inv-total-row"><span className="inv-total">{t('inv.colTotal')}: {form.currency} {calcTotal(form.items).toFixed(2)}</span></div>
               </div>
             </div>
 
             <div className="acc-form-grid">
-              <div className="acc-form-group"><label>Account / IBAN</label><input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} placeholder="GE00TB0000000000000000" /></div>
-              <div className="acc-form-group full"><label>Notes</label><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Payment terms, bank details…" /></div>
+              <div className="acc-form-group"><label>{t('inv.accountIban')}</label><input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} placeholder="GE00TB0000000000000000" /></div>
+              <div className="acc-form-group full"><label>{t('inv.notesField')}</label><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Payment terms, bank details…" /></div>
             </div>
 
             <div className="acc-modal-actions">
-              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Invoice'}</button>
+              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('inv.cancel')}</button>
+              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('inv.saving') : t('inv.saveInvoice')}</button>
             </div>
           </div>
         </div>

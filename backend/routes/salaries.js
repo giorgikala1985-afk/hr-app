@@ -147,10 +147,11 @@ router.get('/', async (req, res) => {
       const startDate = new Date(emp.start_date);
       const endDate = emp.end_date ? new Date(emp.end_date) : null;
 
-      // Get units active for this employee in this month (date <= month end)
+      // All units for display; salary units filtered for calculation
       const empUnits = allUnits.filter((u) => u.employee_id === emp.id);
-      const totalDeductions = empUnits.filter((u) => deductionTypes.has(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
-      const totalAdditions  = empUnits.filter((u) => additionTypes.has(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
+      const salaryUnits = empUnits.filter((u) => u.include_in_salary !== false);
+      const totalDeductions = salaryUnits.filter((u) => deductionTypes.has(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
+      const totalAdditions  = salaryUnits.filter((u) => additionTypes.has(u.type)).reduce((sum, u) => sum + parseFloat(u.amount), 0);
 
       // Insurance deduction: match by personal_id
       const insuranceDeduction = emp.personal_id

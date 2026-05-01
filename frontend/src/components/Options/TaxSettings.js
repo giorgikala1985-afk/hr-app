@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 
+const PIT_RATE_KEY = 'pit_tax_rate';
+
 function TaxSettings() {
   const { t } = useLanguage();
   const [taxCodes, setTaxCodes] = useState([]);
@@ -11,6 +13,12 @@ function TaxSettings() {
   const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState(null);
   const [editCode, setEditCode] = useState('');
+  const [pitRate, setPitRate] = useState(() => localStorage.getItem(PIT_RATE_KEY) || '20');
+
+  const handlePitRate = (rate) => {
+    setPitRate(rate);
+    localStorage.setItem(PIT_RATE_KEY, rate);
+  };
 
   useEffect(() => {
     loadTaxCodes();
@@ -80,6 +88,29 @@ function TaxSettings() {
 
   return (
     <div className="unit-types-settings">
+      {/* PIT Rate selector */}
+      <div style={{ marginBottom: 28, padding: '16px 20px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 10 }}>
+        <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 6 }}>Personal Income Tax Rate</div>
+        <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 12 }}>Used in the PIT table to calculate tax amounts on business trips and insurance.</div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {['5', '20'].map(rate => (
+            <button
+              key={rate}
+              onClick={() => handlePitRate(rate)}
+              style={{
+                padding: '7px 22px', borderRadius: 8, border: '1.5px solid',
+                borderColor: pitRate === rate ? 'var(--accent)' : 'var(--border-2)',
+                background: pitRate === rate ? 'var(--accent)' : 'var(--surface)',
+                color: pitRate === rate ? '#fff' : 'var(--text-2)',
+                fontWeight: 600, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              {rate}%
+            </button>
+          ))}
+        </div>
+      </div>
+
       <h3>{t('tax.title')}</h3>
       <p className="pagination-desc">
         {t('tax.desc')}

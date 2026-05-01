@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -42,6 +43,7 @@ function IconClear() {
 const fmtNum = (v, decimals = 2) => v != null && v !== '' ? parseFloat(v).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : '—';
 
 export default function Stock() {
+  const { t } = useLanguage();
   const [records, setRecords]         = useState([]);
   const [stockLocations, setStockLocations] = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -67,7 +69,7 @@ export default function Stock() {
     try {
       const res = await api.get('/accounting/stock');
       setRecords(res.data.records || []);
-    } catch { setError('Failed to load stock records.'); }
+    } catch { setError(t('stock.failedLoad')); }
     finally { setLoading(false); }
   };
 
@@ -109,20 +111,20 @@ export default function Stock() {
   const f = (k) => e => setForm(prev => ({ ...prev, [k]: e.target.value }));
 
   const handleSave = async () => {
-    if (!form.name) { setError('Name is required.'); return; }
+    if (!form.name) { setError(t('stock.nameRequired')); return; }
     setSaving(true); setError('');
     try {
       if (editId) await api.put(`/accounting/stock/${editId}`, form);
       else        await api.post('/accounting/stock', form);
       setShowForm(false); load();
-    } catch (err) { setError(err.response?.data?.error || 'Failed to save.'); }
+    } catch (err) { setError(err.response?.data?.error || t('stock.failedSave')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this stock record?')) return;
+    if (!window.confirm(t('stock.deleteConfirm'))) return;
     try { await api.delete(`/accounting/stock/${id}`); load(); }
-    catch { setError('Failed to delete.'); }
+    catch { setError(t('stock.failedDelete')); }
   };
 
   /* ── Excel export ── */
@@ -148,38 +150,38 @@ export default function Stock() {
   };
 
   const COLS = [
-    { label: 'SKU',             key: 'sku',             type: 'text' },
-    { label: 'Name',            key: 'name',            type: 'text' },
-    { label: 'Stock Name',      key: 'stock_name',      type: 'text' },
-    { label: 'Move In Date',    key: 'move_in_date',    type: 'date' },
-    { label: 'Move In Qty',     key: 'move_in_qty',     type: 'text' },
-    { label: 'Move In Price',   key: 'move_in_price',   type: 'text' },
-    { label: 'Move Out Date',   key: 'move_out_date',   type: 'date' },
-    { label: 'Move Out Qty',    key: 'move_out_qty',    type: 'text' },
-    { label: 'Move Out Price',  key: 'move_out_price',  type: 'text' },
-    { label: '',                key: null },
+    { label: t('stock.colSku'),          key: 'sku',             type: 'text' },
+    { label: t('stock.colName'),         key: 'name',            type: 'text' },
+    { label: t('stock.colStockName'),    key: 'stock_name',      type: 'text' },
+    { label: t('stock.colMoveInDate'),   key: 'move_in_date',    type: 'date' },
+    { label: t('stock.colMoveInQty'),    key: 'move_in_qty',     type: 'text' },
+    { label: t('stock.colMoveInPrice'),  key: 'move_in_price',   type: 'text' },
+    { label: t('stock.colMoveOutDate'),  key: 'move_out_date',   type: 'date' },
+    { label: t('stock.colMoveOutQty'),   key: 'move_out_qty',    type: 'text' },
+    { label: t('stock.colMoveOutPrice'), key: 'move_out_price',  type: 'text' },
+    { label: '',                         key: null },
   ];
 
   return (
     <div>
-      <h2>Stock</h2>
-      <p className="acc-subtitle">Track inventory movements — items moved in and out of stock.</p>
+      <h2>{t('stock.title')}</h2>
+      <p className="acc-subtitle">{t('stock.subtitle')}</p>
 
       <div className="acc-summary">
         <div className="acc-summary-card">
-          <span className="acc-summary-label">Total Records</span>
+          <span className="acc-summary-label">{t('stock.totalRecords')}</span>
           <span className="acc-summary-value">{filtered.length}{hasFilters && records.length !== filtered.length ? ` / ${records.length}` : ''}</span>
         </div>
         <div className="acc-summary-card">
-          <span className="acc-summary-label">Total In Value</span>
+          <span className="acc-summary-label">{t('stock.totalInValue')}</span>
           <span className="acc-summary-value" style={{ color: '#16a34a' }}>${totalInValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
         <div className="acc-summary-card">
-          <span className="acc-summary-label">Total Out Value</span>
+          <span className="acc-summary-label">{t('stock.totalOutValue')}</span>
           <span className="acc-summary-value red">${totalOutValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
         <div className="acc-summary-card">
-          <span className="acc-summary-label">Net Stock Value</span>
+          <span className="acc-summary-label">{t('stock.netStockValue')}</span>
           <span className="acc-summary-value" style={{ color: netValue >= 0 ? '#16a34a' : '#dc2626' }}>${netValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
       </div>
@@ -188,16 +190,16 @@ export default function Stock() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {hasFilters && (
             <button onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 7, fontSize: 12, fontWeight: 500, color: '#92400e', cursor: 'pointer', fontFamily: 'inherit' }}>
-              <IconClear /> Clear filters ({records.length - filtered.length} hidden)
+              <IconClear /> {t('stock.clearFilters', { hidden: records.length - filtered.length })}
             </button>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={exportToExcel} disabled={filtered.length === 0} title="Download as Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 7, fontSize: 13, fontWeight: 500, color: '#16a34a', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.5 : 1, fontFamily: 'inherit' }}>
-            <IconExcel /> Excel
+            <IconExcel /> {t('stock.excel')}
           </button>
           <button className="btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: '#16a34a', borderColor: '#16a34a' }}>
-            <IconPlus /> Add Stock Item
+            <IconPlus /> {t('stock.addItem')}
           </button>
         </div>
       </div>
@@ -206,20 +208,20 @@ export default function Stock() {
 
       <div className="acc-table-wrapper">
         {loading ? (
-          <div className="acc-empty"><p>Loading…</p></div>
+          <div className="acc-empty"><p>{t('stock.loading')}</p></div>
         ) : records.length === 0 ? (
           <div className="acc-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             </svg>
-            <p>No stock records yet. Add your first item.</p>
+            <p>{t('stock.noRecords')}</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="acc-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
               <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
             </svg>
-            <p>No results match your filters.</p>
+            <p>{t('stock.noResults')}</p>
           </div>
         ) : (
           <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
@@ -239,7 +241,7 @@ export default function Stock() {
                         type={col.type}
                         value={filters[col.key]}
                         onChange={e => setFilter(col.key, e.target.value)}
-                        placeholder={col.type === 'date' ? 'YYYY-MM-DD' : 'Filter…'}
+                        placeholder={col.type === 'date' ? t('tx.filterDate') : t('agents.filterPlaceholder')}
                         style={filterInputStyle}
                       />
                     )}
@@ -286,22 +288,22 @@ export default function Stock() {
       {showForm && (
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={e => e.stopPropagation()}>
-            <h3>{editId ? 'Edit Stock Item' : 'New Stock Item'}</h3>
+            <h3>{editId ? t('stock.editItem') : t('stock.newItem')}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="acc-form-grid">
 
               <div className="acc-form-group">
-                <label>SKU</label>
+                <label>{t('stock.sku')}</label>
                 <input type="text" value={form.sku} onChange={f('sku')} placeholder="e.g. ITEM-001" />
               </div>
               <div className="acc-form-group">
-                <label>Name *</label>
+                <label>{t('stock.name')}</label>
                 <input type="text" value={form.name} onChange={f('name')} placeholder="Item name" />
               </div>
               <div className="acc-form-group full">
-                <label>Stock Name</label>
+                <label>{t('stock.stockName')}</label>
                 <select value={form.stock_name} onChange={f('stock_name')}>
-                  <option value="">— Select location —</option>
+                  <option value="">{t('stock.selectLocation')}</option>
                   {stockLocations.map(loc => (
                     <option key={loc.id} value={loc.name}>{loc.name}{loc.area ? ` (${loc.area})` : ''}</option>
                   ))}
@@ -311,19 +313,19 @@ export default function Stock() {
               <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: 12, marginTop: 4 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  MOVE IN
+                  {t('stock.moveIn')}
                 </div>
                 <div className="acc-form-grid" style={{ marginTop: 0 }}>
                   <div className="acc-form-group">
-                    <label>Move In Date</label>
+                    <label>{t('stock.moveInDate')}</label>
                     <input type="date" value={form.move_in_date} onChange={f('move_in_date')} />
                   </div>
                   <div className="acc-form-group">
-                    <label>Move In Qty</label>
+                    <label>{t('stock.moveInQty')}</label>
                     <input type="number" step="1" min="0" value={form.move_in_qty} onChange={f('move_in_qty')} placeholder="0" />
                   </div>
                   <div className="acc-form-group">
-                    <label>Move In Price</label>
+                    <label>{t('stock.moveInPrice')}</label>
                     <input type="number" step="0.01" min="0" value={form.move_in_price} onChange={f('move_in_price')} placeholder="0.00" />
                   </div>
                 </div>
@@ -332,19 +334,19 @@ export default function Stock() {
               <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: 12, marginTop: 4 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#dc2626', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  MOVE OUT
+                  {t('stock.moveOut')}
                 </div>
                 <div className="acc-form-grid" style={{ marginTop: 0 }}>
                   <div className="acc-form-group">
-                    <label>Move Out Date</label>
+                    <label>{t('stock.moveOutDate')}</label>
                     <input type="date" value={form.move_out_date} onChange={f('move_out_date')} />
                   </div>
                   <div className="acc-form-group">
-                    <label>Move Out Qty</label>
+                    <label>{t('stock.moveOutQty')}</label>
                     <input type="number" step="1" min="0" value={form.move_out_qty} onChange={f('move_out_qty')} placeholder="0" />
                   </div>
                   <div className="acc-form-group">
-                    <label>Move Out Price</label>
+                    <label>{t('stock.moveOutPrice')}</label>
                     <input type="number" step="0.01" min="0" value={form.move_out_price} onChange={f('move_out_price')} placeholder="0.00" />
                   </div>
                 </div>
@@ -352,8 +354,8 @@ export default function Stock() {
 
             </div>
             <div className="acc-modal-actions">
-              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('stock.cancel')}</button>
+              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('stock.saving') : t('stock.save')}</button>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import './Login.css';
 import './Register.css';
 
@@ -22,6 +23,7 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const f = (field) => (e) => setForm(prev => ({ ...prev, [field]: e.target.value }));
@@ -36,27 +38,27 @@ function Register() {
     setError('');
 
     if (!form.firstName.trim() || !form.lastName.trim()) {
-      setError('First and last name are required.');
+      setError(t('reg.nameRequired'));
       return;
     }
     if (type === 'solo' && !form.personalId.trim()) {
-      setError('Personal ID is required.');
+      setError(t('reg.personalIdRequired'));
       return;
     }
     if (type === 'company' && !form.companyName.trim()) {
-      setError('Company name is required.');
+      setError(t('reg.companyNameRequired'));
       return;
     }
     if (!form.email.trim()) {
-      setError('Email is required.');
+      setError(t('reg.emailRequired'));
       return;
     }
     if (form.password !== form.confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('reg.passwordMismatch'));
       return;
     }
     if (form.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+      setError(t('reg.passwordMin6'));
       return;
     }
 
@@ -74,7 +76,7 @@ function Register() {
       });
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Failed to create account.');
+      setError(err.message || t('reg.failedCreate'));
     } finally {
       setLoading(false);
     }
@@ -109,8 +111,8 @@ function Register() {
             </svg>
             Finpilot
           </div>
-          <h1>Create Account</h1>
-          <p>Fill in your details to get started</p>
+          <h1>{t('reg.createAccount')}</h1>
+          <p>{t('reg.getStarted')}</p>
         </div>
 
         {/* Toggle */}
@@ -124,7 +126,7 @@ function Register() {
               <circle cx="12" cy="8" r="4"/>
               <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
             </svg>
-            Solo
+            {t('reg.solo')}
           </button>
           <button
             type="button"
@@ -137,7 +139,7 @@ function Register() {
               <line x1="12" y1="12" x2="12" y2="16"/>
               <line x1="10" y1="14" x2="14" y2="14"/>
             </svg>
-            Company
+            {t('reg.company')}
           </button>
         </div>
 
@@ -148,14 +150,14 @@ function Register() {
           {/* Company-only fields */}
           {type === 'company' && (
             <>
-              <div className="auth-section-label">Company Info</div>
+              <div className="auth-section-label">{t('reg.companyInfo')}</div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Company Name *</label>
+                  <label>{t('reg.companyName')}</label>
                   <input type="text" value={form.companyName} onChange={f('companyName')} placeholder="e.g. Acme Corp" required />
                 </div>
                 <div className="form-group">
-                  <label>Company ID</label>
+                  <label>{t('reg.companyId')}</label>
                   <input type="text" value={form.companyId} onChange={f('companyId')} placeholder="e.g. 123456789" />
                 </div>
               </div>
@@ -164,23 +166,23 @@ function Register() {
 
           {/* Personal info */}
           <div className="auth-section-label" style={{ marginTop: type === 'company' ? 8 : 0 }}>
-            Personal Info
+            {t('reg.personalInfo')}
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>First Name *</label>
+              <label>{t('reg.firstName')}</label>
               <input type="text" value={form.firstName} onChange={f('firstName')} placeholder="First name" required />
             </div>
             <div className="form-group">
-              <label>Last Name *</label>
+              <label>{t('reg.lastName')}</label>
               <input type="text" value={form.lastName} onChange={f('lastName')} placeholder="Last name" required />
             </div>
           </div>
 
           {type === 'solo' && (
             <div className="form-group">
-              <label>Personal ID *</label>
+              <label>{t('reg.personalIdLabel')}</label>
               <input type="text" value={form.personalId} onChange={f('personalId')} placeholder="ID number" required />
             </div>
           )}

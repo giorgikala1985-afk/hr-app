@@ -44,7 +44,7 @@
 body {
   margin: 0;
   font-size: 18px;
-  font-family: 'Lexend', 'Calibri', Calibri, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-base, 'Lexend', 'Calibri', Calibri, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg);
@@ -61,6 +61,17 @@ body {
 [data-theme="dark"] [class*="-box"],
 [data-theme="dark"] [class*="-modal"] {
   box-shadow: var(--shadow-md) !important;
+}
+
+/* Global sidebar shadow (right side) */
+[class$="-sidebar"] {
+  box-shadow: 6px 0 24px rgba(0,0,0,0.06);
+  z-index: 10;
+  position: relative; /* needed for z-index to take effect over adjacent content */
+}
+
+[data-theme="dark"] [class$="-sidebar"] {
+  box-shadow: 6px 0 24px rgba(0,0,0,0.4) !important;
 }
 
 /* Subtle top highlight on cards for depth */

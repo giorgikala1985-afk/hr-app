@@ -18,7 +18,7 @@ const ALL_TABS = [
     ),
   },
   {
-    key: 'doc-agents', label: 'Coagents', section: 'Documents', route: '/documents?tab=agents',
+    key: 'doc-agents', label: 'Agents', section: 'Documents', route: '/documents?tab=agents',
     color: '#0891b2', bg: '#f0fdfa',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -60,7 +60,7 @@ const ALL_TABS = [
     ),
   },
   {
-    key: 'doc-devices', label: 'Devices & Tools', section: 'Documents', route: '/documents?tab=devices',
+    key: 'doc-devices', label: 'Devices', section: 'Documents', route: '/documents?tab=devices',
     color: '#0891b2', bg: '#f0fdfa',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

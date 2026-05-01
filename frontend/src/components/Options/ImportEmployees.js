@@ -32,7 +32,11 @@ function ImportEmployees() {
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Employees');
-    XLSX.writeFile(wb, 'Employee_Import_Template.xlsx');
+    const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([buf], { type: 'application/octet-stream' }));
+    a.download = 'Employee_Import_Template.xlsx';
+    a.click();
   };
 
   const formatExcelDate = (value) => {
@@ -61,18 +65,18 @@ function ImportEmployees() {
         const wb = XLSX.read(evt.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
-        // Build case-insensitive column lookup
+        // Normalize: lowercase, strip spaces/underscores/dashes for fuzzy header matching
+        const norm = s => String(s).toLowerCase().replace(/[\s_\-]+/g, '').trim();
         const getVal = (row, ...keys) => {
-          for (const k of keys) {
-            for (const col of Object.keys(row)) {
-              if (col.toLowerCase().trim() === k.toLowerCase()) return row[col];
-            }
+          const normKeys = keys.map(norm);
+          for (const col of Object.keys(row)) {
+            if (normKeys.includes(norm(col))) return row[col];
           }
           return '';
         };
         const mapped = data.map((row) => ({
-          first_name: getVal(row, 'First Name', 'FirstName', 'first_name', 'სახელი') || '',
-          last_name: getVal(row, 'Last Name', 'LastName', 'last_name', 'გვარი') || '',
+          first_name: getVal(row, 'First Name', 'FirstName', 'first_name', 'fname', 'first', 'სახელი', 'employee name', 'given name') || '',
+          last_name: getVal(row, 'Last Name', 'LastName', 'last_name', 'lname', 'surname', 'family name', 'familyname', 'name', 'გვარი') || '',
           personal_id: String(getVal(row, 'Personal ID', 'PersonalID', 'personal_id', 'პირადი ნომერი') || ''),
           birthdate: formatExcelDate(getVal(row, 'Birthdate', 'Birth Date', 'birthdate', 'დაბადების თარიღი')),
           position: getVal(row, 'Position', 'position', 'პოზიცია') || '',
@@ -94,6 +98,12 @@ function ImportEmployees() {
           if (!row.start_date) missing.push('Start Date');
           if (missing.length > 0) { row._valid = false; row._missing = missing; }
         });
+        // Show detected column names if everything is invalid (helps diagnose mismatches)
+        const allInvalid = mapped.length > 0 && mapped.every(r => !r._valid);
+        if (allInvalid && data.length > 0) {
+          const detectedCols = Object.keys(data[0]).join(', ');
+          setError(`Column names in your file: "${detectedCols}". Rename them to match: First Name, Last Name, Personal ID, Position, Salary, Start Date.`);
+        }
         setRows(mapped);
       } catch (err) {
         setError(t('import.parseFailed') + err.message);

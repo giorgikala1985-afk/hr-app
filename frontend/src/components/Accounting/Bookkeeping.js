@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const fmt = (n) =>
   n ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
@@ -17,6 +18,7 @@ const TYPE_STYLE = {
 const EMPTY_LINE = { debitAccount: '', creditAccount: '', amount: '' };
 
 function Bookkeeping() {
+  const { t } = useLanguage();
   const [view, setView] = useState('transactions');
 
   // Entries
@@ -268,16 +270,16 @@ function Bookkeeping() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>Bookkeeping</h2>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-3)', fontSize: 14 }}>Double-entry accounting</p>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{t('bk.title')}</h2>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-3)', fontSize: 14 }}>{t('bk.subtitle')}</p>
         </div>
         {view === 'transactions' && (
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={openTModal} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', background: 'var(--surface-2)', color: '#7c3aed', border: '1px solid var(--border-2)', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-              + T-Account Entry
+              {t('bk.tAccountEntry')}
             </button>
             <button onClick={openNewTx} className="btn-add">
-              + New Transaction
+              {t('bk.newTransaction')}
             </button>
           </div>
         )}
@@ -285,7 +287,7 @@ function Bookkeeping() {
 
       {/* Sub-tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[{ key: 'transactions', label: 'Transactions' }, { key: 'trial-balance', label: 'Trial Balance' }].map(tab => (
+        {[{ key: 'transactions', label: t('bk.transactions') }, { key: 'trial-balance', label: t('bk.trialBalance') }].map(tab => (
           <button key={tab.key} onClick={() => setView(tab.key)} style={{
             padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
             background: view === tab.key ? 'var(--surface)' : 'transparent',
@@ -301,32 +303,32 @@ function Bookkeeping() {
         <>
           {txError && <div style={errBox}>{txError}</div>}
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-            <input placeholder="Search transactions or accounts…" value={filterText} onChange={e => setFilterText(e.target.value)} style={{ flex: 1, minWidth: 200, ...inpStyle }} />
+            <input placeholder={t('bk.searchPlaceholder')} value={filterText} onChange={e => setFilterText(e.target.value)} style={{ flex: 1, minWidth: 200, ...inpStyle }} />
             <input type="month" value={filterMonth} onChange={e => setFilterMonth(e.target.value)} style={{ ...inpStyle, width: 'auto' }} />
             {(filterText || filterMonth) && (
-              <button onClick={() => { setFilterText(''); setFilterMonth(''); }} style={{ padding: '8px 14px', border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface-2)', color: 'var(--text)', cursor: 'pointer', fontSize: 13 }}>Clear</button>
+              <button onClick={() => { setFilterText(''); setFilterMonth(''); }} style={{ padding: '8px 14px', border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface-2)', color: 'var(--text)', cursor: 'pointer', fontSize: 13 }}>{t('bk.clear')}</button>
             )}
           </div>
 
           {txLoading ? (
-            <div style={{ color: 'var(--text-4)', padding: 24 }}>Loading…</div>
+            <div style={{ color: 'var(--text-4)', padding: 24 }}>{t('bk.loading')}</div>
           ) : filteredRows.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-4)' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>📒</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-3)' }}>No transactions yet</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Use "New Transaction" or "T-Account Entry" to get started.</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-3)' }}>{t('bk.noTransactions')}</div>
+              <div style={{ fontSize: 13, marginTop: 4 }}>{t('bk.noTransactionsHint')}</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                    <th style={th}>Date</th>
-                    <th style={{ ...th, color: '#16a34a' }}>Debit</th>
-                    <th style={{ ...th, color: '#dc2626' }}>Credit</th>
-                    <th style={th}>Description</th>
-                    <th style={{ ...th, textAlign: 'right' }}>Amount</th>
-                    <th style={th}>Project</th>
+                    <th style={th}>{t('bk.colDate')}</th>
+                    <th style={{ ...th, color: '#16a34a' }}>{t('bk.colDebit')}</th>
+                    <th style={{ ...th, color: '#dc2626' }}>{t('bk.colCredit')}</th>
+                    <th style={th}>{t('bk.colDescription')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('bk.colAmount')}</th>
+                    <th style={th}>{t('bk.colProject')}</th>
                     <th style={{ ...th, width: 40 }}></th>
                   </tr>
                 </thead>
@@ -385,20 +387,20 @@ function Bookkeeping() {
           {showTxForm && (
             <div style={overlay} onClick={() => setShowTxForm(false)}>
               <div style={{ ...modal, maxWidth: 680 }} onClick={e => e.stopPropagation()}>
-                <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{editTxId ? 'Edit Transaction' : 'New Transaction'}</h3>
+                <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>{editTxId ? t('bk.editTransaction') : t('bk.newTransactionModal')}</h3>
                 {txFormError && <div style={{ ...errBox, marginBottom: 14 }}>{txFormError}</div>}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 16 }}>
-                  <div><label style={lbl}>Date *</label><input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} style={inpStyle} /></div>
-                  <div><label style={lbl}>Description *</label><input value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="e.g. Office rent" style={inpStyle} /></div>
+                  <div><label style={lbl}>{t('bk.date')}</label><input type="date" value={formDate} onChange={e => setFormDate(e.target.value)} style={inpStyle} /></div>
+                  <div><label style={lbl}>{t('bk.description')}</label><input value={formDesc} onChange={e => setFormDesc(e.target.value)} placeholder="e.g. Office rent" style={inpStyle} /></div>
                 </div>
                 <datalist id="bk-accs">
                   {accountNames.map((n, i) => <option key={i} value={n} />)}
                 </datalist>
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: 4 }}>
-                    <div style={{ ...lbl, marginBottom: 0, color: '#15803d' }}>Debit Account</div>
-                    <div style={{ ...lbl, marginBottom: 0, color: '#b91c1c' }}>Credit Account</div>
-                    <div style={{ ...lbl, marginBottom: 0, textAlign: 'right' }}>Amount</div>
+                    <div style={{ ...lbl, marginBottom: 0, color: '#15803d' }}>{t('bk.debitAccount')}</div>
+                    <div style={{ ...lbl, marginBottom: 0, color: '#b91c1c' }}>{t('bk.creditAccount')}</div>
+                    <div style={{ ...lbl, marginBottom: 0, textAlign: 'right' }}>{t('bk.amount')}</div>
                     <div />
                   </div>
                   {formLines.map((line, idx) => (
@@ -411,11 +413,11 @@ function Bookkeeping() {
                       ) : <div />}
                     </div>
                   ))}
-                  <button type="button" onClick={() => setFormLines([...formLines, { ...EMPTY_LINE }])} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>+ Add Line</button>
+                  <button type="button" onClick={() => setFormLines([...formLines, { ...EMPTY_LINE }])} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{t('bk.addLine')}</button>
                 </div>
                 <div style={{ marginBottom: 20, position: 'relative' }}>
-                  <label style={lbl}>Project / Agent</label>
-                  <input value={agentSearch} onChange={e => { setAgentSearch(e.target.value); setAgentOpen(true); if (!e.target.value) setFormAgentId(''); }} onFocus={() => setAgentOpen(true)} onBlur={() => setTimeout(() => setAgentOpen(false), 150)} placeholder="Search agent…" style={inpStyle} />
+                  <label style={lbl}>{t('bk.projectAgent')}</label>
+                  <input value={agentSearch} onChange={e => { setAgentSearch(e.target.value); setAgentOpen(true); if (!e.target.value) setFormAgentId(''); }} onFocus={() => setAgentOpen(true)} onBlur={() => setTimeout(() => setAgentOpen(false), 150)} placeholder={t('bk.searchAgent')} style={inpStyle} />
                   {agentOpen && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.25)', zIndex: 10, maxHeight: 180, overflowY: 'auto' }}>
                       {agents.filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase())).map(a => (
@@ -424,14 +426,14 @@ function Bookkeeping() {
                           {a.type && <span style={{ color: 'var(--text-4)', fontSize: 12, marginLeft: 8 }}>{a.type}</span>}
                         </div>
                       ))}
-                      {agents.filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase())).length === 0 && <div style={{ padding: '8px 12px', color: 'var(--text-4)', fontSize: 13 }}>Agent not found</div>}
+                      {agents.filter(a => a.name.toLowerCase().includes(agentSearch.toLowerCase())).length === 0 && <div style={{ padding: '8px 12px', color: 'var(--text-4)', fontSize: 13 }}>{t('bk.agentNotFound')}</div>}
                     </div>
                   )}
                   {formAgentId && <button type="button" onClick={() => { setFormAgentId(''); setAgentSearch(''); }} style={{ position: 'absolute', right: 8, top: 30, background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 16 }}>×</button>}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button onClick={() => setShowTxForm(false)} style={cancelBtn}>Cancel</button>
-                  <button onClick={handleSaveTx} disabled={txSaving} style={{ ...primaryBtn, opacity: txSaving ? 0.7 : 1 }}>{txSaving ? 'Saving…' : editTxId ? 'Save Changes' : 'Post Transaction'}</button>
+                  <button onClick={() => setShowTxForm(false)} style={cancelBtn}>{t('bk.cancel')}</button>
+                  <button onClick={handleSaveTx} disabled={txSaving} style={{ ...primaryBtn, opacity: txSaving ? 0.7 : 1 }}>{txSaving ? t('bk.saving') : editTxId ? t('bk.saveChanges') : t('bk.postTransaction')}</button>
                 </div>
               </div>
             </div>
@@ -443,24 +445,24 @@ function Bookkeeping() {
       {view === 'trial-balance' && (
         <>
           <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 600 }}>Filter by month:</span>
+            <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 600 }}>{t('bk.filterByMonth')}</span>
             <input type="month" value={tbFilterMonth} onChange={e => setTbFilterMonth(e.target.value)} style={{ ...inpStyle, width: 'auto' }} />
-            {tbFilterMonth && <button onClick={() => setTbFilterMonth('')} style={{ padding: '8px 14px', border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface-2)', color: 'var(--text)', cursor: 'pointer', fontSize: 13 }}>Clear</button>}
+            {tbFilterMonth && <button onClick={() => setTbFilterMonth('')} style={{ padding: '8px 14px', border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface-2)', color: 'var(--text)', cursor: 'pointer', fontSize: 13 }}>{t('bk.clear')}</button>}
           </div>
           {trialBalance.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-4)' }}>
               <div style={{ fontSize: 40, marginBottom: 12 }}>⚖️</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-3)' }}>No entries found</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-3)' }}>{t('bk.noEntries')}</div>
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
                 <thead>
                   <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                    <th style={{ ...th, width: 70 }}>Code</th><th style={th}>Account</th>
-                    <th style={{ ...th, textAlign: 'right', color: '#16a34a' }}>Debit</th>
-                    <th style={{ ...th, textAlign: 'right', color: '#dc2626' }}>Credit</th>
-                    <th style={{ ...th, textAlign: 'right' }}>Balance</th>
+                    <th style={{ ...th, width: 70 }}>{t('bk.colCode')}</th><th style={th}>{t('bk.colAccount')}</th>
+                    <th style={{ ...th, textAlign: 'right', color: '#16a34a' }}>{t('bk.colDebit')}</th>
+                    <th style={{ ...th, textAlign: 'right', color: '#dc2626' }}>{t('bk.colCredit')}</th>
+                    <th style={{ ...th, textAlign: 'right' }}>{t('bk.colBalance')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -505,11 +507,11 @@ function Bookkeeping() {
                 </tbody>
                 <tfoot>
                   <tr style={{ background: 'var(--surface-2)', borderTop: '2px solid var(--border-2)' }}>
-                    <td style={td} /><td style={{ ...td, fontWeight: 700, color: 'var(--text)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Total</td>
+                    <td style={td} /><td style={{ ...td, fontWeight: 700, color: 'var(--text)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>{t('bk.total')}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#15803d' }}>{fmt(tbTotalDebit)}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#b91c1c' }}>{fmt(tbTotalCredit)}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '#16a34a' : '#dc2626' }}>
-                      {Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '✓ Balanced' : `Difference: ${fmt(Math.abs(tbTotalDebit - tbTotalCredit))}`}
+                      {Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? t('bk.balanced') : `${t('bk.difference')}: ${fmt(Math.abs(tbTotalDebit - tbTotalCredit))}`}
                     </td>
                   </tr>
                 </tfoot>
@@ -526,19 +528,19 @@ function Bookkeeping() {
 
             {/* Modal header */}
             <div style={{ padding: '20px 28px 16px', borderBottom: '1px solid var(--border-3)', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)', marginRight: 8 }}>⊤ T-Account Entry</div>
+              <div style={{ fontWeight: 700, fontSize: 17, color: 'var(--text)', marginRight: 8 }}>{t('bk.tModalTitle')}</div>
               <div style={{ display: 'flex', gap: 10, flex: 1, flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 140 }}>
-                  <label style={{ ...lbl, marginBottom: 3 }}>Date *</label>
+                  <label style={{ ...lbl, marginBottom: 3 }}>{t('bk.date')}</label>
                   <input type="date" value={tDate} onChange={e => setTDate(e.target.value)} style={{ ...inpStyle, fontSize: 13 }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <label style={{ ...lbl, marginBottom: 3 }}>Description *</label>
+                  <label style={{ ...lbl, marginBottom: 3 }}>{t('bk.description')}</label>
                   <input value={tDesc} onChange={e => setTDesc(e.target.value)} placeholder="e.g. Monthly rent" style={{ ...inpStyle, fontSize: 13 }} />
                 </div>
                 <div style={{ minWidth: 180, position: 'relative' }}>
-                  <label style={{ ...lbl, marginBottom: 3 }}>Project / Agent</label>
-                  <input value={tAgentSearch} onChange={e => { setTAgentSearch(e.target.value); setTAgentOpen(true); if (!e.target.value) setTAgentId(''); }} onFocus={() => setTAgentOpen(true)} onBlur={() => setTimeout(() => setTAgentOpen(false), 150)} placeholder="Search agent…" style={{ ...inpStyle, fontSize: 13 }} />
+                  <label style={{ ...lbl, marginBottom: 3 }}>{t('bk.projectAgent')}</label>
+                  <input value={tAgentSearch} onChange={e => { setTAgentSearch(e.target.value); setTAgentOpen(true); if (!e.target.value) setTAgentId(''); }} onFocus={() => setTAgentOpen(true)} onBlur={() => setTimeout(() => setTAgentOpen(false), 150)} placeholder={t('bk.searchAgent')} style={{ ...inpStyle, fontSize: 13 }} />
                   {tAgentOpen && (
                     <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 8, boxShadow: '0 4px 16px rgba(0,0,0,0.25)', zIndex: 20, maxHeight: 160, overflowY: 'auto' }}>
                       {agents.filter(a => a.name.toLowerCase().includes(tAgentSearch.toLowerCase())).map(a => (
@@ -559,11 +561,11 @@ function Bookkeeping() {
               {/* Left: accounts panel */}
               <div style={{ width: 220, borderRight: '1px solid var(--border-3)', display: 'flex', flexDirection: 'column', background: 'var(--surface-2)' }}>
                 <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid var(--border-3)' }}>
-                  <input value={tAccSearch} onChange={e => setTAccSearch(e.target.value)} placeholder="Search accounts…" style={{ ...inpStyle, fontSize: 12, padding: '6px 9px' }} />
+                  <input value={tAccSearch} onChange={e => setTAccSearch(e.target.value)} placeholder={t('bk.searchAccounts')} style={{ ...inpStyle, fontSize: 12, padding: '6px 9px' }} />
                 </div>
                 <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
                   {tAccList.length === 0 ? (
-                    <div style={{ color: 'var(--text-4)', fontSize: 12, textAlign: 'center', padding: 16 }}>No accounts found</div>
+                    <div style={{ color: 'var(--text-4)', fontSize: 12, textAlign: 'center', padding: 16 }}>{t('bk.noAccountsFound')}</div>
                   ) : tAccList.map(a => {
                     const ts = TYPE_STYLE[a.type] || TYPE_STYLE.Asset;
                     return (
@@ -705,9 +707,9 @@ function Bookkeeping() {
 
             {/* Footer */}
             <div style={{ padding: '14px 28px', borderTop: '1px solid var(--border-3)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--surface-2)' }}>
-              <button onClick={() => setShowTModal(false)} style={cancelBtn}>Cancel</button>
+              <button onClick={() => setShowTModal(false)} style={cancelBtn}>{t('bk.cancel')}</button>
               <button onClick={handleTSave} disabled={tSaving} style={{ ...primaryBtn, background: '#7c3aed', opacity: tSaving ? 0.7 : 1 }}>
-                {tSaving ? 'Saving…' : 'Post T-Account Entry'}
+                {tSaving ? t('bk.saving') : t('bk.postTAccount')}
               </button>
             </div>
           </div>

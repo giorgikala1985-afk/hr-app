@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
+const bcrypt = require('bcrypt');
 
 // GET /api/users
 router.get('/', async (req, res) => {
@@ -56,6 +57,27 @@ router.delete('/:id', async (req, res) => {
       .eq('user_id', req.userId);
     if (error) throw error;
     res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// PUT /api/users/:id/password — Super Admin sets password for a user
+router.put('/:id/password', async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    const { data, error } = await supabase
+      .from('app_users')
+      .update({ password_hash: hash })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select('id, name, email')
+      .single();
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'User not found.' });
+    res.json({ message: 'Password set successfully.' });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

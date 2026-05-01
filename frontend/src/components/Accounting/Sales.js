@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useLanguage } from '../../contexts/LanguageContext';
 
-const DEFAULT_WIDTHS = [110, 160, 130, 200, 120, 80];
+const DEFAULT_WIDTHS = [110, 160, 150, 130, 200, 120, 80];
 
 function IconEdit() {
   return (
@@ -24,10 +25,11 @@ function IconDelete() {
   );
 }
 
-const EMPTY = { client: '', description: '', amount: '', currency: 'USD', category: '', date: '' };
+const EMPTY = { client: '', product: '', description: '', amount: '', currency: 'USD', category: '', date: '' };
 const CATEGORIES = ['Product', 'Service', 'Consulting', 'License', 'Subscription', 'Other'];
 
 function Sales() {
+  const { t } = useLanguage();
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -46,7 +48,7 @@ function Sales() {
     try {
       const res = await api.get('/accounting/sales');
       setRecords(res.data.records || []);
-    } catch { setError('Failed to load sales.'); }
+    } catch { setError(t('sales.failedLoad')); }
     finally { setLoading(false); }
   };
 
@@ -58,23 +60,23 @@ function Sales() {
   };
 
   const openNew = () => { setForm({ ...EMPTY, date: today() }); setEditId(null); setShowForm(true); setError(''); };
-  const openEdit = (r) => { setForm({ client: r.client, description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date }); setEditId(r.id); setShowForm(true); setError(''); };
+  const openEdit = (r) => { setForm({ client: r.client, product: r.product || '', description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date }); setEditId(r.id); setShowForm(true); setError(''); };
 
   const handleSave = async () => {
-    if (!form.client || !form.amount || !form.date) { setError('Client, amount and date are required.'); return; }
+    if (!form.client || !form.amount || !form.date) { setError(t('sales.validationError')); return; }
     setSaving(true); setError('');
     try {
       if (editId) await api.put(`/accounting/sales/${editId}`, form);
       else await api.post('/accounting/sales', form);
       setShowForm(false); load();
-    } catch (err) { setError(err.response?.data?.error || 'Failed to save.'); }
+    } catch (err) { setError(err.response?.data?.error || t('sales.failedSave')); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this sale?')) return;
+    if (!window.confirm(t('sales.deleteConfirm'))) return;
     try { await api.delete(`/accounting/sales/${id}`); load(); }
-    catch { setError('Failed to delete.'); }
+    catch { setError(t('sales.failedDelete')); }
   };
 
   const toggleSelect = (id) => {
@@ -94,60 +96,60 @@ function Sales() {
   };
 
   const handleBulkDelete = async () => {
-    if (!window.confirm(`Delete ${selectedIds.size} selected sale(s)?`)) return;
+    if (!window.confirm(t('sales.deleteSelectedConfirm', { count: selectedIds.size }))) return;
     try {
       await api.delete('/accounting/sales/bulk', { data: { ids: Array.from(selectedIds) } });
       setRecords(prev => prev.filter(r => !selectedIds.has(r.id)));
       setSelectedIds(new Set());
-    } catch { setError('Failed to delete selected sales.'); }
+    } catch { setError(t('sales.failedDeleteSelected')); }
   };
 
   const total = records.reduce((s, r) => s + parseFloat(r.amount), 0);
 
   return (
     <>
-      <h2>Sales</h2>
-      <p className="acc-subtitle">Track your revenue and sales transactions.</p>
+      <h2>{t('sales.title')}</h2>
+      <p className="acc-subtitle">{t('sales.subtitle')}</p>
 
       <div className="acc-summary">
         <div className="acc-summary-card">
-          <span className="acc-summary-label">Total Records</span>
+          <span className="acc-summary-label">{t('sales.totalRecords')}</span>
           <span className="acc-summary-value">{records.length}</span>
         </div>
         <div className="acc-summary-card">
-          <span className="acc-summary-label">Total Revenue</span>
+          <span className="acc-summary-label">{t('sales.totalRevenue')}</span>
           <span className="acc-summary-value green">${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
       </div>
 
       <div className="acc-header-row">
         <div />
-        <button className="btn-add" onClick={openNew}>+ Add Sale</button>
+        <button className="btn-add" onClick={openNew}>{t('sales.addSale')}</button>
       </div>
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
       {selectedIds.size > 0 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff8e1', border: '1px solid #ffd54f', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, fontWeight: 500, color: '#555' }}>
-          <span>{selectedIds.size} sale(s) selected</span>
+          <span>{t('sales.selectedCount', { count: selectedIds.size })}</span>
           <button
             onClick={handleBulkDelete}
             style={{ background: '#e53935', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            <IconDelete /> Delete Selected
+            <IconDelete /> {t('sales.deleteSelected')}
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
             style={{ background: '#f5f5f5', color: '#666', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
           >
-            Clear
+            {t('sales.clear')}
           </button>
         </div>
       )}
 
       <div className="acc-table-wrapper">
-        {loading ? <div className="acc-empty"><p>Loading…</p></div> : records.length === 0 ? (
-          <div className="acc-empty"><div className="acc-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p>No sales yet. Add your first one.</p></div>
+        {loading ? <div className="acc-empty"><p>{t('sales.loading')}</p></div> : records.length === 0 ? (
+          <div className="acc-empty"><div className="acc-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p>{t('sales.noSales')}</p></div>
         ) : (
           <table className="acc-table">
             <colgroup>
@@ -160,16 +162,17 @@ function Sales() {
                   type="checkbox"
                   checked={selectedIds.size === records.length && records.length > 0}
                   onChange={toggleSelectAll}
-                  title="Select all"
+                  title={t('sales.selectAll')}
                   style={{ width: 15, height: 15, cursor: 'pointer' }}
                 />
               </th>
-              <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>Date<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>Client<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>Category<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>Description<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>Amount<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>{t('sales.colDate')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>{t('sales.colClient')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('sales.colProduct')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('sales.colCategory')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('sales.colDescription')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('sales.colAmount')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
             </tr></thead>
             <tbody>
               {records.map((r) => (
@@ -184,6 +187,7 @@ function Sales() {
                   </td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>
+                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.product || '—'}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.category && <span className="acc-category-badge">{r.category}</span>}</td>
                   <td style={{ color: '#64748b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.description || '—'}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount income">+{r.currency} {parseFloat(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
@@ -201,38 +205,39 @@ function Sales() {
       </div>
 
       {showForm && (
-        <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
+        <div className="acc-modal-overlay">
           <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{editId ? 'Edit Sale' : 'New Sale'}</h3>
+            <h3>{editId ? t('sales.editSale') : t('sales.newSale')}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="acc-form-grid">
               <div className="acc-form-group">
-                <label>Client *</label>
+                <label>{t('sales.client')}</label>
                 <select value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })}>
-                  <option value="">— Select client —</option>
+                  <option value="">{t('sales.selectClient')}</option>
                   {agents.map((a) => (
                     <option key={a.id} value={a.name}>{a.name}</option>
                   ))}
                 </select>
               </div>
-              <div className="acc-form-group"><label>Date *</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
-              <div className="acc-form-group"><label>Amount *</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" /></div>
-              <div className="acc-form-group"><label>Currency</label>
+              <div className="acc-form-group"><label>{t('sales.product')}</label><input type="text" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} placeholder="e.g. Website design" /></div>
+              <div className="acc-form-group"><label>{t('sales.date')}</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+              <div className="acc-form-group"><label>{t('sales.amount')}</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" /></div>
+              <div className="acc-form-group"><label>{t('sales.currency')}</label>
                 <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
                   <option>USD</option><option>GEL</option><option>EUR</option>
                 </select>
               </div>
-              <div className="acc-form-group"><label>Category</label>
+              <div className="acc-form-group"><label>{t('sales.category')}</label>
                 <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                  <option value="">— Select —</option>
+                  <option value="">{t('sales.selectCategory')}</option>
                   {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
-              <div className="acc-form-group full"><label>Description</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Optional notes…" /></div>
+              <div className="acc-form-group full"><label>{t('sales.colDescription')}</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('sales.optionalNotes')} /></div>
             </div>
             <div className="acc-modal-actions">
-              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('sales.cancel')}</button>
+              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('sales.saving') : t('sales.save')}</button>
             </div>
           </div>
         </div>
