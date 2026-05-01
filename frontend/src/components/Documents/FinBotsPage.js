@@ -169,7 +169,7 @@ function BotModal({ bot, onSave, onClose }) {
   const handleSave = () => {
     if (!name.trim()) return;
     onSave({
-      id: bot?.id || Date.now().toString(),
+      id: bot?.id || `temp_${Date.now()}`,
       name: name.trim(),
       description: description.trim(),
       dataSources: sources,
