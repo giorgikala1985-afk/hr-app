@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 const supabase = require('../config/supabase');
 const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
+const { checkPermission } = require('../middleware/permission');
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 const INVOICE_PROMPT = `You are an invoice analysis expert. Extract the following information in JSON format ONLY (no markdown, no explanation):
@@ -31,32 +35,76 @@ router.post('/invoices/scan', async (req, res) => {
     let messages;
 
     if (mimeType === 'application/pdf') {
-      // Extract text from PDF, then send as text prompt
       const buffer = Buffer.from(data, 'base64');
-      const pdf = await pdfParse(buffer);
-      const pdfText = pdf.text.trim();
-      if (!pdfText) return res.status(400).json({ error: 'Could not extract text from PDF. Try uploading an image instead.' });
-      messages = [{ role: 'user', content: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
+
+      // Try text extraction first
+      let pdfText = '';
+      try {
+        const pdf = await pdfParse(buffer);
+        pdfText = pdf.text ? pdf.text.trim() : '';
+      } catch (e) {
+        console.error('pdf-parse error:', e.message);
+      }
+
+      if (pdfText) {
+        messages = [{ role: 'user', content: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
+      } else {
+        // Scanned PDF — render to image with puppeteer
+        let puppeteer;
+        try { puppeteer = require('puppeteer'); } catch { puppeteer = require('puppeteer-core'); }
+        const tmpPath = path.join(os.tmpdir(), `inv_${Date.now()}.pdf`);
+        fs.writeFileSync(tmpPath, buffer);
+        let browser;
+        try {
+          browser = await puppeteer.launch({
+            headless: true,
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+          });
+          const page = await browser.newPage();
+          await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 1.5 });
+          await page.goto(`file://${tmpPath}`, { waitUntil: 'networkidle0', timeout: 20000 });
+          await new Promise(r => setTimeout(r, 1000));
+          const screenshot = await page.screenshot({ type: 'jpeg', quality: 90 });
+          messages = [{
+            role: 'user',
+            content: [
+              { type: 'text', text: INVOICE_PROMPT },
+              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${screenshot.toString('base64')}` } },
+            ],
+          }];
+        } finally {
+          if (browser) await browser.close().catch(() => {});
+          try { fs.unlinkSync(tmpPath); } catch {}
+        }
+      }
     } else {
-      // Image: use vision
+      // Image — send directly to GPT-4o vision
+      const imageType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(mimeType)
+        ? mimeType : 'image/jpeg';
       messages = [{
         role: 'user',
         content: [
           { type: 'text', text: INVOICE_PROMPT },
-          { type: 'image_url', image_url: { url: `data:${mimeType || 'image/jpeg'};base64,${data}` } },
+          { type: 'image_url', image_url: { url: `data:${imageType};base64,${data}` } },
         ],
       }];
     }
 
     const response = await openai.chat.completions.create({ model: 'gpt-4o', messages, max_tokens: 1000 });
-    const text = response.choices[0].message.content.trim();
-    const jsonText = text.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-    const parsed = JSON.parse(jsonText);
+    const rawText = response.choices[0].message.content.trim();
+    const jsonText = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
+      return res.status(500).json({ error: 'AI returned an unexpected response. Please try again.' });
+    }
 
     res.json({ result: parsed });
   } catch (err) {
     console.error('Invoice scan error:', err.message);
-    res.status(500).json({ error: 'Failed to analyze invoice: ' + err.message });
+    res.status(500).json({ error: err.message || 'Failed to analyze invoice.' });
   }
 });
 
@@ -106,8 +154,8 @@ router.get('/sales', async (req, res) => {
 
 router.post('/sales', async (req, res) => {
   try {
-    const { client, description, amount, currency, category, date } = req.body;
-    const { data, error } = await supabase.from('accounting_sales').insert([{ user_id: req.userId, client, description, amount: parseFloat(amount), currency, category, date }]).select().single();
+    const { client, product, description, amount, currency, category, date } = req.body;
+    const { data, error } = await supabase.from('accounting_sales').insert([{ user_id: req.userId, client, product, description, amount: parseFloat(amount), currency, category, date }]).select().single();
     if (error) throw error;
     res.status(201).json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -115,8 +163,8 @@ router.post('/sales', async (req, res) => {
 
 router.put('/sales/:id', async (req, res) => {
   try {
-    const { client, description, amount, currency, category, date } = req.body;
-    const { data, error } = await supabase.from('accounting_sales').update({ client, description, amount: parseFloat(amount), currency, category, date }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    const { client, product, description, amount, currency, category, date } = req.body;
+    const { data, error } = await supabase.from('accounting_sales').update({ client, product, description, amount: parseFloat(amount), currency, category, date }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -514,27 +562,283 @@ router.get('/transfers', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.post('/transfers', async (req, res) => {
+// Resolve a friendly display name for the current user (for requester/approver labels)
+async function resolveUserName(req) {
+  const email = req.user?.email;
+  if (!email) return 'Unknown';
+  const { data: appUser } = await supabase
+    .from('app_users')
+    .select('name')
+    .eq('email', email)
+    .maybeSingle();
+  return appUser?.name || email;
+}
+
+// ── Notification helpers ─────────────────────────────────
+async function createNotifications(user_id, recipient_emails, type, title, body, reference_id) {
   try {
-    const { client_name, agent_id, amount, due_date, description, status } = req.body;
-    const { data, error } = await supabase.from('accounting_transfers').insert([{ user_id: req.userId, client_name, agent_id: agent_id || null, amount: parseFloat(amount), due_date, description, status: status || 'normal' }]).select().single();
+    const unique = [...new Set((recipient_emails || []).filter(Boolean))];
+    if (unique.length === 0) return;
+    await supabase.from('app_notifications').insert(
+      unique.map(email => ({ user_id, recipient_email: email, type, title, body: body || null, reference_id: reference_id || null }))
+    );
+  } catch (err) { console.error('createNotifications error:', err.message); }
+}
+
+async function getApproverEmails(user_id) {
+  try {
+    const { data: matrixRows } = await supabase.from('user_matrix')
+      .select('role').eq('user_id', user_id).neq('approve_transfer', 'No');
+    const roles = [...new Set((matrixRows || []).map(r => r.role).filter(Boolean))];
+    if (roles.length === 0) return [];
+    const { data: users } = await supabase.from('app_users')
+      .select('email').eq('user_id', user_id).in('rights', roles);
+    return (users || []).map(u => u.email).filter(Boolean);
+  } catch { return []; }
+}
+
+async function getMainUserEmail(user_id) {
+  try {
+    const result = await supabase.auth.admin.getUserById(user_id);
+    const email = result?.data?.user?.email || null;
+    console.log('[notif] getMainUserEmail:', email);
+    return email;
+  } catch (err) {
+    console.error('[notif] getMainUserEmail failed:', err.message);
+    return null;
+  }
+}
+
+const APPROVAL_TITLES = {
+  approved: 'Transfer Approved ✅',
+  rejected: 'Transfer Rejected ❌',
+  partial:  'Partial Approval ½',
+  wait:     'Transfer On Hold ⏸',
+};
+
+router.post('/transfers', checkPermission('initiate_transfer'), async (req, res) => {
+  try {
+    const { client_name, agent_id, amount, due_date, description, status, invoice_raw, iban, invoice_number } = req.body;
+    const requester_name = await resolveUserName(req);
+    const requester_email = req.user?.email || null;
+    const { data, error } = await supabase.from('accounting_transfers').insert([{
+      user_id: req.userId, client_name, agent_id: agent_id || null,
+      amount: parseFloat(amount), due_date, description,
+      iban: iban || null, invoice_number: invoice_number || null,
+      status: status || 'normal',
+      requester_name,
+      requester_email,
+      approval_status: 'pending',
+      invoice_raw: invoice_raw || null,
+    }]).select().single();
     if (error) throw error;
+
+    // Notify all approvers (and main user) except the requester
+    const [approverEmails, mainEmail] = await Promise.all([
+      getApproverEmails(req.userId),
+      getMainUserEmail(req.userId),
+    ]);
+    const recipients = [...new Set([...approverEmails, mainEmail])].filter(e => e && e !== requester_email);
+    console.log('[notif] transfer submitted — requester:', requester_email, '| approvers:', approverEmails, '| main:', mainEmail, '| recipients:', recipients);
+    await createNotifications(
+      req.userId, recipients, 'transfer_submitted',
+      '📤 New Transfer Request',
+      `${requester_name} submitted a transfer for ${client_name} — ${parseFloat(amount).toLocaleString()}`,
+      data.id
+    );
+
     res.status(201).json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.put('/transfers/:id', async (req, res) => {
+router.put('/transfers/:id', checkPermission('initiate_transfer'), async (req, res) => {
   try {
-    const { client_name, agent_id, amount, due_date, description, status } = req.body;
-    const { data, error } = await supabase.from('accounting_transfers').update({ client_name, agent_id: agent_id || null, amount: parseFloat(amount), due_date, description, status }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    const { client_name, agent_id, amount, due_date, description, status, requester_name, invoice_raw, iban, invoice_number } = req.body;
+    const patch = { client_name, agent_id: agent_id || null, amount: parseFloat(amount), due_date, description, status };
+    if (requester_name !== undefined) patch.requester_name = requester_name || null;
+    if (invoice_raw !== undefined) patch.invoice_raw = invoice_raw || null;
+    if (iban !== undefined) patch.iban = iban || null;
+    if (invoice_number !== undefined) patch.invoice_number = invoice_number || null;
+    const { data, error } = await supabase.from('accounting_transfers').update(patch).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-router.delete('/transfers/:id', async (req, res) => {
+router.delete('/transfers/:id', checkPermission('initiate_transfer'), async (req, res) => {
   try {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('accounting_transfers')
+      .select('approval_status')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+    if (fetchErr || !existing) return res.status(404).json({ error: 'Not found' });
+    const blocked = ['approved', 'rejected', 'partial'];
+    if (blocked.includes(existing.approval_status)) {
+      return res.status(400).json({ error: 'Decided transfers cannot be deleted — archive them instead' });
+    }
     const { error } = await supabase.from('accounting_transfers').delete().eq('id', req.params.id).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Approval actions on a transfer row
+async function applyTransferAction(req, res, patch) {
+  try {
+    const approver_name = await resolveUserName(req);
+
+    // Fetch requester info before update for notification
+    const { data: existing } = await supabase
+      .from('accounting_transfers')
+      .select('requester_email, client_name, amount')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+
+    const { data, error } = await supabase
+      .from('accounting_transfers')
+      .update({ ...patch, approver_name })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select()
+      .single();
+    if (error) throw error;
+
+    // Notify the requester
+    if (existing?.requester_email) {
+      const title = APPROVAL_TITLES[patch.approval_status] || 'Transfer Updated';
+      const noteStr = patch.approver_note ? ` — ${patch.approver_note}` : '';
+      const body = `Your transfer for ${existing.client_name} (${existing.amount})${noteStr}`;
+      await createNotifications(req.userId, [existing.requester_email], `transfer_${patch.approval_status}`, title, body, req.params.id);
+    }
+
+    res.json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+}
+
+router.post('/transfers/:id/approve', checkPermission('approve_transfer'), async (req, res) => {
+  await applyTransferAction(req, res, { approval_status: 'approved', approver_note: null, approved_amount: null });
+});
+
+router.post('/transfers/:id/reject', checkPermission('reject_transfer'), async (req, res) => {
+  const { note } = req.body || {};
+  await applyTransferAction(req, res, { approval_status: 'rejected', approver_note: note || null });
+});
+
+router.post('/transfers/:id/partial', checkPermission('approve_transfer'), async (req, res) => {
+  const { approved_amount, note } = req.body || {};
+  if (approved_amount == null || isNaN(parseFloat(approved_amount))) {
+    return res.status(400).json({ error: 'approved_amount is required' });
+  }
+  await applyTransferAction(req, res, { approval_status: 'partial', approved_amount: parseFloat(approved_amount), approver_note: note || null });
+});
+
+router.post('/transfers/:id/wait', checkPermission('approve_transfer'), async (req, res) => {
+  const { note } = req.body || {};
+  await applyTransferAction(req, res, { approval_status: 'wait', approver_note: note || null });
+});
+
+router.post('/transfers/:id/archive', async (req, res) => {
+  try {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('accounting_transfers')
+      .select('approval_status')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+    if (fetchErr || !existing) return res.status(404).json({ error: 'Not found' });
+    const allowed = ['approved', 'rejected', 'partial'];
+    if (!allowed.includes(existing.approval_status)) {
+      return res.status(400).json({ error: 'Only decided transfers (approved/rejected/partial) can be archived' });
+    }
+    const { data, error } = await supabase
+      .from('accounting_transfers')
+      .update({ approval_status: 'archived' })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── TRANSFER APPROVAL REQUESTS ──────────────────────────
+router.get('/transfer-requests', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('transfer_requests')
+      .select('*')
+      .eq('user_id', req.userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ requests: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/transfer-requests', checkPermission('initiate_transfer'), async (req, res) => {
+  try {
+    const { requester_name, amount, currency, recipient_name, recipient_account, description } = req.body;
+    if (!requester_name || !amount || !recipient_name) {
+      return res.status(400).json({ error: 'Requester name, amount and recipient are required.' });
+    }
+    const { data, error } = await supabase
+      .from('transfer_requests')
+      .insert([{
+        user_id: req.userId,
+        requester_name: requester_name.trim(),
+        amount: parseFloat(amount),
+        currency: currency || 'GEL',
+        recipient_name: recipient_name.trim(),
+        recipient_account: recipient_account ? recipient_account.trim() : null,
+        description: description ? description.trim() : null,
+        approval_status: 'pending',
+      }])
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json({ request: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/transfer-requests/:id/approve', checkPermission('approve_transfer'), async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('transfer_requests')
+      .update({ approval_status: 'approved', approved_at: new Date().toISOString(), rejection_reason: null })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json({ request: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/transfer-requests/:id/reject', checkPermission('reject_transfer'), async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const { data, error } = await supabase
+      .from('transfer_requests')
+      .update({ approval_status: 'rejected', rejected_at: new Date().toISOString(), rejection_reason: reason || null })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json({ request: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/transfer-requests/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('transfer_requests')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId);
     if (error) throw error;
     res.json({ message: 'Deleted' });
   } catch (err) { res.status(500).json({ error: err.message }); }

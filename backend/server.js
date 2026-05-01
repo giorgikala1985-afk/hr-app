@@ -20,6 +20,7 @@ const salaryDeferralRoutes = require('./routes/salary_deferrals');
 const accountingRoutes = require('./routes/accounting');
 const bonusRoutes = require('./routes/bonuses');
 const userRoutes = require('./routes/users');
+const userMatrixRoutes = require('./routes/user_matrix');
 const toolRoutes = require('./routes/tools');
 const stockLocationRoutes = require('./routes/stock_locations');
 const agreementRoutes = require('./routes/agreements');
@@ -28,7 +29,13 @@ const adminRoutes = require('./routes/admin');
 const tbcBankRoutes = require('./routes/tbc_bank');
 const billingRoutes = require('./routes/billing');
 const rsgeRoutes = require('./routes/rsge');
+const finbotsRoutes = require('./routes/finbots');
+const notificationRoutes = require('./routes/notifications');
+const testDebugRoutes = require('./routes/test_debug');
 const { authenticateUser } = require('./middleware/auth');
+
+// Force restart to apply FinBot debug changes
+console.log('Server is initializing routes...');
 
 const app = express();
 
@@ -40,8 +47,8 @@ app.use(cors({
   origin: allowedOrigins,
   credentials: true
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -65,6 +72,7 @@ app.use('/api/salary-deferrals', authenticateUser, salaryDeferralRoutes);
 app.use('/api/accounting', authenticateUser, accountingRoutes);
 app.use('/api/bonuses', authenticateUser, bonusRoutes);
 app.use('/api/users', authenticateUser, userRoutes);
+app.use('/api/user-matrix', authenticateUser, userMatrixRoutes);
 app.use('/api/tools', authenticateUser, toolRoutes);
 app.use('/api/stock-locations', authenticateUser, stockLocationRoutes);
 app.use('/api/agreements', authenticateUser, agreementRoutes);
@@ -74,10 +82,16 @@ app.use('/api/tbc-bank', authenticateUser, tbcBankRoutes);
 app.use('/api/rsge', authenticateUser, rsgeRoutes);
 // Billing / Subscriptions
 app.use('/api/billing', billingRoutes);
+// FinBots: AI assistants connected to company data
+app.use('/api/finbots', authenticateUser, finbotsRoutes);
+// Notifications
+app.use('/api/notifications', authenticateUser, notificationRoutes);
 // Admin: super admin panel
 app.use('/api/admin', adminRoutes);
 // Portal: handles its own auth internally
 app.use('/api/portal', portalRoutes);
+
+app.use('/api/test-debug', testDebugRoutes);
 // Documents: sign route is public (no auth), rest needs auth
 app.use('/api/documents/sign', documentRoutes);
 app.use('/api/documents', authenticateUser, documentRoutes);
