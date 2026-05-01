@@ -29,11 +29,14 @@ function getStorageKey(userId) {
   return STORAGE_KEY_PREFIX + (userId || 'guest');
 }
 
-function loadBots(userId) {
-  try { return JSON.parse(localStorage.getItem(getStorageKey(userId)) || '[]'); } catch { return []; }
-}
-function saveBots(userId, bots) {
-  if (userId) localStorage.setItem(getStorageKey(userId), JSON.stringify(bots));
+function mapBot(b) {
+  return {
+    ...b,
+    dataSources: b.data_sources || [],
+    systemPrompt: b.system_prompt || '',
+    createdAt: b.created_at,
+    updatedAt: b.updated_at,
+  };
 }
 
 function loadChatHistory(botId) {
@@ -635,7 +638,11 @@ function FinBotsPage() {
   const [bots, setBots] = useState([]);
   
   useEffect(() => {
-    if (userId) setBots(loadBots(userId));
+    if (userId) {
+      api.get('/finbots')
+        .then(res => setBots((res.data.bots || []).map(mapBot)))
+        .catch(err => console.error('Failed to load bots:', err));
+    }
   }, [userId]);
   const [selectedId, setSelectedId] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -643,26 +650,34 @@ function FinBotsPage() {
 
   const selectedBot = bots.find(b => b.id === selectedId) || null;
 
-  const handleSave = (bot) => {
-    setBots(prev => {
-      const idx = prev.findIndex(b => b.id === bot.id);
-      const next = idx >= 0 ? prev.map(b => b.id === bot.id ? bot : b) : [...prev, bot];
-      saveBots(userId, next);
-      return next;
-    });
-    setSelectedId(bot.id);
-    setShowModal(false);
-    setEditingBot(null);
+  const handleSave = async (bot) => {
+    try {
+      const res = await api.post('/finbots', bot);
+      const savedBot = mapBot(res.data.bot);
+      
+      setBots(prev => {
+        const idx = prev.findIndex(b => b.id === savedBot.id);
+        if (idx >= 0) return prev.map(b => b.id === savedBot.id ? savedBot : b);
+        return [savedBot, ...prev];
+      });
+      
+      setSelectedId(savedBot.id);
+      setShowModal(false);
+      setEditingBot(null);
+    } catch (err) {
+      alert('Failed to save bot: ' + (err.response?.data?.error || err.message));
+    }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (!window.confirm('Delete this bot?')) return;
-    setBots(prev => {
-      const next = prev.filter(b => b.id !== id);
-      saveBots(userId, next);
-      return next;
-    });
-    if (selectedId === id) setSelectedId(null);
+    try {
+      await api.delete(`/finbots/${id}`);
+      setBots(prev => prev.filter(b => b.id !== id));
+      if (selectedId === id) setSelectedId(null);
+    } catch (err) {
+      alert('Failed to delete bot: ' + (err.response?.data?.error || err.message));
+    }
   };
 
   const openCreate = () => { setEditingBot(null); setShowModal(true); };
