@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import html2canvas from 'html2canvas';
+import { jsPDF } from 'jspdf';
 import {
   BarChart, Bar, LineChart, Line,
   PieChart, Pie, Cell,
@@ -52,86 +53,63 @@ function clearChatHistory(botId) {
 // ── Available icons ──────────────────────────────────────────────────────────
 const BOT_ICONS = [
   { key: 'bot', label: 'Robot', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="10" rx="2"/>
-      <path d="M12 2v3"/><circle cx="12" cy="5" r="1"/>
-      <path d="M8 11V9a4 4 0 0 1 8 0v2"/>
-      <circle cx="9" cy="15" r="1" fill={c}/><circle cx="15" cy="15" r="1" fill={c}/>
-      <path d="M9 19h6"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 2v3"/><circle cx="12" cy="5" r="1"/><path d="M8 11V9a4 4 0 0 1 8 0v2"/><circle cx="9" cy="15" r="1"/><circle cx="15" cy="15" r="1"/><path d="M9 19h6"/>
     </svg>
   )},
   { key: 'brain', label: 'Brain', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.5 2a2.5 2.5 0 0 1 5 0v1a2.5 2.5 0 0 1 2.5 2.5v.5a2.5 2.5 0 0 1 2.5 2.5A2.5 2.5 0 0 1 17 11v1a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 7 12v-1a2.5 2.5 0 0 1-2.5-2.5A2.5 2.5 0 0 1 7 6v-.5A2.5 2.5 0 0 1 9.5 3V2z"/>
-      <path d="M12 16v6M8 22h8"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2a2.5 2.5 0 0 1 5 0v1a2.5 2.5 0 0 1 2.5 2.5v.5a2.5 2.5 0 0 1 2.5 2.5A2.5 2.5 0 0 1 17 11v1a2.5 2.5 0 0 1-2.5 2.5h-5A2.5 2.5 0 0 1 7 12v-1a2.5 2.5 0 0 1-2.5-2.5A2.5 2.5 0 0 1 7 6v-.5A2.5 2.5 0 0 1 9.5 3V2z"/><path d="M12 16v6M8 22h8"/>
     </svg>
   )},
   { key: 'chart', label: 'Chart', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="20" x2="18" y2="10"/>
-      <line x1="12" y1="20" x2="12" y2="4"/>
-      <line x1="6"  y1="20" x2="6"  y2="14"/>
-      <line x1="2"  y1="20" x2="22" y2="20"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6"  y1="20" x2="6"  y2="14"/><line x1="2"  y1="20" x2="22" y2="20"/>
     </svg>
   )},
   { key: 'dollar', label: 'Money', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23"/>
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
     </svg>
   )},
   { key: 'people', label: 'People', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-      <circle cx="9" cy="7" r="4"/>
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
     </svg>
   )},
   { key: 'shield', label: 'Shield', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
     </svg>
   )},
   { key: 'star', label: 'Star', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
     </svg>
   )},
   { key: 'lightning', label: 'Lightning', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
     </svg>
   )},
   { key: 'search', label: 'Search', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
     </svg>
   )},
   { key: 'document', label: 'Document', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <line x1="16" y1="13" x2="8" y2="13"/>
-      <line x1="16" y1="17" x2="8" y2="17"/>
-      <polyline points="10 9 9 9 8 9"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9H8"/>
     </svg>
   )},
   { key: 'calculator', label: 'Calculator', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="4" y="2" width="16" height="20" rx="2"/>
-      <line x1="8" y1="6" x2="16" y2="6"/>
-      <line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/>
-      <line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/>
-      <line x1="8" y1="18" x2="12" y2="18"/><line x1="16" y1="18" x2="16" y2="18"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/><line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/><line x1="16" y1="18" x2="16" y2="18"/>
     </svg>
   )},
   { key: 'globe', label: 'Globe', svg: (c, s) => (
-    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10"/>
-      <line x1="2" y1="12" x2="22" y2="12"/>
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+    <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
     </svg>
   )},
 ];
@@ -299,7 +277,16 @@ function BotModal({ bot, onSave, onClose }) {
 }
 
 // ── Chart rendering ──────────────────────────────────────────────────────────
-const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#ef4444', '#84cc16', '#14b8a6'];
+const CHART_COLORS = [
+  { start: '#6366f1', end: '#818cf8', glow: 'rgba(99,102,241,0.3)' }, // Indigo
+  { start: '#10b981', end: '#34d399', glow: 'rgba(16,185,129,0.3)' }, // Emerald
+  { start: '#8b5cf6', end: '#a78bfa', glow: 'rgba(139,92,246,0.3)' }, // Violet
+  { start: '#f59e0b', end: '#fbbf24', glow: 'rgba(245,158,11,0.3)' },  // Amber
+  { start: '#ec4899', end: '#f472b6', glow: 'rgba(236,72,153,0.3)' }, // Pink
+  { start: '#06b6d4', end: '#22d3ee', glow: 'rgba(6,182,212,0.3)' },  // Cyan
+  { start: '#f97316', end: '#fb923c', glow: 'rgba(249,115,22,0.3)' },  // Orange
+  { start: '#ef4444', end: '#f87171', glow: 'rgba(239,68,68,0.3)' },   // Red
+];
 
 function ChartBlock({ chartData }) {
   const { type, title, labels = [], datasets = [] } = chartData;
@@ -320,6 +307,24 @@ function ChartBlock({ chartData }) {
     }
   };
 
+  const handleSavePdf = async () => {
+    if (!containerRef.current || saving) return;
+    setSaving(true);
+    try {
+      const canvas = await html2canvas(containerRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      pdf.save(`${title || 'chart'}.pdf`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const xyData = labels.map((label, i) => {
     const point = { name: label };
     datasets.forEach(ds => { point[ds.label] = ds.data[i]; });
@@ -331,45 +336,86 @@ function ChartBlock({ chartData }) {
     value: datasets[0]?.data[i] ?? 0,
   }));
 
-  const tip = { contentStyle: { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12 } };
-  const ax = { tick: { fontSize: 10, fill: 'var(--text-3)' } };
-  const margin = { top: 4, right: 16, left: 0, bottom: 56 };
+  const tip = {
+    contentStyle: {
+      background: 'rgba(15, 15, 25, 0.85)',
+      backdropFilter: 'blur(10px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: 12,
+      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      fontSize: 12,
+      fontWeight: 600,
+      padding: '8px 12px',
+      color: '#ffffff',
+    },
+    itemStyle: { padding: '2px 0', color: '#ececf1' },
+    cursor: { fill: 'rgba(255,255,255,0.05)' }
+  };
+
+  const ax = {
+    tick: { fontSize: 10, fill: 'var(--text-4)', fontWeight: 500, fontFamily: 'var(--font-mono), monospace' },
+    axisLine: { stroke: 'var(--border-2)', strokeWidth: 1 },
+    tickLine: { stroke: 'var(--border-2)' },
+  };
+
+  const margin = { top: 10, right: 20, left: 0, bottom: 60 };
+
+  const Gradients = () => (
+    <defs>
+      {CHART_COLORS.map((c, i) => (
+        <React.Fragment key={i}>
+          <linearGradient id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={c.start} stopOpacity={1} />
+            <stop offset="100%" stopColor={c.end} stopOpacity={0.85} />
+          </linearGradient>
+          <filter id={`glow-${i}`}>
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </React.Fragment>
+      ))}
+    </defs>
+  );
 
   let chart;
   if (type === 'pie') {
     chart = (
       <PieChart>
+        <Gradients />
         <Pie
           data={singleData} dataKey="value" nameKey="name"
-          cx="50%" cy="47%" outerRadius="68%"
-          label={({ name, percent }) => percent > 0.04 ? `${(percent * 100).toFixed(0)}%` : ''}
+          cx="50%" cy="47%" outerRadius="75%"
+          paddingAngle={4} stroke="none"
+          animationBegin={0} animationDuration={1200} animationEasing="ease-out"
+          label={({ name, percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
           labelLine={false}
         >
-          {singleData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+          {singleData.map((_, i) => <Cell key={i} fill={`url(#grad-${i % CHART_COLORS.length})`} filter={`url(#glow-${i % CHART_COLORS.length})`} />)}
         </Pie>
         <Tooltip {...tip} formatter={(v) => v.toLocaleString()} />
-        <Legend wrapperStyle={{ fontSize: 11 }} />
+        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
       </PieChart>
     );
   } else if (type === 'treemap') {
     chart = (
       <Treemap
         data={singleData} dataKey="value" nameKey="name" aspectRatio={4 / 3}
+        animationDuration={1000}
         content={(props) => {
           const { x, y, width, height, name, value, depth, index } = props;
           if (depth === 0 || !width || !height) return null;
-          const fill = CHART_COLORS[index % CHART_COLORS.length];
+          const fill = CHART_COLORS[index % CHART_COLORS.length].start;
           const fs = Math.max(9, Math.min(13, width / 8));
           return (
             <g>
-              <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2} fill={fill} fillOpacity={0.88} rx={4} />
+              <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2} fill={fill} fillOpacity={0.9} rx={8} />
               {width > 45 && height > 24 && (
                 <text x={x + width / 2} y={y + height / 2 + (height > 40 ? -5 : 4)} textAnchor="middle" fill="#fff" fontSize={fs} fontWeight={600}>
                   {name}
                 </text>
               )}
               {width > 45 && height > 42 && (
-                <text x={x + width / 2} y={y + height / 2 + 11} textAnchor="middle" fill="#fff" fontSize={fs - 1} opacity={0.85}>
+                <text x={x + width / 2} y={y + height / 2 + 11} textAnchor="middle" fill="#fff" fontSize={fs - 1} opacity={0.8}>
                   {Number(value).toLocaleString()}
                 </text>
               )}
@@ -381,55 +427,97 @@ function ChartBlock({ chartData }) {
   } else if (type === 'line') {
     chart = (
       <LineChart data={xyData} margin={margin}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-        <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} />
-        <YAxis {...ax} width={48} />
+        <Gradients />
+        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
+        <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
         <Tooltip {...tip} />
-        {datasets.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
+        {datasets.length > 1 && <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />}
         {datasets.map((ds, i) => (
-          <Line key={ds.label} type="monotone" dataKey={ds.label}
-            stroke={ds.color || CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={2} dot={{ r: 3 }} />
+          <Line
+            key={ds.label} type="monotone" dataKey={ds.label}
+            stroke={ds.color || CHART_COLORS[i % CHART_COLORS.length].start}
+            strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--surface)' }}
+            activeDot={{ r: 6, strokeWidth: 0 }}
+            animationDuration={1500}
+          />
         ))}
       </LineChart>
     );
   } else {
     chart = (
       <BarChart data={xyData} margin={margin}>
-        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-        <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} />
-        <YAxis {...ax} width={48} />
+        <Gradients />
+        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
+        <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
         <Tooltip {...tip} />
-        {datasets.length > 1 && <Legend wrapperStyle={{ fontSize: 11 }} />}
+        {datasets.length > 1 && <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />}
         {datasets.map((ds, i) => (
-          <Bar key={ds.label} dataKey={ds.label}
-            fill={ds.color || CHART_COLORS[i % CHART_COLORS.length]} radius={[4, 4, 0, 0]} />
+          <Bar
+            key={ds.label} dataKey={ds.label}
+            fill={`url(#grad-${i % CHART_COLORS.length})`}
+            radius={[6, 6, 0, 0]}
+            animationDuration={1200}
+            barSize={Math.min(40, 300 / xyData.length)}
+          />
         ))}
       </BarChart>
     );
   }
 
   return (
-    <div ref={containerRef} style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 8px 8px', margin: '8px 0', position: 'relative' }}>
+    <div ref={containerRef} style={{
+      background: 'rgba(255, 255, 255, 0.03)',
+      backdropFilter: 'blur(10px)',
+      border: '1px solid var(--border)',
+      borderRadius: 20,
+      padding: '20px 12px 12px',
+      margin: '16px 0',
+      position: 'relative',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+      animation: 'fadeUp 0.5s ease both',
+    }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 8, marginBottom: 10 }}>
-        {title ? <div style={{ fontWeight: 600, fontSize: 13 }}>{title}</div> : <span />}
-        <button
-          onClick={handleSavePng}
-          disabled={saving}
-          title="Save as PNG"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)',
-            background: 'var(--bg)', color: 'var(--text-3)', cursor: saving ? 'wait' : 'pointer',
-            fontSize: 11, fontWeight: 500, opacity: saving ? 0.6 : 1, transition: 'all 0.15s',
-          }}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          {saving ? 'Saving…' : 'PNG'}
-        </button>
+        {title ? <div style={{ fontWeight: 800, fontSize: 14, letterSpacing: '-0.3px', color: 'var(--text)' }}>{title}</div> : <span />}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            onClick={handleSavePng}
+            disabled={saving}
+            title="Save as PNG"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)',
+              background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-3)', cursor: saving ? 'wait' : 'pointer',
+              fontSize: 11, fontWeight: 600, opacity: saving ? 0.6 : 1, transition: 'all 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            PNG
+          </button>
+          <button
+            onClick={handleSavePdf}
+            disabled={saving}
+            title="Save as PDF"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)',
+              background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-3)', cursor: saving ? 'wait' : 'pointer',
+              fontSize: 11, fontWeight: 600, opacity: saving ? 0.6 : 1, transition: 'all 0.15s',
+            }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+            PDF
+          </button>
+        </div>
       </div>
       <ResponsiveContainer width="100%" height={type === 'treemap' ? 360 : 320}>
         {chart}
@@ -777,6 +865,10 @@ function FinBotsPage() {
       )}
 
       <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(15px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
         @keyframes fb-bounce {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
           40% { transform: translateY(-5px); opacity: 1; }

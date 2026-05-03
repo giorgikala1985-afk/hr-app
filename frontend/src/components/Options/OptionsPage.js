@@ -156,14 +156,45 @@ function OptionsPage() {
         {activeTab === 'info' && (
           <div>
             <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-              {[{ key: 'positions', label: 'Positions' }, { key: 'units', label: 'Units' }, { key: 'departments', label: 'Departments' }, { key: 'overtime', label: 'Overtime Rates' }, { key: 'stock', label: 'Stock' }].map(tab => (
+              {[
+                { key: 'positions', label: 'Positions', icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                )},
+                { key: 'units', label: 'Units', icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/>
+                  </svg>
+                )},
+                { key: 'departments', label: 'Departments', icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                  </svg>
+                )},
+                { key: 'overtime', label: 'Overtime Rates', icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                  </svg>
+                )},
+                { key: 'stock', label: 'Stock', icon: (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22.5V12"/>
+                  </svg>
+                )}
+              ]
+.map(tab => (
                 <button key={tab.key} onClick={() => setInfoView(tab.key)} style={{
-                  padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  padding: '7px 16px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 8,
                   background: infoView === tab.key ? 'var(--surface)' : 'transparent',
                   color: infoView === tab.key ? 'var(--text)' : 'var(--text-3)',
                   boxShadow: infoView === tab.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
                   transition: 'all 0.15s',
-                }}>{tab.label}</button>
+                }}>
+                  {tab.icon}
+                  {tab.label}
+                </button>
               ))}
             </div>
             {infoView === 'positions' && <PositionsSettings />}

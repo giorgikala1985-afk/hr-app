@@ -389,6 +389,11 @@ const ka = {
   'options.insurance': 'დაზღვევის იმპორტი',
   'options.language': 'ენა',
   'options.navOrder': 'ნავიგაცია',
+  'options.accounts': 'ანგარიშები',
+  'options.users': 'მომხმარებლები',
+  'options.tools': 'ხელსაწყოები',
+  'options.appearance': 'გაფორმება',
+  'options.icons': 'აიქონები',
 
   // ===== Pagination Settings =====
   'pagination.title': 'გვერდების დაყოფა',

@@ -5,14 +5,14 @@
 }
 
 .acc-sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   padding: 20px 0 28px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   transition: width 0.22s ease, min-width 0.22s ease;
   overflow: hidden;
 }
@@ -76,13 +76,13 @@
 .acc-sidebar-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 12px 10px 16px;
   margin: 0 8px;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
   cursor: pointer;
@@ -104,7 +104,8 @@
 
 .acc-sidebar-btn:hover { background: var(--surface-2); color: var(--text); }
 .acc-sidebar-btn.active { background: var(--surface-3); color: var(--text); font-weight: 700; box-shadow: var(--shadow-sm); }
-.acc-sidebar-icon { width: 20px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.acc-sidebar-icon { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.acc-sidebar-icon svg { width: 20px; height: 20px; }
 
 .acc-sidebar-btn-label {
   overflow: hidden;

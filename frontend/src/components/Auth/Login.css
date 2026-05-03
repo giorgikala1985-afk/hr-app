@@ -138,11 +138,8 @@
 
 /* Logo in auth header */
 .auth-logo {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 20px;
-  font-weight: 800;
-  color: #1a1a2e;
-  margin-bottom: 16px;
+  justify-content: center;
+  margin-bottom: 24px;
 }

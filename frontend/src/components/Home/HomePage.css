@@ -113,7 +113,7 @@
 
 .home-pinned-card {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 14px;
   padding: 20px;
   display: flex;
@@ -121,13 +121,13 @@
   align-items: center;
   gap: 14px;
   text-decoration: none;
-  transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
 .home-pinned-card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  transform: translateY(-4px);
   border-color: var(--section-color);
 }
 
@@ -176,7 +176,7 @@
 
 .home-section-card {
   background: var(--surface);
-  border: 1.5px solid var(--border);
+  border: 2px solid var(--border);
   border-radius: 14px;
   padding: 24px 16px 20px;
   display: flex;
@@ -185,19 +185,24 @@
   gap: 10px;
   cursor: pointer;
   font-family: inherit;
-  transition: all 0.15s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   text-align: center;
+  outline: 3px solid transparent;
+  outline-offset: -3px;
 }
 
 .home-section-card:hover {
-  border-color: var(--section-color);
+  border: 2px solid var(--section-color) !important;
   background: var(--section-bg);
 }
 
 .home-section-card.pinned {
-  border-color: var(--section-color);
+  border: 3px solid var(--section-color) !important;
   background: var(--section-bg);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--section-color) 25%, transparent),
+              0 0 24px -4px var(--section-color);
+  transform: scale(1.02);
 }
 
 .home-card-pin-badge {

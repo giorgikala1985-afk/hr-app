@@ -6,14 +6,14 @@
 
 /* Sidebar */
 .docs-sidebar {
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
   background: var(--surface);
   border-right: 1px solid var(--border);
   padding: 20px 0 28px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   transition: width 0.22s ease, min-width 0.22s ease;
   overflow: hidden;
 }
@@ -76,13 +76,13 @@
 .docs-sidebar-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   padding: 10px 12px 10px 16px;
   margin: 0 8px;
   border: none;
   background: none;
   font-family: inherit;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-2);
   cursor: pointer;
@@ -114,12 +114,14 @@
 }
 
 .docs-sidebar-icon {
-  width: 20px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
+.docs-sidebar-icon svg { width: 20px; height: 20px; }
 
 .docs-sidebar-btn-label {
   overflow: hidden;
@@ -1341,10 +1343,12 @@
 }
 
 .fb-msg-assistant .fb-msg-text {
-  background: var(--surface);
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(10px);
   color: var(--text);
   border: 1px solid var(--border);
-  border-radius: 14px 14px 14px 4px;
+  border-radius: 16px 16px 16px 4px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
 }
 
 .fb-msg-error .fb-msg-text {

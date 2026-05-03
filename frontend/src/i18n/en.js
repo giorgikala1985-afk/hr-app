@@ -355,6 +355,11 @@ const en = {
   'options.insurance': 'Insurance Import',
   'options.language': 'Language',
   'options.navOrder': 'Navigation',
+  'options.accounts': 'Accounts',
+  'options.users': 'Users',
+  'options.tools': 'Tools',
+  'options.appearance': 'Appearance',
+  'options.icons': 'Icons',
 
   // ===== Pagination Settings =====
   'pagination.title': 'Pagination',
