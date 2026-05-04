@@ -34,6 +34,7 @@ router.post('/', async (req, res) => {
       .from('requests')
       .insert({
         user_id: req.userId,
+        requester_email: req.user?.email || null,
         title: title.trim(),
         type,
         priority: priority || 'medium',

@@ -207,18 +207,20 @@ function Requests() {
         ) : (
           <table className="acc-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
-              <col style={{ width: 120 }} />
-              <col style={{ width: '30%' }} />
-              <col style={{ width: 160 }} />
-              <col style={{ width: 100 }} />
               <col style={{ width: 110 }} />
-              <col style={{ width: 80 }} />
+              <col style={{ width: '22%' }} />
+              <col style={{ width: 150 }} />
+              <col style={{ width: '20%' }} />
+              <col style={{ width: 90 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: 72 }} />
             </colgroup>
             <thead>
               <tr>
                 <th>Date</th>
                 <th>Title</th>
                 <th>Type</th>
+                <th>Requester</th>
                 <th>Priority</th>
                 <th>Status</th>
                 <th></th>
@@ -230,6 +232,7 @@ function Requests() {
                   <td style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{formatDate(r.created_at)}</td>
                   <td style={{ fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} title={r.title}>{r.title}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 13, color: 'var(--text-2)' }}>{r.type}</td>
+                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 12, color: 'var(--text-3)' }} title={r.requester_email}>{r.requester_email || '—'}</td>
                   <td><PriorityDot priority={r.priority} /></td>
                   <td><StatusBadge status={r.status} /></td>
                   <td>
