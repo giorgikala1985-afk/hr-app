@@ -618,7 +618,7 @@ const APPROVAL_TITLES = {
 
 router.post('/transfers', checkPermission('initiate_transfer'), async (req, res) => {
   try {
-    const { client_name, agent_id, amount, due_date, description, status, invoice_raw, iban, invoice_number } = req.body;
+    const { client_name, agent_id, amount, due_date, description, status, invoice_raw, iban, invoice_number, auto_approved } = req.body;
     const requester_name = await resolveUserName(req);
     const requester_email = req.user?.email || null;
     const { data, error } = await supabase.from('accounting_transfers').insert([{
@@ -628,7 +628,7 @@ router.post('/transfers', checkPermission('initiate_transfer'), async (req, res)
       status: status || 'normal',
       requester_name,
       requester_email,
-      approval_status: 'pending',
+      approval_status: auto_approved ? 'approved' : 'pending',
       invoice_raw: invoice_raw || null,
     }]).select().single();
     if (error) throw error;

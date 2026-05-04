@@ -1418,16 +1418,34 @@ function BusinessTripTab({ employees }) {
   };
   const close = () => { setShowForm(false); setEditing(null); forceUpdate(n => n + 1); };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const emp = employees.find(x => x.id === form.employeeId);
+    const finalAmount = form.amount || autoAmount;
     const row = {
       ...form,
       empName: emp ? `${emp.first_name} ${emp.last_name}` : '',
       days,
-      amount: form.amount || autoAmount,
+      amount: finalAmount,
     };
     editing ? update(editing, row) : add(row);
+
+    if (!editing && finalAmount) {
+      const destination = [form.countryName, form.cityName].filter(Boolean).join(', ');
+      try {
+        await api.post('/accounting/transfers', {
+          client_name: emp ? `${emp.first_name} ${emp.last_name}` : form.employeeId,
+          amount: parseFloat(finalAmount),
+          due_date: form.toDate,
+          description: `Business Trip: ${destination} (${form.fromDate} → ${form.toDate})`,
+          status: 'normal',
+          auto_approved: true,
+        });
+      } catch (err) {
+        console.warn('Could not create transfer for business trip:', err.message);
+      }
+    }
+
     if (!editing) { close(); } else { setModalTab('details'); }
   };
 
