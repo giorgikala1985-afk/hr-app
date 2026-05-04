@@ -1315,28 +1315,39 @@ function TripCosts({ tripId }) {
         <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--text-3)', fontSize: 13 }}>No costs added yet</div>
       ) : (
         <>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {costs.map(c => (
-              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 9 }}>
-                <span style={{ fontSize: 20 }}>{fileIcon(c.fileType)}</span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{c.name}</div>
-                  {c.fileName && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{c.fileName}</div>}
-                </div>
-                <div style={{ fontWeight: 700, fontSize: 14, color: '#4ade80', flexShrink: 0 }}>{c.amount ? `$${c.amount}` : '—'}</div>
-                {c.fileData && (
-                  <button onClick={() => handleDownload(c)} title="Download"
-                    style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                  </button>
-                )}
-                <button onClick={() => saveCosts(costs.filter(x => x.id !== c.id))}
-                  style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
-              </div>
-            ))}
-          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 9, overflow: 'hidden' }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {['#', 'Name', 'File', 'Amount', ''].map((h, i) => (
+                  <th key={i} style={{ padding: '8px 12px', textAlign: i === 3 ? 'right' : 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {costs.map((c, idx) => (
+                <tr key={c.id} style={{ borderBottom: '1px solid var(--border-2)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '9px 12px', color: 'var(--text-4)', fontSize: 12, width: 32 }}>{idx + 1}</td>
+                  <td style={{ padding: '9px 12px', fontWeight: 600, color: 'var(--text)' }}>{c.name}</td>
+                  <td style={{ padding: '9px 12px', color: 'var(--text-3)', fontSize: 12 }}>
+                    {c.fileData
+                      ? <button onClick={() => handleDownload(c)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: 12, fontWeight: 500, padding: 0 }}>
+                          <span>{fileIcon(c.fileType)}</span>{c.fileName}
+                        </button>
+                      : <span style={{ color: 'var(--text-4)' }}>—</span>
+                    }
+                  </td>
+                  <td style={{ padding: '9px 12px', fontWeight: 700, color: '#4ade80', textAlign: 'right', whiteSpace: 'nowrap' }}>{c.amount ? `$${c.amount}` : '—'}</td>
+                  <td style={{ padding: '9px 12px', textAlign: 'right' }}>
+                    <button onClick={() => saveCosts(costs.filter(x => x.id !== c.id))}
+                      style={{ width: 26, height: 26, borderRadius: 5, border: '1px solid var(--border-2)', background: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>×</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.08)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 600 }}>Total Costs</span>
             <span style={{ fontSize: 15, fontWeight: 700, color: '#4ade80' }}>${totalCosts.toFixed(2)}</span>
