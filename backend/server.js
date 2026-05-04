@@ -31,6 +31,7 @@ const billingRoutes = require('./routes/billing');
 const rsgeRoutes = require('./routes/rsge');
 const finbotsRoutes = require('./routes/finbots');
 const notificationRoutes = require('./routes/notifications');
+const requestRoutes = require('./routes/requests');
 const testDebugRoutes = require('./routes/test_debug');
 const { authenticateUser } = require('./middleware/auth');
 
@@ -86,6 +87,8 @@ app.use('/api/billing', billingRoutes);
 app.use('/api/finbots', authenticateUser, finbotsRoutes);
 // Notifications
 app.use('/api/notifications', authenticateUser, notificationRoutes);
+// Requests
+app.use('/api/requests', authenticateUser, requestRoutes);
 // Admin: super admin panel
 app.use('/api/admin', adminRoutes);
 // Portal: handles its own auth internally

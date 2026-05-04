@@ -23,6 +23,7 @@ const en = {
   'docs.orders': 'Orders',
   'docs.importData': 'Import Data',
   'docs.dataLake': 'Data Lake',
+  'docs.requests': 'Requests',
   'docs.importEmployees': 'Import Employees',
   'docs.importInsurance': 'Insurance Import',
   'docs.importAgents': 'Import Coagents',

@@ -23,6 +23,7 @@ const ka = {
   'docs.orders': 'ბრძანებები',
   'docs.importData': 'მონაცემების შემოტანა',
   'docs.dataLake': 'მონაცემთა ბაზა',
+  'docs.requests': 'მოთხოვნები',
   'docs.importEmployees': 'თანამშრომლების შემოტანა',
   'docs.importInsurance': 'დაზღვევის შემოტანა',
   'docs.importAgents': 'კონტრაგენტების შემოტანა',
