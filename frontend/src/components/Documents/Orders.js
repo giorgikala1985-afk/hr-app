@@ -1358,11 +1358,19 @@ function TripCosts({ tripId }) {
   );
 }
 
+function getTripCostsTotal(tripId) {
+  try {
+    const costs = JSON.parse(localStorage.getItem(`hr_bt_costs_${tripId}`)) || [];
+    return costs.reduce((s, c) => s + (parseFloat(c.amount) || 0), 0);
+  } catch { return 0; }
+}
+
 function BusinessTripTab({ employees }) {
   const { orders, add, update, remove } = useLocalOrders('hr_business_trip_orders');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [modalTab, setModalTab] = useState('details');
+  const [, forceUpdate] = useState(0);
   const [countrySearch, setCountrySearch] = useState('');
   const [countryOpen, setCountryOpen] = useState(false);
   const countryRef = React.useRef(null);
@@ -1408,7 +1416,7 @@ function BusinessTripTab({ employees }) {
     setModalTab('details');
     setShowForm(true);
   };
-  const close = () => { setShowForm(false); setEditing(null); };
+  const close = () => { setShowForm(false); setEditing(null); forceUpdate(n => n + 1); };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1450,7 +1458,7 @@ function BusinessTripTab({ employees }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {['Employee', 'Period', 'Days', 'Destination', 'Per Diem/day', 'Amount', 'Notes', ''].map((h, i) => (
+                {['Employee', 'Period', 'Days', 'Destination', 'Per Diem/day', 'Amount', 'Total Costs', 'Notes', ''].map((h, i) => (
                   <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -1471,6 +1479,9 @@ function BusinessTripTab({ employees }) {
                   </td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.perDiem ? `$${o.perDiem}` : '—'}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 700, color: '#4ade80' }}>{o.amount ? `$${o.amount}` : '—'}</td>
+                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                    {(() => { const t = getTripCostsTotal(o.id); return t > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
+                  </td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
