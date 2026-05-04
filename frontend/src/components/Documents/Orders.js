@@ -1228,10 +1228,130 @@ function calcDays(from, to) {
   return Math.floor(ms / 86400000) + 1;
 }
 
+// ── Trip Costs ────────────────────────────────────────────────────────────────
+function TripCosts({ tripId }) {
+  const storageKey = `hr_bt_costs_${tripId}`;
+  const [costs, setCosts] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(storageKey)) || []; } catch { return []; }
+  });
+  const [costName, setCostName] = useState('');
+  const [costAmount, setCostAmount] = useState('');
+  const [costFile, setCostFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = React.useRef();
+
+  const saveCosts = (next) => { setCosts(next); localStorage.setItem(storageKey, JSON.stringify(next)); };
+
+  const readAsBase64 = (file) => new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+
+  const handleAdd = async (e) => {
+    e.preventDefault();
+    if (!costName.trim()) return;
+    setUploading(true);
+    try {
+      let fileData = null, fileName = null, fileType = null;
+      if (costFile) {
+        fileData = await readAsBase64(costFile);
+        fileName = costFile.name;
+        fileType = costFile.type;
+      }
+      saveCosts([...costs, { id: Date.now(), name: costName.trim(), amount: costAmount, fileName, fileType, fileData, addedAt: new Date().toISOString() }]);
+      setCostName(''); setCostAmount(''); setCostFile(null);
+      if (fileRef.current) fileRef.current.value = '';
+    } finally { setUploading(false); }
+  };
+
+  const handleDownload = (c) => {
+    const a = document.createElement('a');
+    a.href = c.fileData;
+    a.download = c.fileName;
+    a.click();
+  };
+
+  const totalCosts = costs.reduce((s, c) => s + (parseFloat(c.amount) || 0), 0);
+
+  const fileIcon = (type) => {
+    if (!type) return '📎';
+    if (type.includes('pdf')) return '📄';
+    if (type.includes('image')) return '🖼️';
+    return '📎';
+  };
+
+  return (
+    <div>
+      {/* Add cost form */}
+      <form onSubmit={handleAdd} style={{ background: 'var(--surface-2)', borderRadius: 10, padding: 14, marginBottom: 16, border: '1px solid var(--border-2)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 10, marginBottom: 10 }}>
+          <div>
+            <label style={LABEL}>Cost Name *</label>
+            <input value={costName} onChange={e => setCostName(e.target.value)} placeholder="e.g. Hotel, Taxi, Meals…" style={INPUT} required />
+          </div>
+          <div>
+            <label style={LABEL}>Amount (USD)</label>
+            <input type="number" min="0" step="0.01" value={costAmount} onChange={e => setCostAmount(e.target.value)} placeholder="0.00" style={INPUT} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={e => setCostFile(e.target.files[0] || null)} />
+          <button type="button" onClick={() => fileRef.current?.click()}
+            style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: costFile ? '#4ade80' : 'var(--text-3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            {costFile ? costFile.name.slice(0, 22) + (costFile.name.length > 22 ? '…' : '') : 'Attach PDF / Image'}
+          </button>
+          {costFile && <button type="button" onClick={() => { setCostFile(null); if (fileRef.current) fileRef.current.value = ''; }} style={{ color: 'var(--text-4)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>×</button>}
+          <button type="submit" disabled={uploading || !costName.trim()} style={{ marginLeft: 'auto', padding: '7px 18px', borderRadius: 7, border: 'none', background: uploading || !costName.trim() ? 'var(--surface-3)' : '#0ea5e9', color: uploading || !costName.trim() ? 'var(--text-4)' : '#fff', fontWeight: 700, fontSize: 13, cursor: uploading || !costName.trim() ? 'not-allowed' : 'pointer' }}>
+            {uploading ? 'Adding…' : '+ Add Cost'}
+          </button>
+        </div>
+      </form>
+
+      {/* Cost list */}
+      {costs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--text-3)', fontSize: 13 }}>No costs added yet</div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {costs.map(c => (
+              <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 9 }}>
+                <span style={{ fontSize: 20 }}>{fileIcon(c.fileType)}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{c.name}</div>
+                  {c.fileName && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{c.fileName}</div>}
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 14, color: '#4ade80', flexShrink: 0 }}>{c.amount ? `$${c.amount}` : '—'}</div>
+                {c.fileData && (
+                  <button onClick={() => handleDownload(c)} title="Download"
+                    style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  </button>
+                )}
+                <button onClick={() => saveCosts(costs.filter(x => x.id !== c.id))}
+                  style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.08)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 600 }}>Total Costs</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#4ade80' }}>${totalCosts.toFixed(2)}</span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function BusinessTripTab({ employees }) {
   const { orders, add, update, remove } = useLocalOrders('hr_business_trip_orders');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [modalTab, setModalTab] = useState('details');
   const [countrySearch, setCountrySearch] = useState('');
   const [countryOpen, setCountryOpen] = useState(false);
   const countryRef = React.useRef(null);
@@ -1270,10 +1390,11 @@ function BusinessTripTab({ employees }) {
     ? COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()))
     : COUNTRIES;
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setCountrySearch(''); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setCountrySearch(''); setModalTab('details'); setShowForm(true); };
   const openEdit = (o) => {
     setEditing(o.id);
     setForm({ employeeId: o.employeeId, fromDate: o.fromDate, toDate: o.toDate, countryCode: o.countryCode, countryName: o.countryName, cityName: o.cityName || '', perDiem: o.perDiem || '', amount: o.amount || '', notes: o.notes || '' });
+    setModalTab('details');
     setShowForm(true);
   };
   const close = () => { setShowForm(false); setEditing(null); };
@@ -1288,10 +1409,15 @@ function BusinessTripTab({ employees }) {
       amount: form.amount || autoAmount,
     };
     editing ? update(editing, row) : add(row);
-    close();
+    if (!editing) { close(); } else { setModalTab('details'); }
   };
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+  const MODAL_TABS = [
+    { key: 'details', label: 'Details' },
+    { key: 'costs',   label: 'Costs'   },
+  ];
 
   return (
     <div>
@@ -1350,118 +1476,134 @@ function BusinessTripTab({ employees }) {
 
       {showForm && (
         <SubTabModal title={editing ? 'Edit Business Trip' : 'New Business Trip'} onClose={close}>
-          <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gap: 14 }}>
+          {/* Inner tab switcher */}
+          <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 8, padding: 3, marginBottom: 20, width: 'fit-content' }}>
+            {MODAL_TABS.map(tab => (
+              <button key={tab.key} type="button" onClick={() => setModalTab(tab.key)}
+                disabled={tab.key === 'costs' && !editing}
+                style={{
+                  padding: '6px 18px', border: 'none', borderRadius: 6,
+                  fontWeight: 600, fontSize: 13, cursor: tab.key === 'costs' && !editing ? 'not-allowed' : 'pointer',
+                  fontFamily: 'inherit',
+                  background: modalTab === tab.key ? 'var(--surface)' : 'transparent',
+                  color: tab.key === 'costs' && !editing ? 'var(--text-4)' : modalTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+                  boxShadow: modalTab === tab.key ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.15s',
+                }}>
+                {tab.label}
+                {tab.key === 'costs' && !editing && <span style={{ fontSize: 10, marginLeft: 4, opacity: 0.6 }}>(save first)</span>}
+              </button>
+            ))}
+          </div>
 
-              {/* Employee */}
-              <div>
-                <label style={LABEL}>Employee *</label>
-                <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} style={INPUT} required>
-                  <option value="">— Select employee —</option>
-                  {employees.map(emp => (
-                    <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Period */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {/* Details tab */}
+          {modalTab === 'details' && (
+            <form onSubmit={handleSubmit}>
+              <div style={{ display: 'grid', gap: 14 }}>
                 <div>
-                  <label style={LABEL}>From *</label>
-                  <input type="date" value={form.fromDate} onChange={e => setForm(f => ({ ...f, fromDate: e.target.value }))} style={{ ...INPUT, colorScheme: 'dark' }} required />
+                  <label style={LABEL}>Employee *</label>
+                  <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} style={INPUT} required>
+                    <option value="">— Select employee —</option>
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                    ))}
+                  </select>
                 </div>
-                <div>
-                  <label style={LABEL}>To *</label>
-                  <input type="date" value={form.toDate} min={form.fromDate} onChange={e => setForm(f => ({ ...f, toDate: e.target.value }))} style={{ ...INPUT, colorScheme: 'dark' }} required />
-                </div>
-              </div>
-              {days > 0 && (
-                <div style={{ marginTop: -8, padding: '8px 12px', background: 'rgba(14,165,233,0.1)', borderRadius: 8, fontSize: 13, color: '#0ea5e9', fontWeight: 600 }}>
-                  ✈️ {days} day{days !== 1 ? 's' : ''}
-                </div>
-              )}
 
-              {/* Country dropdown */}
-              <div>
-                <label style={LABEL}>Country *</label>
-                <div ref={countryRef} style={{ position: 'relative' }}>
-                  <button type="button" onClick={() => setCountryOpen(v => !v)}
-                    style={{ ...INPUT, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
-                    {form.countryCode
-                      ? <><img src={flagUrl(form.countryCode)} alt="" width="20" style={{ borderRadius: 2, flexShrink: 0 }} />{form.countryName}</>
-                      : <span style={{ color: 'var(--text-3)' }}>— Select country —</span>
-                    }
-                    <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                  </button>
-                  {countryOpen && (
-                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', overflow: 'hidden', marginTop: 4 }}>
-                      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-2)' }}>
-                        <input
-                          autoFocus
-                          type="text"
-                          placeholder="Search country…"
-                          value={countrySearch}
-                          onChange={e => setCountrySearch(e.target.value)}
-                          style={{ ...INPUT, padding: '7px 10px', fontSize: 12 }}
-                        />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={LABEL}>From *</label>
+                    <input type="date" value={form.fromDate} onChange={e => setForm(f => ({ ...f, fromDate: e.target.value }))} style={{ ...INPUT, colorScheme: 'dark' }} required />
+                  </div>
+                  <div>
+                    <label style={LABEL}>To *</label>
+                    <input type="date" value={form.toDate} min={form.fromDate} onChange={e => setForm(f => ({ ...f, toDate: e.target.value }))} style={{ ...INPUT, colorScheme: 'dark' }} required />
+                  </div>
+                </div>
+                {days > 0 && (
+                  <div style={{ marginTop: -8, padding: '8px 12px', background: 'rgba(14,165,233,0.1)', borderRadius: 8, fontSize: 13, color: '#0ea5e9', fontWeight: 600 }}>
+                    ✈️ {days} day{days !== 1 ? 's' : ''}
+                  </div>
+                )}
+
+                <div>
+                  <label style={LABEL}>Country *</label>
+                  <div ref={countryRef} style={{ position: 'relative' }}>
+                    <button type="button" onClick={() => setCountryOpen(v => !v)}
+                      style={{ ...INPUT, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
+                      {form.countryCode
+                        ? <><img src={flagUrl(form.countryCode)} alt="" width="20" style={{ borderRadius: 2, flexShrink: 0 }} />{form.countryName}</>
+                        : <span style={{ color: 'var(--text-3)' }}>— Select country —</span>
+                      }
+                      <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    {countryOpen && (
+                      <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', overflow: 'hidden', marginTop: 4 }}>
+                        <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-2)' }}>
+                          <input autoFocus type="text" placeholder="Search country…" value={countrySearch}
+                            onChange={e => setCountrySearch(e.target.value)}
+                            style={{ ...INPUT, padding: '7px 10px', fontSize: 12 }} />
+                        </div>
+                        <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                          {filteredCountries.length === 0
+                            ? <div style={{ padding: '12px 14px', color: 'var(--text-3)', fontSize: 13 }}>No countries found</div>
+                            : filteredCountries.map(c => (
+                              <button key={c.code} type="button" onClick={() => selectCountry(c)}
+                                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', border: 'none', background: form.countryCode === c.code ? 'rgba(14,165,233,0.12)' : 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                                onMouseEnter={e => { if (form.countryCode !== c.code) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                                onMouseLeave={e => { if (form.countryCode !== c.code) e.currentTarget.style.background = 'transparent'; }}>
+                                <img src={flagUrl(c.code)} alt="" width="20" style={{ borderRadius: 2, flexShrink: 0 }} />
+                                <span style={{ flex: 1 }}>{c.name}</span>
+                                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>${c.perDiem}/day</span>
+                              </button>
+                            ))
+                          }
+                        </div>
                       </div>
-                      <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                        {filteredCountries.length === 0
-                          ? <div style={{ padding: '12px 14px', color: 'var(--text-3)', fontSize: 13 }}>No countries found</div>
-                          : filteredCountries.map(c => (
-                            <button key={c.code} type="button" onClick={() => selectCountry(c)}
-                              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', border: 'none', background: form.countryCode === c.code ? 'rgba(14,165,233,0.12)' : 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
-                              onMouseEnter={e => { if (form.countryCode !== c.code) e.currentTarget.style.background = 'var(--surface-2)'; }}
-                              onMouseLeave={e => { if (form.countryCode !== c.code) e.currentTarget.style.background = 'transparent'; }}>
-                              <img src={flagUrl(c.code)} alt="" width="20" style={{ borderRadius: 2, flexShrink: 0 }} />
-                              <span style={{ flex: 1 }}>{c.name}</span>
-                              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>${c.perDiem}/day</span>
-                            </button>
-                          ))
-                        }
-                      </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+
+                {form.countryCode && (
+                  <div>
+                    <label style={LABEL}>City</label>
+                    <input type="text" value={form.cityName} onChange={e => setForm(f => ({ ...f, cityName: e.target.value }))} placeholder={`City in ${form.countryName}…`} style={INPUT} />
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={LABEL}>Per Diem (USD/day)</label>
+                    <input type="number" min="0" step="0.01" value={form.perDiem}
+                      onChange={e => setForm(f => ({ ...f, perDiem: e.target.value }))}
+                      placeholder="Auto-filled by country"
+                      style={{ ...INPUT, background: form.countryCode ? 'rgba(14,165,233,0.07)' : INPUT.background }} />
+                  </div>
+                  <div>
+                    <label style={LABEL}>
+                      Amount (USD)
+                      {autoAmount && !form.amount && <span style={{ fontSize: 11, color: '#0ea5e9', marginLeft: 6 }}>auto: ${autoAmount}</span>}
+                    </label>
+                    <input type="number" min="0" step="0.01" value={form.amount}
+                      onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
+                      placeholder={autoAmount || 'e.g. 325.00'}
+                      style={INPUT} />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={LABEL}>Note</label>
+                  <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional note…" style={INPUT} />
                 </div>
               </div>
+              <SubTabActions onCancel={close} disabled={!form.employeeId || !form.fromDate || !form.toDate || !form.countryCode} />
+            </form>
+          )}
 
-              {/* City */}
-              {form.countryCode && (
-                <div>
-                  <label style={LABEL}>City</label>
-                  <input type="text" value={form.cityName} onChange={e => setForm(f => ({ ...f, cityName: e.target.value }))} placeholder={`City in ${form.countryName}…`} style={INPUT} />
-                </div>
-              )}
-
-              {/* Per Diem + Amount */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={LABEL}>Per Diem (USD/day)</label>
-                  <input type="number" min="0" step="0.01" value={form.perDiem}
-                    onChange={e => setForm(f => ({ ...f, perDiem: e.target.value }))}
-                    placeholder="Auto-filled by country"
-                    style={{ ...INPUT, background: form.countryCode ? 'rgba(14,165,233,0.07)' : INPUT.background }} />
-                </div>
-                <div>
-                  <label style={LABEL}>
-                    Amount (USD)
-                    {autoAmount && !form.amount && <span style={{ fontSize: 11, color: '#0ea5e9', marginLeft: 6 }}>auto: ${autoAmount}</span>}
-                  </label>
-                  <input type="number" min="0" step="0.01" value={form.amount}
-                    onChange={e => setForm(f => ({ ...f, amount: e.target.value }))}
-                    placeholder={autoAmount || 'e.g. 325.00'}
-                    style={INPUT} />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label style={LABEL}>Note</label>
-                <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional note…" style={INPUT} />
-              </div>
-            </div>
-            <SubTabActions onCancel={close} disabled={!form.employeeId || !form.fromDate || !form.toDate || !form.countryCode} />
-          </form>
+          {/* Costs tab */}
+          {modalTab === 'costs' && editing && (
+            <TripCosts tripId={editing} />
+          )}
         </SubTabModal>
       )}
     </div>
