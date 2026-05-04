@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 
-const DEFAULT_WIDTHS = [180, 260, 80];
+const DEFAULT_WIDTHS = [150, 220, 68];
 
 const HOLIDAY_NAMES = [
   'New Year',
@@ -225,7 +225,7 @@ function HolidayList() {
   ];
 
   return (
-    <div>
+    <div className="acc-content-narrow">
       <h2>{t('hol.title')}</h2>
       <p className="acc-subtitle">{t('hol.subtitle')}</p>
 
@@ -277,7 +277,7 @@ function HolidayList() {
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
       {success && <div className="msg-success" style={{ marginBottom: 12 }}>{success}</div>}
 
-      <div className="acc-table-wrapper">
+      <div className="acc-table-wrapper holidays-compact">
         {loading ? <div className="acc-empty"><p>{t('hol.loading')}</p></div>
           : holidays.length === 0 ? <div className="acc-empty"><p>{t('hol.noHolidays').replace('{year}', year)}</p></div>
           : filtered.length === 0 ? <div className="acc-empty"><p>No results match your filters.</p></div>
@@ -317,6 +317,13 @@ function HolidayList() {
             </table>
           )}
       </div>
+
+      <style>{`
+        .acc-content-narrow { width: fit-content; min-width: 600px; max-width: 100%; }
+        .holidays-compact .acc-table { font-size: 13px; }
+        .holidays-compact .acc-table th { padding: 8px 12px; }
+        .holidays-compact .acc-table td { padding: 7px 12px; }
+      `}</style>
 
       {showForm && (
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
