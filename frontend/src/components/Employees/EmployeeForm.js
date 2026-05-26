@@ -406,7 +406,32 @@ function EmployeeForm() {
                     return (
                   <div className={`form-group ${isTB ? 'acct-field-tb' : isBG ? 'acct-field-bg' : ''}`}>
                     <label htmlFor="account_number">{t('empForm.accountNumber')}</label>
-                    <input id="account_number" name="account_number" type="text" value={formData.account_number} onChange={handleChange} placeholder="e.g. GE29TB7894545082100008" maxLength={22} minLength={22} style={isTB ? { borderColor: '#60a5fa', background: 'rgba(59,130,246,0.08)' } : isBG ? { borderColor: '#d9673a', background: 'rgba(217,103,58,0.08)' } : {}} />
+                    <input
+                      id="account_number"
+                      name="account_number"
+                      type="text"
+                      value={formData.account_number}
+                      onChange={handleChange}
+                      placeholder="e.g. GE29TB7894545082100008"
+                      maxLength={22}
+                      minLength={22}
+                      ref={(el) => {
+                        if (!el) return;
+                        if (isTB) {
+                          el.style.setProperty('background', '#bfdbfe', 'important');
+                          el.style.setProperty('color', '#0f172a', 'important');
+                          el.style.setProperty('border-color', '#60a5fa', 'important');
+                        } else if (isBG) {
+                          el.style.setProperty('background', '#fdba74', 'important');
+                          el.style.setProperty('color', '#0f172a', 'important');
+                          el.style.setProperty('border-color', '#ea580c', 'important');
+                        } else {
+                          el.style.removeProperty('background');
+                          el.style.removeProperty('color');
+                          el.style.removeProperty('border-color');
+                        }
+                      }}
+                    />
                     {formData.account_number && formData.account_number.length !== 22 && (
                       <span className="field-error">{formData.account_number.length}/22 characters</span>
                     )}

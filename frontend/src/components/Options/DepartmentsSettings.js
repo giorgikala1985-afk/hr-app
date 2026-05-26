@@ -103,7 +103,7 @@ function DepartmentsSettings() {
       ) : (
         <div>
           {departments.map((dept, i) => (
-            <div key={dept.id} style={{ padding: '12px 24px', borderBottom: i < departments.length - 1 ? '1px solid #f8fafc' : 'none', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.1s' }}
+            <div key={dept.id} style={{ padding: '12px 24px', borderBottom: 'none', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.1s' }}
               onMouseEnter={e => { if (editId !== dept.id) e.currentTarget.style.background = 'var(--surface-2)'; }}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
             >

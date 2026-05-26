@@ -101,7 +101,7 @@ function Header() {
         <div className="header-logo">
           <Link to="/">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+              <path d="M12 2 2 22l10-4 10 4Z"/><circle cx="12" cy="13" r="1"/>
             </svg>
             Finpilot
           </Link>

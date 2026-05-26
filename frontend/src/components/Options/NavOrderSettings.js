@@ -5,13 +5,13 @@ export const NAV_ORDER_KEY = 'nav_order';
 export const NAV_KEYS_DEFAULT = ['home', 'analytics', 'documents', 'accounting', 'options'];
 
 export const ACC_SIDEBAR_ORDER_KEY = 'acc_sidebar_order';
-export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'banking', 'rsge'];
+export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'banking', 'rsge', 'ai-agent'];
 
 export const OPT_SIDEBAR_ORDER_KEY = 'opt_sidebar_order';
 export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'tools', 'about'];
 
 export const DOCS_SIDEBAR_ORDER_KEY = 'docs_sidebar_order';
-export const DOCS_SIDEBAR_DEFAULT = ['employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'ai-agent', 'orders', 'importdata', 'datalake'];
+export const DOCS_SIDEBAR_DEFAULT = ['employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'orders', 'importdata', 'datalake'];
 
 export function loadNavOrder() {
   try {
@@ -49,11 +49,12 @@ const ACC_LABELS = {
   'bookkeeping': 'Bookkeeping', 'purchases': 'Purchases', 'sales': 'Sales',
   'invoices': 'Invoices', 'salary-accrual': 'Salaries', 'stock': 'Stock',
   'calendar': 'Calendar', 'transfers': 'Transfers', 'banking': 'TBC Bank', 'rsge': 'RS.ge',
+  'ai-agent': 'FinBot',
 };
 
 const DOCS_LABELS = {
   'employees': 'Employees', 'agents': 'Agents', 'agreements': 'Agreements',
-  'devices': 'Devices', 'nbg-rates': 'NBG Rates', 'ai-agent': 'FinBot',
+  'devices': 'Devices', 'nbg-rates': 'NBG Rates',
   'orders': 'Orders', 'importdata': 'Import Data', 'datalake': 'Data Lake',
 };
 

@@ -33,7 +33,7 @@ function Login() {
       <div className="auth-card">
         <div className="auth-logo">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            <path d="M12 2 2 22l10-4 10 4Z"/><circle cx="12" cy="13" r="1"/>
           </svg>
         </div>
         <div className="auth-header">

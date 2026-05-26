@@ -74,7 +74,7 @@ function UnitTypesSettings() {
     <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       {/* Header */}
       <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 9, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: theme === 'dark' ? 'rgba(234,88,12,0.18)' : '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ea580c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
             <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
@@ -110,7 +110,7 @@ function UnitTypesSettings() {
         </button>
       </form>
 
-      {error && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13 }}>{error}</div>}
+      {error && <div style={{ margin: '12px 24px', padding: '10px 14px', background: theme === 'dark' ? 'rgba(220,38,38,0.15)' : '#fef2f2', color: theme === 'dark' ? '#f87171' : '#dc2626', border: `1px solid ${theme === 'dark' ? 'rgba(248,113,113,0.3)' : '#fca5a5'}`, borderRadius: 8, fontSize: 13 }}>{error}</div>}
 
       {/* List */}
       {loading ? (
@@ -124,7 +124,7 @@ function UnitTypesSettings() {
       ) : (
         <div>
           {unitTypes.map((ut, i) => (
-            <div key={ut.id} style={{ padding: '12px 24px', borderBottom: i < unitTypes.length - 1 ? '1px solid #f8fafc' : 'none', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.1s' }}
+            <div key={ut.id} style={{ padding: '12px 24px', borderBottom: i < unitTypes.length - 1 ? '1px solid var(--border-3)' : 'none', display: 'flex', alignItems: 'center', gap: 10, transition: 'background 0.1s' }}
               onMouseEnter={e => { if (editId !== ut.id) e.currentTarget.style.background = 'var(--surface-2)'; }}
               onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
             >

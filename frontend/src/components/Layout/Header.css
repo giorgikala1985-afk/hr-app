@@ -9,10 +9,9 @@
 }
 
 [data-theme="dark"] .header {
-  /* Material dark mode uses elevated surfaces with slight overlays, we'll use a standard dark hex */
-  background: #1e1e2d;
+  background: var(--surface);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border);
 }
 
 .header-content {
@@ -142,8 +141,8 @@
 }
 
 [data-theme="dark"] .profile-dropdown {
-  background: #1e1e2d;
-  border-color: rgba(255,255,255,0.1);
+  background: var(--surface);
+  border-color: var(--border);
   box-shadow: 0 4px 16px rgba(0,0,0,0.4);
 }
 

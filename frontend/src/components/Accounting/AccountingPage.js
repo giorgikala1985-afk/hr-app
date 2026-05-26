@@ -12,6 +12,7 @@ import PaymentCalendar from './PaymentCalendar';
 import Stock from './Stock';
 import TbcBanking from './TbcBanking';
 import RsGeIntegration from './RsGeIntegration';
+import FinBotsPage from './FinBotsPage';
 import './Accounting.css';
 
 const ICONS = {
@@ -68,6 +69,11 @@ const ICONS = {
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
     </svg>
   ),
+  finbot: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 2v3"/><circle cx="12" cy="5" r="1"/><path d="M8 11V9a4 4 0 0 1 8 0v2"/><circle cx="9" cy="15" r="1" fill="#ec4899"/><circle cx="15" cy="15" r="1" fill="#ec4899"/><path d="M9 19h6"/>
+    </svg>
+  ),
 };
 
 const TAB_KEYS = [
@@ -81,6 +87,7 @@ const TAB_KEYS = [
   { key: 'transfers',      labelKey: 'acc.transfers',   icon: ICONS.transfers },
   { key: 'banking',        labelKey: 'acc.banking',     icon: ICONS.banking },
   { key: 'rsge',           labelKey: 'acc.rsge',        icon: ICONS.rsge },
+  { key: 'ai-agent',      labelKey: 'docs.finbot',     icon: ICONS.finbot },
 ];
 
 const CHEVRON_LEFT = (
@@ -157,6 +164,7 @@ function AccountingPage() {
         {activeTab === 'transfers'      && <Transfers />}
         {activeTab === 'banking'        && <TbcBanking />}
         {activeTab === 'rsge'           && <RsGeIntegration />}
+        {activeTab === 'ai-agent'       && <FinBotsPage />}
       </main>
     </div>
   );

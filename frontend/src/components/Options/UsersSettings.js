@@ -69,6 +69,21 @@ const DEFAULT_MATRIX = [
   { role: 'Super Admin / CFO',         description: 'Highest authority — overrides and policy-level decisions',    initiate_transfer: 'Yes', approve_transfer: 'Yes',         reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'Yes',         manage_users: 'Yes',         audit_reports: 'Yes',      transfer_limit: 'Unlimited' },
 ];
 
+const ORDER_PERMISSION_COLS = [
+  { key: 'create_hiring',        label: 'Create Hiring' },
+  { key: 'create_firing',        label: 'Create Firing' },
+  { key: 'create_promotion',     label: 'Create Promotion' },
+  { key: 'create_adjusting',     label: 'Create Adjusting' },
+  { key: 'create_business_trip', label: 'Create Business Trip' },
+  { key: 'view_orders',          label: 'View Orders' },
+];
+
+const DEFAULT_ORDERS_MATRIX = [
+  { role: 'Super Admin',         description: 'Full access to all orders',   create_hiring: 'Yes', create_firing: 'Yes', create_promotion: 'Yes', create_adjusting: 'Yes', create_business_trip: 'Yes', view_orders: 'Yes' },
+  { role: 'Admin',               description: 'Can manage most orders',      create_hiring: 'Yes', create_firing: 'Yes', create_promotion: 'Yes', create_adjusting: 'Yes', create_business_trip: 'Yes', view_orders: 'Yes' },
+  { role: 'Member',              description: 'Standard access',             create_hiring: 'No',  create_firing: 'No',  create_promotion: 'No',  create_adjusting: 'No',  create_business_trip: 'Yes', view_orders: 'Own only' },
+];
+
 function UsersSettings() {
   const [activeTab, setActiveTab] = useState('users');
   const [users, setUsers] = useState([]);
@@ -90,6 +105,9 @@ function UsersSettings() {
   const [matrixSaving, setMatrixSaving] = useState(false);
   const [matrixError, setMatrixError] = useState('');
 
+  const [ordersMatrixRows, setOrdersMatrixRows] = useState(null);
+  const [ordersMatrixDirty, setOrdersMatrixDirty] = useState(false);
+
   const [roleModal, setRoleModal] = useState(null);
   const [roleSaving, setRoleSaving] = useState(false);
   const [roleError, setRoleError] = useState('');
@@ -99,7 +117,7 @@ function UsersSettings() {
   })();
   const canEditMatrix = currentRights === 'Super Admin' || currentRights === 'Admin';
 
-  useEffect(() => { load(); loadMatrix(); }, []);
+  useEffect(() => { load(); loadMatrix(); loadOrdersMatrix(); }, []);
 
   const load = async () => {
     setLoading(true);
@@ -186,6 +204,33 @@ function UsersSettings() {
     setMatrixDirty(true);
   };
 
+  const loadOrdersMatrix = () => {
+    try {
+      const local = localStorage.getItem('orders_matrix');
+      if (local) setOrdersMatrixRows(JSON.parse(local));
+      else setOrdersMatrixRows(DEFAULT_ORDERS_MATRIX);
+    } catch {
+      setOrdersMatrixRows(DEFAULT_ORDERS_MATRIX);
+    }
+  };
+
+  const saveOrdersMatrix = () => {
+    localStorage.setItem('orders_matrix', JSON.stringify(ordersMatrixRows));
+    setOrdersMatrixDirty(false);
+    window.dispatchEvent(new Event('storage'));
+  };
+
+  const updateOrdersCell = (rowIdx, key, value) => {
+    setOrdersMatrixRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [key]: value } : r));
+    setOrdersMatrixDirty(true);
+  };
+
+  const handleDeleteOrdersRole = (idx) => {
+    if (!window.confirm(`Delete role "${ordersMatrixRows[idx].role}" from Orders Matrix?`)) return;
+    setOrdersMatrixRows(prev => prev.filter((_, i) => i !== idx));
+    setOrdersMatrixDirty(true);
+  };
+
   const openRoleModal = (idx) => {
     const row = idx === null
       ? { role: '', description: '' }
@@ -232,10 +277,10 @@ function UsersSettings() {
 
       {/* Inner tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {['users', 'roles', 'matrix'].map((t) => (
+        {['users', 'roles', 'transfers-matrix', 'orders-matrix'].map((t) => (
           <button
             key={t}
-            onClick={() => { setActiveTab(t); if ((t === 'matrix' || t === 'roles') && !matrixRows) loadMatrix(); }}
+            onClick={() => { setActiveTab(t); if ((t === 'transfers-matrix' || t === 'roles') && !matrixRows) loadMatrix(); if (t === 'orders-matrix' && !ordersMatrixRows) loadOrdersMatrix(); }}
             style={{
               padding: '7px 20px',
               border: 'none',
@@ -251,7 +296,7 @@ function UsersSettings() {
               textTransform: 'capitalize',
             }}
           >
-            {t === 'matrix' ? 'User Matrix' : t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === 'transfers-matrix' ? 'Transfers Matrix' : t === 'orders-matrix' ? 'Orders Matrix' : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -350,7 +395,7 @@ function UsersSettings() {
         </div>
       )}
 
-      {activeTab === 'matrix' && (
+      {activeTab === 'transfers-matrix' && (
         <div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
@@ -440,6 +485,97 @@ function UsersSettings() {
                       {canEditMatrix && (
                         <td style={{ ...mxTd, textAlign: 'center' }}>
                           <button className="btn-icon btn-delete" onClick={() => handleDeleteRole(ri)} title="Remove role">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'orders-matrix' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)' }}>
+              Define permissions for creating and managing HR Orders. {!canEditMatrix && <strong style={{ color: '#991b1b' }}>View only.</strong>}
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {canEditMatrix && <button className="btn-add btn-sm" onClick={() => {
+                const firstRole = ordersMatrixRows && ordersMatrixRows.length > 0 ? ordersMatrixRows[0].role : '';
+                setOrdersMatrixRows(prev => [...(prev || []), { role: firstRole, description: '', create_hiring: 'No', create_firing: 'No', create_promotion: 'No', create_adjusting: 'No', create_business_trip: 'No', view_orders: 'No' }]);
+                setOrdersMatrixDirty(true);
+              }}>+ Add Row</button>}
+              {canEditMatrix && (
+                <button className="btn-primary btn-sm" onClick={saveOrdersMatrix} disabled={!ordersMatrixDirty}>
+                  Save Changes
+                </button>
+              )}
+            </div>
+          </div>
+          {!ordersMatrixRows ? (
+            <div style={{ padding: '20px 0', color: 'var(--text-4)' }}>Loading…</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#1e3a5f', color: '#fff' }}>
+                    <th style={{ ...mxTh, minWidth: 160, textAlign: 'left' }}>Role</th>
+                    <th style={{ ...mxTh, minWidth: 200, textAlign: 'left' }}>Description</th>
+                    {ORDER_PERMISSION_COLS.map(c => (
+                      <th key={c.key} style={{ ...mxTh, minWidth: 100, textAlign: 'center' }}>{c.label}</th>
+                    ))}
+                    {canEditMatrix && <th style={{ ...mxTh, width: 40 }}></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ordersMatrixRows.map((row, ri) => (
+                    <tr key={ri} style={{ background: ri % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)', borderBottom: '1px solid var(--border-3)' }}>
+                      <td style={{ ...mxTd, whiteSpace: 'nowrap' }}>
+                        {canEditMatrix ? (
+                          <select
+                            value={row.role}
+                            onChange={e => updateOrdersCell(ri, 'role', e.target.value)}
+                            style={{ fontWeight: 700, fontSize: 13, border: '1px solid var(--border-2)', borderRadius: 6, padding: '4px 8px', background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer', minWidth: 160 }}
+                          >
+                            {[...new Set([...RIGHTS, ...(matrixRows || []).map(r => r.role)])].map((r, i) => (
+                              <option key={i} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <strong style={{ color: 'var(--text)' }}>{row.role}</strong>
+                        )}
+                      </td>
+                      <td style={{ ...mxTd, color: 'var(--text-3)', fontStyle: 'italic', fontSize: 12 }}>{row.description}</td>
+                      {ORDER_PERMISSION_COLS.map(c => {
+                        const val = row[c.key] || 'No';
+                        const color = PERM_COLORS[val] || {};
+                        if (!canEditMatrix) {
+                          return (
+                            <td key={c.key} style={{ ...mxTd, textAlign: 'center' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5, ...color }}>{val}</span>
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={c.key} style={{ ...mxTd, textAlign: 'center' }}>
+                            <select
+                              value={val}
+                              onChange={e => updateOrdersCell(ri, c.key, e.target.value)}
+                              style={{ fontSize: 11, fontWeight: 700, padding: '3px 6px', borderRadius: 5, border: 'none', cursor: 'pointer', fontFamily: 'inherit', ...color }}
+                            >
+                              {PERM_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </td>
+                        );
+                      })}
+                      {canEditMatrix && (
+                        <td style={{ ...mxTd, textAlign: 'center' }}>
+                          <button className="btn-icon btn-delete" onClick={() => handleDeleteOrdersRole(ri)} title="Remove role">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                           </button>
                         </td>

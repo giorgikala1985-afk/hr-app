@@ -51,6 +51,65 @@ function calcGross(netSalary, pensionOn) {
 
 const HARDCODED_UNIT_NAMES = new Set(['Bonus', 'Team Building', 'Reimbursement', 'Fitpass', 'ფიზკულტურის მასწავლებელი']);
 
+// ── TBC Bank helpers ───────────────────────────────────────────────────────
+const TBC_STORAGE_KEY = 'tbc_excel_data';
+function _parseTBCDate(val) {
+  if (val === null || val === undefined || val === '') return null;
+  if (typeof val === 'number') return new Date(Math.round((val - 25569) * 86400 * 1000));
+  const s = String(val).trim();
+  const dmy = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
+  if (dmy) return new Date(+dmy[3], +dmy[2] - 1, +dmy[1]);
+  const ymd = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (ymd) return new Date(+ymd[1], +ymd[2] - 1, +ymd[3]);
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function _dateToMonth(d) {
+  if (!d || isNaN(d)) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function _findCol(headers, keywords) {
+  const kw = keywords.map(k => k.toLowerCase());
+  return headers.findIndex(h => kw.some(k => String(h).toLowerCase().includes(k)));
+}
+function loadTBCForMonth(month) {
+  try {
+    const stored = localStorage.getItem(TBC_STORAGE_KEY);
+    if (!stored) return null;
+    const { rows } = JSON.parse(stored);
+    if (!rows || rows.length < 2) return null;
+    const headers = rows[0];
+    const dateCol = _findCol(headers, ['თარიღი', 'date']);
+    const outCol  = _findCol(headers, ['გასული', 'debit', 'withdrawal', 'გამოსული', 'დებეტი', 'out']);
+    if (dateCol === -1) return null;
+    const filtered = rows.slice(1).filter(row => {
+      const d = _parseTBCDate(row[dateCol]);
+      return d && _dateToMonth(d) === month;
+    });
+    return { rows: filtered, outCol };
+  } catch { return null; }
+}
+function getTBCAmount(tbc, emp) {
+  if (!tbc || !tbc.rows.length || tbc.outCol === -1) return null;
+  const first = (emp.first_name || '').toLowerCase().trim();
+  const last  = (emp.last_name  || '').toLowerCase().trim();
+  if (!first && !last) return null;
+  const matched = tbc.rows.filter(row =>
+    row.some((cell, idx) => {
+      if (idx === tbc.outCol) return false;
+      const v = String(cell || '').toLowerCase();
+      return (first.length > 1 && v.includes(first)) || (last.length > 1 && v.includes(last));
+    })
+  );
+  if (!matched.length) return null;
+  return matched.reduce((s, row) => {
+    const raw = String(row[tbc.outCol] || '').replace(/\s/g, '').replace(',', '.');
+    return s + (parseFloat(raw.replace(/[^\d.-]/g, '')) || 0);
+  }, 0);
+}
+const TBC_COL_W = 130;
+// ──────────────────────────────────────────────────────────────────────────
+
 const UNIT_CURRENCIES = [
   { code: 'GEL', symbol: '₾', flag: '🇬🇪' },
   { code: 'USD', symbol: '$',  flag: '🇺🇸' },
@@ -105,6 +164,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const [transferDate, setTransferDate] = useState('');
   const [transferRate, setTransferRate] = useState(null);
   const [loadingRate, setLoadingRate] = useState(false);
+  const [tbc, setTbc] = useState(() => loadTBCForMonth(todayMonth()));
 
   const [visibleCols, setVisibleCols] = useState(() => {
     try {
@@ -141,6 +201,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
 
   useEffect(() => {
     load(month); setTransferDate(''); setTransferRate(null);
+    setTbc(loadTBCForMonth(month));
     if (onMonthChange) onMonthChange(month);
   }, [month]);
   useEffect(() => {
@@ -311,7 +372,8 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const colIdx         = (col) => COLUMNS.findIndex(c => c.key === col.key);
   const tableWidth     = visColsMain.reduce((sum, col) => sum + scaledW(colIdx(col)), 0)
                        + dynUnitCols.length * dynColW
-                       + tailCols.reduce((sum, col) => sum + scaledW(colIdx(col)), 0);
+                       + tailCols.reduce((sum, col) => sum + scaledW(colIdx(col)), 0)
+                       + Math.round(TBC_COL_W * zoomScale);
   const visTextCols = visColsMain.filter(c => TEXT_KEYS.includes(c.key));
   const visNumCols  = visColsMain.filter(c => !TEXT_KEYS.includes(c.key) && !TAIL_KEYS.includes(c.key));
 
@@ -580,7 +642,6 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         )}
       </div>
 
-
       {/* Summary cards for when transfer date block is hidden */}
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -688,6 +749,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               ))}
               {dynUnitCols.map(ut => <col key={`dyn-col-${ut.name}`} style={{ width: dynColW }} />)}
               {tailCols.map(col => <col key={col.key} style={{ width: scaledW(colIdx(col)) }} />)}
+              <col style={{ width: Math.round(TBC_COL_W * zoomScale) }} />
             </colgroup>
             <thead>
               <tr>
@@ -739,6 +801,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     </th>
                   );
                 })}
+                <th style={{ width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#22c55e' }}>
+                  Transferred
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -756,7 +821,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 return (
                   <tr
                     key={emp.id}
-                    style={{ transition: 'background 0.15s' }}
+                    className={isSelected ? 'acc-row-selected' : ''}
+                    onClick={() => setSelectedRow(r)}
+                    style={{ cursor: 'pointer', transition: 'background 0.15s' }}
                   >
                     {visColsMain.map(col => {
                       const cell = rowVal(col.key, r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt);
@@ -783,7 +850,31 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                         </td>
                       );
                     })}
-                    {tailCols.map(col => rowVal(col.key, r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt))}
+                    {(() => {
+                      const tbcAmt     = getTBCAmount(tbc, emp);
+                      const corrected  = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+                      const activeRate = transferRate || nbgRate || gelRate;
+                      const gelAmt     = activeRate ? Math.round(corrected * activeRate * 100) / 100 : null;
+                      const match      = tbcAmt != null && gelAmt != null && Math.abs(tbcAmt - gelAmt) < 0.01;
+                      return (
+                        <>
+                          {tailCols.map(col => {
+                            if (col.key === 'totalGEL') {
+                              const gel = gelAmt;
+                              return (
+                                <td key="totalGEL" style={{ ...TD_BOLD, fontSize: 14, color: match ? '#22c55e' : '#f59e0b', fontWeight: match ? 800 : 700, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                                  {gel != null ? `₾${gel.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                                </td>
+                              );
+                            }
+                            return rowVal(col.key, r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt);
+                          })}
+                          <td style={{ ...TD_NUM, fontWeight: match ? 800 : 700, color: '#22c55e', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                            {tbcAmt != null ? `₾${tbcAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : tbc ? '—' : ''}
+                          </td>
+                        </>
+                      );
+                    })()}
                   </tr>
                 );
               })}
@@ -816,6 +907,17 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const { val, style, cls } = footerVal(col.key);
                   return <td key={`tail-tf-${col.key}`} className={cls || ''} style={{ ...style, borderTop: '2px solid var(--border-2)' }}>{val}</td>;
                 })}
+                {(() => {
+                  const totalTBC = tbc ? active.reduce((s, r) => {
+                    const a = getTBCAmount(tbc, r.employee);
+                    return s + (a || 0);
+                  }, 0) : 0;
+                  return (
+                    <td style={{ ...TD_NUM, fontWeight: 700, color: '#22c55e', borderTop: '2px solid var(--border-2)', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      {tbc && totalTBC > 0 ? `₾${totalTBC.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
+                    </td>
+                  );
+                })()}
               </tr>
             </tfoot>
           </table>

@@ -44,7 +44,7 @@ const ALL_TABS = [
     ),
   },
   {
-    key: 'doc-finbot', label: 'FinBot', labelKey: 'docs.finbot', section: 'Documents', route: '/documents?tab=ai-agent',
+    key: 'doc-finbot', label: 'FinBot', labelKey: 'docs.finbot', section: 'Accounting', route: '/accounting?tab=ai-agent',
     color: '#ec4899', bg: '#fdf2f8',
     icon: (
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

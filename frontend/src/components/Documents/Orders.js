@@ -40,6 +40,40 @@ const ORDER_SUBTAB_KEYS = [
 ];
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
+const DEFAULT_ORDERS_MATRIX = [
+  { role: 'Super Admin',         description: 'Full access to all orders',   create_hiring: 'Yes', create_firing: 'Yes', create_promotion: 'Yes', create_adjusting: 'Yes', create_business_trip: 'Yes', view_orders: 'Yes' },
+  { role: 'Admin',               description: 'Can manage most orders',      create_hiring: 'Yes', create_firing: 'Yes', create_promotion: 'Yes', create_adjusting: 'Yes', create_business_trip: 'Yes', view_orders: 'Yes' },
+  { role: 'Member',              description: 'Standard access',             create_hiring: 'No',  create_firing: 'No',  create_promotion: 'No',  create_adjusting: 'No',  create_business_trip: 'Yes', view_orders: 'Own only' },
+];
+
+function useOrdersPermissions() {
+  const currentRights = (() => {
+    try { const s = localStorage.getItem('member_user'); return s ? JSON.parse(s).rights : 'Super Admin'; } catch { return 'Super Admin'; }
+  })();
+
+  const [matrix, setMatrix] = useState(() => {
+    try {
+      const local = localStorage.getItem('orders_matrix');
+      return local ? JSON.parse(local) : DEFAULT_ORDERS_MATRIX;
+    } catch {
+      return DEFAULT_ORDERS_MATRIX;
+    }
+  });
+
+  useEffect(() => {
+    const sync = () => {
+      try {
+        const local = localStorage.getItem('orders_matrix');
+        setMatrix(local ? JSON.parse(local) : DEFAULT_ORDERS_MATRIX);
+      } catch {}
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, []);
+
+  return matrix.find(r => r.role === currentRights) || DEFAULT_ORDERS_MATRIX.find(r => r.role === 'Member') || {};
+}
+
 function useLocalOrders(key) {
   const [orders, setOrders] = useState(() => {
     try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
@@ -53,7 +87,7 @@ function useLocalOrders(key) {
 
 function SubTabModal({ title, onClose, children }) {
   return (
-    <div onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-2)' }}>
@@ -84,7 +118,7 @@ function EmptyState({ label, onAdd }) {
     <div style={{ textAlign: 'center', padding: '64px 24px' }}>
       <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>{t('orders.noOrders', { month: label })}</div>
       <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>{t('orders.noOrdersHint')}</div>
-      <button onClick={onAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>
+      {onAdd && <button onClick={onAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
     </div>
   );
 }
@@ -119,6 +153,9 @@ function PromotionTab({ employees }) {
     api.get('/positions').then(res => setPositions(res.data.positions || [])).catch(() => {});
   }, []);
 
+  const perms = useOrdersPermissions();
+  const canCreate = perms.create_promotion === 'Yes';
+
   const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
   const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); };
   const close = () => { setShowForm(false); setEditing(null); };
@@ -134,10 +171,10 @@ function PromotionTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>
+        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
-        {orders.length === 0 ? <EmptyState label={t('orders.promotion')} onAdd={openAdd} /> : (
+        {orders.length === 0 ? <EmptyState label={t('orders.promotion')} onAdd={canCreate ? openAdd : undefined} /> : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
@@ -247,6 +284,9 @@ function HiringTab() {
     { key: 'portal',    label: t('orders.portalAccess'),   icon: '🔑' },
   ];
 
+  const perms = useOrdersPermissions();
+  const canCreate = perms.create_hiring === 'Yes';
+
   const openAdd = () => { setEditing(null); setForm(EMPTY); setActiveTab('info'); setShowForm(true); };
   const openEdit = (o) => {
     setEditing(o.id);
@@ -274,11 +314,11 @@ function HiringTab() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>
+        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
-        {orders.length === 0 ? <EmptyState label={t('orders.hiring')} onAdd={openAdd} /> : (
+        {orders.length === 0 ? <EmptyState label={t('orders.hiring')} onAdd={canCreate ? openAdd : undefined} /> : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
@@ -1090,6 +1130,9 @@ function FiringTab({ employees }) {
   const [form, setForm] = useState(EMPTY);
   const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const perms = useOrdersPermissions();
+  const canCreate = perms.create_firing === 'Yes';
+
   const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
   const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, terminationDate: o.terminationDate, reason: o.reason, notes: o.notes || '' }); setShowForm(true); };
   const close = () => { setShowForm(false); setEditing(null); };
@@ -1105,10 +1148,10 @@ function FiringTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>
+        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
-        {orders.length === 0 ? <EmptyState label={t('orders.firing')} onAdd={openAdd} /> : (
+        {orders.length === 0 ? <EmptyState label={t('orders.firing')} onAdd={canCreate ? openAdd : undefined} /> : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
@@ -1162,59 +1205,59 @@ function FiringTab({ employees }) {
 
 // ── Business Trip Per Diem rates (USD/day, Georgian government decree) ────────
 const COUNTRIES = [
-  { code: 'us', name: 'United States',          perDiem: 65 },
-  { code: 'gb', name: 'United Kingdom',         perDiem: 70 },
-  { code: 'de', name: 'Germany',                perDiem: 65 },
-  { code: 'fr', name: 'France',                 perDiem: 65 },
-  { code: 'it', name: 'Italy',                  perDiem: 65 },
-  { code: 'es', name: 'Spain',                  perDiem: 60 },
-  { code: 'nl', name: 'Netherlands',            perDiem: 65 },
-  { code: 'be', name: 'Belgium',                perDiem: 65 },
-  { code: 'ch', name: 'Switzerland',            perDiem: 80 },
-  { code: 'at', name: 'Austria',                perDiem: 65 },
-  { code: 'se', name: 'Sweden',                 perDiem: 65 },
-  { code: 'no', name: 'Norway',                 perDiem: 70 },
-  { code: 'dk', name: 'Denmark',                perDiem: 65 },
-  { code: 'fi', name: 'Finland',                perDiem: 60 },
-  { code: 'pl', name: 'Poland',                 perDiem: 50 },
-  { code: 'cz', name: 'Czech Republic',         perDiem: 50 },
-  { code: 'hu', name: 'Hungary',                perDiem: 45 },
-  { code: 'ro', name: 'Romania',                perDiem: 40 },
-  { code: 'gr', name: 'Greece',                 perDiem: 55 },
-  { code: 'pt', name: 'Portugal',               perDiem: 55 },
-  { code: 'tr', name: 'Turkey',                 perDiem: 45 },
-  { code: 'ru', name: 'Russia',                 perDiem: 40 },
-  { code: 'ua', name: 'Ukraine',                perDiem: 35 },
-  { code: 'am', name: 'Armenia',                perDiem: 30 },
-  { code: 'az', name: 'Azerbaijan',             perDiem: 35 },
-  { code: 'kz', name: 'Kazakhstan',             perDiem: 40 },
-  { code: 'ae', name: 'United Arab Emirates',   perDiem: 60 },
-  { code: 'sa', name: 'Saudi Arabia',           perDiem: 55 },
-  { code: 'il', name: 'Israel',                 perDiem: 65 },
-  { code: 'cn', name: 'China',                  perDiem: 55 },
-  { code: 'jp', name: 'Japan',                  perDiem: 65 },
-  { code: 'kr', name: 'South Korea',            perDiem: 60 },
-  { code: 'in', name: 'India',                  perDiem: 45 },
-  { code: 'sg', name: 'Singapore',              perDiem: 65 },
-  { code: 'th', name: 'Thailand',               perDiem: 45 },
-  { code: 'ca', name: 'Canada',                 perDiem: 65 },
-  { code: 'au', name: 'Australia',              perDiem: 65 },
-  { code: 'nz', name: 'New Zealand',            perDiem: 60 },
-  { code: 'za', name: 'South Africa',           perDiem: 45 },
-  { code: 'eg', name: 'Egypt',                  perDiem: 40 },
-  { code: 'ma', name: 'Morocco',                perDiem: 40 },
-  { code: 'br', name: 'Brazil',                 perDiem: 50 },
-  { code: 'mx', name: 'Mexico',                 perDiem: 50 },
-  { code: 'ar', name: 'Argentina',              perDiem: 45 },
-  { code: 'lt', name: 'Lithuania',              perDiem: 50 },
-  { code: 'lv', name: 'Latvia',                 perDiem: 50 },
-  { code: 'ee', name: 'Estonia',                perDiem: 50 },
-  { code: 'by', name: 'Belarus',                perDiem: 35 },
-  { code: 'md', name: 'Moldova',                perDiem: 30 },
-  { code: 'rs', name: 'Serbia',                 perDiem: 40 },
-  { code: 'hr', name: 'Croatia',                perDiem: 50 },
-  { code: 'sk', name: 'Slovakia',               perDiem: 50 },
-  { code: 'bg', name: 'Bulgaria',               perDiem: 40 },
+  { code: 'us', name: 'United States',          perDiem: 65, cities: [{ name: 'Washington D.C.', perDiem: 90 }, { name: 'New York', perDiem: 100 }, { name: 'San Francisco', perDiem: 95 }] },
+  { code: 'gb', name: 'United Kingdom',         perDiem: 70, cities: [{ name: 'London', perDiem: 90 }, { name: 'Edinburgh', perDiem: 80 }] },
+  { code: 'de', name: 'Germany',                perDiem: 65, cities: [{ name: 'Berlin', perDiem: 80 }, { name: 'Munich', perDiem: 85 }] },
+  { code: 'fr', name: 'France',                 perDiem: 65, cities: [{ name: 'Paris', perDiem: 85 }, { name: 'Lyon', perDiem: 75 }] },
+  { code: 'it', name: 'Italy',                  perDiem: 65, cities: [{ name: 'Rome', perDiem: 80 }, { name: 'Milan', perDiem: 85 }] },
+  { code: 'es', name: 'Spain',                  perDiem: 60, cities: [{ name: 'Madrid', perDiem: 75 }] },
+  { code: 'nl', name: 'Netherlands',            perDiem: 65, cities: [{ name: 'Amsterdam', perDiem: 80 }] },
+  { code: 'be', name: 'Belgium',                perDiem: 65, cities: [{ name: 'Brussels', perDiem: 80 }] },
+  { code: 'ch', name: 'Switzerland',            perDiem: 80, cities: [{ name: 'Bern', perDiem: 95 }] },
+  { code: 'at', name: 'Austria',                perDiem: 65, cities: [{ name: 'Vienna', perDiem: 80 }] },
+  { code: 'se', name: 'Sweden',                 perDiem: 65, cities: [{ name: 'Stockholm', perDiem: 80 }] },
+  { code: 'no', name: 'Norway',                 perDiem: 70, cities: [{ name: 'Oslo', perDiem: 85 }] },
+  { code: 'dk', name: 'Denmark',                perDiem: 65, cities: [{ name: 'Copenhagen', perDiem: 80 }] },
+  { code: 'fi', name: 'Finland',                perDiem: 60, cities: [{ name: 'Helsinki', perDiem: 75 }] },
+  { code: 'pl', name: 'Poland',                 perDiem: 50, cities: [{ name: 'Warsaw', perDiem: 65 }] },
+  { code: 'cz', name: 'Czech Republic',         perDiem: 50, cities: [{ name: 'Prague', perDiem: 65 }] },
+  { code: 'hu', name: 'Hungary',                perDiem: 45, cities: [{ name: 'Budapest', perDiem: 60 }] },
+  { code: 'ro', name: 'Romania',                perDiem: 40, cities: [{ name: 'Bucharest', perDiem: 55 }] },
+  { code: 'gr', name: 'Greece',                 perDiem: 55, cities: [{ name: 'Athens', perDiem: 70 }] },
+  { code: 'pt', name: 'Portugal',               perDiem: 55, cities: [{ name: 'Lisbon', perDiem: 70 }] },
+  { code: 'tr', name: 'Turkey',                 perDiem: 45, cities: [{ name: 'Ankara', perDiem: 55 }] },
+  { code: 'ru', name: 'Russia',                 perDiem: 40, cities: [{ name: 'Moscow', perDiem: 55 }] },
+  { code: 'ua', name: 'Ukraine',                perDiem: 35, cities: [{ name: 'Kyiv', perDiem: 50 }] },
+  { code: 'am', name: 'Armenia',                perDiem: 30, cities: [{ name: 'Yerevan', perDiem: 45 }] },
+  { code: 'az', name: 'Azerbaijan',             perDiem: 35, cities: [{ name: 'Baku', perDiem: 50 }] },
+  { code: 'kz', name: 'Kazakhstan',             perDiem: 40, cities: [{ name: 'Astana', perDiem: 55 }] },
+  { code: 'ae', name: 'United Arab Emirates',   perDiem: 60, cities: [{ name: 'Abu Dhabi', perDiem: 75 }] },
+  { code: 'sa', name: 'Saudi Arabia',           perDiem: 55, cities: [{ name: 'Riyadh', perDiem: 70 }] },
+  { code: 'il', name: 'Israel',                 perDiem: 65, cities: [{ name: 'Jerusalem', perDiem: 80 }] },
+  { code: 'cn', name: 'China',                  perDiem: 55, cities: [{ name: 'Beijing', perDiem: 70 }] },
+  { code: 'jp', name: 'Japan',                  perDiem: 65, cities: [{ name: 'Tokyo', perDiem: 80 }] },
+  { code: 'kr', name: 'South Korea',            perDiem: 60, cities: [{ name: 'Seoul', perDiem: 75 }] },
+  { code: 'in', name: 'India',                  perDiem: 45, cities: [{ name: 'New Delhi', perDiem: 60 }] },
+  { code: 'sg', name: 'Singapore',              perDiem: 65, cities: [{ name: 'Singapore', perDiem: 80 }] },
+  { code: 'th', name: 'Thailand',               perDiem: 45, cities: [{ name: 'Bangkok', perDiem: 60 }] },
+  { code: 'ca', name: 'Canada',                 perDiem: 65, cities: [{ name: 'Ottawa', perDiem: 80 }] },
+  { code: 'au', name: 'Australia',              perDiem: 65, cities: [{ name: 'Canberra', perDiem: 80 }] },
+  { code: 'nz', name: 'New Zealand',            perDiem: 60, cities: [{ name: 'Wellington', perDiem: 75 }] },
+  { code: 'za', name: 'South Africa',           perDiem: 45, cities: [{ name: 'Pretoria', perDiem: 60 }] },
+  { code: 'eg', name: 'Egypt',                  perDiem: 40, cities: [{ name: 'Cairo', perDiem: 55 }] },
+  { code: 'ma', name: 'Morocco',                perDiem: 40, cities: [{ name: 'Rabat', perDiem: 55 }] },
+  { code: 'br', name: 'Brazil',                 perDiem: 50, cities: [{ name: 'Brasilia', perDiem: 65 }] },
+  { code: 'mx', name: 'Mexico',                 perDiem: 50, cities: [{ name: 'Mexico City', perDiem: 65 }] },
+  { code: 'ar', name: 'Argentina',              perDiem: 45, cities: [{ name: 'Buenos Aires', perDiem: 60 }] },
+  { code: 'lt', name: 'Lithuania',              perDiem: 50, cities: [{ name: 'Vilnius', perDiem: 65 }] },
+  { code: 'lv', name: 'Latvia',                 perDiem: 50, cities: [{ name: 'Riga', perDiem: 65 }] },
+  { code: 'ee', name: 'Estonia',                perDiem: 50, cities: [{ name: 'Tallinn', perDiem: 65 }] },
+  { code: 'by', name: 'Belarus',                perDiem: 35, cities: [{ name: 'Minsk', perDiem: 50 }] },
+  { code: 'md', name: 'Moldova',                perDiem: 30, cities: [{ name: 'Chișinău', perDiem: 45 }] },
+  { code: 'rs', name: 'Serbia',                 perDiem: 40, cities: [{ name: 'Belgrade', perDiem: 55 }] },
+  { code: 'hr', name: 'Croatia',                perDiem: 50, cities: [{ name: 'Zagreb', perDiem: 65 }] },
+  { code: 'sk', name: 'Slovakia',               perDiem: 50, cities: [{ name: 'Bratislava', perDiem: 65 }] },
+  { code: 'bg', name: 'Bulgaria',               perDiem: 40, cities: [{ name: 'Sofia', perDiem: 55 }] },
 ].sort((a, b) => a.name.localeCompare(b.name));
 
 function flagUrl(code) {
@@ -1374,9 +1417,17 @@ function BusinessTripTab({ employees }) {
   const [countrySearch, setCountrySearch] = useState('');
   const [countryOpen, setCountryOpen] = useState(false);
   const countryRef = React.useRef(null);
+  const [citySearch, setCitySearch] = useState('');
+  const [cityOpen, setCityOpen] = useState(false);
+  const cityRef = React.useRef(null);
+  const [empOpen, setEmpOpen] = useState(false);
+  const [empSearch, setEmpSearch] = useState('');
+  const empRef = React.useRef(null);
+  const [expandedGroups, setExpandedGroups] = useState({});
 
   const EMPTY = {
-    employeeId: '', fromDate: '', toDate: '',
+    employeeId: '', employeeIds: [], isGroup: false, groupName: '',
+    fromDate: '', toDate: '',
     countryCode: '', countryName: '', cityName: '',
     perDiem: '', amount: '', notes: '',
   };
@@ -1385,9 +1436,14 @@ function BusinessTripTab({ employees }) {
   const days = calcDays(form.fromDate, form.toDate);
   const autoAmount = form.perDiem && days > 0 ? (parseFloat(form.perDiem) * days).toFixed(2) : '';
 
+  const perms = useOrdersPermissions();
+  const canCreate = perms.create_business_trip === 'Yes';
+
   React.useEffect(() => {
     const handler = (e) => {
       if (countryRef.current && !countryRef.current.contains(e.target)) setCountryOpen(false);
+      if (cityRef.current && !cityRef.current.contains(e.target)) setCityOpen(false);
+      if (empRef.current && !empRef.current.contains(e.target)) setEmpOpen(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -1398,6 +1454,7 @@ function BusinessTripTab({ employees }) {
       ...f,
       countryCode: c.code,
       countryName: c.name,
+      cityName: '',
       perDiem: String(c.perDiem),
       amount: f.amount || (c.perDiem * calcDays(f.fromDate, f.toDate)).toFixed(2),
     }));
@@ -1405,14 +1462,24 @@ function BusinessTripTab({ employees }) {
     setCountrySearch('');
   };
 
+  const selectCity = (city) => {
+    setForm(f => ({
+      ...f,
+      cityName: city.name,
+      perDiem: String(city.perDiem),
+      amount: (city.perDiem * calcDays(f.fromDate, f.toDate)).toFixed(2),
+    }));
+    setCityOpen(false);
+  };
+
   const filteredCountries = countrySearch
     ? COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()))
     : COUNTRIES;
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setCountrySearch(''); setModalTab('details'); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setCountrySearch(''); setEmpSearch(''); setModalTab('details'); setShowForm(true); };
   const openEdit = (o) => {
     setEditing(o.id);
-    setForm({ employeeId: o.employeeId, fromDate: o.fromDate, toDate: o.toDate, countryCode: o.countryCode, countryName: o.countryName, cityName: o.cityName || '', perDiem: o.perDiem || '', amount: o.amount || '', notes: o.notes || '' });
+    setForm({ employeeId: o.employeeId, employeeIds: [], isGroup: false, fromDate: o.fromDate, toDate: o.toDate, countryCode: o.countryCode, countryName: o.countryName, cityName: o.cityName || '', perDiem: o.perDiem || '', amount: o.amount || '', notes: o.notes || '' });
     setModalTab('details');
     setShowForm(true);
   };
@@ -1420,29 +1487,44 @@ function BusinessTripTab({ employees }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const emp = employees.find(x => x.id === form.employeeId);
     const finalAmount = form.amount || autoAmount;
-    const row = {
-      ...form,
-      empName: emp ? `${emp.first_name} ${emp.last_name}` : '',
-      days,
-      amount: finalAmount,
-    };
-    editing ? update(editing, row) : add(row);
+    const destination = [form.countryName, form.cityName].filter(Boolean).join(', ');
 
-    if (!editing && finalAmount) {
-      const destination = [form.countryName, form.cityName].filter(Boolean).join(', ');
-      try {
-        await api.post('/accounting/transfers', {
-          client_name: emp ? `${emp.first_name} ${emp.last_name}` : form.employeeId,
-          amount: parseFloat(finalAmount),
-          due_date: form.toDate,
-          description: `Business Trip: ${destination} (${form.fromDate} → ${form.toDate})`,
-          status: 'normal',
-          auto_approved: true,
-        });
-      } catch (err) {
-        console.warn('Could not create transfer for business trip:', err.message);
+    const targetIds = !editing && form.isGroup
+      ? form.employeeIds
+      : [form.employeeId];
+
+    const groupId = !editing && form.isGroup && targetIds.length > 1
+      ? `g_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+      : null;
+    const groupName = groupId ? (form.groupName.trim() || `Group of ${targetIds.length}`) : null;
+
+    for (const eid of targetIds) {
+      const emp = employees.find(x => x.id === eid);
+      const { employeeIds, isGroup, groupName: _gn, ...rest } = form;
+      const row = {
+        ...rest,
+        employeeId: eid,
+        empName: emp ? `${emp.first_name} ${emp.last_name}` : '',
+        days,
+        amount: finalAmount,
+        ...(groupId ? { groupId, groupName } : {}),
+      };
+      editing ? update(editing, row) : add(row);
+
+      if (!editing && finalAmount) {
+        try {
+          await api.post('/accounting/transfers', {
+            client_name: emp ? `${emp.first_name} ${emp.last_name}` : eid,
+            amount: parseFloat(finalAmount),
+            due_date: form.toDate,
+            description: `Business Trip: ${destination} (${form.fromDate} → ${form.toDate})`,
+            status: 'normal',
+            auto_approved: true,
+          });
+        } catch (err) {
+          console.warn('Could not create transfer for business trip:', err.message);
+        }
       }
     }
 
@@ -1459,9 +1541,9 @@ function BusinessTripTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#0ea5e9', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#0ea5e9', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + New Business Trip
-        </button>
+        </button>}
       </div>
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
@@ -1470,7 +1552,7 @@ function BusinessTripTab({ employees }) {
             <div style={{ fontSize: 40, marginBottom: 12 }}>✈️</div>
             <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>No business trips recorded</div>
             <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>Click "New Business Trip" to add one</div>
-            <button onClick={openAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#0ea5e9', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ New Business Trip</button>
+            {canCreate && <button onClick={openAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#0ea5e9', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ New Business Trip</button>}
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -1482,33 +1564,103 @@ function BusinessTripTab({ employees }) {
               </tr>
             </thead>
             <tbody>
-              {orders.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.empName}</td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-2)', whiteSpace: 'nowrap', fontSize: 12 }}>
-                    {formatDate(o.fromDate)} – {formatDate(o.toDate)}
-                  </td>
-                  <td style={{ padding: '11px 14px', fontWeight: 700, color: '#0ea5e9' }}>{o.days}d</td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-2)' }}>
-                    {o.countryCode && <img src={flagUrl(o.countryCode)} alt="" width="18" style={{ borderRadius: 2, verticalAlign: 'middle', marginRight: 6 }} />}
-                    {o.countryName}{o.cityName ? `, ${o.cityName}` : ''}
-                  </td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.perDiem ? `$${o.perDiem}` : '—'}</td>
-                  <td style={{ padding: '11px 14px', fontWeight: 700, color: '#4ade80' }}>{o.amount ? `$${o.amount}` : '—'}</td>
-                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                    {(() => { const t = getTripCostsTotal(o.id); return t > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
-                  </td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
-                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {(() => {
+                const rendered = [];
+                const seenGroups = new Set();
+                for (const o of orders) {
+                  if (o.groupId && seenGroups.has(o.groupId)) continue;
+                  if (o.groupId) {
+                    seenGroups.add(o.groupId);
+                    const members = orders.filter(x => x.groupId === o.groupId);
+                    const expanded = !!expandedGroups[o.groupId];
+                    const totalAmount = members.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
+                    const totalCosts = members.reduce((s, m) => s + getTripCostsTotal(m.id), 0);
+                    rendered.push(
+                      <tr key={`grp-${o.groupId}`}
+                        style={{ borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', cursor: 'pointer' }}
+                        onClick={() => setExpandedGroups(g => ({ ...g, [o.groupId]: !g[o.groupId] }))}>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--text)', whiteSpace: 'nowrap' }}>
+                          <span style={{ display: 'inline-block', width: 16, transition: 'transform 0.15s', transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', marginRight: 6, color: 'var(--text-3)' }}>▶</span>
+                          {o.groupName || 'Group'} <span style={{ fontWeight: 500, color: 'var(--text-3)', fontSize: 12 }}>({members.length})</span>
+                        </td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-2)', whiteSpace: 'nowrap', fontSize: 12 }}>
+                          {formatDate(o.fromDate)} – {formatDate(o.toDate)}
+                        </td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#0ea5e9' }}>{o.days}d</td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-2)' }}>
+                          {o.countryCode && <img src={flagUrl(o.countryCode)} alt="" width="18" style={{ borderRadius: 2, verticalAlign: 'middle', marginRight: 6 }} />}
+                          {o.countryName}{o.cityName ? `, ${o.cityName}` : ''}
+                        </td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.perDiem ? `$${o.perDiem}` : '—'}</td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#4ade80' }}>${totalAmount.toFixed(2)}</td>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          {totalCosts > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${totalCosts.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>}
+                        </td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete entire group (${members.length} trips)?`)) members.forEach(m => remove(m.id)); }}
+                            style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+                        </td>
+                      </tr>
+                    );
+                    if (expanded) {
+                      for (const m of members) {
+                        rendered.push(
+                          <tr key={m.id} style={{ borderBottom: '1px solid var(--border-2)', background: 'rgba(14,165,233,0.04)' }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(14,165,233,0.10)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'rgba(14,165,233,0.04)'}>
+                            <td style={{ padding: '9px 14px 9px 38px', fontWeight: 500, color: 'var(--text-2)', whiteSpace: 'nowrap', fontSize: 12 }}>↳ {m.empName}</td>
+                            <td style={{ padding: '9px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap', fontSize: 12 }}>{formatDate(m.fromDate)} – {formatDate(m.toDate)}</td>
+                            <td style={{ padding: '9px 14px', fontWeight: 600, color: '#0ea5e9', fontSize: 12 }}>{m.days}d</td>
+                            <td style={{ padding: '9px 14px', color: 'var(--text-3)', fontSize: 12 }}>{m.countryName}{m.cityName ? `, ${m.cityName}` : ''}</td>
+                            <td style={{ padding: '9px 14px', color: 'var(--text-3)', fontSize: 12 }}>{m.perDiem ? `$${m.perDiem}` : '—'}</td>
+                            <td style={{ padding: '9px 14px', fontWeight: 600, color: '#4ade80', fontSize: 12 }}>{m.amount ? `$${m.amount}` : '—'}</td>
+                            <td style={{ padding: '9px 14px', fontSize: 12 }}>
+                              {(() => { const t = getTripCostsTotal(m.id); return t > 0 ? <span style={{ fontWeight: 600, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
+                            </td>
+                            <td style={{ padding: '9px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{m.notes || '—'}</td>
+                            <td style={{ padding: '9px 14px', whiteSpace: 'nowrap' }}>
+                              <div style={{ display: 'flex', gap: 6 }}>
+                                <button onClick={() => openEdit(m)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
+                                <button onClick={() => remove(m.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+                    }
+                  } else {
+                    rendered.push(
+                      <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.empName}</td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-2)', whiteSpace: 'nowrap', fontSize: 12 }}>
+                          {formatDate(o.fromDate)} – {formatDate(o.toDate)}
+                        </td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#0ea5e9' }}>{o.days}d</td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-2)' }}>
+                          {o.countryCode && <img src={flagUrl(o.countryCode)} alt="" width="18" style={{ borderRadius: 2, verticalAlign: 'middle', marginRight: 6 }} />}
+                          {o.countryName}{o.cityName ? `, ${o.cityName}` : ''}
+                        </td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.perDiem ? `$${o.perDiem}` : '—'}</td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#4ade80' }}>{o.amount ? `$${o.amount}` : '—'}</td>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          {(() => { const t = getTripCostsTotal(o.id); return t > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
+                        </td>
+                        <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
+                        <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
+                            <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                }
+                return rendered;
+              })()}
             </tbody>
           </table>
         )}
@@ -1541,13 +1693,86 @@ function BusinessTripTab({ employees }) {
             <form onSubmit={handleSubmit}>
               <div style={{ display: 'grid', gap: 14 }}>
                 <div>
-                  <label style={LABEL}>Employee *</label>
-                  <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} style={INPUT} required>
-                    <option value="">— Select employee —</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                    ))}
-                  </select>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <label style={{ ...LABEL, marginBottom: 0 }}>Employee *</label>
+                    {!editing && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-3)', cursor: 'pointer', userSelect: 'none' }}>
+                        Group
+                        <span style={{ position: 'relative', display: 'inline-block', width: 32, height: 18 }}>
+                          <input type="checkbox" checked={form.isGroup}
+                            onChange={e => setForm(f => ({ ...f, isGroup: e.target.checked, employeeId: '', employeeIds: [] }))}
+                            style={{ opacity: 0, width: 0, height: 0, position: 'absolute' }} />
+                          <span style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: form.isGroup ? '#0ea5e9' : 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 18, transition: '0.2s' }}>
+                            <span style={{ position: 'absolute', height: 12, width: 12, left: form.isGroup ? 17 : 3, top: 2, background: '#fff', borderRadius: '50%', transition: '0.2s' }} />
+                          </span>
+                        </span>
+                      </label>
+                    )}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    {!form.isGroup ? (
+                      <>
+                      <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} style={INPUT} required>
+                        <option value="">— Select employee —</option>
+                        {employees.map(emp => (
+                          <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                        ))}
+                      </select>
+                      </>
+                    ) : (
+                      <>
+                      <input type="text" value={form.groupName}
+                        onChange={e => setForm(f => ({ ...f, groupName: e.target.value }))}
+                        placeholder="Group name (e.g. Tbilisi Conference)"
+                        style={INPUT} />
+                      <div ref={empRef} style={{ position: 'relative' }}>
+                        <button type="button" onClick={() => setEmpOpen(v => !v)}
+                          style={{ ...INPUT, display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', textAlign: 'left' }}>
+                          {form.employeeIds.length === 0
+                            ? <span style={{ color: 'var(--text-3)' }}>— Select employees —</span>
+                            : <span>{form.employeeIds.length} selected</span>
+                          }
+                          <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        {empOpen && (
+                          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', overflow: 'hidden', marginTop: 4 }}>
+                            <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-2)' }}>
+                              <input autoFocus type="text" placeholder="Search employees…" value={empSearch}
+                                onChange={e => setEmpSearch(e.target.value)}
+                                style={{ ...INPUT, padding: '7px 10px', fontSize: 12 }} />
+                            </div>
+                            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                              {employees
+                                .filter(emp => {
+                                  if (!empSearch) return true;
+                                  const full = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+                                  return full.includes(empSearch.toLowerCase());
+                                })
+                                .map(emp => {
+                                  const checked = form.employeeIds.includes(emp.id);
+                                  return (
+                                    <label key={emp.id}
+                                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer', background: checked ? 'rgba(14,165,233,0.12)' : 'transparent', color: 'var(--text)', fontSize: 13 }}
+                                      onMouseEnter={e => { if (!checked) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                                      onMouseLeave={e => { if (!checked) e.currentTarget.style.background = 'transparent'; }}>
+                                      <input type="checkbox" checked={checked}
+                                        onChange={() => setForm(f => ({
+                                          ...f,
+                                          employeeIds: checked
+                                            ? f.employeeIds.filter(x => x !== emp.id)
+                                            : [...f.employeeIds, emp.id]
+                                        }))} />
+                                      <span style={{ flex: 1 }}>{emp.first_name} {emp.last_name}</span>
+                                    </label>
+                                  );
+                                })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1604,12 +1829,48 @@ function BusinessTripTab({ employees }) {
                   </div>
                 </div>
 
-                {form.countryCode && (
+                {form.countryCode && (() => {
+                  const countryObj = COUNTRIES.find(c => c.code === form.countryCode);
+                  const cities = countryObj?.cities || [];
+                  const filteredCities = citySearch ? cities.filter(c => c.name.toLowerCase().includes(citySearch.toLowerCase())) : cities;
+                  
+                  return (
                   <div>
                     <label style={LABEL}>City</label>
-                    <input type="text" value={form.cityName} onChange={e => setForm(f => ({ ...f, cityName: e.target.value }))} placeholder={`City in ${form.countryName}…`} style={INPUT} />
+                    <div ref={cityRef} style={{ position: 'relative' }}>
+                      <input type="text" value={form.cityName} 
+                        onChange={e => {
+                          const val = e.target.value;
+                          setForm(f => {
+                            const cPerDiem = countryObj?.perDiem || 0;
+                            return { ...f, cityName: val, perDiem: String(cPerDiem), amount: (cPerDiem * calcDays(f.fromDate, f.toDate)).toFixed(2) };
+                          });
+                          setCitySearch(val);
+                          if (!cityOpen) setCityOpen(true);
+                        }}
+                        onFocus={() => { if (cities.length > 0) setCityOpen(true); setCitySearch(form.cityName); }}
+                        placeholder={`City in ${form.countryName}…`} style={INPUT} />
+                      {cityOpen && cities.length > 0 && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', overflow: 'hidden', marginTop: 4 }}>
+                          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                            {filteredCities.length === 0
+                              ? <div style={{ padding: '12px 14px', color: 'var(--text-3)', fontSize: 13 }}>Using custom city</div>
+                              : filteredCities.map(c => (
+                                <button key={c.name} type="button" onClick={() => selectCity(c)}
+                                  style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', border: 'none', background: form.cityName === c.name ? 'rgba(14,165,233,0.12)' : 'transparent', color: 'var(--text)', fontSize: 13, cursor: 'pointer', textAlign: 'left' }}
+                                  onMouseEnter={e => { if (form.cityName !== c.name) e.currentTarget.style.background = 'var(--surface-2)'; }}
+                                  onMouseLeave={e => { if (form.cityName !== c.name) e.currentTarget.style.background = 'transparent'; }}>
+                                  <span style={{ flex: 1 }}>{c.name}</span>
+                                  <span style={{ fontSize: 12, color: 'var(--text-3)' }}>${c.perDiem}/day</span>
+                                </button>
+                              ))
+                            }
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                )}
+                )})()}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
@@ -1636,7 +1897,7 @@ function BusinessTripTab({ employees }) {
                   <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional note…" style={INPUT} />
                 </div>
               </div>
-              <SubTabActions onCancel={close} disabled={!form.employeeId || !form.fromDate || !form.toDate || !form.countryCode} />
+              <SubTabActions onCancel={close} disabled={(form.isGroup ? form.employeeIds.length === 0 : !form.employeeId) || !form.fromDate || !form.toDate || !form.countryCode} />
             </form>
           )}
 
@@ -1679,6 +1940,9 @@ export default function Orders() {
   const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '', otHours: '', currency: 'USD', includeInSalary: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
+
+  const perms = useOrdersPermissions();
+  const canCreateAdjusting = perms.create_adjusting === 'Yes';
 
   // ── Data loading ────────────────────────────────────────────
   const loadStatic = useCallback(async () => {
@@ -1928,7 +2192,7 @@ export default function Orders() {
             {t('orders.subtitle')} · {monthLabel}
           </p>
         </div>
-        {subTab === 'adjusting' && <button
+        {subTab === 'adjusting' && canCreateAdjusting && <button
           onClick={() => { setShowForm(true); setError(''); }}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,

@@ -106,8 +106,7 @@ function Register() {
         <div className="auth-header">
           <div className="auth-logo">
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              <path d="M12 2 2 22l10-4 10 4Z"/><circle cx="12" cy="13" r="1"/>
             </svg>
             Finpilot
           </div>

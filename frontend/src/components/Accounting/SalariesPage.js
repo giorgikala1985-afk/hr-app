@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import SalaryAccrual from './SalaryAccrual';
 import SalariesFile from './SalariesFile';
 import PersonalIncomeTax from './PersonalIncomeTax';
+import Transferred from './Transferred';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const SUBTAB_KEYS = [
-  { key: 'accrual', labelKey: 'salPage.calculation' },
-  { key: 'file',    labelKey: 'salPage.salariesFile' },
-  { key: 'pit',     labelKey: 'salPage.pit' },
+  { key: 'accrual',     labelKey: 'salPage.calculation' },
+  { key: 'file',        labelKey: 'salPage.salariesFile' },
+  { key: 'pit',         labelKey: 'salPage.pit' },
+  { key: 'transferred', label: 'Transferred' },
 ];
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
@@ -22,7 +24,7 @@ function loadFile(month) {
 
 function SalariesPage() {
   const { t } = useLanguage();
-  const SUBTABS = SUBTAB_KEYS.map(s => ({ ...s, label: t(s.labelKey) }));
+  const SUBTABS = SUBTAB_KEYS.map(s => ({ ...s, label: s.label || t(s.labelKey) }));
   const [currentMonth, setCurrentMonth] = useState(todayMonth);
   const [salaryFile, setSalaryFile] = useState(() => loadFile(todayMonth()));
   const [subTab, setSubTab] = useState('accrual');
@@ -77,6 +79,9 @@ function SalariesPage() {
       )}
       {subTab === 'pit' && (
         <PersonalIncomeTax />
+      )}
+      {subTab === 'transferred' && (
+        <Transferred month={currentMonth} />
       )}
     </div>
   );
