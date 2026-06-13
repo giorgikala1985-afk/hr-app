@@ -5,17 +5,22 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Employees.css';
 import '../Options/Options.css';
-import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
-
-// Widths for always-visible columns: name (0), salary (1)
-const EMP_STATIC_WIDTHS = [160, 120];
+import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 
 const DEFAULT_COLUMN_KEYS = ['photo', 'name', 'personalId', 'birthdate', 'position', 'salary', 'account', 'startDate', 'endDate', 'pension'];
 const DEFAULT_VISIBLE = new Set(DEFAULT_COLUMN_KEYS);
 
+// Default proportional widths (px) per column. With table-layout:fixed + width:100%
+// these set the relative proportions; the browser stretches them to fill the table,
+// so hiding a column makes the rest expand to fill the gap. Each is drag-resizable.
+const DEFAULT_COL_WIDTHS = {
+  photo: 60, name: 200, personalId: 140, birthdate: 130, position: 140,
+  salary: 130, account: 210, startDate: 130, endDate: 120, pension: 90,
+};
+
 function EmployeeList() {
   const { t } = useLanguage();
-  const { colWidths: empColWidths, onResizeMouseDown: empOnResizeMouseDown } = useColumnResize(EMP_STATIC_WIDTHS);
+  const { widths: colWidths, onResizeMouseDown } = useKeyedColumnWidths('emp_col_widths', DEFAULT_COL_WIDTHS);
 
   const ALL_COLUMNS = [
     { key: 'photo', label: t('col.photo'), hideable: true },
@@ -300,18 +305,6 @@ function EmployeeList() {
                 <button onClick={() => navigate(`/employees/${selId}/edit`)} className="btn-icon" title={t('action.edit')}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                 </button>
-                <button onClick={() => navigate(`/employees/${selId}/edit?tab=salary`)} className="btn-icon" title={t('action.salaryChanges')}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-                </button>
-                <button onClick={() => navigate(`/employees/${selId}/edit?tab=account`)} className="btn-icon" title={t('action.accountChanges')}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><line x1="12" y1="15" x2="12" y2="17"/></svg>
-                </button>
-                <button onClick={() => navigate(`/employees/${selId}/edit?tab=documents`)} className="btn-icon" title={t('action.documents')}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                </button>
-                <button onClick={() => navigate(`/employees/${selId}/edit?tab=members`)} className="btn-icon" title={t('action.members')}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                </button>
                 <button onClick={() => handleDelete(employees.find(e => e.id === selId))} className="btn-icon btn-delete" title={t('action.delete')}>
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                 </button>
@@ -363,6 +356,13 @@ function EmployeeList() {
       ) : (
         <div className="emp-table-wrapper">
           <table className="emp-table">
+            <colgroup>
+              <col style={{ width: 40 }} />
+              {ALL_COLUMNS.filter((c) => isCol(c.key)).map((c) => (
+                <col key={c.key} style={{ width: colWidths[c.key] }} />
+              ))}
+              <col style={{ width: 64 }} />
+            </colgroup>
             <thead>
               <tr>
                 <th className="th-checkbox">
@@ -372,16 +372,17 @@ function EmployeeList() {
                     onChange={toggleSelectAll}
                   />
                 </th>
-                {isCol('photo') && <th>{t('col.photo')}</th>}
-                {isCol('name') && <th style={{ position: 'relative', width: empColWidths[0], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('col.name')}<div onMouseDown={e => empOnResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>}
-                {isCol('personalId') && <th>{t('col.personalId')}</th>}
-                {isCol('birthdate') && <th>{t('col.birthdate')}</th>}
-                {isCol('position') && <th>{t('col.position')}</th>}
-                {isCol('salary') && <th style={{ position: 'relative', width: empColWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('col.salary')}<div onMouseDown={e => empOnResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>}
-                {isCol('account') && <th>{t('col.account')}</th>}
-                {isCol('startDate') && <th>{t('col.startDate')}</th>}
-                {isCol('endDate') && <th>{t('col.endDate')}</th>}
-                {isCol('pension') && <th>Pension</th>}
+                {ALL_COLUMNS.filter((c) => isCol(c.key)).map((c) => (
+                  <th key={c.key} style={{ position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {c.label}
+                    <div
+                      onMouseDown={(e) => onResizeMouseDown(e, c.key)}
+                      style={RESIZE_HANDLE_STYLE}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = '#cbd5e1')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    />
+                  </th>
+                ))}
                 <th></th>
               </tr>
             </thead>
@@ -417,7 +418,7 @@ function EmployeeList() {
                   {isCol('salary') && <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontFamily: 'var(--font-mono), monospace' }}>{Number(emp.salary).toLocaleString('en-US', { minimumFractionDigits: 2 })} {emp.salary_currency || 'GEL'}</td>}
                   {isCol('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
                   {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
-                  {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="position-badge">{t('emp.active')}</span>}</td>}
+                  {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="status-active">{t('emp.active')}</span>}</td>}
                   {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 16 }}>✔</span> : '—'}</td>}
                   <td>
                     <div className="action-btns">

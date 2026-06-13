@@ -4,52 +4,44 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { loadNavOrder, NAV_ORDER_KEY } from '../Options/NavOrderSettings';
+import { Logo } from '../Options/logos';
 import NotificationBell from './NotificationBell';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Home01Icon,
+  Analytics01Icon,
+  File01Icon,
+  Calculator01Icon,
+  Settings01Icon,
+  Shield01Icon,
+} from '@hugeicons/core-free-icons';
 import './Header.css';
 
 const FLAG_GB = 'https://flagcdn.com/w40/gb.png';
 const FLAG_GE = 'https://flagcdn.com/w40/ge.png';
 
+const navIcon = (icon, color) => <HugeiconsIcon icon={icon} size={17} color={color} strokeWidth={1.8} />;
+
 const NAV_CONFIG = {
   home: {
     path: '/', end: true, labelKey: 'nav.home',
-    icon: (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>
-      </svg>
-    ),
+    icon: navIcon(Home01Icon, '#f97316'),
   },
   analytics: {
     path: '/analytics', end: false, labelKey: 'nav.analytics',
-    icon: (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
-      </svg>
-    ),
+    icon: navIcon(Analytics01Icon, '#10b981'),
   },
   documents: {
     path: '/documents', end: false, labelKey: 'nav.documents',
-    icon: (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9H8"/>
-      </svg>
-    ),
+    icon: navIcon(File01Icon, '#3b82f6'),
   },
   accounting: {
     path: '/accounting', end: false, labelKey: 'nav.accounting',
-    icon: (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/><path d="M7 15h.01"/><path d="M11 15h2"/>
-      </svg>
-    ),
+    icon: navIcon(Calculator01Icon, '#8b5cf6'),
   },
   options: {
     path: '/options', end: false, labelKey: 'nav.options',
-    icon: (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    ),
+    icon: navIcon(Settings01Icon, '#f59e0b'),
   },
 };
 
@@ -59,7 +51,7 @@ const isAdmin = (email) => ADMIN_EMAILS.length === 0 || ADMIN_EMAILS.includes((e
 function Header() {
   const { user, signOut } = useAuth();
   const { language, setLanguage, t } = useLanguage();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, logo } = useTheme();
   const navigate = useNavigate();
   const [navOrder, setNavOrder] = useState(loadNavOrder);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -100,9 +92,7 @@ function Header() {
       <div className="header-content">
         <div className="header-logo">
           <Link to="/">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2 2 22l10-4 10 4Z"/><circle cx="12" cy="13" r="1"/>
-            </svg>
+            <Logo id={logo} size={22} />
             Finpilot
           </Link>
         </div>
@@ -119,9 +109,7 @@ function Header() {
           })}
           {isAdmin(user?.email) && (
             <NavLink to="/admin" end={false} style={({ isActive }) => ({ color: isActive ? '#16a34a' : undefined })}>
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              </svg>
+              <HugeiconsIcon icon={Shield01Icon} size={17} color="#16a34a" strokeWidth={1.8} />
               Admin
             </NavLink>
           )}

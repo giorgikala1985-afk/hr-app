@@ -301,7 +301,7 @@ export default function CurrencyRates() {
                   color: active ? CURRENCY_COLORS[cur] : 'var(--text-3)',
                 }}>
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: active ? CURRENCY_COLORS[cur] : 'var(--border-2)', display: 'inline-block' }} />
-                  {FLAG[cur]} {cur}
+                  {cur}
                 </button>
               );
             })}

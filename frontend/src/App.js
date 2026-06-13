@@ -16,6 +16,7 @@ import Analytics from './components/Analytics/Analytics';
 import DocumentsPage from './components/Documents/DocumentsPage';
 import SignDocument from './components/Documents/SignDocument';
 import AccountingPage from './components/Accounting/AccountingPage';
+import FloatingBots from './components/Accounting/FloatingBots';
 import HomePage from './components/Home/HomePage';
 import AdminPage from './components/Admin/AdminPage';
 import PortalLogin from './components/Portal/PortalLogin';
@@ -147,6 +148,7 @@ function App() {
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        <FloatingBots />
       </BrowserRouter>
     </AuthProvider>
     </LanguageProvider>

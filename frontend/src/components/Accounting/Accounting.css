@@ -138,6 +138,68 @@
   gap: 12px;
 }
 
+/* Column show/hide selector (matches Employees "Columns" menu) */
+.acc-col-toggle-wrapper {
+  position: relative;
+}
+.acc-btn-cols {
+  background: var(--surface);
+  color: var(--text-2);
+  border: 1.5px solid var(--border-2);
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.acc-btn-cols:hover {
+  border-color: var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.acc-col-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border-2);
+  box-shadow: var(--shadow-md);
+  padding: 6px 0;
+  z-index: 100;
+  min-width: 190px;
+}
+.acc-col-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.acc-col-item:hover {
+  background: var(--surface-2);
+}
+.acc-col-item input {
+  accent-color: var(--accent);
+  width: 14px;
+  height: 14px;
+}
+.acc-col-locked {
+  opacity: 0.5;
+  cursor: default;
+}
+.acc-col-locked:hover {
+  background: transparent;
+}
+
 /* Summary cards */
 .acc-summary {
   display: flex;

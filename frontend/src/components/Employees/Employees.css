@@ -115,8 +115,10 @@
   accent-color: #111827;
 }
 
-.row-selected {
-  background: #ebf4ff !important;
+.row-selected,
+.emp-table tbody tr.row-selected:nth-child(even) {
+  background: #e6f0ff !important;
+  box-shadow: inset 3px 0 0 var(--accent, #2563eb);
 }
 
 /* Column Toggle */
@@ -364,8 +366,9 @@
 
 .emp-table {
   width: 100%;
-  min-width: 1600px;
+  min-width: 760px;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .emp-table-wrapper::-webkit-scrollbar {
@@ -383,31 +386,44 @@
 }
 
 .emp-table thead {
-  background: #f8f9fa;
+  background: #f8fafc;
 }
 
 .emp-table th {
-  padding: 11px 16px;
+  padding: 8px 12px;
   text-align: left;
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.6px;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1.5px solid #e5e7eb;
   white-space: nowrap;
 }
 
 .emp-table td {
-  padding: 12px 16px;
-  font-size: 13.5px;
+  padding: 6px 12px;
+  font-size: 13px;
   color: #374151;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid #f1f3f7;
   vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Zebra striping for easier row scanning */
+.emp-table tbody tr:nth-child(even) {
+  background: #fafbfd;
+}
+
+.emp-table tbody tr {
+  transition: background 0.12s ease, box-shadow 0.12s ease;
 }
 
 .emp-table tbody tr:hover {
-  background: #fafbfc;
+  background: #eff5ff;
+  box-shadow: inset 3px 0 0 var(--accent, #2563eb);
 }
 
 .emp-table tbody tr:last-child td {
@@ -469,14 +485,15 @@ select.col-filter {
 }
 
 .emp-photo-thumb {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   overflow: hidden;
-  background: #f0f0f0;
+  background: linear-gradient(135deg, #e0e7ff, #ede9fe);
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.12);
 }
 
 .emp-photo-thumb img {
@@ -487,6 +504,7 @@ select.col-filter {
 
 .emp-photo-thumb .no-photo {
   font-size: 15px;
+  opacity: 0.7;
 }
 
 .emp-name {
@@ -495,13 +513,39 @@ select.col-filter {
 }
 
 .position-badge {
-  background: #f3f4f6;
-  color: #374151;
-  padding: 3px 10px;
+  display: inline-block;
+  background: #eef2ff;
+  color: #4f46e5;
+  padding: 2px 9px;
   border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 11.5px;
+  font-weight: 600;
   white-space: nowrap;
+  border: 1px solid #e0e7ff;
+}
+
+/* Active / status badge — distinct green pill with a status dot */
+.status-active {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ecfdf5;
+  color: #059669;
+  padding: 2px 9px 2px 7px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid #d1fae5;
+}
+
+.status-active::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
 }
 
 .salary {
@@ -1314,13 +1358,22 @@ select.col-filter {
 [data-theme="dark"] .emp-table thead { background: var(--surface-2); }
 [data-theme="dark"] .emp-table th {
   color: var(--text-3);
-  border-bottom-color: var(--border-2);
+  border-bottom-color: var(--border);
 }
 [data-theme="dark"] .emp-table td {
   color: var(--text-2);
-  border-bottom-color: var(--border-3);
+  border-bottom-color: var(--border-2);
 }
-[data-theme="dark"] .emp-table tbody tr:hover { background: var(--surface-2); }
+[data-theme="dark"] .emp-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, 0.018); }
+[data-theme="dark"] .emp-table tbody tr:hover {
+  background: rgba(77, 124, 254, 0.1);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+[data-theme="dark"] .row-selected,
+[data-theme="dark"] .emp-table tbody tr.row-selected:nth-child(even) {
+  background: rgba(77, 124, 254, 0.16) !important;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
 
 /* Column filters */
 [data-theme="dark"] .filter-row th {
@@ -1343,13 +1396,22 @@ select.col-filter {
 }
 
 /* Photo thumb */
-[data-theme="dark"] .emp-photo-thumb { background: var(--surface-3); }
+[data-theme="dark"] .emp-photo-thumb {
+  background: linear-gradient(135deg, #1e2a44, #261f3f);
+  box-shadow: 0 0 0 1px rgba(123, 167, 255, 0.15);
+}
 
 /* Employee name & badge */
 [data-theme="dark"] .emp-name { color: var(--text); }
 [data-theme="dark"] .position-badge {
-  background: var(--surface-2);
-  color: var(--text-2);
+  background: rgba(99, 102, 241, 0.16);
+  color: #a5b4fc;
+  border-color: rgba(99, 102, 241, 0.28);
+}
+[data-theme="dark"] .status-active {
+  background: rgba(16, 185, 129, 0.14);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.28);
 }
 
 /* Icon buttons */

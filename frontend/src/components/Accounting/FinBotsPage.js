@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { isFloating, setFloating } from './floatingStore';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import {
@@ -25,12 +26,17 @@ const DATA_SOURCE_DEFS = [
 ];
 
 const STORAGE_KEY_PREFIX = 'finpilot_finbots_';
+const DL_TABLES_KEY = 'dl_custom_tables';
 
 function getStorageKey(userId) {
   return STORAGE_KEY_PREFIX + (userId || 'guest');
 }
 
-function mapBot(b) {
+function readDLTables() {
+  try { return JSON.parse(localStorage.getItem(DL_TABLES_KEY)) || []; } catch { return []; }
+}
+
+export function mapBot(b) {
   return {
     ...b,
     dataSources: b.data_sources || [],
@@ -115,7 +121,7 @@ const BOT_ICONS = [
 ];
 
 // ── Bot avatar ───────────────────────────────────────────────────────────────
-function BotAvatar({ color, icon = 'bot', size = 36 }) {
+export function BotAvatar({ color, icon = 'bot', size = 36 }) {
   const iconDef = BOT_ICONS.find(i => i.key === icon) || BOT_ICONS[0];
   return (
     <div style={{
@@ -139,6 +145,8 @@ function BotModal({ bot, onSave, onClose }) {
   const [systemPrompt, setSystemPrompt] = useState(bot?.systemPrompt || '');
   const [color, setColor] = useState(bot?.color || '#ec4899');
   const [icon, setIcon] = useState(bot?.icon || 'bot');
+  const [floating, setFloatingState] = useState(() => isFloating(bot?.id));
+  const [dlTables] = useState(() => readDLTables());
 
   const toggleSource = (key) => {
     setSources(prev => prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]);
@@ -154,6 +162,7 @@ function BotModal({ bot, onSave, onClose }) {
       systemPrompt: systemPrompt.trim(),
       color,
       icon,
+      floating,
       createdAt: bot?.createdAt || new Date().toISOString(),
     });
   };
@@ -242,6 +251,40 @@ function BotModal({ bot, onSave, onClose }) {
                 rows={3}
               />
             </div>
+
+            {/* Floating chat widget toggle */}
+            <div
+              className="fb-field"
+              style={{
+                flexDirection: 'row', alignItems: 'center', gap: 12,
+                padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 12,
+                background: floating ? color + '10' : 'var(--surface-2)',
+                transition: 'background 0.15s',
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{t('fb.floating')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2, lineHeight: 1.4 }}>{t('fb.floatingHint')}</div>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={floating}
+                onClick={() => setFloatingState(v => !v)}
+                style={{
+                  position: 'relative', width: 44, height: 24, flexShrink: 0,
+                  borderRadius: 999, border: 'none', cursor: 'pointer', padding: 0,
+                  background: floating ? color : 'var(--border-2)',
+                  transition: 'background 0.18s',
+                }}
+              >
+                <span style={{
+                  position: 'absolute', top: 2, left: floating ? 22 : 2,
+                  width: 20, height: 20, borderRadius: '50%', background: '#fff',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.18s',
+                }} />
+              </button>
+            </div>
           </div>
 
           {/* Right column — Data sources */}
@@ -262,6 +305,44 @@ function BotModal({ bot, onSave, onClose }) {
                 )}
               </label>
             ))}
+
+            {/* Data Lake Tables */}
+            <div style={{ height: 1, background: 'var(--border)', margin: '14px 0 10px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="3" y1="15" x2="21" y2="15"/>
+                <line x1="9" y1="9" x2="9" y2="21"/>
+                <line x1="15" y1="9" x2="15" y2="21"/>
+              </svg>
+              Data Lake Tables
+            </div>
+            {dlTables.length === 0 ? (
+              <div style={{ fontSize: 12, color: 'var(--text-4)', padding: '6px 2px', lineHeight: 1.5 }}>
+                No tables yet. Go to <strong>Data Lake → Tables</strong> to create one.
+              </div>
+            ) : (
+              dlTables.map(table => {
+                const key = `dl_table:${table.id}`;
+                const selected = sources.includes(key);
+                return (
+                  <label key={table.id} className={`fb-source-item${selected ? ' selected' : ''}`} style={selected ? { borderColor: '#6366f1', background: '#6366f118' } : {}}>
+                    <input type="checkbox" checked={selected} onChange={() => toggleSource(key)} style={{ display: 'none' }} />
+                    <div className="fb-source-dot" style={{ background: '#6366f1' }} />
+                    <div>
+                      <div className="fb-source-name">{table.name}</div>
+                      <div className="fb-source-desc">{table.columns.length} col · {table.rows.length} rows</div>
+                    </div>
+                    {selected && (
+                      <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                    )}
+                  </label>
+                );
+              })
+            )}
           </div>
         </div>
 
@@ -554,7 +635,7 @@ function MessageContent({ content }) {
 }
 
 // ── Chat view ────────────────────────────────────────────────────────────────
-function BotChat({ bot }) {
+export function BotChat({ bot, showHeader = true }) {
   const { t } = useLanguage();
   const [messages, setMessages] = useState(() => loadChatHistory(bot.id));
   const [input, setInput] = useState('');
@@ -586,11 +667,18 @@ function BotChat({ bot }) {
     setLoading(true);
 
     try {
+      const allDlTables = readDLTables();
+      const dlTablesData = (bot.dataSources || [])
+        .filter(s => s.startsWith('dl_table:'))
+        .map(key => allDlTables.find(t => t.id === key.replace('dl_table:', '')))
+        .filter(Boolean);
+
       const res = await api.post('/finbots/chat', {
         botName: bot.name,
-        dataSources: bot.dataSources || [],
+        dataSources: (bot.dataSources || []).filter(s => !s.startsWith('dl_table:')),
         systemPrompt: bot.systemPrompt || '',
         messages: newMessages.filter(m => m.role === 'user' || m.role === 'assistant'),
+        dlTablesData,
       });
       setMessages(m => [...m, { role: 'assistant', content: res.data.answer }]);
     } catch (err) {
@@ -603,18 +691,31 @@ function BotChat({ bot }) {
   };
 
   const connectedSources = DATA_SOURCE_DEFS.filter(s => bot.dataSources?.includes(s.key));
+  const connectedDlTables = (() => {
+    const all = readDLTables();
+    return (bot.dataSources || [])
+      .filter(s => s.startsWith('dl_table:'))
+      .map(key => all.find(t => t.id === key.replace('dl_table:', '')))
+      .filter(Boolean);
+  })();
+  const sourceLabels = [
+    ...connectedSources.map(s => t(s.labelKey)),
+    ...connectedDlTables.map(tbl => tbl.name),
+  ];
+  const hasSources = sourceLabels.length > 0;
 
   return (
     <div className="fb-chat">
       {/* Chat header */}
+      {showHeader && (
       <div className="fb-chat-header">
         <BotAvatar color={bot.color} icon={bot.icon} size={38} />
         <div>
           <div className="fb-chat-bot-name">{bot.name}</div>
           <div className="fb-chat-bot-meta">
-            {connectedSources.length === 0
+            {!hasSources
               ? 'No data sources connected'
-              : connectedSources.map(s => t(s.labelKey)).join(', ')}
+              : sourceLabels.join(', ')}
           </div>
         </div>
         <button className="fb-clear-btn" onClick={() => { clearChatHistory(bot.id); setMessages([]); }} title="Clear conversation">
@@ -625,6 +726,7 @@ function BotChat({ bot }) {
           Clear
         </button>
       </div>
+      )}
 
       {/* Messages */}
       <div className="fb-messages">
@@ -633,11 +735,11 @@ function BotChat({ bot }) {
             <BotAvatar color={bot.color} icon={bot.icon} size={56} />
             <div className="fb-empty-chat-name">{bot.name}</div>
             <div className="fb-empty-chat-hint">
-              {connectedSources.length === 0
+              {!hasSources
                 ? 'No data sources connected. Edit this bot to connect data.'
-                : `Connected to: ${connectedSources.map(s => t(s.labelKey)).join(', ')}`}
+                : `Connected to: ${sourceLabels.join(', ')}`}
             </div>
-            {connectedSources.length > 0 && (
+            {hasSources && (
               <div className="fb-suggestions">
                 {bot.dataSources?.includes('salaries') && (
                   <button className="fb-suggestion" onClick={() => setInput('When did the last salary change happen?')}>
@@ -742,13 +844,16 @@ function FinBotsPage() {
     try {
       const res = await api.post('/finbots', bot);
       const savedBot = mapBot(res.data.bot);
-      
+
+      // Persist the floating-widget preference against the saved (real) id.
+      setFloating(savedBot.id, !!bot.floating);
+
       setBots(prev => {
         const idx = prev.findIndex(b => b.id === savedBot.id);
         if (idx >= 0) return prev.map(b => b.id === savedBot.id ? savedBot : b);
         return [savedBot, ...prev];
       });
-      
+
       setSelectedId(savedBot.id);
       setShowModal(false);
       setEditingBot(null);
@@ -806,9 +911,20 @@ function FinBotsPage() {
               <div className="fb-bot-item-info">
                 <div className="fb-bot-item-name">{bot.name}</div>
                 <div className="fb-bot-item-sources">
-                  {bot.dataSources?.length
-                    ? bot.dataSources.map(s => DATA_SOURCE_DEFS.find(d => d.key === s)?.labelKey ? t(DATA_SOURCE_DEFS.find(d => d.key === s).labelKey) : s).join(', ')
-                    : t('fb.noDataConnected')}
+                  {(() => {
+                    if (!bot.dataSources?.length) return t('fb.noDataConnected');
+                    const dlTables = readDLTables();
+                    const labels = bot.dataSources.map(s => {
+                      const def = DATA_SOURCE_DEFS.find(d => d.key === s);
+                      if (def?.labelKey) return t(def.labelKey);
+                      if (s.startsWith('dl_table:')) {
+                        const tbl = dlTables.find(x => x.id === s.replace('dl_table:', ''));
+                        return tbl ? tbl.name : null;
+                      }
+                      return s;
+                    }).filter(Boolean);
+                    return labels.length ? labels.join(', ') : t('fb.noDataConnected');
+                  })()}
                 </div>
               </div>
               <div className="fb-bot-item-actions">

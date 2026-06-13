@@ -122,7 +122,6 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #fff;
 }
 .docs-sidebar-icon svg { width: 20px; height: 20px; }
 

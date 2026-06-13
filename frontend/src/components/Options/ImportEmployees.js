@@ -5,7 +5,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 
 const TEMPLATE_COLUMNS = [
   'First Name', 'Last Name', 'Personal ID', 'Birthdate',
-  'Position', 'Salary', 'OT Rate', 'Start Date', 'End Date', 'Account Number', 'Pension'
+  'Position', 'Salary', 'Currency', 'OT Rate', 'Start Date', 'End Date', 'Account Number', 'Pension'
 ];
 
 function ImportEmployees() {
@@ -22,13 +22,13 @@ function ImportEmployees() {
     const exampleRow = {
       'First Name': 'John', 'Last Name': 'Doe', 'Personal ID': '01234567890',
       'Birthdate': '1990-05-15', 'Position': 'Developer', 'Salary': 3000,
-      'OT Rate': 25, 'Start Date': '2025-01-01', 'End Date': '',
+      'Currency': 'GEL', 'OT Rate': 25, 'Start Date': '2025-01-01', 'End Date': '',
       'Account Number': 'GE29TB7894545082100008', 'Pension': 'Yes'
     };
     const ws = XLSX.utils.json_to_sheet([exampleRow], { header: TEMPLATE_COLUMNS });
     ws['!cols'] = [
       { wch: 15 }, { wch: 15 }, { wch: 18 }, { wch: 14 },
-      { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 28 }, { wch: 10 }
+      { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 28 }, { wch: 10 }
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Employees');
@@ -74,6 +74,12 @@ function ImportEmployees() {
           }
           return '';
         };
+        const detectedHeaders = data.length > 0 ? Object.keys(data[0]) : [];
+        console.log('Detected Excel columns:', detectedHeaders);
+        const hasCurrencyCol = detectedHeaders.some(h => norm(h) === 'currency' || norm(h) === 'salarycurrency');
+        if (!hasCurrencyCol) {
+          setError(`No "Currency" column found in your file. Detected columns: ${detectedHeaders.join(', ')}. Add a column named "Currency" with values GEL, USD, or EUR.`);
+        }
         const mapped = data.map((row) => ({
           first_name: getVal(row, 'First Name', 'FirstName', 'first_name', 'fname', 'first', 'სახელი', 'employee name', 'given name') || '',
           last_name: getVal(row, 'Last Name', 'LastName', 'last_name', 'lname', 'surname', 'family name', 'familyname', 'name', 'გვარი') || '',
@@ -81,6 +87,7 @@ function ImportEmployees() {
           birthdate: formatExcelDate(getVal(row, 'Birthdate', 'Birth Date', 'birthdate', 'დაბადების თარიღი')),
           position: getVal(row, 'Position', 'position', 'პოზიცია') || '',
           salary: getVal(row, 'Salary', 'salary', 'ხელფასი') || '',
+          salary_currency: (() => { const raw = getVal(row, 'Currency', 'currency', 'Salary Currency', 'salary_currency'); const c = String(raw || '').toUpperCase().trim(); return ['GEL', 'USD', 'EUR'].includes(c) ? c : 'GEL'; })(),
           overtime_rate: getVal(row, 'OT Rate', 'OT rate', 'overtime_rate', 'Overtime Rate', 'ზეგანაკვეთური') || '',
           start_date: formatExcelDate(getVal(row, 'Start Date', 'StartDate', 'start_date', 'დაწყების თარიღი')),
           end_date: formatExcelDate(getVal(row, 'End Date', 'EndDate', 'end_date', 'დასრულების თარიღი')),
@@ -261,7 +268,7 @@ function ImportEmployees() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <thead>
                       <tr style={{ background: 'var(--surface-2)' }}>
-                        {['#', t('import.firstName'), t('import.lastName'), t('import.personalId'), t('import.birthdate'), t('import.position'), t('import.salary'), t('import.otRate'), t('import.startDate'), t('import.endDate'), t('import.account'), 'Pension'].map((h, i) => (
+                        {['#', t('import.firstName'), t('import.lastName'), t('import.personalId'), t('import.birthdate'), t('import.position'), t('import.salary'), 'Currency', t('import.otRate'), t('import.startDate'), t('import.endDate'), t('import.account'), 'Pension'].map((h, i) => (
                           <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 600, color: 'var(--text-3)', fontSize: 11, whiteSpace: 'nowrap', borderBottom: '1px solid var(--border-2)' }}>{h}</th>
                         ))}
                       </tr>
@@ -276,6 +283,7 @@ function ImportEmployees() {
                           <td style={{ padding: '7px 10px', color: !row.birthdate ? '#dc2626' : 'var(--text)' }}>{row.birthdate || '—'}</td>
                           <td style={{ padding: '7px 10px', color: !row.position ? '#dc2626' : 'var(--text)' }}>{row.position || '—'}</td>
                           <td style={{ padding: '7px 10px', color: !row.salary && row.salary !== 0 ? '#dc2626' : 'var(--text)' }}>{row.salary}</td>
+                          <td style={{ padding: '7px 10px', fontWeight: 600, color: 'var(--text-3)' }}>{row.salary_currency || 'GEL'}</td>
                           <td style={{ padding: '7px 10px', color: !row.overtime_rate && row.overtime_rate !== 0 ? '#dc2626' : 'var(--text)' }}>{row.overtime_rate}</td>
                           <td style={{ padding: '7px 10px', color: !row.start_date ? '#dc2626' : 'var(--text)' }}>{row.start_date || '—'}</td>
                           <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.end_date || '—'}</td>

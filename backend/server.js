@@ -99,8 +99,9 @@ app.use('/api/test-debug', testDebugRoutes);
 app.use('/api/documents/sign', documentRoutes);
 app.use('/api/documents', authenticateUser, documentRoutes);
 
-// Serve React build in production
-if (process.env.NODE_ENV === 'production') {
+// Serve React build only when explicitly enabled (single-host deploys like Render).
+// On Vercel the backend is API-only — the frontend is hosted separately (Netlify).
+if (process.env.NODE_ENV === 'production' && process.env.SERVE_CLIENT === 'true') {
   const buildPath = path.join(__dirname, '../frontend/build');
   app.use(express.static(buildPath));
   app.get('*', (req, res) => {
@@ -130,8 +131,11 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-  console.log(`HR API running on http://localhost:${PORT}`);
-});
+// On Vercel the app is invoked as a serverless handler — don't bind a port.
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`HR API running on http://localhost:${PORT}`);
+  });
+}
 
 module.exports = app;

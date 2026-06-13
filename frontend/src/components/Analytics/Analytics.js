@@ -3,6 +3,238 @@ import api from '../../services/api';
 import './Analytics.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line
+} from 'recharts';
+
+const DL_TABLES_KEY = 'dl_custom_tables';
+const CHART_COLORS = ['#6366f1','#22c55e','#f59e0b','#ec4899','#14b8a6','#f87171','#818cf8','#34d399'];
+
+function DataLakeCharts() {
+  const [tables, setTables] = useState([]);
+  const [selectedTableId, setSelectedTableId] = useState('');
+  const [mode, setMode] = useState('values');
+  const [labelColId, setLabelColId] = useState('');
+  const [valueColId, setValueColId] = useState('');
+  const [groupColId, setGroupColId] = useState('');
+  const [chartType, setChartType] = useState('bar');
+
+  useEffect(() => {
+    const load = () => {
+      try { setTables(JSON.parse(localStorage.getItem(DL_TABLES_KEY)) || []); } catch {}
+    };
+    load();
+    window.addEventListener('storage', load);
+    return () => window.removeEventListener('storage', load);
+  }, []);
+
+  const table = tables.find(t => t.id === selectedTableId);
+  const numericCols = table ? table.columns.filter(c => c.type === 'number') : [];
+  const allCols = table ? table.columns : [];
+
+  useEffect(() => {
+    if (!table) return;
+    const firstNum = numericCols[0];
+    const firstAny = allCols[0];
+    if (mode === 'values') {
+      setLabelColId(allCols.find(c => c.type === 'text' || c.type === 'dropdown')?.id || allCols[0]?.id || '');
+      setValueColId(firstNum?.id || '');
+    } else {
+      setGroupColId(firstAny?.id || '');
+    }
+    setChartType('bar');
+  }, [selectedTableId, mode]);
+
+  const buildChartData = () => {
+    if (!table || !table.rows.length) return [];
+    if (mode === 'values') {
+      if (!valueColId) return [];
+      return table.rows
+        .map(r => ({
+          label: labelColId ? String(r[labelColId] || '') : '',
+          value: parseFloat(r[valueColId]) || 0,
+        }))
+        .filter(d => d.value !== 0 || d.label);
+    } else {
+      if (!groupColId) return [];
+      const counts = {};
+      table.rows.forEach(r => {
+        const key = String(r[groupColId] || 'Empty');
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      return Object.entries(counts).map(([label, value]) => ({ label, value }));
+    }
+  };
+
+  const chartData = buildChartData();
+  const maxVal = chartData.length ? Math.max(...chartData.map(d => d.value)) : 0;
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 14px', fontSize: 13 }}>
+        <div style={{ fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>{payload[0]?.payload?.label}</div>
+        <div style={{ color: '#6366f1', fontWeight: 600 }}>{payload[0]?.value}</div>
+      </div>
+    );
+  };
+
+  if (tables.length === 0) {
+    return (
+      <div className="an-section">
+        <div className="an-section-head">
+          <div className="an-section-title">Data Lake Charts</div>
+        </div>
+        <div style={{ textAlign: 'center', padding: '32px 20px', color: 'var(--text-4)', fontSize: 13 }}>
+          No tables yet. Go to <strong>Data Lake → Tables</strong> to create one.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="an-section">
+      <div className="an-section-head">
+        <div className="an-section-title">Data Lake Charts</div>
+        <select
+          className="an-select"
+          value={selectedTableId}
+          onChange={e => setSelectedTableId(e.target.value)}
+        >
+          <option value="">Select table...</option>
+          {tables.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+        </select>
+      </div>
+
+      {!selectedTableId && (
+        <div style={{ textAlign: 'center', padding: '28px 20px', color: 'var(--text-4)', fontSize: 13 }}>
+          Select a table to build a chart
+        </div>
+      )}
+
+      {table && (
+        <>
+          <div className="dl-chart-controls">
+            <div className="dl-chart-control-group">
+              <span className="dl-chart-label">Mode</span>
+              <div className="dl-chart-toggle">
+                <button className={`dl-chart-toggle-btn${mode === 'values' ? ' active' : ''}`} onClick={() => setMode('values')}>Values per row</button>
+                <button className={`dl-chart-toggle-btn${mode === 'count' ? ' active' : ''}`} onClick={() => setMode('count')}>Count by field</button>
+              </div>
+            </div>
+
+            {mode === 'values' && (
+              <>
+                <div className="dl-chart-control-group">
+                  <span className="dl-chart-label">Label (X axis)</span>
+                  <select className="an-select" value={labelColId} onChange={e => setLabelColId(e.target.value)}>
+                    <option value="">None</option>
+                    {allCols.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+                <div className="dl-chart-control-group">
+                  <span className="dl-chart-label">Value (Y axis)</span>
+                  <select className="an-select" value={valueColId} onChange={e => setValueColId(e.target.value)}>
+                    <option value="">Select column...</option>
+                    {numericCols.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {mode === 'count' && (
+              <div className="dl-chart-control-group">
+                <span className="dl-chart-label">Group by</span>
+                <select className="an-select" value={groupColId} onChange={e => setGroupColId(e.target.value)}>
+                  <option value="">Select column...</option>
+                  {allCols.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+            )}
+
+            <div className="dl-chart-control-group">
+              <span className="dl-chart-label">Chart type</span>
+              <div className="dl-chart-toggle">
+                <button className={`dl-chart-toggle-btn${chartType === 'bar' ? ' active' : ''}`} onClick={() => setChartType('bar')}>Bar</button>
+                <button className={`dl-chart-toggle-btn${chartType === 'line' ? ' active' : ''}`} onClick={() => setChartType('line')}>Line</button>
+                <button className={`dl-chart-toggle-btn${chartType === 'pie' ? ' active' : ''}`} onClick={() => setChartType('pie')}>Pie</button>
+              </div>
+            </div>
+          </div>
+
+          {chartData.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '28px', color: 'var(--text-4)', fontSize: 13 }}>
+              {mode === 'values' && !valueColId ? 'Select a numeric column to visualize.' : 'No data to display.'}
+            </div>
+          ) : (
+            <div style={{ marginTop: 16 }}>
+              {chartType === 'bar' && (
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={chartData} margin={{ top: 4, right: 8, left: -10, bottom: 32 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-4)' }} angle={-30} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fontSize: 11, fill: 'var(--text-4)' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} maxBarSize={48}>
+                      {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+              {chartType === 'line' && (
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={chartData} margin={{ top: 4, right: 8, left: -10, bottom: 32 }}>
+                    <CartesianGrid vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-4)' }} angle={-30} textAnchor="end" interval={0} />
+                    <YAxis tick={{ fontSize: 11, fill: 'var(--text-4)' }} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Line type="monotone" dataKey="value" stroke="#6366f1" strokeWidth={2.5} dot={{ fill: '#6366f1', r: 4 }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+              {chartType === 'pie' && (
+                <ResponsiveContainer width="100%" height={260}>
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      dataKey="value"
+                      nameKey="label"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      innerRadius={48}
+                      paddingAngle={2}
+                      label={({ label, percent }) => `${label} ${(percent * 100).toFixed(0)}%`}
+                      labelLine={false}
+                    >
+                      {chartData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend iconType="circle" iconSize={10} wrapperStyle={{ fontSize: 12 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
+
+              <div className="dl-chart-summary">
+                {chartData.map((d, i) => (
+                  <div key={i} className="dl-chart-summary-item">
+                    <span className="dl-chart-summary-dot" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                    <span className="dl-chart-summary-label">{d.label || '—'}</span>
+                    <span className="dl-chart-summary-val">{d.value}</span>
+                    <div className="dl-chart-summary-bar">
+                      <div style={{ width: `${maxVal > 0 ? (d.value / maxVal) * 100 : 0}%`, background: CHART_COLORS[i % CHART_COLORS.length], height: '100%', borderRadius: 999 }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 const SALARY_REPORT_WIDTHS = [130, 120, 130, 130, 130];
 
@@ -324,6 +556,8 @@ function Analytics() {
           </div>
         </div>
       )}
+
+      <DataLakeCharts />
 
     </div>
   );

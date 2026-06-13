@@ -9,14 +9,31 @@ import OvertimeSettings from './OvertimeSettings';
 import StockSettings from './StockSettings';
 import LanguageSettings from './LanguageSettings';
 import TaxSettings from './TaxSettings';
-import NavOrderSettings, { loadSidebarOrder, OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT } from './NavOrderSettings';
+import NavOrderSettings, { loadSidebarOrder, useSidebarReorder, OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT } from './NavOrderSettings';
 import UsersSettings from './UsersSettings';
 import AccountsSettings from './AccountsSettings';
 import ToolsPage from './Tools/ToolsPage';
 import BgColorSettings from './BgColorSettings';
 import FontSettings from './FontSettings';
+import LogoSettings from './LogoSettings';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Calendar03Icon,
+  InformationCircleIcon,
+  Table01Icon,
+  TaxesIcon,
+  Globe02Icon,
+  Menu01Icon,
+  AccountSetting01Icon,
+  UserSettings01Icon,
+  Settings01Icon,
+  PaintBoardIcon,
+  InformationSquareIcon,
+} from '@hugeicons/core-free-icons';
 import './Options.css';
+
+const optIcon = (icon, color) => <HugeiconsIcon icon={icon} size={16} color={color} strokeWidth={1.8} />;
 
 const CHEVRON_LEFT = (
   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -59,81 +76,21 @@ function OptionsPage() {
   });
 
   const tabs = [
-    { key: 'holidays', label: t('options.holidays'), icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-      </svg>
-    )},
-    { key: 'info', label: 'Info', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="8"/>
-        <line x1="12" y1="12" x2="12" y2="16"/>
-      </svg>
-    )},
-    { key: 'pagination', label: t('options.pagination'), icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-        <polyline points="14,2 14,8 20,8"/>
-        <line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/>
-      </svg>
-    )},
-    { key: 'tax', label: t('options.tax'), icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 2h16v22l-3-2-2 2-2-2-2 2-2-2-3 2V2z"/>
-        <line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/>
-        <line x1="9" y1="16" x2="13" y2="16"/>
-      </svg>
-    )},
-    { key: 'language', label: t('options.language'), icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="2" y1="12" x2="22" y2="12"/>
-        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-      </svg>
-    )},
-    { key: 'navorder', label: t('options.navOrder'), icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-      </svg>
-    )},
-    { key: 'accounts', label: 'Accounts', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0369a1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 2h16v22l-3-2-2 2-2-2-2 2-2-2-3 2V2z"/>
-        <line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="15" y2="11"/>
-        <line x1="9" y1="15" x2="13" y2="15"/>
-      </svg>
-    )},
-    ...(isSuperAdmin ? [{ key: 'users', label: 'Users & Roles', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-        <circle cx="12" cy="7" r="4"/>
-      </svg>
-    )}] : []),
-    { key: 'tools', label: 'Tools', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-      </svg>
-    )},
-    { key: 'appearance', label: 'Appearance', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f43f5e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <circle cx="12" cy="12" r="3"/>
-        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
-      </svg>
-    )},
-    { key: 'about', label: 'About', icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <line x1="12" y1="8" x2="12" y2="12"/>
-        <line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-    )},
+    { key: 'holidays', label: t('options.holidays'), icon: optIcon(Calendar03Icon, '#f43f5e') },
+    { key: 'info', label: 'Info', icon: optIcon(InformationCircleIcon, '#8b5cf6') },
+    { key: 'pagination', label: t('options.pagination'), icon: optIcon(Table01Icon, '#f97316') },
+    { key: 'tax', label: t('options.tax'), icon: optIcon(TaxesIcon, '#10b981') },
+    { key: 'language', label: t('options.language'), icon: optIcon(Globe02Icon, '#06b6d4') },
+    { key: 'navorder', label: t('options.navOrder'), icon: optIcon(Menu01Icon, '#6366f1') },
+    { key: 'accounts', label: 'Accounts', icon: optIcon(AccountSetting01Icon, '#0369a1') },
+    ...(isSuperAdmin ? [{ key: 'users', label: 'Users & Roles', icon: optIcon(UserSettings01Icon, '#7c3aed') }] : []),
+    { key: 'tools', label: 'Tools', icon: optIcon(Settings01Icon, '#f59e0b') },
+    { key: 'appearance', label: 'Appearance', icon: optIcon(PaintBoardIcon, '#f43f5e') },
+    { key: 'about', label: 'About', icon: optIcon(InformationSquareIcon, '#ec4899') },
   ];
+
+  const orderedTabs = [...tabs].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key));
+  const { getItemProps } = useSidebarReorder(OPT_SIDEBAR_ORDER_KEY, orderedTabs.map(tab => tab.key), setSidebarOrder);
 
   return (
     <div className="acc-layout">
@@ -144,12 +101,13 @@ function OptionsPage() {
             {collapsed ? CHEVRON_RIGHT : CHEVRON_LEFT}
           </button>
         </div>
-        {[...tabs].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key)).map((tab) => (
+        {orderedTabs.map((tab) => (
           <button
             key={tab.key}
             className={`acc-sidebar-btn${activeTab === tab.key ? ' active' : ''}`}
             onClick={() => setActiveTab(tab.key)}
             title={collapsed ? tab.label : ''}
+            {...getItemProps(tab.key)}
           >
             <span className="acc-sidebar-icon">{tab.icon}</span>
             <span className="acc-sidebar-btn-label">{tab.label}</span>
@@ -218,6 +176,7 @@ function OptionsPage() {
         {activeTab === 'tools' && <ToolsPage />}
         {activeTab === 'appearance' && (
           <div>
+            <LogoSettings />
             <BgColorSettings />
             <FontSettings />
           </div>

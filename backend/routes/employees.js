@@ -92,6 +92,8 @@ router.post('/import', async (req, res) => {
       return res.status(400).json({ error: 'No employees data provided' });
     }
 
+    console.log('Import received, first employee salary_currency:', employees[0]?.salary_currency);
+
     const required = ['first_name', 'last_name', 'personal_id', 'position', 'salary', 'start_date'];
     const errors = [];
     const valid = [];
@@ -114,6 +116,7 @@ router.post('/import', async (req, res) => {
           start_date: emp.start_date,
           end_date: emp.end_date || null,
           account_number: emp.account_number ? String(emp.account_number).trim() : null,
+          salary_currency: ['GEL', 'USD', 'EUR'].includes(String(emp.salary_currency || '').toUpperCase()) ? String(emp.salary_currency).toUpperCase() : 'GEL',
           photo_url: null
         });
       }

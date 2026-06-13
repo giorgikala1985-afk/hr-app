@@ -1,5 +1,26 @@
 import React, { useState, useRef } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Home01Icon, Analytics01Icon, File01Icon, Calculator01Icon, Settings01Icon,
+  InboxIcon, UserGroupIcon, Briefcase01Icon, Agreement01Icon, ComputerIcon,
+  ExchangeDollarIcon, ClipboardListIcon, Database01Icon, Book01Icon, ShoppingCart01Icon,
+  SaleTag01Icon, Invoice01Icon, MoneyBag01Icon, Package01Icon, Calendar03Icon,
+  ArrowDataTransferHorizontalIcon, BankIcon, SecurityCheckIcon, AiBrain01Icon,
+  InformationCircleIcon, Table01Icon, TaxesIcon, Globe02Icon, Menu01Icon,
+  AccountSetting01Icon, UserSettings01Icon, PaintBoardIcon, InformationSquareIcon,
+} from '@hugeicons/core-free-icons';
+
+const listIcon = (icon) => <HugeiconsIcon icon={icon} size={16} color="currentColor" strokeWidth={1.8} />;
+
+// Sidebar menu items are no longer draggable in place. Reordering is done
+// exclusively through the Navigation panel in Options (see DraggableList below).
+// getItemProps is kept as a no-op so existing sidebars can keep spreading it
+// without changes.
+export function useSidebarReorder() {
+  const getItemProps = () => ({});
+  return { getItemProps, draggingKey: null, overKey: null };
+}
 
 export const NAV_ORDER_KEY = 'nav_order';
 export const NAV_KEYS_DEFAULT = ['home', 'analytics', 'documents', 'accounting', 'options'];
@@ -8,10 +29,10 @@ export const ACC_SIDEBAR_ORDER_KEY = 'acc_sidebar_order';
 export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'banking', 'rsge', 'ai-agent'];
 
 export const OPT_SIDEBAR_ORDER_KEY = 'opt_sidebar_order';
-export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'tools', 'about'];
+export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'tools', 'appearance', 'about'];
 
 export const DOCS_SIDEBAR_ORDER_KEY = 'docs_sidebar_order';
-export const DOCS_SIDEBAR_DEFAULT = ['employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'orders', 'importdata', 'datalake'];
+export const DOCS_SIDEBAR_DEFAULT = ['requests', 'employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'orders', 'datalake'];
 
 export function loadNavOrder() {
   try {
@@ -38,30 +59,50 @@ export function loadSidebarOrder(key, defaults) {
 }
 
 const NAV_ICONS = {
-  home: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>,
-  analytics: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>,
-  documents: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>,
-  accounting: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
-  options: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+  home: listIcon(Home01Icon),
+  analytics: listIcon(Analytics01Icon),
+  documents: listIcon(File01Icon),
+  accounting: listIcon(Calculator01Icon),
+  options: listIcon(Settings01Icon),
 };
 
-const ACC_LABELS = {
-  'bookkeeping': 'Bookkeeping', 'purchases': 'Purchases', 'sales': 'Sales',
-  'invoices': 'Invoices', 'salary-accrual': 'Salaries', 'stock': 'Stock',
-  'calendar': 'Calendar', 'transfers': 'Transfers', 'banking': 'TBC Bank', 'rsge': 'RS.ge',
-  'ai-agent': 'FinBot',
+const DOCS_ICONS = {
+  requests: listIcon(InboxIcon),
+  employees: listIcon(UserGroupIcon),
+  agents: listIcon(Briefcase01Icon),
+  agreements: listIcon(Agreement01Icon),
+  devices: listIcon(ComputerIcon),
+  'nbg-rates': listIcon(ExchangeDollarIcon),
+  orders: listIcon(ClipboardListIcon),
+  datalake: listIcon(Database01Icon),
 };
 
-const DOCS_LABELS = {
-  'employees': 'Employees', 'agents': 'Agents', 'agreements': 'Agreements',
-  'devices': 'Devices', 'nbg-rates': 'NBG Rates',
-  'orders': 'Orders', 'importdata': 'Import Data', 'datalake': 'Data Lake',
+const ACC_ICONS = {
+  bookkeeping: listIcon(Book01Icon),
+  purchases: listIcon(ShoppingCart01Icon),
+  sales: listIcon(SaleTag01Icon),
+  invoices: listIcon(Invoice01Icon),
+  'salary-accrual': listIcon(MoneyBag01Icon),
+  stock: listIcon(Package01Icon),
+  calendar: listIcon(Calendar03Icon),
+  transfers: listIcon(ArrowDataTransferHorizontalIcon),
+  banking: listIcon(BankIcon),
+  rsge: listIcon(SecurityCheckIcon),
+  'ai-agent': listIcon(AiBrain01Icon),
 };
 
-const OPT_LABELS = {
-  'holidays': 'Holidays', 'info': 'Info', 'pagination': 'Pagination',
-  'tax': 'Tax', 'language': 'Language', 'navorder': 'Navigation',
-  'accounts': 'Accounts', 'users': 'Users & Roles', 'tools': 'Tools', 'about': 'About',
+const OPT_ICONS = {
+  holidays: listIcon(Calendar03Icon),
+  info: listIcon(InformationCircleIcon),
+  pagination: listIcon(Table01Icon),
+  tax: listIcon(TaxesIcon),
+  language: listIcon(Globe02Icon),
+  navorder: listIcon(Menu01Icon),
+  accounts: listIcon(AccountSetting01Icon),
+  users: listIcon(UserSettings01Icon),
+  tools: listIcon(Settings01Icon),
+  appearance: listIcon(PaintBoardIcon),
+  about: listIcon(InformationSquareIcon),
 };
 
 function GripIcon() {
@@ -147,7 +188,7 @@ function SectionHeader({ title, subtitle }) {
   );
 }
 
-function ResetBtn({ onClick }) {
+function ResetBtn({ onClick, label }) {
   return (
     <button
       onClick={onClick}
@@ -160,13 +201,38 @@ function ResetBtn({ onClick }) {
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="1,4 1,10 7,10"/><path d="M3.51 15a9 9 0 1 0 .49-3.67"/>
       </svg>
-      Reset to default
+      {label}
     </button>
   );
 }
 
 function NavOrderSettings() {
   const { t } = useLanguage();
+
+  // Labels reuse the same translation keys as the actual tabs/nav.
+  const navLabels = {
+    home: t('nav.home'), analytics: t('nav.analytics'), documents: t('nav.documents'),
+    accounting: t('nav.accounting'), options: t('nav.options'),
+  };
+  const accLabels = {
+    bookkeeping: t('acc.bookkeeping'), purchases: t('acc.purchases'), sales: t('acc.sales'),
+    invoices: t('acc.invoices'), 'salary-accrual': t('acc.salaries'), stock: t('acc.stock'),
+    calendar: t('acc.calendar'), transfers: t('acc.transfers'), banking: t('acc.banking'),
+    rsge: t('acc.rsge'), 'ai-agent': t('docs.finbot'),
+  };
+  const docsLabels = {
+    requests: t('docs.requests'), employees: t('docs.employees'), agents: t('docs.agents'),
+    agreements: t('docs.agreements'), devices: t('docs.devices'), 'nbg-rates': t('docs.nbgRates'),
+    orders: t('docs.orders'), datalake: t('docs.dataLake'),
+  };
+  const optLabels = {
+    holidays: t('options.holidays'), info: t('options.info'), pagination: t('options.pagination'),
+    tax: t('options.tax'), language: t('options.language'), navorder: t('options.navOrder'),
+    accounts: t('options.accounts'), users: t('options.users'), tools: t('options.tools'),
+    appearance: t('options.appearance'), about: t('options.about'),
+  };
+  const resetLabel = t('navset.reset');
+
   const [navKey, setNavKey] = useState(0);
   const [accKey, setAccKey] = useState(0);
   const [optKey, setOptKey] = useState(0);
@@ -202,40 +268,40 @@ function NavOrderSettings() {
       <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)', margin: '0 0 4px' }}>
         {t('options.navOrder')}
       </h2>
-      <p className="acc-subtitle" style={{ marginBottom: 28 }}>Drag items to reorder menus. Changes apply immediately.</p>
+      <p className="acc-subtitle" style={{ marginBottom: 28 }}>{t('navset.subtitle')}</p>
 
       {/* Top navigation */}
       <div style={{ marginBottom: 32 }}>
-        <SectionHeader title="Top Navigation" subtitle="Reorder the main navigation bar items." />
-        <DraggableList key={`nav-${navKey}`} items={loadNavOrder()} labels={{ home: 'Home', analytics: 'Analytics', documents: 'Documents', accounting: 'Accounting', options: 'Options' }} icons={NAV_ICONS} onSave={saveNav} />
-        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetNav} /></div>
+        <SectionHeader title={t('navset.topNav')} subtitle={t('navset.topNavDesc')} />
+        <DraggableList key={`nav-${navKey}`} items={loadNavOrder()} labels={navLabels} icons={NAV_ICONS} onSave={saveNav} />
+        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetNav} label={resetLabel} /></div>
       </div>
 
       <div style={{ height: 1, background: 'var(--border-2)', marginBottom: 28 }} />
 
       {/* Accounting sidebar */}
       <div style={{ marginBottom: 32 }}>
-        <SectionHeader title="Accounting Sidebar" subtitle="Reorder the Accounting section sidebar tabs." />
-        <DraggableList key={`acc-${accKey}`} items={loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT)} labels={ACC_LABELS} onSave={saveAcc} />
-        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetAcc} /></div>
+        <SectionHeader title={t('navset.accSidebar')} subtitle={t('navset.accSidebarDesc')} />
+        <DraggableList key={`acc-${accKey}`} items={loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT)} labels={accLabels} icons={ACC_ICONS} onSave={saveAcc} />
+        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetAcc} label={resetLabel} /></div>
       </div>
 
       <div style={{ height: 1, background: 'var(--border-2)', marginBottom: 28 }} />
 
       {/* Options sidebar */}
       <div style={{ marginBottom: 32 }}>
-        <SectionHeader title="Options Sidebar" subtitle="Reorder the Options section sidebar tabs." />
-        <DraggableList key={`opt-${optKey}`} items={loadSidebarOrder(OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT)} labels={OPT_LABELS} onSave={saveOpt} />
-        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetOpt} /></div>
+        <SectionHeader title={t('navset.optSidebar')} subtitle={t('navset.optSidebarDesc')} />
+        <DraggableList key={`opt-${optKey}`} items={loadSidebarOrder(OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT)} labels={optLabels} icons={OPT_ICONS} onSave={saveOpt} />
+        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetOpt} label={resetLabel} /></div>
       </div>
 
       <div style={{ height: 1, background: 'var(--border-2)', marginBottom: 28 }} />
 
       {/* Documents sidebar */}
       <div style={{ marginBottom: 32 }}>
-        <SectionHeader title="Documents Sidebar" subtitle="Reorder the Documents section sidebar tabs." />
-        <DraggableList key={`docs-${docsKey}`} items={loadSidebarOrder(DOCS_SIDEBAR_ORDER_KEY, DOCS_SIDEBAR_DEFAULT)} labels={DOCS_LABELS} onSave={saveDocs} />
-        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetDocs} /></div>
+        <SectionHeader title={t('navset.docsSidebar')} subtitle={t('navset.docsSidebarDesc')} />
+        <DraggableList key={`docs-${docsKey}`} items={loadSidebarOrder(DOCS_SIDEBAR_ORDER_KEY, DOCS_SIDEBAR_DEFAULT)} labels={docsLabels} icons={DOCS_ICONS} onSave={saveDocs} />
+        <div style={{ marginTop: 10 }}><ResetBtn onClick={resetDocs} label={resetLabel} /></div>
       </div>
     </div>
   );

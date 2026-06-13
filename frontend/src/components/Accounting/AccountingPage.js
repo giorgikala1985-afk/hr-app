@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { loadSidebarOrder, ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT } from '../Options/NavOrderSettings';
+import { loadSidebarOrder, useSidebarReorder, ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT } from '../Options/NavOrderSettings';
 import { useLanguage } from '../../contexts/LanguageContext';
 import Purchases from './Purchases';
 import Sales from './Sales';
@@ -13,67 +13,36 @@ import Stock from './Stock';
 import TbcBanking from './TbcBanking';
 import RsGeIntegration from './RsGeIntegration';
 import FinBotsPage from './FinBotsPage';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  Book01Icon,
+  ShoppingCart01Icon,
+  SaleTag01Icon,
+  Invoice01Icon,
+  MoneyBag01Icon,
+  Package01Icon,
+  Calendar03Icon,
+  ArrowDataTransferHorizontalIcon,
+  BankIcon,
+  SecurityCheckIcon,
+  AiBrain01Icon,
+} from '@hugeicons/core-free-icons';
 import './Accounting.css';
 
+const accIcon = (icon, color) => <HugeiconsIcon icon={icon} size={16} color={color} strokeWidth={1.8} />;
+
 const ICONS = {
-  purchases: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f97316" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/>
-      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>
-    </svg>
-  ),
-  sales: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
-    </svg>
-  ),
-  invoices: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-      <polyline points="14 2 14 8 20 8"/>
-      <path d="M8 13h8"/><path d="M8 17h8"/><path d="M10 9H8"/>
-    </svg>
-  ),
-  salaryAccrual: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 2v20"/><path d="m17 5-5-3-5 3"/><path d="m17 19-5 3-5-3"/><path d="M2 12h20"/><path d="m5 7-3 5 3 5"/><path d="m19 7 3 5-3 5"/>
-    </svg>
-  ),
-  bookkeeping: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-    </svg>
-  ),
-  stock: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22.5V12"/>
-    </svg>
-  ),
-  calendar: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/><path d="M16 18h.01"/>
-    </svg>
-  ),
-  transfers: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m16 3 4 4-4 4"/><path d="M20 7H4a2 2 0 0 0-2 2v2"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16a2 2 0 0 0 2-2v-2"/>
-    </svg>
-  ),
-  banking: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#14b8a6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 21h18"/><path d="M3 10h18"/><path d="m5 6 7-3 7 3"/><path d="M4 10v11"/><path d="M20 10v11"/><path d="M8 14v3"/><path d="M12 14v3"/><path d="M16 14v3"/>
-    </svg>
-  ),
-  rsge: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e11d48" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
-    </svg>
-  ),
-  finbot: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ec4899" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="10" rx="2"/><path d="M12 2v3"/><circle cx="12" cy="5" r="1"/><path d="M8 11V9a4 4 0 0 1 8 0v2"/><circle cx="9" cy="15" r="1" fill="#ec4899"/><circle cx="15" cy="15" r="1" fill="#ec4899"/><path d="M9 19h6"/>
-    </svg>
-  ),
+  purchases:     accIcon(ShoppingCart01Icon, '#f97316'),
+  sales:         accIcon(SaleTag01Icon, '#10b981'),
+  invoices:      accIcon(Invoice01Icon, '#3b82f6'),
+  salaryAccrual: accIcon(MoneyBag01Icon, '#8b5cf6'),
+  bookkeeping:   accIcon(Book01Icon, '#6366f1'),
+  stock:         accIcon(Package01Icon, '#f59e0b'),
+  calendar:      accIcon(Calendar03Icon, '#ec4899'),
+  transfers:     accIcon(ArrowDataTransferHorizontalIcon, '#06b6d4'),
+  banking:       accIcon(BankIcon, '#14b8a6'),
+  rsge:          accIcon(SecurityCheckIcon, '#e11d48'),
+  finbot:        accIcon(AiBrain01Icon, '#ec4899'),
 };
 
 const TAB_KEYS = [
@@ -117,6 +86,7 @@ function AccountingPage() {
   }, []);
 
   const orderedTabs = [...TABS].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key));
+  const { getItemProps } = useSidebarReorder(ACC_SIDEBAR_ORDER_KEY, orderedTabs.map(tab => tab.key), setSidebarOrder);
 
   const handleTabChange = (key) => {
     setActiveTab(key);
@@ -147,6 +117,7 @@ function AccountingPage() {
             className={`acc-sidebar-btn${activeTab === tab.key ? ' active' : ''}`}
             onClick={() => handleTabChange(tab.key)}
             title={collapsed ? tab.label : ''}
+            {...getItemProps(tab.key)}
           >
             <span className="acc-sidebar-icon">{tab.icon}</span>
             <span className="acc-sidebar-btn-label">{tab.label}</span>

@@ -55,6 +55,64 @@ export function useColumnResize(defaultWidths) {
   return { colWidths, onResizeMouseDown };
 }
 
+/**
+ * Drag-to-resize column widths keyed by column id (rather than positional index).
+ * Robust to columns being hidden/shown, and persists widths to localStorage.
+ *
+ *   const { widths, onResizeMouseDown } = useKeyedColumnWidths('emp_col_widths', DEFAULTS);
+ *   <col style={{ width: widths[key] }} />
+ *   <th style={{ position:'relative' }}>{label}
+ *     <div onMouseDown={e => onResizeMouseDown(e, key)} style={RESIZE_HANDLE_STYLE} />
+ *   </th>
+ */
+export function useKeyedColumnWidths(storageKey, defaults = {}) {
+  const [widths, setWidths] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? { ...defaults, ...JSON.parse(saved) } : { ...defaults };
+    } catch {
+      return { ...defaults };
+    }
+  });
+  const resizing = useRef(null);
+
+  const onResizeMouseDown = useCallback((e, key) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // The handle lives inside the <th>; use its rendered width as the starting point
+    // so resizing works even before an explicit width has been set.
+    const th = e.currentTarget.parentElement;
+    const startWidth = (th && th.offsetWidth) || widths[key] || 120;
+    resizing.current = { key, startX: e.clientX, startWidth };
+
+    const onMouseMove = (ev) => {
+      if (!resizing.current) return;
+      const delta = ev.clientX - resizing.current.startX;
+      const newWidth = Math.max(60, resizing.current.startWidth + delta);
+      setWidths((prev) => ({ ...prev, [resizing.current.key]: newWidth }));
+    };
+
+    const onMouseUp = () => {
+      resizing.current = null;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setWidths((prev) => {
+        try { localStorage.setItem(storageKey, JSON.stringify(prev)); } catch {}
+        return prev;
+      });
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [widths, storageKey]);
+
+  return { widths, onResizeMouseDown, setWidths };
+}
+
 // Inline style for the drag handle element inside <th>
 export const RESIZE_HANDLE_STYLE = {
   position: 'absolute',

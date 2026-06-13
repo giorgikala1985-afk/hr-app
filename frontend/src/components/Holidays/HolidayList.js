@@ -22,65 +22,10 @@ const HOLIDAY_DATES = {
   "Developer's Birthday / Stalin's Death": '03-05',
 };
 
-// Official Georgian public holidays (fixed dates; Easter is calculated separately)
-const GEORGIAN_HOLIDAYS_FIXED = [
-  { month: '01', day: '01', name: 'New Year' },
-  { month: '01', day: '02', name: "New Year's Holiday" },
-  { month: '01', day: '07', name: 'Orthodox Christmas' },
-  { month: '01', day: '19', name: 'Orthodox Epiphany' },
-  { month: '03', day: '03', name: "Mother's Day" },
-  { month: '03', day: '08', name: "International Women's Day" },
-  { month: '04', day: '09', name: 'National Unity Day' },
-  { month: '05', day: '09', name: 'Victory Day' },
-  { month: '05', day: '12', name: 'Saint Andrew the First-Called Day' },
-  { month: '05', day: '26', name: 'Independence Day' },
-  { month: '08', day: '28', name: 'Saint Mary Day' },
-  { month: '10', day: '14', name: 'Svetitskhovloba' },
-  { month: '11', day: '23', name: 'Saint George Day' },
-];
-
-// Orthodox Easter calculation (Julian calendar → Gregorian)
-function getOrthodoxEaster(year) {
-  const a = year % 4;
-  const b = year % 7;
-  const c = year % 19;
-  const d = (19 * c + 15) % 30;
-  const e = (2 * a + 4 * b - d + 34) % 7;
-  const f = Math.floor((d + e + 114) / 31);
-  const day = ((d + e + 114) % 31) + 1;
-  // Julian to Gregorian: add 13 days
-  const julian = new Date(year, f - 1, day + 13);
-  return julian;
-}
-
-function getGeorgianHolidaysForYear(year) {
-  const holidays = GEORGIAN_HOLIDAYS_FIXED.map(h => ({
-    date: `${year}-${h.month}-${h.day}`,
-    name: h.name,
-  }));
-  // Orthodox Easter Sunday
-  const easter = getOrthodoxEaster(year);
-  const pad = n => String(n).padStart(2, '0');
-  holidays.push({
-    date: `${easter.getFullYear()}-${pad(easter.getMonth() + 1)}-${pad(easter.getDate())}`,
-    name: 'Orthodox Easter',
-  });
-  // Orthodox Good Friday (2 days before Easter)
-  const goodFriday = new Date(easter);
-  goodFriday.setDate(easter.getDate() - 2);
-  holidays.push({
-    date: `${goodFriday.getFullYear()}-${pad(goodFriday.getMonth() + 1)}-${pad(goodFriday.getDate())}`,
-    name: 'Good Friday',
-  });
-  // Orthodox Easter Monday
-  const easterMonday = new Date(easter);
-  easterMonday.setDate(easter.getDate() + 1);
-  holidays.push({
-    date: `${easterMonday.getFullYear()}-${pad(easterMonday.getMonth() + 1)}-${pad(easterMonday.getDate())}`,
-    name: 'Easter Monday',
-  });
-  return holidays.sort((a, b) => a.date.localeCompare(b.date));
-}
+// Public-holiday source: Nager.Date (free, 100+ countries, no API key).
+const NAGER_BASE = 'https://date.nager.at/api/v3';
+const COUNTRY_STORAGE_KEY = 'holidays_country';
+const DEFAULT_COUNTRY = 'GE';
 
 const EMPTY_FILTERS = { date: '', name: '' };
 
@@ -109,11 +54,32 @@ function HolidayList() {
   const [saving, setSaving] = useState(false);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [importing, setImporting] = useState(false);
+  const [countries, setCountries] = useState([]);
+  const [country, setCountry] = useState(() => {
+    try { return localStorage.getItem(COUNTRY_STORAGE_KEY) || DEFAULT_COUNTRY; } catch { return DEFAULT_COUNTRY; }
+  });
 
   const years = [];
   for (let y = currentYear - 2; y <= currentYear + 2; y++) years.push(y);
 
   useEffect(() => { loadHolidays(year); }, [year]);
+
+  // Load the list of supported countries once.
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`${NAGER_BASE}/AvailableCountries`);
+        if (!res.ok) throw new Error('countries');
+        const data = await res.json();
+        if (active) setCountries(data.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch {
+        // Fallback: at least offer the default country so import still works.
+        if (active) setCountries([{ countryCode: DEFAULT_COUNTRY, name: 'Georgia' }]);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
   const loadHolidays = async (selectedYear) => {
     setLoading(true);
@@ -196,23 +162,34 @@ function HolidayList() {
     }
   };
 
-  const handleImportGeorgian = async () => {
-    const toImport = getGeorgianHolidaysForYear(year);
-    const existing = new Set(holidays.map(h => h.date.slice(0, 10)));
-    const newOnes = toImport.filter(h => !existing.has(h.date));
-    if (newOnes.length === 0) {
-      setSuccess('All Georgian holidays already exist for this year.');
-      return;
-    }
-    if (!window.confirm(`Add ${newOnes.length} Georgian holiday(s) for ${year}?`)) return;
+  const onCountryChange = (code) => {
+    setCountry(code);
+    try { localStorage.setItem(COUNTRY_STORAGE_KEY, code); } catch {}
+  };
+
+  const handleImport = async () => {
+    const countryName = countries.find(c => c.countryCode === country)?.name || country;
     setImporting(true);
     setError('');
+    setSuccess('');
     try {
+      const res = await fetch(`${NAGER_BASE}/PublicHolidays/${year}/${country}`);
+      if (!res.ok) throw new Error(`No holiday data for ${countryName} (${year}).`);
+      const data = await res.json();
+      // Use the international (English) name; fall back to the local name.
+      const toImport = data.map(h => ({ date: h.date, name: h.name || h.localName }));
+      const existing = new Set(holidays.map(h => h.date.slice(0, 10)));
+      const newOnes = toImport.filter(h => !existing.has(h.date));
+      if (newOnes.length === 0) {
+        setSuccess(`All ${countryName} holidays already exist for ${year}.`);
+        return;
+      }
+      if (!window.confirm(`Add ${newOnes.length} ${countryName} holiday(s) for ${year}?`)) return;
       await Promise.all(newOnes.map(h => api.post('/holidays', h)));
-      setSuccess(`Added ${newOnes.length} Georgian holiday(s) for ${year}.`);
+      setSuccess(`Added ${newOnes.length} ${countryName} holiday(s) for ${year}.`);
       loadHolidays(year);
     } catch (err) {
-      setError('Failed to import some holidays: ' + (err.response?.data?.error || err.message));
+      setError('Failed to import holidays: ' + (err.response?.data?.error || err.message));
     } finally {
       setImporting(false);
     }
@@ -259,13 +236,25 @@ function HolidayList() {
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={handleImportGeorgian}
+          <select
+            value={country}
+            onChange={e => onCountryChange(e.target.value)}
             disabled={importing}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 18px', height: 36, boxSizing: 'border-box', background: importing ? 'var(--surface-3)' : '#dc2626', color: importing ? 'var(--text-3)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: importing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
-            title="Import all official Georgian public holidays for the selected year"
+            title="Choose a country to import its public holidays"
+            style={{ padding: '0 12px', height: 36, boxSizing: 'border-box', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontFamily: 'inherit', background: 'white', color: '#1e293b', cursor: importing ? 'not-allowed' : 'pointer', maxWidth: 200 }}
           >
-            🇬🇪 {importing ? 'Importing…' : 'Import Georgian Holidays'}
+            {countries.map(c => (
+              <option key={c.countryCode} value={c.countryCode}>{c.name}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleImport}
+            disabled={importing || !country}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 18px', height: 36, boxSizing: 'border-box', background: importing ? 'var(--surface-3)' : '#2563eb', color: importing ? 'var(--text-3)' : '#fff', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: importing ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
+            title="Import public holidays for the selected country and year"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            {importing ? 'Importing…' : 'Import Holidays'}
           </button>
           <button className="btn-add" onClick={openNew}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>

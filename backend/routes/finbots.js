@@ -291,7 +291,7 @@ router.delete('/:id', async (req, res) => {
 // ── POST /api/finbots/chat ───────────────────────────────────────────────────
 router.post('/chat', async (req, res) => {
   try {
-    const { dataSources = [], messages = [], botName = 'FinBot', systemPrompt = '' } = req.body;
+    const { dataSources = [], messages = [], botName = 'FinBot', systemPrompt = '', dlTablesData = [] } = req.body;
 
     if (!messages.length) return res.status(400).json({ error: 'No messages provided.' });
 
@@ -322,8 +322,29 @@ router.post('/chat', async (req, res) => {
       })
     );
 
-    const context = contextParts.filter(Boolean).join('\n\n');
-    console.log(`[FinBot] Final context length: ${context.length}`);
+    // Format any Data Lake custom tables sent from the client.
+    const dlParts = (Array.isArray(dlTablesData) ? dlTablesData : [])
+      .map((table) => {
+        try {
+          const cols = table?.columns || [];
+          const rows = table?.rows || [];
+          if (!cols.length) return '';
+          const header = cols.map(c => c.name || c.id).join(' | ');
+          const body = rows
+            .map(r => cols.map(c => {
+              const v = r?.[c.id];
+              return v === undefined || v === null ? '' : String(v);
+            }).join(' | '))
+            .join('\n');
+          return `=== TABLE: ${table.name || 'Untitled'} (${rows.length} rows) ===\n${header}\n${body}`;
+        } catch {
+          return '';
+        }
+      })
+      .filter(Boolean);
+
+    const context = [...contextParts, ...dlParts].filter(Boolean).join('\n\n');
+    console.log(`[FinBot] Final context length: ${context.length} (dlTables=${dlParts.length})`);
     if (context.length < 50) console.log(`[FinBot] Context content: "${context}"`);
 
     const systemContent = [

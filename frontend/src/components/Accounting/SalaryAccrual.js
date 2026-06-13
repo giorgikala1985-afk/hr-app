@@ -10,6 +10,7 @@ const COLUMNS = [
   { key: 'firstName',   labelKey: 'salAccrual.colName',        label: 'Name',          align: 'left',  defaultWidth: 110 },
   { key: 'lastName',    labelKey: 'salAccrual.colLastName',     label: 'Last Name',     align: 'left',  defaultWidth: 120 },
   { key: 'netSalary',   labelKey: 'salAccrual.colSalaryNet',   label: 'Salary Net',    align: 'right', defaultWidth: 120 },
+  { key: 'ot',          labelKey: 'salAccrual.colOT',          label: 'OT',            align: 'right', defaultWidth: 100 },
   { key: 'fitpass',     labelKey: 'salAccrual.colFitpass',     label: 'Fitpass',       align: 'right', defaultWidth: 100 },
   { key: 'insurance',   labelKey: 'salAccrual.colInsurance',   label: 'Insurance',     align: 'right', defaultWidth: 100 },
   { key: 'totalSum',    labelKey: 'salAccrual.colTotalSum',    label: 'Total Sum',     align: 'right', defaultWidth: 120 },
@@ -40,6 +41,12 @@ function fmtMonth(m) {
 function unitAmt(units, typeName) {
   return (units || [])
     .filter(u => u.type?.toLowerCase().trim() === typeName.toLowerCase().trim())
+    .reduce((s, u) => s + parseFloat(u.amount || 0), 0);
+}
+
+function otAmt(units) {
+  return (units || [])
+    .filter(u => ['ot', 'overtime', 'over time'].includes(String(u.type || '').toLowerCase().trim()))
     .reduce((s, u) => s + parseFloat(u.amount || 0), 0);
 }
 
@@ -339,13 +346,14 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const active = salaries.filter(r => r.accrued_salary > 0 || r.net_salary > 0 || r.total_additions > 0);
 
   const totNetSalary = active.reduce((s, r) => s + parseFloat(r.accrued_salary || 0), 0);
+  const totOT        = active.reduce((s, r) => s + otAmt(r.deductions), 0);
   const totFitpass   = active.reduce((s, r) => s + parseFloat(r.fitpass_deduction || 0), 0);
   const totInsurance = active.reduce((s, r) => s + getInsAmount2(r.employee?.personal_id, month), 0);
   const totGross     = active.reduce((s, r) => s + calcGross(r.net_salary, r.employee.pension), 0);
   const totPension   = active.reduce((s, r) => s + (r.employee.pension ? calcGross(r.net_salary, true) * 0.02 : 0), 0);
   const totSum       = active.reduce((s, r) => {
     const ins2 = getInsAmount2(r.employee?.personal_id, month);
-    return s + parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - ins2;
+    return s + parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - ins2 + otAmt(r.deductions);
   }, 0);
 
   // Dynamic unit columns: one column per unit type actually used this month
@@ -391,6 +399,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const footerVal = (key) => {
     switch (key) {
       case 'netSalary':   return { val: moneyTotal(totNetSalary), style: TD_BOLD };
+      case 'ot':          return { val: totOT > 0 ? moneyTotal(totOT) : '—', style: { ...TD_BOLD, color: '#4ade80', fontWeight: 800 } };
       case 'adjustment':  return { val: '', style: TD_NUM };
       case 'fitpass':     return { val: moneyTotalSign(totFitpass,   'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
       case 'insurance':   return { val: moneyTotalSign(totInsurance, 'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
@@ -413,6 +422,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       case 'firstName':   return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.first_name}</td>;
       case 'lastName':    return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.last_name}</td>;
       case 'netSalary':   return <td key={key} style={{ ...TD_BOLD, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(r.accrued_salary)}</td>;
+      case 'ot': { const ot = otAmt(r.deductions); return <td key={key} style={{ ...TD_NUM, color: ot > 0 ? '#4ade80' : 'var(--text-4)', fontWeight: 800, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{ot > 0 ? moneyTotal(ot) : '—'}</td>; }
       case 'adjustment': {
         const units = (r.deductions || []).filter(u => {
           const ut = unitTypes.find(t => t.name === u.type);
@@ -446,11 +456,11 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       case 'fitpass':     return <td key={key} className={fitpass > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(fitpass, 'deduction')}</td>;
       case 'insurance':   return <td key={key} className={insurance > 0 ? 'cell-deduction' : 'cell-muted'} style={{ ...TD_NUM, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneySign(insurance, 'deduction')}</td>;
       case 'totalSum': {
-        const corrected = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+        const corrected = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance + otAmt(r.deductions);
         return <td key={key} style={{ ...TD_BOLD, fontSize: 14, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(corrected)}</td>;
       }
       case 'totalGEL': {
-        const corrected = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+        const corrected = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance + otAmt(r.deductions);
         const activeRate = transferRate || nbgRate || gelRate;
         const gel = activeRate ? Math.round(corrected * activeRate * 100) / 100 : null;
         return <td key={key} style={{ ...TD_BOLD, fontSize: 14, color: '#f59e0b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{gel != null ? `₾${gel.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>;
@@ -484,15 +494,16 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           case 'firstName':   rowData.push(emp.first_name); break;
           case 'lastName':    rowData.push(emp.last_name); break;
           case 'netSalary':   rowData.push(parseFloat(r.accrued_salary || 0)); break;
+          case 'ot':          rowData.push(otAmt(r.deductions) || ''); break;
           case 'adjustment':  rowData.push((r.deductions || []).filter(u => unitTypes.find(t => t.name === u.type)).map(u => { const ut = unitTypes.find(t => t.name === u.type); return `${ut?.direction === 'addition' ? '+' : '-'}${u.type}`; }).join(', ')); break;
           case 'fitpass':     rowData.push(fitpass || ''); break;
           case 'insurance':   rowData.push(insurance || ''); break;
           case 'totalSum': {
-            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance + otAmt(r.deductions);
             rowData.push(c); break;
           }
           case 'totalGEL': {
-            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance + otAmt(r.deductions);
             const activeRate = transferRate || nbgRate || gelRate;
             rowData.push(activeRate ? Math.round(c * activeRate * 100) / 100 : ''); break;
           }
@@ -514,6 +525,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         case 'firstName':   totalsRow.push(''); break;
         case 'lastName':    totalsRow.push(''); break;
         case 'netSalary':   totalsRow.push(totNetSalary); break;
+        case 'ot':          totalsRow.push(totOT || ''); break;
         case 'fitpass':     totalsRow.push(totFitpass); break;
         case 'insurance':   totalsRow.push(totInsurance); break;
         case 'totalSum':    totalsRow.push(totSum); break;
@@ -852,7 +864,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     })}
                     {(() => {
                       const tbcAmt     = getTBCAmount(tbc, emp);
-                      const corrected  = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+                      const corrected  = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance + otAmt(r.deductions);
                       const activeRate = transferRate || nbgRate || gelRate;
                       const gelAmt     = activeRate ? Math.round(corrected * activeRate * 100) / 100 : null;
                       const match      = tbcAmt != null && gelAmt != null && Math.abs(tbcAmt - gelAmt) < 0.01;

@@ -1,8 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
 const supabase = require('../config/supabase');
 const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
@@ -49,33 +46,11 @@ router.post('/invoices/scan', async (req, res) => {
       if (pdfText) {
         messages = [{ role: 'user', content: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
       } else {
-        // Scanned PDF — render to image with puppeteer
-        let puppeteer;
-        try { puppeteer = require('puppeteer'); } catch { puppeteer = require('puppeteer-core'); }
-        const tmpPath = path.join(os.tmpdir(), `inv_${Date.now()}.pdf`);
-        fs.writeFileSync(tmpPath, buffer);
-        let browser;
-        try {
-          browser = await puppeteer.launch({
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
-          });
-          const page = await browser.newPage();
-          await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 1.5 });
-          await page.goto(`file://${tmpPath}`, { waitUntil: 'networkidle0', timeout: 20000 });
-          await new Promise(r => setTimeout(r, 1000));
-          const screenshot = await page.screenshot({ type: 'jpeg', quality: 90 });
-          messages = [{
-            role: 'user',
-            content: [
-              { type: 'text', text: INVOICE_PROMPT },
-              { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${screenshot.toString('base64')}` } },
-            ],
-          }];
-        } finally {
-          if (browser) await browser.close().catch(() => {});
-          try { fs.unlinkSync(tmpPath); } catch {}
-        }
+        // Scanned / image-only PDF (no extractable text). OCR rendering via
+        // Chromium is disabled (not available on serverless). Ask for an image.
+        return res.status(400).json({
+          error: 'This PDF appears to be scanned (no readable text). Please upload it as an image (JPG or PNG), or use a text-based PDF.',
+        });
       }
     } else {
       // Image — send directly to GPT-4o vision
@@ -315,8 +290,8 @@ router.get('/agents', async (req, res) => {
 
 router.post('/agents', async (req, res) => {
   try {
-    const { name, type, add_date, account_number, address, phone } = req.body;
-    const { data, error } = await supabase.from('accounting_agents').insert([{ user_id: req.userId, name, type, add_date: add_date || null, account_number, address, phone }]).select().single();
+    const { name, contact_name, type, add_date, account_number, address, phone } = req.body;
+    const { data, error } = await supabase.from('accounting_agents').insert([{ user_id: req.userId, name, contact_name: contact_name || null, type, add_date: add_date || null, account_number, address, phone }]).select().single();
     if (error) throw error;
     res.status(201).json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -324,8 +299,8 @@ router.post('/agents', async (req, res) => {
 
 router.put('/agents/:id', async (req, res) => {
   try {
-    const { name, type, add_date, account_number, address, phone } = req.body;
-    const { data, error } = await supabase.from('accounting_agents').update({ name, type, add_date: add_date || null, account_number, address, phone }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    const { name, contact_name, type, add_date, account_number, address, phone } = req.body;
+    const { data, error } = await supabase.from('accounting_agents').update({ name, contact_name: contact_name || null, type, add_date: add_date || null, account_number, address, phone }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -346,6 +321,7 @@ router.post('/agents/bulk', async (req, res) => {
     const rows = records.map(r => ({
       user_id: req.userId,
       name: r.name,
+      contact_name: r.contact_name || null,
       type: r.type || 'Other',
       add_date: r.add_date || null,
       account_number: r.account_number || null,
