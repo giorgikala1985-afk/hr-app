@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { DEFAULT_LOGO_ID } from '../components/Options/logos';
 
 const ThemeContext = createContext();
 
@@ -47,7 +48,7 @@ export function ThemeProvider({ children }) {
   const bgColor = bgColors[theme] || '';
   const [fontBase, setFontBaseState] = useState(() => localStorage.getItem(FONT_BASE_KEY) || 'Lexend');
   const [fontMono, setFontMonoState] = useState(() => localStorage.getItem(FONT_MONO_KEY) || 'default');
-  const [logo, setLogoState] = useState(() => localStorage.getItem(LOGO_KEY) || 'pilot');
+  const [logo, setLogoState] = useState(() => localStorage.getItem(LOGO_KEY) || DEFAULT_LOGO_ID);
 
   useEffect(() => {
     localStorage.setItem(LOGO_KEY, logo);
