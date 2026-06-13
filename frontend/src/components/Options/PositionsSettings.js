@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { UserGroupIcon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -98,7 +100,7 @@ function PositionsSettings() {
         <div style={{ padding: '32px 24px', color: 'var(--text-4)', fontSize: 13 }}>Loading…</div>
       ) : positions.length === 0 ? (
         <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--text-4)' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+          <div style={{ marginBottom: 8 }}><HugeiconsIcon icon={UserGroupIcon} size={32} color="#cbd5e1" strokeWidth={1.8} /></div>
           <div style={{ fontSize: 13, fontWeight: 500 }}>No positions yet</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>Add your first position above.</div>
         </div>

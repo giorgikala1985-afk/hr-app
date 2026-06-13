@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -748,7 +750,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           <div className="acc-empty"><p>Loading…</p></div>
         ) : !data || active.length === 0 ? (
           <div className="acc-empty">
-            <div className="acc-empty-icon">📊</div>
+            <div className="acc-empty-icon"><HugeiconsIcon icon={MoneyBag01Icon} size={40} color="#cbd5e1" strokeWidth={1.8} /></div>
             <p>No salary data for this month.</p>
           </div>
         ) : visCols.length === 0 ? (

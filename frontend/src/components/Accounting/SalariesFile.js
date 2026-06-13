@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace';
@@ -35,7 +37,7 @@ function SalariesFile({ data, onClear }) {
         <h2>{t('salFile.title')}</h2>
         <p className="acc-subtitle">{t('salFile.subtitle')}</p>
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-4)' }}>
-          <div style={{ fontSize: 36, marginBottom: 10 }}>📄</div>
+          <div style={{ marginBottom: 10 }}><HugeiconsIcon icon={MoneyBag01Icon} size={36} color="#cbd5e1" strokeWidth={1.8} /></div>
           <div style={{ fontSize: 14, fontWeight: 500 }}>{t('salFile.noFile')}</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>{t('salFile.hint')}</div>
         </div>

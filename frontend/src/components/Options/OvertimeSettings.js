@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Clock01Icon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 
 const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", "Fira Mono", Menlo, Consolas, monospace';
@@ -111,7 +113,7 @@ function OvertimeSettings() {
         <div style={{ padding: '32px 24px', color: 'var(--text-4)', fontSize: 13 }}>Loading…</div>
       ) : rates.length === 0 ? (
         <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--text-4)' }}>
-          <div style={{ fontSize: 32, marginBottom: 8 }}>⏱</div>
+          <div style={{ marginBottom: 8 }}><HugeiconsIcon icon={Clock01Icon} size={32} color="#cbd5e1" strokeWidth={1.8} /></div>
           <div style={{ fontSize: 13, fontWeight: 500 }}>No overtime rates yet</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>Add your first rate above.</div>
         </div>

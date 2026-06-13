@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import * as XLSX from 'xlsx';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 import './Salaries.css';
 import '../Options/Options.css';
@@ -376,7 +378,7 @@ function SalaryList() {
         <div className="emp-loading">{t('sal.calculating')}</div>
       ) : activeEmployees.length === 0 ? (
         <div className="empty-state">
-          <div className="empty-icon">💰</div>
+          <div className="empty-icon"><HugeiconsIcon icon={MoneyBag01Icon} size={48} color="#cbd5e1" strokeWidth={1.5} /></div>
           <h3>{t('sal.noSalaries').replace('{month}', getMonthLabel(month))}</h3>
           <p>{t('sal.noActive')}</p>
         </div>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Book01Icon } from '@hugeicons/core-free-icons';
 import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
@@ -314,7 +316,7 @@ function Bookkeeping() {
             <div style={{ color: 'var(--text-4)', padding: 24 }}>{t('bk.loading')}</div>
           ) : filteredRows.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-4)' }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📒</div>
+              <div style={{ marginBottom: 12 }}><HugeiconsIcon icon={Book01Icon} size={40} color="#cbd5e1" strokeWidth={1.8} /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-3)' }}>{t('bk.noTransactions')}</div>
               <div style={{ fontSize: 13, marginTop: 4 }}>{t('bk.noTransactionsHint')}</div>
             </div>

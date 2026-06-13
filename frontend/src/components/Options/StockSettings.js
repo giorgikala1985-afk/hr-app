@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Package01Icon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 
 const EMPTY = { name: '', add_date: '', area: '', address: '' };
@@ -116,9 +118,7 @@ function StockSettings() {
       ) : locations.length === 0 ? (
         <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--text-4)' }}>
           <div style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-            </svg>
+            <HugeiconsIcon icon={Package01Icon} size={22} color="#cbd5e1" strokeWidth={1.8} />
           </div>
           <div style={{ fontSize: 13, fontWeight: 500 }}>No stock locations yet</div>
           <div style={{ fontSize: 12, marginTop: 4 }}>Add your first location above.</div>
