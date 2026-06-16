@@ -12,6 +12,7 @@ import AdminRoute from './components/Layout/AdminRoute';
 import Header from './components/Layout/Header';
 import EmployeeForm from './components/Employees/EmployeeForm';
 import OptionsPage from './components/Options/OptionsPage';
+import ProfilePage from './components/Profile/ProfilePage';
 import Analytics from './components/Analytics/Analytics';
 import DocumentsPage from './components/Documents/DocumentsPage';
 import SignDocument from './components/Documents/SignDocument';
@@ -82,6 +83,18 @@ function App() {
                 <>
                   <Header />
                   <OptionsPage />
+                </>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <>
+                  <Header />
+                  <ProfilePage />
                 </>
               </PrivateRoute>
             }

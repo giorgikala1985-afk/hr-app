@@ -21,6 +21,127 @@ const fmtTime = (dateStr) => {
 
 const truncate = (str, n = 8) => str ? `${str.slice(0, n)}…` : '—';
 
+const SUB_STATUS_STYLE = {
+  active:   { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' },
+  pending:  { background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' },
+  expired:  { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' },
+  failed:   { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' },
+  canceled: { background: '#f8fafc', color: '#64748b', border: '1px solid #e2e8f0' },
+  none:     { background: '#f8fafc', color: '#94a3b8', border: '1px solid #e2e8f0' },
+};
+
+function SubBadge({ sub }) {
+  const status = sub?.status || 'none';
+  const st = SUB_STATUS_STYLE[status] || SUB_STATUS_STYLE.none;
+  const label = status === 'none' ? 'No plan' : status.charAt(0).toUpperCase() + status.slice(1);
+  return <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, whiteSpace: 'nowrap', ...st }}>{label}</span>;
+}
+
+const money = (amt, cur) => (amt || amt === 0) ? `${Number(amt).toLocaleString()} ${cur || 'GEL'}` : '—';
+
+function BillingTab({ companyId, subscription, onUpdated }) {
+  const [form, setForm] = useState({
+    amount: subscription.amount ?? '',
+    currency: subscription.currency || 'GEL',
+    plan: subscription.plan || '',
+    auto_charge: !!subscription.auto_charge,
+  });
+  const [months, setMonths] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const [payLink, setPayLink] = useState('');
+
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const callSave = async (extra = {}, okMsg = 'Saved.') => {
+    setSaving(true); setMsg(''); setPayLink('');
+    try {
+      const res = await api.put(`/admin/companies/${companyId}/billing`, { ...form, ...extra });
+      onUpdated(res.data.subscription);
+      setMsg(okMsg);
+    } catch (e) { setMsg(e.response?.data?.error || 'Failed to save.'); }
+    finally { setSaving(false); }
+  };
+
+  const genLink = async () => {
+    setSaving(true); setMsg(''); setPayLink('');
+    try {
+      const res = await api.post(`/admin/companies/${companyId}/payment-link`, { amount: form.amount, currency: form.currency });
+      setPayLink(res.data.url);
+    } catch (e) { setMsg(e.response?.data?.error || 'Failed to create payment link.'); }
+    finally { setSaving(false); }
+  };
+
+  const labelStyle = { fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 5, display: 'block' };
+  const inputStyle = { width: '100%', boxSizing: 'border-box', padding: '8px 12px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', outline: 'none' };
+  const btn = (bg, color, border) => ({ padding: '8px 16px', border: border || 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', background: bg, color, opacity: saving ? 0.6 : 1 });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      {/* Current status */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 10 }}>
+        <SubBadge sub={subscription} />
+        <div style={{ fontSize: 13, color: 'var(--text-2)' }}>
+          <strong>{money(subscription.amount, subscription.currency)}</strong>
+          {subscription.plan ? ` · ${subscription.plan}` : ''}
+        </div>
+        <div style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-3)' }}>
+          {subscription.current_period_end ? `Renews / expires ${fmt(subscription.current_period_end)}` : 'No active period'}
+        </div>
+      </div>
+
+      {/* Pricing */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 1fr', gap: 12 }}>
+        <div>
+          <label style={labelStyle}>Amount</label>
+          <input type="number" value={form.amount} onChange={e => set('amount', e.target.value)} placeholder="e.g. 49" style={inputStyle} />
+        </div>
+        <div>
+          <label style={labelStyle}>Currency</label>
+          <select value={form.currency} onChange={e => set('currency', e.target.value)} style={inputStyle}>
+            {['GEL', 'USD', 'EUR'].map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={labelStyle}>Plan (optional)</label>
+          <input value={form.plan} onChange={e => set('plan', e.target.value)} placeholder="e.g. Pro" style={inputStyle} />
+        </div>
+      </div>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-2)', cursor: 'pointer' }}>
+        <input type="checkbox" checked={form.auto_charge} onChange={e => set('auto_charge', e.target.checked)} />
+        Auto-charge a saved card each period <span style={{ fontSize: 11, color: 'var(--text-4)' }}>(requires the company to save a card — Phase 2)</span>
+      </label>
+
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <button onClick={() => callSave()} disabled={saving} style={btn('var(--surface-2)', 'var(--text)', '1px solid var(--border-2)')}>Save pricing</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input type="number" min={1} value={months} onChange={e => setMonths(e.target.value)} style={{ ...inputStyle, width: 56 }} />
+          <span style={{ fontSize: 13, color: 'var(--text-3)' }}>mo</span>
+          <button onClick={() => callSave({ extendMonths: months }, `Activated/extended by ${months} month(s).`)} disabled={saving} style={btn('#16a34a', '#fff')}>Activate / Extend</button>
+        </div>
+        <button onClick={genLink} disabled={saving} style={btn('#2563eb', '#fff')}>Generate payment link</button>
+        {subscription.status === 'active' && (
+          <button onClick={() => callSave({ status: 'canceled' }, 'Subscription canceled.')} disabled={saving} style={btn('transparent', '#dc2626', '1px solid #fecaca')}>Cancel</button>
+        )}
+      </div>
+
+      {msg && <div style={{ fontSize: 13, color: msg.includes('Fail') ? '#dc2626' : '#16a34a' }}>{msg}</div>}
+
+      {payLink && (
+        <div style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border-2)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-3)', marginBottom: 6 }}>Payment link — send this to the company:</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input readOnly value={payLink} style={{ ...inputStyle, fontSize: 12 }} onFocus={e => e.target.select()} />
+            <button onClick={() => navigator.clipboard?.writeText(payLink)} style={btn('var(--surface)', 'var(--text-2)', '1px solid var(--border-2)')}>Copy</button>
+            <a href={payLink} target="_blank" rel="noreferrer" style={{ ...btn('#2563eb', '#fff'), textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}>Open</a>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function StatCard({ label, value, color }) {
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, padding: '20px 28px', flex: 1, minWidth: 160 }}>
@@ -86,6 +207,7 @@ function CompanyModal({ companyId, onClose }) {
                 {[
                   { key: 'employees', label: 'Employees' },
                   { key: 'team', label: 'Team Members' },
+                  { key: 'billing', label: 'Billing' },
                 ].map(t => (
                   <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
                     padding: '7px 18px', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
@@ -155,6 +277,13 @@ function CompanyModal({ companyId, onClose }) {
                     </tbody>
                   </table>
                 )
+              )}
+              {activeTab === 'billing' && (
+                <BillingTab
+                  companyId={companyId}
+                  subscription={data.subscription || { status: 'none', currency: 'GEL', auto_charge: false }}
+                  onUpdated={(sub) => setData(d => ({ ...d, subscription: sub }))}
+                />
               )}
             </div>
           </>
@@ -250,14 +379,14 @@ function AdminPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                {['#', 'Company', 'Owner', 'Joined', 'Last Login', 'Employees', 'Team', 'Status', ''].map((h, i) => (
+                {['#', 'Company', 'Owner', 'Joined', 'Last Login', 'Employees', 'Team', 'Billing', 'Status', ''].map((h, i) => (
                   <th key={i} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-4)', padding: '40px 0' }}>No companies found.</td></tr>
+                <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--text-4)', padding: '40px 0' }}>No companies found.</td></tr>
               ) : filtered.map((c, idx) => (
                 <tr key={c.id} style={{ borderBottom: '1px solid var(--border-3)' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
@@ -279,6 +408,12 @@ function AdminPage() {
                   </td>
                   <td style={{ padding: '12px 14px', textAlign: 'center' }}>
                     <span style={{ fontWeight: 700, color: c.team_member_count > 0 ? 'var(--text)' : 'var(--text-4)' }}>{c.team_member_count}</span>
+                  </td>
+                  <td style={{ padding: '12px 14px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <SubBadge sub={c.subscription} />
+                      {c.subscription?.amount != null && <span style={{ fontSize: 11, color: 'var(--text-4)' }}>{money(c.subscription.amount, c.subscription.currency)}</span>}
+                    </div>
                   </td>
                   <td style={{ padding: '12px 14px' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5,
