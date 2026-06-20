@@ -42,12 +42,20 @@ console.log('Server is initializing routes...');
 const app = express();
 
 const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
   : ['http://localhost:3000'];
 
+// Allow: configured origins, any localhost, and any *.vercel.app deployment
+// (the frontend is hosted on Vercel and calls this API directly via Bearer tokens).
 app.use(cors({
-  origin: allowedOrigins,
-  credentials: true
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // non-browser / same-origin
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    if (/^http:\/\/localhost(:\d+)?$/i.test(origin)) return cb(null, true);
+    if (/^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+  credentials: true,
 }));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));

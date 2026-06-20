@@ -15,7 +15,7 @@ export function PortalAuthProvider({ children }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('/api/portal/login', { personal_id, pin });
+      const res = await axios.post(`${process.env.REACT_APP_API_URL || '/api'}/portal/login`, { personal_id, pin });
       const { token: t, employee: emp } = res.data;
       localStorage.setItem('portal_token', t);
       localStorage.setItem('portal_employee', JSON.stringify(emp));

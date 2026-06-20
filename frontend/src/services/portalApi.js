@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const portalApi = axios.create({ baseURL: '/api/portal' });
+const API_BASE = process.env.REACT_APP_API_URL || '/api';
+const portalApi = axios.create({ baseURL: `${API_BASE}/portal` });
 
 portalApi.interceptors.request.use((config) => {
   const token = localStorage.getItem('portal_token');
