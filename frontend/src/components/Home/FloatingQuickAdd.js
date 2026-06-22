@@ -22,7 +22,7 @@ export default function FloatingQuickAdd() {
         style={{
           position: 'fixed',
           bottom: 24,
-          right: 90,
+          right: 24,
           width: 52,
           height: 52,
           borderRadius: '50%',
