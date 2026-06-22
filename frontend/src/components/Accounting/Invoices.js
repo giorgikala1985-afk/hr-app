@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { Invoice01Icon, FileScanIcon, InboxIcon } from '@hugeicons/core-free-icons';
 
 const DEFAULT_WIDTHS = [80, 160, 110, 110, 120, 100, 160, 80];
 
@@ -367,11 +369,16 @@ function Invoices() {
 
       {/* Sub-tabs */}
       <div className="docs-inner-tabs" style={{ marginBottom: 24 }}>
-        <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>{t('inv.invoiceList')}</button>
+        <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>
+          <HugeiconsIcon icon={Invoice01Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          {t('inv.invoiceList')}
+        </button>
         <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
+          <HugeiconsIcon icon={FileScanIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           {t('inv.scanner')}
         </button>
         <button className={`docs-inner-tab${tab === 'uploads' ? ' active' : ''}`} onClick={() => setTab('uploads')}>
+          <HugeiconsIcon icon={InboxIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           ატვირთული
         </button>
       </div>
