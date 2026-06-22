@@ -18,6 +18,7 @@ import DocumentsPage from './components/Documents/DocumentsPage';
 import SignDocument from './components/Documents/SignDocument';
 import AccountingPage from './components/Accounting/AccountingPage';
 import FloatingBots from './components/Accounting/FloatingBots';
+import FloatingQuickAdd from './components/Home/FloatingQuickAdd';
 import HomePage from './components/Home/HomePage';
 import AdminPage from './components/Admin/AdminPage';
 import PortalLogin from './components/Portal/PortalLogin';
@@ -27,6 +28,24 @@ import PortalDocuments from './components/Portal/PortalDocuments';
 import PortalPayroll from './components/Portal/PortalPayroll';
 import PortalScan from './components/Portal/PortalScan';
 import './App.css';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, fontFamily: 'monospace', color: '#dc2626' }}>
+          <strong>Page Error:</strong>
+          <pre style={{ whiteSpace: 'pre-wrap', marginTop: 12, fontSize: 13 }}>
+            {this.state.error.toString()}{'\n'}{this.state.error.stack}
+          </pre>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 function App() {
   return (
@@ -80,10 +99,10 @@ function App() {
             path="/options"
             element={
               <PrivateRoute>
-                <>
+                <ErrorBoundary>
                   <Header />
                   <OptionsPage />
-                </>
+                </ErrorBoundary>
               </PrivateRoute>
             }
           />
@@ -162,6 +181,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
         <FloatingBots />
+        <FloatingQuickAdd />
       </BrowserRouter>
     </AuthProvider>
     </LanguageProvider>
