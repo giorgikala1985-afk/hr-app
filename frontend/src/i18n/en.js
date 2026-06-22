@@ -738,6 +738,22 @@ const en = {
   'home.tab.employees': 'Employees',
   'home.tab.analytics': 'Analytics',
 
+  // ===== Quick Unit Modal =====
+  'quick.selectUnit': 'Select Unit Type',
+  'quick.employee': 'Employee',
+  'quick.searchEmp': 'Search employee…',
+  'quick.amount': 'Amount',
+  'quick.date': 'Date',
+  'quick.otRate': 'OT Rate',
+  'quick.otHours': 'Hours',
+  'quick.addedToNet': '+ Added to net salary',
+  'quick.deductedFromNet': '− Deducted from net salary',
+  'quick.save': 'Save',
+  'quick.saved': 'Saved!',
+  'quick.errorEmp': 'Select an employee',
+  'quick.errorAmount': 'Enter a valid amount',
+  'quick.noUnits': 'No unit types configured.',
+
   // ===== Salary List additions =====
   'sal.deferFailed': 'Failed to defer salary.',
   'sal.undoDeferFailed': 'Failed to undo deferral.',
