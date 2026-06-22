@@ -4,6 +4,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import WeatherWidget from './WeatherWidget';
+import CurrencyWidget from './CurrencyWidget';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   UserGroupIcon, Briefcase01Icon, Agreement01Icon, ExchangeDollarIcon, AiBrain01Icon,
@@ -86,11 +87,11 @@ const ALL_TABS = [
     color: '#06b6d4', bg: '#ecfeff', icon: homeIcon(ArrowDataTransferHorizontalIcon),
   },
   {
-    key: 'acc-banking', label: 'Banking', labelKey: 'acc.banking', section: 'Accounting', route: '/accounting?tab=banking',
+    key: 'acc-banking', label: 'Banking', labelKey: 'acc.banking', section: 'Documents', route: '/documents?tab=banking',
     color: '#14b8a6', bg: '#f0fdfa', icon: homeIcon(BankIcon),
   },
   {
-    key: 'acc-rsge', label: 'RS.ge', labelKey: 'acc.rsge', section: 'Accounting', route: '/accounting?tab=rsge',
+    key: 'acc-rsge', label: 'RS.ge', labelKey: 'acc.rsge', section: 'Documents', route: '/documents?tab=rsge',
     color: '#e11d48', bg: '#fff1f2', icon: homeIcon(SecurityCheckIcon),
   },
 
@@ -191,6 +192,7 @@ function HomePage() {
   ];
 
   return (
+    <>
     <div className="home-page">
       <div className="home-header">
         <div>
@@ -207,6 +209,7 @@ function HomePage() {
 
       <div className="home-stat-row">
         <WeatherWidget />
+        <CurrencyWidget />
         {empCount !== null && (
           <div className="home-stat-card">
             <div className="home-stat-icon" style={{ background: theme === 'dark' ? 'rgba(49,133,252,0.15)' : '#eff6ff', color: '#3185FC' }}>
@@ -283,6 +286,7 @@ function HomePage() {
         </div>
       )}
     </div>
+    </>
   );
 }
 
