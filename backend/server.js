@@ -33,6 +33,7 @@ const finbotsRoutes = require('./routes/finbots');
 const notificationRoutes = require('./routes/notifications');
 const requestRoutes = require('./routes/requests');
 const accountRoutes = require('./routes/account');
+const cronRoutes = require('./routes/cron');
 const testDebugRoutes = require('./routes/test_debug');
 const { authenticateUser } = require('./middleware/auth');
 
@@ -100,6 +101,8 @@ app.use('/api/notifications', authenticateUser, notificationRoutes);
 app.use('/api/requests', authenticateUser, requestRoutes);
 // Account: logged-in user's own profile, plan & usage
 app.use('/api/account', accountRoutes);
+// Cron: external scheduler triggers (guarded by CRON_SECRET, no user auth)
+app.use('/api/cron', cronRoutes);
 // Admin: super admin panel
 app.use('/api/admin', adminRoutes);
 // Portal: handles its own auth internally

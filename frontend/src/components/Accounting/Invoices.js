@@ -35,7 +35,7 @@ function IconEye() {
 }
 
 const EMPTY_ITEM = { description: '', qty: 1, unit_price: '' };
-const EMPTY_FORM = { client: '', client_email: '', invoice_number: '', date: '', due_date: '', currency: 'USD', status: 'draft', notes: '', account_number: '', items: [{ ...EMPTY_ITEM }] };
+const EMPTY_FORM = { client: '', client_email: '', invoice_number: '', date: '', due_date: '', currency: 'USD', status: 'draft', notes: '', account_number: '', items: [{ ...EMPTY_ITEM }], recurrence: 'none', auto_send: false };
 
 function Invoices() {
   const { t } = useLanguage();
@@ -51,6 +51,104 @@ function Invoices() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [previewInv, setPreviewInv] = useState(null);
   const printRef = useRef();
+
+  // Upload tab state
+  const [uploadRecords, setUploadRecords] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('invoice_uploads')) || []; } catch { return []; }
+  });
+  const [uploadFile, setUploadFile] = useState(null);
+  const [uploadPreview, setUploadPreview] = useState(null);
+  const [uploadForm, setUploadForm] = useState({ dueDate: '', urgent: false });
+  const [uploadError, setUploadError] = useState('');
+  const [uploadSaving, setUploadSaving] = useState(false);
+  const uploadInputRef = useRef();
+
+  const saveUploadRecords = (recs) => {
+    try { localStorage.setItem('invoice_uploads', JSON.stringify(recs)); } catch {}
+  };
+
+  const handleUploadFile = (file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) { setUploadError('ფაილი 10MB-ზე მეტია.'); return; }
+    setUploadFile(file);
+    setUploadError('');
+    if (file.type.startsWith('image/')) {
+      const r = new FileReader();
+      r.onload = (ev) => setUploadPreview(ev.target.result);
+      r.readAsDataURL(file);
+    } else {
+      setUploadPreview(null);
+    }
+  };
+
+  const handleUploadSave = async () => {
+    if (!uploadFile) return;
+    setUploadSaving(true);
+    setUploadError('');
+    try {
+      const fileData = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = (e) => resolve(e.target.result);
+        r.onerror = reject;
+        r.readAsDataURL(uploadFile);
+      });
+      const newRec = {
+        id: Date.now(),
+        fileName: uploadFile.name,
+        fileType: uploadFile.type,
+        fileData,
+        uploadDate: today(),
+        dueDate: uploadForm.dueDate,
+        urgent: uploadForm.urgent,
+      };
+      const next = [newRec, ...uploadRecords];
+      setUploadRecords(next);
+      saveUploadRecords(next);
+      setUploadFile(null);
+      setUploadPreview(null);
+      setUploadForm({ dueDate: '', urgent: false });
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
+    } catch {
+      setUploadError('ფაილის შენახვა ვერ მოხერხდა.');
+    } finally {
+      setUploadSaving(false);
+    }
+  };
+
+  const handleUploadDelete = (id) => {
+    if (!window.confirm('ჩანაწერი წაიშლება. გაგრძელება?')) return;
+    const next = uploadRecords.filter(r => r.id !== id);
+    setUploadRecords(next);
+    saveUploadRecords(next);
+  };
+
+  const handleUploadView = (rec) => {
+    const win = window.open('', '_blank');
+    if (rec.fileType === 'application/pdf') {
+      win.document.write(`<html><body style="margin:0"><embed src="${rec.fileData}" width="100%" height="100%" type="application/pdf"/></body></html>`);
+    } else {
+      win.document.write(`<html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${rec.fileData}" style="max-width:100%;max-height:100vh"/></body></html>`);
+    }
+    win.document.close();
+  };
+
+  const [uploadFilters, setUploadFilters] = useState({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' });
+  const uf = uploadFilters;
+  const filteredUploadRecords = uploadRecords.filter(r => {
+    if (uf.fileName && !r.fileName.toLowerCase().includes(uf.fileName.toLowerCase())) return false;
+    if (uf.uploadDate && r.uploadDate !== uf.uploadDate) return false;
+    if (uf.dueDate && r.dueDate !== uf.dueDate) return false;
+    if (uf.urgent === 'yes' && !r.urgent) return false;
+    if (uf.urgent === 'no' && r.urgent) return false;
+    return true;
+  });
+  const setUF = (field, val) => setUploadFilters(p => ({ ...p, [field]: val }));
+
+  const toggleUrgent = (id) => {
+    const next = uploadRecords.map(r => r.id === id ? { ...r, urgent: !r.urgent } : r);
+    setUploadRecords(next);
+    saveUploadRecords(next);
+  };
 
   // Scanner state
   const [scanFile, setScanFile] = useState(null);
@@ -168,7 +266,7 @@ function Invoices() {
   };
 
   const openEdit = (r) => {
-    setForm({ client: r.client, client_email: r.client_email || '', invoice_number: r.invoice_number, date: r.date, due_date: r.due_date || '', currency: r.currency, status: r.status, notes: r.notes || '', account_number: r.account_number || '', items: r.items || [{ ...EMPTY_ITEM }] });
+    setForm({ client: r.client, client_email: r.client_email || '', invoice_number: r.invoice_number, date: r.date, due_date: r.due_date || '', currency: r.currency, status: r.status, notes: r.notes || '', account_number: r.account_number || '', items: r.items || [{ ...EMPTY_ITEM }], recurrence: r.recurrence || 'none', auto_send: !!r.auto_send });
     setEditId(r.id); setShowForm(true); setError('');
   };
 
@@ -191,6 +289,23 @@ function Invoices() {
       setShowForm(false); load();
     } catch (err) { setError(err.response?.data?.error || t('inv.failedSave')); }
     finally { setSaving(false); }
+  };
+
+  const [sendingNow, setSendingNow] = useState(false);
+  const handleSendNow = async () => {
+    if (!editId) { setError('Save the invoice first, then send.'); return; }
+    if (!form.client_email) { setError('Add a client email to send the invoice.'); return; }
+    setSendingNow(true); setError('');
+    try {
+      // Persist any edits first so the emailed PDF matches what's on screen.
+      const payload = { ...form, account_number: form.account_number || null, total: calcTotal(form.items) };
+      await api.put(`/accounting/invoices/${editId}`, payload);
+      await api.post(`/accounting/invoices/${editId}/send`);
+      setError('');
+      alert('Invoice emailed to ' + form.client_email);
+      load();
+    } catch (err) { setError(err.response?.data?.error || 'Failed to send invoice.'); }
+    finally { setSendingNow(false); }
   };
 
   const handleDelete = async (id) => {
@@ -255,6 +370,9 @@ function Invoices() {
         <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>{t('inv.invoiceList')}</button>
         <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
           {t('inv.scanner')}
+        </button>
+        <button className={`docs-inner-tab${tab === 'uploads' ? ' active' : ''}`} onClick={() => setTab('uploads')}>
+          ატვირთული
         </button>
       </div>
 
@@ -375,6 +493,226 @@ function Invoices() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── UPLOADS TAB ─────────────────────────── */}
+      {tab === 'uploads' && (
+        <div style={{ maxWidth: 900 }}>
+          {/* Drop zone */}
+          <div
+            onClick={() => uploadInputRef.current.click()}
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => {
+              e.preventDefault();
+              const f = e.dataTransfer.files[0];
+              if (f) handleUploadFile(f);
+            }}
+            style={{
+              border: '2px dashed var(--border)', borderRadius: 14, padding: '36px 32px',
+              textAlign: 'center', cursor: 'pointer', background: 'var(--surface-2)',
+              marginBottom: 20, transition: 'border-color 0.2s',
+            }}
+          >
+            <div style={{ fontSize: 38, marginBottom: 8 }}>📎</div>
+            <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 4 }}>
+              PDF / JPG / PNG ატვირთვა
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-4)' }}>
+              გადმოიტანეთ ან დააჭირეთ ასარჩევად &middot; მაქს. 10MB
+            </div>
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              style={{ display: 'none' }}
+              onChange={e => handleUploadFile(e.target.files[0])}
+            />
+          </div>
+
+          {uploadError && (
+            <div className="msg-error" style={{ marginBottom: 12 }}>{uploadError}</div>
+          )}
+
+          {/* Selected file + form */}
+          {uploadFile && (
+            <div style={{
+              background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12,
+              padding: 20, marginBottom: 20, display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap',
+            }}>
+              {uploadPreview ? (
+                <img src={uploadPreview} alt="preview" style={{ width: 100, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0 }} />
+              ) : (
+                <div style={{
+                  width: 100, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0, fontSize: 32,
+                }}>📄</div>
+              )}
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 12 }}>{uploadFile.name}</div>
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)' }}>გადარიცხვის თარიღი</label>
+                    <input
+                      type="date"
+                      value={uploadForm.dueDate}
+                      onChange={e => setUploadForm(p => ({ ...p, dueDate: e.target.value }))}
+                      style={{ padding: '7px 10px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}
+                    />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--text)', fontWeight: 600, paddingBottom: 7 }}>
+                    <input
+                      type="checkbox"
+                      checked={uploadForm.urgent}
+                      onChange={e => setUploadForm(p => ({ ...p, urgent: e.target.checked }))}
+                      style={{ width: 16, height: 16 }}
+                    />
+                    სასწრაფო
+                  </label>
+                  <button
+                    onClick={handleUploadSave}
+                    disabled={uploadSaving}
+                    style={{
+                      padding: '8px 22px', background: '#3b82f6', color: '#fff', border: 'none',
+                      borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: uploadSaving ? 'not-allowed' : 'pointer',
+                      opacity: uploadSaving ? 0.7 : 1, marginBottom: 0,
+                    }}
+                  >
+                    {uploadSaving ? 'შენახვა...' : 'შენახვა'}
+                  </button>
+                  <button
+                    onClick={() => { setUploadFile(null); setUploadPreview(null); setUploadError(''); if (uploadInputRef.current) uploadInputRef.current.value = ''; }}
+                    style={{
+                      padding: '8px 14px', background: 'var(--surface-2)', color: 'var(--text-3)', border: '1px solid var(--border-2)',
+                      borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', marginBottom: 0,
+                    }}
+                  >
+                    გაუქმება
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Uploads table */}
+          {uploadRecords.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '48px 0', fontSize: 14 }}>
+              ატვირთული ინვოისები არ არის
+            </div>
+          ) : (
+            <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
+              <table className="acc-table" style={{ minWidth: 700 }}>
+                <thead>
+                  <tr>
+                    <th style={{ width: 40 }}>№</th>
+                    <th>ფაილი</th>
+                    <th style={{ width: 140 }}>ატვირთვის თარიღი</th>
+                    <th style={{ width: 140 }}>გადარიცხვის თარიღი</th>
+                    <th style={{ width: 90, textAlign: 'center' }}>სასწრაფო</th>
+                    <th style={{ width: 100 }}></th>
+                  </tr>
+                  <tr style={{ background: 'var(--surface-2)' }}>
+                    <th></th>
+                    <th style={{ padding: '4px 6px' }}>
+                      <input
+                        value={uf.fileName}
+                        onChange={e => setUF('fileName', e.target.value)}
+                        placeholder="ძებნა..."
+                        style={{ width: '100%', padding: '4px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                      />
+                    </th>
+                    <th style={{ padding: '4px 6px' }}>
+                      <input
+                        type="date"
+                        value={uf.uploadDate}
+                        onChange={e => setUF('uploadDate', e.target.value)}
+                        style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                      />
+                    </th>
+                    <th style={{ padding: '4px 6px' }}>
+                      <input
+                        type="date"
+                        value={uf.dueDate}
+                        onChange={e => setUF('dueDate', e.target.value)}
+                        style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                      />
+                    </th>
+                    <th style={{ padding: '4px 6px' }}>
+                      <select
+                        value={uf.urgent}
+                        onChange={e => setUF('urgent', e.target.value)}
+                        style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                      >
+                        <option value="all">ყველა</option>
+                        <option value="yes">სასწრაფო</option>
+                        <option value="no">ჩვეულებრივი</option>
+                      </select>
+                    </th>
+                    <th style={{ padding: '4px 6px', textAlign: 'right' }}>
+                      {(uf.fileName || uf.uploadDate || uf.dueDate || uf.urgent !== 'all') && (
+                        <button
+                          onClick={() => setUploadFilters({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' })}
+                          style={{ padding: '3px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 5, fontSize: 11, cursor: 'pointer', color: 'var(--text-4)' }}
+                        >
+                          გასუფთავება
+                        </button>
+                      )}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUploadRecords.length === 0 && (
+                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-4)', padding: '32px 0', fontSize: 13 }}>შედეგი არ მოიძებნა</td></tr>
+                  )}
+                  {filteredUploadRecords.map((rec, idx) => (
+                    <tr key={rec.id}>
+                      <td style={{ color: 'var(--text-4)', fontSize: 12 }}>{idx + 1}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          {rec.fileType.startsWith('image/') ? (
+                            <img src={rec.fileData} alt="" style={{ width: 36, height: 28, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)', flexShrink: 0 }} />
+                          ) : (
+                            <span style={{ fontSize: 22, flexShrink: 0 }}>📄</span>
+                          )}
+                          <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all' }}>{rec.fileName}</span>
+                        </div>
+                      </td>
+                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.uploadDate}</td>
+                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.dueDate || '—'}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button
+                          onClick={() => toggleUrgent(rec.id)}
+                          style={{
+                            padding: '3px 12px', border: 'none', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                            background: rec.urgent ? '#fee2e2' : 'var(--surface-2)',
+                            color: rec.urgent ? '#dc2626' : 'var(--text-4)',
+                          }}
+                        >
+                          {rec.urgent ? 'სასწრაფო' : '—'}
+                        </button>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleUploadView(rec)}
+                            style={{ padding: '4px 10px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-3)' }}
+                          >
+                            ნახვა
+                          </button>
+                          <button
+                            onClick={() => handleUploadDelete(rec.id)}
+                            style={{ padding: '4px 10px', background: '#fee2e2', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#dc2626', fontWeight: 600 }}
+                          >
+                            წაშლა
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -536,6 +874,30 @@ function Invoices() {
               </div>
             </div>
 
+            {/* Recurrence / auto-send */}
+            <div className="acc-form-grid">
+              <div className="acc-form-group"><label>Repeat</label>
+                <select value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value, auto_send: e.target.value === 'none' ? false : form.auto_send })}>
+                  <option value="none">No — one-time</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+              <div className="acc-form-group">
+                <label>Auto-send</label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-2)', height: 38, cursor: form.recurrence === 'none' ? 'not-allowed' : 'pointer', opacity: form.recurrence === 'none' ? 0.5 : 1 }}>
+                  <input type="checkbox" checked={form.auto_send} disabled={form.recurrence === 'none'} onChange={(e) => setForm({ ...form, auto_send: e.target.checked })} />
+                  Email the PDF to the client each period
+                </label>
+              </div>
+            </div>
+            {form.recurrence !== 'none' && (
+              <div style={{ fontSize: 12, color: 'var(--text-3)', margin: '-6px 0 14px' }}>
+                A new invoice will be generated <strong>{form.recurrence}</strong>{form.auto_send ? ' and emailed to ' + (form.client_email || 'the client') : ''}. {!form.client_email && form.auto_send && <span style={{ color: '#d97706' }}>Add a client email to enable sending.</span>}
+              </div>
+            )}
+
             {/* Line items */}
             <div style={{ marginBottom: 14 }}>
               <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>{t('inv.lineItems')}</label>
@@ -566,6 +928,11 @@ function Invoices() {
 
             <div className="acc-modal-actions">
               <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('inv.cancel')}</button>
+              {editId && (
+                <button className="ut-cancel-btn" onClick={handleSendNow} disabled={sendingNow || !form.client_email} title={!form.client_email ? 'Add a client email first' : 'Email the PDF to the client now'} style={{ color: '#2563eb', fontWeight: 600 }}>
+                  {sendingNow ? 'Sending…' : '✉ Send now'}
+                </button>
+              )}
               <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('inv.saving') : t('inv.saveInvoice')}</button>
             </div>
           </div>

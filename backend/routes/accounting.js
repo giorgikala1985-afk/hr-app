@@ -4,7 +4,33 @@ const supabase = require('../config/supabase');
 const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
 const { checkPermission } = require('../middleware/permission');
+const { generateInvoicePdf } = require('../utils/invoicePdf');
+const { sendInvoiceEmail } = require('../utils/mailer');
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+
+// Advance a YYYY-MM-DD date by one recurrence period; null for non-recurring.
+function addPeriod(dateStr, recurrence) {
+  if (!dateStr || !recurrence || recurrence === 'none') return null;
+  const d = new Date(dateStr);
+  if (recurrence === 'daily') d.setDate(d.getDate() + 1);
+  else if (recurrence === 'weekly') d.setDate(d.getDate() + 7);
+  else if (recurrence === 'monthly') d.setMonth(d.getMonth() + 1);
+  else return null;
+  return d.toISOString().slice(0, 10);
+}
+
+// Generate the PDF and email an invoice to its client_email. Returns true if sent.
+async function sendOneInvoice(invoice, userId) {
+  if (!invoice.client_email) throw new Error('No client email on this invoice.');
+  let companyName = 'Finpilot';
+  try {
+    const { data } = await supabase.auth.admin.getUserById(userId);
+    companyName = data?.user?.user_metadata?.company_name || companyName;
+  } catch {}
+  const pdfBuffer = await generateInvoicePdf(invoice, { name: companyName });
+  await sendInvoiceEmail({ toEmail: invoice.client_email, toName: invoice.client, invoice, pdfBuffer, companyName });
+  return true;
+}
 
 const INVOICE_PROMPT = `You are an invoice analysis expert. Extract the following information in JSON format ONLY (no markdown, no explanation):
 {
@@ -176,8 +202,15 @@ router.get('/invoices', async (req, res) => {
 
 router.post('/invoices', async (req, res) => {
   try {
-    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total } = req.body;
-    const { data, error } = await supabase.from('accounting_invoices').insert([{ user_id: req.userId, client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes, account_number: account_number || null, items, total: parseFloat(total) }]).select().single();
+    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total, recurrence, auto_send } = req.body;
+    const rec = recurrence || 'none';
+    const { data, error } = await supabase.from('accounting_invoices').insert([{
+      user_id: req.userId, client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes,
+      account_number: account_number || null, items, total: parseFloat(total),
+      recurrence: rec, auto_send: !!auto_send,
+      recurring_active: rec !== 'none',
+      next_run: rec !== 'none' ? addPeriod(date, rec) : null,
+    }]).select().single();
     if (error) throw error;
     res.status(201).json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -185,11 +218,36 @@ router.post('/invoices', async (req, res) => {
 
 router.put('/invoices/:id', async (req, res) => {
   try {
-    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total } = req.body;
-    const { data, error } = await supabase.from('accounting_invoices').update({ client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes, account_number: account_number || null, items, total: parseFloat(total) }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total, recurrence, auto_send } = req.body;
+    const rec = recurrence || 'none';
+    const update = {
+      client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes,
+      account_number: account_number || null, items, total: parseFloat(total),
+      recurrence: rec, auto_send: !!auto_send, recurring_active: rec !== 'none',
+    };
+    // Recompute the next scheduled send from the (possibly changed) date/recurrence.
+    update.next_run = rec !== 'none' ? addPeriod(date, rec) : null;
+    const { data, error } = await supabase.from('accounting_invoices').update(update).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Send one invoice now (PDF email to its client_email).
+router.post('/invoices/:id/send', async (req, res) => {
+  try {
+    const { data: invoice, error } = await supabase.from('accounting_invoices')
+      .select('*').eq('id', req.params.id).eq('user_id', req.userId).single();
+    if (error || !invoice) return res.status(404).json({ error: 'Invoice not found.' });
+    await sendOneInvoice(invoice, req.userId);
+    await supabase.from('accounting_invoices')
+      .update({ last_sent_at: new Date().toISOString(), status: invoice.status === 'draft' ? 'sent' : invoice.status })
+      .eq('id', invoice.id).eq('user_id', req.userId);
+    res.json({ sent: true });
+  } catch (err) {
+    console.error('Invoice send error:', err.message);
+    res.status(500).json({ error: err.message || 'Failed to send invoice.' });
+  }
 });
 
 router.delete('/invoices/bulk', async (req, res) => {

@@ -25,6 +25,10 @@ function buildEventMap(purchases, sales, invoices, transactions, labels) {
   invoices.forEach(r => {
     add(toDateKey(r.date), { type: 'invoice', label: r.client || labels.invoice, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
     if (r.due_date) add(toDateKey(r.due_date), { type: 'invoice_due', label: r.client || labels.invoiceDue, amount: r.total, currency: r.currency, id: r.id, sub: r.invoice_number });
+    // Upcoming auto-send for recurring invoices.
+    if (r.recurrence && r.recurrence !== 'none' && r.next_run) {
+      add(toDateKey(r.next_run), { type: 'scheduled', label: r.client || 'Scheduled send', amount: r.total, currency: r.currency, id: r.id, sub: `${r.recurrence}${r.auto_send ? ' · auto-send' : ''}` });
+    }
   });
   transactions.forEach(r => add(toDateKey(r.date), { type: 'transaction', label: r.client || labels.transaction, amount: r.amount, currency: null, id: r.id, sub: r.item_type, note: r.note }));
 
@@ -56,6 +60,7 @@ export default function PaymentCalendar() {
     invoice:     { label: t('cal.invoice'),     color: '#2563eb', bg: isDark ? 'rgba(37,99,235,0.12)'   : '#eff6ff', border: isDark ? 'rgba(37,99,235,0.3)'    : '#93c5fd' },
     invoice_due: { label: t('cal.invoiceDue'),  color: '#d97706', bg: isDark ? 'rgba(217,119,6,0.12)'   : '#fffbeb', border: isDark ? 'rgba(217,119,6,0.3)'    : '#fcd34d' },
     transaction: { label: t('cal.transaction'), color: '#7c3aed', bg: isDark ? 'rgba(124,58,237,0.12)'  : '#f5f3ff', border: isDark ? 'rgba(124,58,237,0.3)'   : '#c4b5fd' },
+    scheduled:   { label: 'Scheduled',          color: '#0d9488', bg: isDark ? 'rgba(13,148,136,0.12)'  : '#f0fdfa', border: isDark ? 'rgba(13,148,136,0.3)'   : '#5eead4' },
   };
 
   const typeLabels = {
@@ -64,6 +69,7 @@ export default function PaymentCalendar() {
     invoice: t('cal.invoice'),
     invoiceDue: t('cal.invoiceDue'),
     transaction: t('cal.transaction'),
+    scheduled: 'Scheduled',
   };
 
   const load = useCallback(async () => {
