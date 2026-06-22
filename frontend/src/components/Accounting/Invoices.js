@@ -791,7 +791,16 @@ function Invoices() {
                       style={{ width: 15, height: 15, cursor: 'pointer' }}
                     />
                   </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.invoice_number}</strong></td>
+                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <strong>{r.invoice_number}</strong>
+                      {r.recurrence && r.recurrence !== 'none' && (
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#f0fdfa', color: '#0d9488', border: '1px solid #5eead4', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                          {r.recurrence}{r.auto_send ? ' ✉' : ''}
+                        </span>
+                      )}
+                    </div>
+                  </td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.client}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.due_date || '—'}</td>
