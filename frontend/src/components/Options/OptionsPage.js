@@ -9,7 +9,7 @@ import OvertimeSettings from './OvertimeSettings';
 import StockSettings from './StockSettings';
 import LanguageSettings from './LanguageSettings';
 import TaxSettings from './TaxSettings';
-import NavOrderSettings, { loadSidebarOrder, useSidebarReorder, OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT } from './NavOrderSettings';
+import NavOrderSettings, { loadSidebarOrder, loadHidden, useSidebarReorder, OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT, OPT_SIDEBAR_HIDDEN_KEY } from './NavOrderSettings';
 import UsersSettings from './UsersSettings';
 import AccountsSettings from './AccountsSettings';
 import ToolsPage from './Tools/ToolsPage';
@@ -30,6 +30,7 @@ import {
   Settings01Icon,
   PaintBoardIcon,
   InformationSquareIcon,
+  DiamondIcon,
 } from '@hugeicons/core-free-icons';
 import './Options.css';
 
@@ -54,6 +55,7 @@ function OptionsPage() {
     try { return localStorage.getItem('opt_sidebar_collapsed') === 'true'; } catch { return false; }
   });
   const [sidebarOrder, setSidebarOrder] = useState(() => loadSidebarOrder(OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT));
+  const [hiddenTabs, setHiddenTabs] = useState(() => loadHidden(OPT_SIDEBAR_HIDDEN_KEY));
   const { t } = useLanguage();
 
   const currentRights = (() => {
@@ -64,6 +66,7 @@ function OptionsPage() {
   useEffect(() => {
     const sync = (e) => {
       if (!e.key || e.key === OPT_SIDEBAR_ORDER_KEY) setSidebarOrder(loadSidebarOrder(OPT_SIDEBAR_ORDER_KEY, OPT_SIDEBAR_DEFAULT));
+      if (!e.key || e.key === OPT_SIDEBAR_HIDDEN_KEY) setHiddenTabs(loadHidden(OPT_SIDEBAR_HIDDEN_KEY));
     };
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
@@ -77,19 +80,21 @@ function OptionsPage() {
 
   const tabs = [
     { key: 'holidays', label: t('options.holidays'), icon: optIcon(Calendar03Icon, '#f43f5e') },
-    { key: 'info', label: 'Info', icon: optIcon(InformationCircleIcon, '#8b5cf6') },
+    { key: 'info', label: t('options.info'), icon: optIcon(InformationCircleIcon, '#8b5cf6') },
     { key: 'pagination', label: t('options.pagination'), icon: optIcon(Table01Icon, '#f97316') },
     { key: 'tax', label: t('options.tax'), icon: optIcon(TaxesIcon, '#10b981') },
     { key: 'language', label: t('options.language'), icon: optIcon(Globe02Icon, '#06b6d4') },
     { key: 'navorder', label: t('options.navOrder'), icon: optIcon(Menu01Icon, '#6366f1') },
-    { key: 'accounts', label: 'Accounts', icon: optIcon(AccountSetting01Icon, '#0369a1') },
-    ...(isSuperAdmin ? [{ key: 'users', label: 'Users & Roles', icon: optIcon(UserSettings01Icon, '#7c3aed') }] : []),
-    { key: 'tools', label: 'Tools', icon: optIcon(Settings01Icon, '#f59e0b') },
-    { key: 'appearance', label: 'Appearance', icon: optIcon(PaintBoardIcon, '#f43f5e') },
-    { key: 'about', label: 'About', icon: optIcon(InformationSquareIcon, '#ec4899') },
+    { key: 'accounts', label: t('options.accounts'), icon: optIcon(AccountSetting01Icon, '#0369a1') },
+    ...(isSuperAdmin ? [{ key: 'users', label: t('options.users'), icon: optIcon(UserSettings01Icon, '#7c3aed') }] : []),
+    { key: 'tools', label: t('options.tools'), icon: optIcon(Settings01Icon, '#f59e0b') },
+    { key: 'appearance', label: t('options.appearance'), icon: optIcon(PaintBoardIcon, '#f43f5e') },
+    { key: 'about', label: t('options.about'), icon: optIcon(InformationSquareIcon, '#ec4899') },
   ];
 
-  const orderedTabs = [...tabs].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key));
+  const orderedTabs = [...tabs]
+    .sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key))
+    .filter(tab => !hiddenTabs.has(tab.key));
   const { getItemProps } = useSidebarReorder(OPT_SIDEBAR_ORDER_KEY, orderedTabs.map(tab => tab.key), setSidebarOrder);
 
   return (
@@ -183,11 +188,14 @@ function OptionsPage() {
         )}
         {activeTab === 'about' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 16, textAlign: 'center' }}>
-            <div style={{ fontSize: 72 }}>🍾</div>
+            <div style={{ width: 80, height: 80, borderRadius: 24, background: 'linear-gradient(135deg, #6366f1 0%, #3185FC 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 32px rgba(99,102,241,0.35)' }}>
+              <HugeiconsIcon icon={DiamondIcon} size={40} color="white" strokeWidth={1.6} />
+            </div>
             <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', margin: 0 }}>
               A Giorgi Kalandadze &amp; Archil Chogovadze Product
             </p>
             <p style={{ fontSize: 13, color: 'var(--text-4)', margin: 0 }}>© 2026 Finpilot</p>
+            <p style={{ fontSize: 12, color: 'var(--text-4)', margin: 0 }}>Deployed: June 19, 2026</p>
           </div>
         )}
       </main>

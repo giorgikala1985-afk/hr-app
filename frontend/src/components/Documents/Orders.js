@@ -259,11 +259,13 @@ function HiringTab() {
   const [positions, setPositions] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [taxCodes, setTaxCodes] = useState([]);
+  const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const EMPTY = {
     firstName: '', lastName: '', personalId: '', birthdate: '',
     position: '', department: '', startDate: '', endDate: '',
-    salary: '', accountNumber: '', pitRate: '20',
+    salary: '', salaryCurrency: 'GEL', accountNumber: '', pitRate: '20',
     pension: false, personalEmail: '', phone: '', address: '', notes: '',
   };
   const [form, setForm] = useState(EMPTY);
@@ -295,7 +297,7 @@ function HiringTab() {
       personalId: o.personalId || '', birthdate: o.birthdate || '',
       position: o.position || '', department: o.department || '',
       startDate: o.startDate || '', endDate: o.endDate || '',
-      salary: o.salary || '', accountNumber: o.accountNumber || '',
+      salary: o.salary || '', salaryCurrency: o.salaryCurrency || 'GEL', accountNumber: o.accountNumber || '',
       pitRate: o.pitRate || '20',
       pension: o.pension || false, personalEmail: o.personalEmail || '',
       phone: o.phone || '', address: o.address || '', notes: o.notes || '',
@@ -303,10 +305,38 @@ function HiringTab() {
     setActiveTab('info');
     setShowForm(true);
   };
-  const close = () => { setShowForm(false); setEditing(null); };
+  const close = () => { setShowForm(false); setEditing(null); setSubmitError(''); };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitError('');
+    if (!editing) {
+      setSaving(true);
+      try {
+        const data = new FormData();
+        data.append('first_name', form.firstName.trim());
+        data.append('last_name', form.lastName.trim());
+        data.append('personal_id', form.personalId.trim());
+        data.append('birthdate', form.birthdate);
+        data.append('position', form.position.trim());
+        data.append('salary', form.salary);
+        data.append('salary_currency', form.salaryCurrency || 'GEL');
+        data.append('start_date', form.startDate);
+        if (form.endDate) data.append('end_date', form.endDate);
+        if (form.department) data.append('department', form.department.trim());
+        if (form.accountNumber) data.append('account_number', form.accountNumber.trim());
+        if (form.phone) data.append('mobile_number', form.phone.trim());
+        if (form.personalEmail) data.append('personal_email', form.personalEmail.trim());
+        data.append('pit_rate', form.pitRate || 20);
+        data.append('pension', form.pension ? 'true' : 'false');
+        await api.post('/employees', data, { headers: { 'Content-Type': 'multipart/form-data' } });
+      } catch (err) {
+        setSubmitError(err.response?.data?.error || 'Failed to create employee.');
+        setSaving(false);
+        return;
+      }
+      setSaving(false);
+    }
     editing ? update(editing, form) : add(form);
     close();
   };
@@ -386,6 +416,11 @@ function HiringTab() {
               {activeTab === 'info' && (
                 <div className="form-card">
                   <form onSubmit={handleSubmit}>
+                    {submitError && (
+                      <div style={{ padding: '10px 14px', background: 'rgba(220,38,38,0.1)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+                        {submitError}
+                      </div>
+                    )}
                     <div className="form-grid-4">
                       <div className="form-group">
                         <label>{t('orders.firstName')} *</label>
@@ -427,7 +462,27 @@ function HiringTab() {
                       </div>
                       <div className="form-group">
                         <label>{t('orders.salary')} *</label>
-                        <input type="number" step="0.01" min="0" value={form.salary} onChange={fv('salary')} placeholder="e.g. 5000.00" required />
+                        <div style={{ display: 'flex', gap: 0, borderRadius: 8, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+                          <input
+                            type="number" step="0.01" min="0"
+                            value={form.salary} onChange={fv('salary')}
+                            placeholder="e.g. 5000.00" required
+                            style={{ flex: 1, border: 'none', outline: 'none', padding: '9px 12px', fontSize: 14, background: 'var(--surface)', color: 'var(--text)', minWidth: 0 }}
+                          />
+                          {['GEL', 'USD', 'EUR'].map(cur => (
+                            <button
+                              key={cur} type="button"
+                              onClick={() => setForm(p => ({ ...p, salaryCurrency: cur }))}
+                              style={{
+                                padding: '0 14px', border: 'none', borderLeft: '1px solid var(--border-2)',
+                                cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                                background: form.salaryCurrency === cur ? '#3b82f6' : 'var(--surface-2)',
+                                color: form.salaryCurrency === cur ? '#fff' : 'var(--text-3)',
+                                transition: 'all 0.12s',
+                              }}
+                            >{cur}</button>
+                          ))}
+                        </div>
                       </div>
                       <div className="form-group">
                         <label>{t('orders.startDate')} *</label>
@@ -481,7 +536,9 @@ function HiringTab() {
                     </div>
                     <div className="form-actions">
                       <button type="button" className="btn-secondary" onClick={close}>{t('orders.cancel')}</button>
-                      <button type="submit" className="btn-add">{editing ? t('orders.updateOrder') : t('orders.createEmployee')}</button>
+                      <button type="submit" className="btn-add" disabled={saving}>
+                        {saving ? t('orders.saving') : editing ? t('orders.updateOrder') : t('orders.createEmployee')}
+                      </button>
                     </div>
                   </form>
                 </div>
@@ -1937,7 +1994,7 @@ export default function Orders() {
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
-  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '', otHours: '', currency: 'USD', includeInSalary: true };
+  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: 'USD', includeInSalary: true, date: '' };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
 
@@ -2015,10 +2072,10 @@ export default function Orders() {
   const getEmpSalary = (empId) => parseFloat(salaries.find(s => s.employee?.id === empId)?.employee?.salary || 0);
 
   const calcOtAmount = (empId, rate, hours) => {
-    const wdays = getWorkingDays(empId);
+    const wdays = getWorkingDays(empId) || 22;
     const salary = getEmpSalary(empId);
-    const hr = wdays > 0 ? salary / (wdays * 8) : 0;
-    if (!hr || !hours || !rate) return '';
+    if (!salary || !hours || !rate) return '';
+    const hr = salary / (wdays * 8);
     return (hr * (parseFloat(rate) / 100) * parseFloat(hours)).toFixed(2);
   };
 
@@ -2063,7 +2120,7 @@ export default function Orders() {
       await api.post(`/employees/${form.employeeId}/units`, {
         type: form.type,
         amount: amountUSD,
-        date: monthLastDay,
+        date: form.date || monthLastDay,
         currency: 'USD',
         include_in_salary: form.includeInSalary,
       });
@@ -2075,14 +2132,14 @@ export default function Orders() {
           client_name: empName,
           agent_id: null,
           amount: amountUSD,
-          due_date: monthLastDay,
+          due_date: form.date || monthLastDay,
           description: `${form.type} — ${empName}`,
           status: 'normal',
         });
       }
 
       setShowForm(false);
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' });
       loadSalaries(month);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to add order.');
@@ -2101,6 +2158,7 @@ export default function Orders() {
       otHours: '',
       currency: 'USD',
       includeInSalary: u.include_in_salary !== false,
+      date: u.date ? u.date.slice(0, 10) : monthLastDay,
     });
     setError('');
     setShowForm(true);
@@ -2119,7 +2177,7 @@ export default function Orders() {
         await api.post(`/employees/${form.employeeId}/units`, {
           type: form.type,
           amount: amountUSD,
-          date: monthLastDay,
+          date: form.date || monthLastDay,
           currency: 'USD',
           include_in_salary: form.includeInSalary,
         });
@@ -2132,7 +2190,7 @@ export default function Orders() {
         });
       }
       setShowForm(false);
-      setForm(EMPTY_FORM);
+      setForm({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' });
       setEditingUnit(null);
       loadSalaries(month);
     } catch (err) {
@@ -2152,6 +2210,7 @@ export default function Orders() {
       otHours: '',
       currency: 'USD',
       includeInSalary: u.include_in_salary !== false,
+      date: monthLastDay,
     });
     setError('');
     setShowForm(true);
@@ -2193,7 +2252,7 @@ export default function Orders() {
           </p>
         </div>
         {subTab === 'adjusting' && canCreateAdjusting && <button
-          onClick={() => { setShowForm(true); setError(''); }}
+          onClick={() => { setForm(f => ({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' })); setShowForm(true); setError(''); }}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '9px 20px', borderRadius: 9, border: 'none',
@@ -2314,7 +2373,7 @@ export default function Orders() {
             <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>{t('orders.noOrders', { month: monthLabel })}</div>
             <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>{t('orders.noOrdersHint')}</div>
             <button
-              onClick={() => { setShowForm(true); setError(''); }}
+              onClick={() => { setForm(f => ({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' })); setShowForm(true); setError(''); }}
               style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
             >
               + {t('orders.addNew')}
@@ -2460,7 +2519,7 @@ export default function Orders() {
       {/* ── MODAL FORM OVERLAY ── */}
       {showForm && (
         <div
-          onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setEditingUnit(null); setForm(EMPTY_FORM); } }}
+          onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setEditingUnit(null); setForm({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' }); } }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
           <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
@@ -2471,7 +2530,7 @@ export default function Orders() {
                 <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>{editingUnit ? t('orders.editOrder') : t('orders.newOrder')}</div>
                 <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{monthLabel}</div>
               </div>
-              <button onClick={() => { setShowForm(false); setEditingUnit(null); setForm(EMPTY_FORM); }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              <button onClick={() => { setShowForm(false); setEditingUnit(null); setForm({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' }); }} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
             </div>
 
             {/* Modal body */}
@@ -2507,6 +2566,17 @@ export default function Orders() {
                   <div style={{ fontSize: 11, marginTop: 5, color: getDirection(form.type) === 'addition' ? '#4ade80' : '#f87171' }}>
                     {getDirection(form.type) === 'addition' ? t('orders.addedToNet') : t('orders.deductedFromNet')}
                   </div>
+                </div>
+
+                {/* Date */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={LABEL}>Date</label>
+                  <input
+                    type="date"
+                    value={form.date || monthLastDay}
+                    onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                    style={INPUT}
+                  />
                 </div>
 
                 {/* OT extras */}

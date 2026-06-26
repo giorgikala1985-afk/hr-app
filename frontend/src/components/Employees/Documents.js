@@ -23,7 +23,7 @@ function Documents({ employeeId }) {
     setLoading(true);
     try {
       const response = await api.get(`/employees/${employeeId}/documents`);
-      setDocuments(response.data.documents);
+      setDocuments(response.data?.documents || []);
     } catch (err) {
       setError(t('doc.loadFailed'));
     } finally {

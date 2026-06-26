@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '—';
@@ -70,6 +71,22 @@ function TransfersList() {
   const [invoiceReading, setInvoiceReading] = useState(false);
   const [invoiceReadData, setInvoiceReadData] = useState(null);
   const readInvoiceRef = useRef(null);
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+  const { widths: colW, onResizeMouseDown } = useKeyedColumnWidths('transfers_col_widths', {
+    status: 120, client: 160, amount: 100, dueDate: 110,
+    description: 280, requester: 150, approval: 140, actions: 48,
+  });
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpenDropdownId(null);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
   useEffect(() => { loadTransfers(); loadAgents(); loadPermission(); }, []);
 
@@ -296,32 +313,49 @@ function TransfersList() {
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed', width: Object.values(colW).reduce((a, b) => a + b, 0) }}>
+            <colgroup>
+              {['status','client','amount','dueDate','description','requester','approval','actions'].map(k => (
+                <col key={k} style={{ width: colW[k] }} />
+              ))}
+            </colgroup>
             <thead>
               <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                <th style={th}>{t('tr.colStatus')}</th>
-                <th style={th}>{t('tr.colClient')}</th>
-                <th style={{ ...th, textAlign: 'right' }}>{t('tr.colAmount')}</th>
-                <th style={th}>{t('tr.colDueDate')}</th>
-                <th style={th}>{t('tr.colDescription')}</th>
-                <th style={th}>{t('tr.colRequester')}</th>
-                <th style={th}>{t('tr.colApproval')}</th>
-                <th style={{ ...th, width: 240, whiteSpace: 'nowrap' }}></th>
+                {[
+                  { key: 'status',      label: t('tr.colStatus') },
+                  { key: 'client',      label: t('tr.colClient') },
+                  { key: 'amount',      label: t('tr.colAmount'), align: 'right' },
+                  { key: 'dueDate',     label: t('tr.colDueDate') },
+                  { key: 'description', label: t('tr.colDescription') },
+                  { key: 'requester',   label: t('tr.colRequester') },
+                  { key: 'approval',    label: t('tr.colApproval') },
+                  { key: 'actions',     label: '' },
+                ].map(col => (
+                  <th key={col.key} style={{ ...th, position: 'relative', width: colW[col.key], textAlign: col.align || 'left', overflow: 'hidden' }}>
+                    {col.label}
+                    <div
+                      onMouseDown={e => onResizeMouseDown(e, col.key)}
+                      style={RESIZE_HANDLE_STYLE}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    />
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filteredTransfers.map((tr, i) => (
                 <tr key={tr.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  <td style={td}>
+                  <td style={tdCompact}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 5, ...urgencyStyle(tr.status) }}>
                       {statusLabel(tr.status)}
                     </span>
                   </td>
-                  <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{tr.client_name}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>
-                  <td style={{ ...td, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>
+                  <td style={{ ...tdCompact, fontWeight: 600, color: 'var(--text)' }}>{tr.client_name}</td>
+                  <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>
+                  <td style={{ ...tdCompact, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>
                   <td style={{ ...td, color: 'var(--text-2)' }}>{tr.description}</td>
-                  <td style={{ ...td, color: 'var(--text-2)', fontSize: 12 }}>{tr.requester_name || '—'}</td>
+                  <td style={{ ...tdCompact, color: 'var(--text-2)', fontSize: 12 }}>{tr.requester_name || '—'}</td>
                   <td style={td}>
                     {(() => { const b = approvalBadge(tr.approval_status || 'pending'); return (
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: b.bg, color: b.color }} title={tr.approver_note || ''}>
@@ -332,42 +366,57 @@ function TransfersList() {
                       <div style={{ fontSize: 10, color: 'var(--text-4)', marginTop: 2 }}>{tr.approver_name}</div>
                     )}
                   </td>
-                  <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                    <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'nowrap', alignItems: 'center' }}>
-                      {(tr.approval_status || 'pending') === 'pending' && canApprove && (
-                        <>
-                          <button onClick={() => handleApprove(tr.id)} style={approveBtn} title={t('tr.approve')}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <td style={tdCompact}>
+                    <div style={{ position: 'relative', display: 'inline-block' }} ref={openDropdownId === tr.id ? dropdownRef : null}>
+                      <button
+                        onClick={() => setOpenDropdownId(openDropdownId === tr.id ? null : tr.id)}
+                        style={{ background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, cursor: 'pointer', color: 'var(--text-3)', padding: '3px 8px', fontSize: 16, lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
+                      >⋯</button>
+                      {openDropdownId === tr.id && (
+                        <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', zIndex: 200, minWidth: 160, overflow: 'hidden' }}>
+                          {(tr.approval_status || 'pending') === 'pending' && canApprove && (<>
+                            <button onClick={() => { handleApprove(tr.id); setOpenDropdownId(null); }} style={ddItem}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              {t('tr.approve')}
+                            </button>
+                            <button onClick={() => { openPartial(tr); setOpenDropdownId(null); }} style={ddItem}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                              {t('tr.partial')}
+                            </button>
+                            <button onClick={() => { handleWait(tr.id); setOpenDropdownId(null); }} style={ddItem}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                              {t('tr.wait')}
+                            </button>
+                            {canReject && (
+                              <button onClick={() => { handleReject(tr.id); setOpenDropdownId(null); }} style={{ ...ddItem, color: '#f87171' }}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                                {t('tr.reject')}
+                              </button>
+                            )}
+                            <div style={{ height: 1, background: 'var(--border)', margin: '2px 0' }} />
+                          </>)}
+                          <button onClick={() => { openEdit(tr); setOpenDropdownId(null); }} style={ddItem}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                            {t('tr.edit') || 'Edit'}
                           </button>
-                          <button onClick={() => openPartial(tr)} style={partialBtn} title={t('tr.partial')}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                          </button>
-                          <button onClick={() => handleWait(tr.id)} style={waitBtn} title={t('tr.wait')}>
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                          </button>
-                          {canReject && (
-                            <button onClick={() => handleReject(tr.id)} style={rejectBtn} title={t('tr.reject')}>
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                          {tr.invoice_raw && (
+                            <button style={{ ...ddItem, color: '#60a5fa', cursor: 'default' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                              Invoice attached
                             </button>
                           )}
-                        </>
-                      )}
-                      <button onClick={() => openEdit(tr)} style={iconBtn} onMouseEnter={e => e.currentTarget.style.color='#3b82f6'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
-                      </button>
-                      {tr.invoice_raw && (
-                        <span title="Invoice attached" style={{ display: 'inline-flex', alignItems: 'center', padding: 4, color: '#60a5fa' }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                        </span>
-                      )}
-                      {['approved', 'rejected', 'partial'].includes(tr.approval_status) ? (
-                        <button onClick={() => handleArchive(tr.id)} style={iconBtn} title={t('tr.archive')} onMouseEnter={e => e.currentTarget.style.color='#a78bfa'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
-                        </button>
-                      ) : tr.approval_status !== 'archived' && (
-                        <button onClick={() => handleDelete(tr.id)} style={iconBtn} onMouseEnter={e => e.currentTarget.style.color='#ef4444'} onMouseLeave={e => e.currentTarget.style.color='#cbd5e1'}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
-                        </button>
+                          {['approved', 'rejected', 'partial'].includes(tr.approval_status) ? (
+                            <button onClick={() => { handleArchive(tr.id); setOpenDropdownId(null); }} style={ddItem}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+                              {t('tr.archive')}
+                            </button>
+                          ) : tr.approval_status !== 'archived' && (
+                            <button onClick={() => { handleDelete(tr.id); setOpenDropdownId(null); }} style={{ ...ddItem, color: '#ef4444' }}>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                              {t('tr.delete') || 'Delete'}
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </td>
@@ -833,7 +882,9 @@ function Transfers() {
 }
 
 const th = { padding: '10px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-3)', whiteSpace: 'nowrap' };
-const td = { padding: '9px 14px', verticalAlign: 'middle' };
+const thCompact = { ...th, width: '1%' };
+const td = { padding: '9px 14px', verticalAlign: 'middle', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const tdCompact = { ...td };
 const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5 };
 const inpStyle = { width: '100%', padding: '8px 10px', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--surface-2)', color: 'var(--text)' };
 const errBox = { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, padding: '10px 14px' };
@@ -851,5 +902,6 @@ const approveBtn = { ...actionBtnBase, background: 'rgba(22,163,74,0.14)',  colo
 const rejectBtn  = { ...actionBtnBase, background: 'rgba(220,38,38,0.14)',  color: '#f87171', borderColor: 'rgba(220,38,38,0.35)' };
 const partialBtn = { ...actionBtnBase, background: 'rgba(59,130,246,0.14)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.35)' };
 const waitBtn    = { ...actionBtnBase, background: 'rgba(148,163,184,0.16)',color: '#cbd5e1', borderColor: 'rgba(148,163,184,0.30)' };
+const ddItem     = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-2)', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.1s' };
 
 export default Transfers;

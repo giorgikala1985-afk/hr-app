@@ -86,7 +86,7 @@ function HolidayList() {
     setError('');
     try {
       const response = await api.get('/holidays', { params: { year: selectedYear } });
-      setHolidays(response.data.holidays);
+      setHolidays(response.data?.holidays || []);
     } catch (err) {
       setError(t('hol.loadFailed') + (err.response?.data?.error || err.message));
     } finally {

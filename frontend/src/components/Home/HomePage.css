@@ -268,6 +268,237 @@
   font-size: 14px;
 }
 
+/* Quick + FAB — fixed bottom-right */
+.home-quick-btn {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #3185FC;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 28px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(49,133,252,0.45);
+  transition: transform 0.15s, box-shadow 0.15s;
+  z-index: 200;
+}
+.home-quick-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 24px rgba(49,133,252,0.55);
+}
+
+/* Quick Unit Modal */
+.qum-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.qum-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+  overflow: hidden;
+}
+.qum-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.qum-title {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.qum-back, .qum-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s, background 0.15s;
+}
+.qum-back:hover, .qum-close:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.qum-unit-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 18px;
+}
+.qum-empty {
+  grid-column: 1/-1;
+  text-align: center;
+  color: var(--text-4);
+  font-size: 13px;
+  padding: 24px 0;
+}
+.qum-unit-card {
+  background: var(--surface-2);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.qum-unit-card:hover {
+  border-color: var(--ut-color);
+  background: color-mix(in srgb, var(--ut-color) 8%, var(--surface));
+}
+.qum-unit-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.qum-unit-dir {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ut-color);
+  line-height: 1;
+}
+.qum-form {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.qum-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.qum-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-4);
+}
+.qum-input {
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 14px;
+  color: var(--text);
+  font-family: inherit;
+  width: 100%;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.qum-input:focus {
+  border-color: #3185FC;
+}
+.qum-row {
+  display: flex;
+  gap: 10px;
+}
+.qum-emp-wrap {
+  position: relative;
+}
+.qum-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  z-index: 10;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+.qum-suggestion {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  display: block;
+  transition: background 0.1s;
+}
+.qum-suggestion:hover {
+  background: var(--surface-2);
+}
+.qum-pid {
+  color: var(--text-4);
+  font-size: 12px;
+}
+.qum-check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.qum-error {
+  font-size: 13px;
+  color: #ef4444;
+  background: rgba(239,68,68,0.08);
+  border-radius: 7px;
+  padding: 8px 12px;
+}
+.qum-success {
+  font-size: 13px;
+  color: #10b981;
+  background: rgba(16,185,129,0.1);
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-weight: 600;
+}
+.qum-submit {
+  background: #3185FC;
+  color: white;
+  border: none;
+  border-radius: 9px;
+  padding: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.qum-submit:hover:not(:disabled) {
+  opacity: 0.88;
+}
+.qum-submit:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 @media (max-width: 768px) {
   .home-page {
     padding: 20px 16px;

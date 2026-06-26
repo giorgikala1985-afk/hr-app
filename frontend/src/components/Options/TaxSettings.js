@@ -29,7 +29,7 @@ function TaxSettings() {
     setError('');
     try {
       const res = await api.get('/tax-codes');
-      setTaxCodes(res.data.tax_codes);
+      setTaxCodes(res.data?.tax_codes || []);
     } catch (err) {
       setError(t('tax.loadFailed'));
     } finally {

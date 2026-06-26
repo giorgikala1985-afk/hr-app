@@ -395,7 +395,7 @@ function BankStatements() {
       if (dateFrom) params.append('dateFrom', dateFrom);
       if (dateTo) params.append('dateTo', dateTo);
       const res = await api.get(`/tbc-bank/statements?${params.toString()}`);
-      const data = res.data.statements;
+      const data = res.data?.statements || {};
       setStatements(data);
       // Auto-select all transactions
       if (data?.transactions) {

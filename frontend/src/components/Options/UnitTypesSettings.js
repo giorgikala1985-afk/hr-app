@@ -24,7 +24,7 @@ function UnitTypesSettings() {
     setLoading(true); setError('');
     try {
       const res = await api.get('/units');
-      setUnitTypes(res.data.unit_types);
+      setUnitTypes(res.data?.unit_types || []);
     } catch { setError(t('ut.loadFailed')); }
     finally { setLoading(false); }
   };

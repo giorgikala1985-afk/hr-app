@@ -11,8 +11,10 @@ import {
   ClipboardListIcon,
   Database01Icon,
   InboxIcon,
+  BankIcon,
+  SecurityCheckIcon,
 } from '@hugeicons/core-free-icons';
-import { loadSidebarOrder, useSidebarReorder, DOCS_SIDEBAR_ORDER_KEY, DOCS_SIDEBAR_DEFAULT } from '../Options/NavOrderSettings';
+import { loadSidebarOrder, loadHidden, useSidebarReorder, DOCS_SIDEBAR_ORDER_KEY, DOCS_SIDEBAR_DEFAULT, DOCS_SIDEBAR_HIDDEN_KEY } from '../Options/NavOrderSettings';
 import HiringDocuments from './HiringDocuments';
 import EmployeeList from '../Employees/EmployeeList';
 import Agents from '../Accounting/Agents';
@@ -21,6 +23,8 @@ import CurrencyRates from './CurrencyRates';
 import Orders from './Orders';
 import DataLake from './DataLake';
 import Requests from './Requests';
+import TbcBanking from '../Accounting/TbcBanking';
+import RsGeIntegration from '../Accounting/RsGeIntegration';
 import './Documents.css';
 
 const TAB_KEYS = [
@@ -48,6 +52,12 @@ const TAB_KEYS = [
   { key: 'requests', labelKey: 'docs.requests', icon: (
     <HugeiconsIcon icon={InboxIcon} size={16} color="#ef4444" strokeWidth={1.8} />
   )},
+  { key: 'banking', labelKey: 'acc.banking', icon: (
+    <HugeiconsIcon icon={BankIcon} size={16} color="#14b8a6" strokeWidth={1.8} />
+  )},
+  { key: 'rsge', labelKey: 'acc.rsge', icon: (
+    <HugeiconsIcon icon={SecurityCheckIcon} size={16} color="#e11d48" strokeWidth={1.8} />
+  )},
 ];
 
 const CHEVRON_LEFT = <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -66,10 +76,12 @@ function DocumentsPage() {
     try { return localStorage.getItem('docs_sidebar_collapsed') === 'true'; } catch { return false; }
   });
   const [sidebarOrder, setSidebarOrder] = useState(() => loadSidebarOrder(DOCS_SIDEBAR_ORDER_KEY, DOCS_SIDEBAR_DEFAULT));
+  const [hiddenTabs, setHiddenTabs] = useState(() => loadHidden(DOCS_SIDEBAR_HIDDEN_KEY));
 
   useEffect(() => {
     const sync = (e) => {
       if (!e.key || e.key === DOCS_SIDEBAR_ORDER_KEY) setSidebarOrder(loadSidebarOrder(DOCS_SIDEBAR_ORDER_KEY, DOCS_SIDEBAR_DEFAULT));
+      if (!e.key || e.key === DOCS_SIDEBAR_HIDDEN_KEY) setHiddenTabs(loadHidden(DOCS_SIDEBAR_HIDDEN_KEY));
     };
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
@@ -81,7 +93,9 @@ function DocumentsPage() {
     return next;
   });
 
-  const orderedTabs = [...TABS].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key));
+  const orderedTabs = [...TABS]
+    .sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key))
+    .filter(tab => !hiddenTabs.has(tab.key));
   const { getItemProps } = useSidebarReorder(DOCS_SIDEBAR_ORDER_KEY, orderedTabs.map(tab => tab.key), setSidebarOrder);
 
   return (
@@ -127,6 +141,8 @@ function DocumentsPage() {
         )}
         {activeTab === 'datalake' && <DataLake />}
         {activeTab === 'requests' && <Requests />}
+        {activeTab === 'banking' && <TbcBanking />}
+        {activeTab === 'rsge' && <RsGeIntegration />}
       </main>
     </div>
   );

@@ -15,38 +15,40 @@ const REQUEST_TYPES = [
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 
 const STATUS_CONFIG = {
-  pending:     { label: 'Pending',     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  in_progress: { label: 'In Progress', color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
-  approved:    { label: 'Approved',    color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
-  rejected:    { label: 'Rejected',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
-  closed:      { label: 'Closed',      color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
+  pending:     { labelKey: 'req.statusPending',     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
+  in_progress: { labelKey: 'req.statusInProgress',  color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
+  approved:    { labelKey: 'req.statusApproved',    color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
+  rejected:    { labelKey: 'req.statusRejected',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
+  closed:      { labelKey: 'req.statusClosed',      color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
 };
 
 const PRIORITY_CONFIG = {
-  low:    { label: 'Low',    color: '#10b981' },
-  medium: { label: 'Medium', color: '#f59e0b' },
-  high:   { label: 'High',   color: '#f97316' },
-  urgent: { label: 'Urgent', color: '#ef4444' },
+  low:    { labelKey: 'req.priorityLow',    color: '#10b981' },
+  medium: { labelKey: 'req.priorityMedium', color: '#f59e0b' },
+  high:   { labelKey: 'req.priorityHigh',   color: '#f97316' },
+  urgent: { labelKey: 'req.priorityUrgent', color: '#ef4444' },
 };
 
 const EMPTY_FORM = { title: '', type: '', priority: 'medium', description: '' };
 
 function StatusBadge({ status }) {
+  const { t } = useLanguage();
   const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
   return (
     <span style={{
       display: 'inline-block', padding: '3px 10px', borderRadius: 20,
       fontSize: 12, fontWeight: 600, color: cfg.color, background: cfg.bg,
-    }}>{cfg.label}</span>
+    }}>{t(cfg.labelKey)}</span>
   );
 }
 
 function PriorityDot({ priority }) {
+  const { t } = useLanguage();
   const cfg = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG.medium;
   return (
     <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 13, color: cfg.color, fontWeight: 600 }}>
       <span style={{ width: 8, height: 8, borderRadius: '50%', background: cfg.color, display: 'inline-block' }} />
-      {cfg.label}
+      {t(cfg.labelKey)}
     </span>
   );
 }
@@ -146,14 +148,14 @@ function Requests() {
 
   return (
     <div>
-      <h2 style={{ margin: '0 0 4px', fontSize: '1.35rem', fontWeight: 700, color: 'var(--text)' }}>Requests</h2>
-      <p className="acc-subtitle">Submit and track your requests</p>
+      <h2 style={{ margin: '0 0 4px', fontSize: '1.35rem', fontWeight: 700, color: 'var(--text)' }}>{t('docs.requests')}</h2>
+      <p className="acc-subtitle">{t('req.subtitle')}</p>
 
       {/* Summary strip */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
         {[
-          { key: 'all', label: 'All' },
-          ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: v.label })),
+          { key: 'all', label: t('req.filterAll') },
+          ...Object.entries(STATUS_CONFIG).map(([k, v]) => ({ key: k, label: t(v.labelKey) })),
         ].map(({ key, label }) => (
           <button
             key={key}
@@ -177,7 +179,7 @@ function Requests() {
       <div className="acc-header-row" style={{ marginBottom: 16 }}>
         <input
           type="text"
-          placeholder="Search by title or type…"
+          placeholder={t('req.searchPlaceholder')}
           value={searchText}
           onChange={e => setSearchText(e.target.value)}
           style={{
@@ -190,7 +192,7 @@ function Requests() {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
-          New Request
+          {t('req.newRequest')}
         </button>
       </div>
 
@@ -202,7 +204,7 @@ function Requests() {
           <div className="acc-empty"><p>Loading…</p></div>
         ) : filtered.length === 0 ? (
           <div className="acc-empty">
-            <p>{requests.length === 0 ? 'No requests yet. Click "New Request" to submit one.' : 'No requests match your filter.'}</p>
+            <p>{requests.length === 0 ? t('req.emptyNoRequests') : t('req.emptyNoFilter')}</p>
           </div>
         ) : (
           <table className="acc-table" style={{ tableLayout: 'fixed', width: '100%' }}>
@@ -217,12 +219,12 @@ function Requests() {
             </colgroup>
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Requester</th>
-                <th>Priority</th>
-                <th>Status</th>
+                <th>{t('req.colDate')}</th>
+                <th>{t('req.colTitle')}</th>
+                <th>{t('req.colType')}</th>
+                <th>{t('req.colRequester')}</th>
+                <th>{t('req.colPriority')}</th>
+                <th>{t('req.colStatus')}</th>
                 <th></th>
               </tr>
             </thead>
@@ -257,45 +259,45 @@ function Requests() {
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" style={{ maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700 }}>
-              {editId ? 'Edit Request' : 'New Request'}
+              {editId ? t('req.editRequest') : t('req.newRequest')}
             </h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
             <div className="acc-form-grid">
               <div className="acc-form-group full">
-                <label>Title *</label>
+                <label>{t('req.formTitle')}</label>
                 <input
                   type="text"
                   value={form.title}
                   onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  placeholder="Brief description of your request"
+                  placeholder={t('req.formTitlePlaceholder')}
                   autoFocus
                 />
               </div>
 
               <div className="acc-form-group">
-                <label>Type *</label>
+                <label>{t('req.formType')}</label>
                 <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}>
-                  <option value="">— Select type —</option>
-                  {REQUEST_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  <option value="">{t('req.formTypeSelect')}</option>
+                  {REQUEST_TYPES.map(rt => <option key={rt} value={rt}>{rt}</option>)}
                 </select>
               </div>
 
               <div className="acc-form-group">
-                <label>Priority</label>
+                <label>{t('req.formPriority')}</label>
                 <select value={form.priority} onChange={e => setForm(f => ({ ...f, priority: e.target.value }))}>
                   {PRIORITIES.map(p => (
-                    <option key={p} value={p}>{PRIORITY_CONFIG[p].label}</option>
+                    <option key={p} value={p}>{t(PRIORITY_CONFIG[p].labelKey)}</option>
                   ))}
                 </select>
               </div>
 
               <div className="acc-form-group full">
-                <label>Description</label>
+                <label>{t('req.formDescription')}</label>
                 <textarea
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  placeholder="Provide any additional details…"
+                  placeholder={t('req.formDescPlaceholder')}
                   rows={4}
                   style={{ resize: 'vertical' }}
                 />
@@ -303,9 +305,9 @@ function Requests() {
             </div>
 
             <div className="acc-modal-actions">
-              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
+              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('req.cancel')}</button>
               <button className="btn-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Saving…' : editId ? 'Update' : 'Submit Request'}
+                {saving ? t('req.saving') : editId ? t('req.update') : t('req.submit')}
               </button>
             </div>
           </div>

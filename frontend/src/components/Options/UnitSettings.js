@@ -25,7 +25,7 @@ function UnitSettings() {
     setLoading(true);
     try {
       const response = await api.get('/units');
-      setUnits(response.data.units);
+      setUnits(response.data?.units || []);
     } catch (err) {
       setError(t('us.loadFailed'));
     } finally {

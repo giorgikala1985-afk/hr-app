@@ -18,7 +18,7 @@ function DepartmentsSettings() {
     setLoading(true); setError('');
     try {
       const res = await api.get('/departments');
-      setDepartments(res.data.departments);
+      setDepartments(res.data?.departments || []);
     } catch { setError('Failed to load departments.'); }
     finally { setLoading(false); }
   };

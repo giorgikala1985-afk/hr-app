@@ -106,7 +106,7 @@ function EmployeeList() {
     try {
       const params = searchTerm ? { search: searchTerm } : {};
       const response = await api.get('/employees', { params });
-      setEmployees(response.data.employees);
+      setEmployees(response.data?.employees || []);
     } catch (err) {
       setError(t('emp.loadFailed') + (err.response?.data?.error || err.message));
     } finally {
@@ -311,9 +311,6 @@ function EmployeeList() {
               </div>
             );
           })()}
-          <button className="btn-add" onClick={() => navigate('/employees/new')}>
-            + Add Employee
-          </button>
         </div>
       </div>
 
@@ -349,9 +346,6 @@ function EmployeeList() {
           </div>
           <h3>{t('emp.noEmployees')}</h3>
           <p>{t('emp.noEmployeesDesc')}</p>
-          <button onClick={() => navigate('/employees/new')} className="btn-add">
-            {t('emp.addEmployee')}
-          </button>
         </div>
       ) : (
         <div className="emp-table-wrapper">

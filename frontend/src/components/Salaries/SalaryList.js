@@ -111,7 +111,7 @@ function SalaryList() {
     setError('');
     try {
       const response = await api.get('/salaries', { params: { month: selectedMonth } });
-      setSalaries(response.data.salaries);
+      setSalaries(response.data?.salaries || []);
       setHolidaysCount(response.data.holidays_count || 0);
       setWeekendDays(response.data.weekend_days || 0);
       setWorkingDays(response.data.working_days || 0);

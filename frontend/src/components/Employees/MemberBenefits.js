@@ -34,7 +34,7 @@ function MemberBenefits({ employeeId }) {
     setLoading(true);
     try {
       const response = await api.get(`/employees/${employeeId}/members`);
-      setMembers(response.data.members);
+      setMembers(response.data?.members || []);
     } catch (err) {
       setError(t('mb.loadFailed'));
     } finally {

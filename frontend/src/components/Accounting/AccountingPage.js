@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { loadSidebarOrder, useSidebarReorder, ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT } from '../Options/NavOrderSettings';
+import { loadSidebarOrder, loadHidden, useSidebarReorder, ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT, ACC_SIDEBAR_HIDDEN_KEY } from '../Options/NavOrderSettings';
 import { useLanguage } from '../../contexts/LanguageContext';
 import Purchases from './Purchases';
 import Sales from './Sales';
@@ -10,8 +10,6 @@ import Bookkeeping from './Bookkeeping';
 import Transfers from './Transfers';
 import PaymentCalendar from './PaymentCalendar';
 import Stock from './Stock';
-import TbcBanking from './TbcBanking';
-import RsGeIntegration from './RsGeIntegration';
 import FinBotsPage from './FinBotsPage';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -23,8 +21,6 @@ import {
   Package01Icon,
   Calendar03Icon,
   ArrowDataTransferHorizontalIcon,
-  BankIcon,
-  SecurityCheckIcon,
   AiBrain01Icon,
 } from '@hugeicons/core-free-icons';
 import './Accounting.css';
@@ -40,8 +36,6 @@ const ICONS = {
   stock:         accIcon(Package01Icon, '#f59e0b'),
   calendar:      accIcon(Calendar03Icon, '#ec4899'),
   transfers:     accIcon(ArrowDataTransferHorizontalIcon, '#06b6d4'),
-  banking:       accIcon(BankIcon, '#14b8a6'),
-  rsge:          accIcon(SecurityCheckIcon, '#e11d48'),
   finbot:        accIcon(AiBrain01Icon, '#ec4899'),
 };
 
@@ -54,8 +48,6 @@ const TAB_KEYS = [
   { key: 'stock',          labelKey: 'acc.stock',       icon: ICONS.stock },
   { key: 'calendar',       labelKey: 'acc.calendar',    icon: ICONS.calendar },
   { key: 'transfers',      labelKey: 'acc.transfers',   icon: ICONS.transfers },
-  { key: 'banking',        labelKey: 'acc.banking',     icon: ICONS.banking },
-  { key: 'rsge',           labelKey: 'acc.rsge',        icon: ICONS.rsge },
   { key: 'ai-agent',      labelKey: 'docs.finbot',     icon: ICONS.finbot },
 ];
 
@@ -75,17 +67,21 @@ function AccountingPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'bookkeeping');
   const [sidebarOrder, setSidebarOrder] = useState(() => loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT));
+  const [hiddenTabs, setHiddenTabs] = useState(() => loadHidden(ACC_SIDEBAR_HIDDEN_KEY));
   const TABS = TAB_KEYS.map(tab => ({ ...tab, label: t(tab.labelKey) }));
 
   useEffect(() => {
     const sync = (e) => {
       if (!e.key || e.key === ACC_SIDEBAR_ORDER_KEY) setSidebarOrder(loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT));
+      if (!e.key || e.key === ACC_SIDEBAR_HIDDEN_KEY) setHiddenTabs(loadHidden(ACC_SIDEBAR_HIDDEN_KEY));
     };
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
   }, []);
 
-  const orderedTabs = [...TABS].sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key));
+  const orderedTabs = [...TABS]
+    .sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key))
+    .filter(tab => !hiddenTabs.has(tab.key));
   const { getItemProps } = useSidebarReorder(ACC_SIDEBAR_ORDER_KEY, orderedTabs.map(tab => tab.key), setSidebarOrder);
 
   const handleTabChange = (key) => {
@@ -133,8 +129,6 @@ function AccountingPage() {
         {activeTab === 'stock'          && <Stock />}
         {activeTab === 'calendar'       && <PaymentCalendar />}
         {activeTab === 'transfers'      && <Transfers />}
-        {activeTab === 'banking'        && <TbcBanking />}
-        {activeTab === 'rsge'           && <RsGeIntegration />}
         {activeTab === 'ai-agent'       && <FinBotsPage />}
       </main>
     </div>

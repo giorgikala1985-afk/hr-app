@@ -20,7 +20,7 @@ function PositionsSettings() {
     setLoading(true); setError('');
     try {
       const res = await api.get('/positions');
-      setPositions(res.data.positions);
+      setPositions(res.data?.positions || []);
     } catch { setError(t('pos.loadFailed')); }
     finally { setLoading(false); }
   };

@@ -22,7 +22,7 @@ function OvertimeSettings() {
     setLoading(true); setError('');
     try {
       const res = await api.get('/overtime-rates');
-      setRates(res.data.overtime_rates);
+      setRates(res.data?.overtime_rates || []);
     } catch { setError('Failed to load overtime rates.'); }
     finally { setLoading(false); }
   };

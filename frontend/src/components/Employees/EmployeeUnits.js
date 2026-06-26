@@ -26,7 +26,7 @@ function EmployeeUnits({ employeeId }) {
     setLoading(true);
     try {
       const response = await api.get(`/employees/${employeeId}/units`);
-      setUnits(response.data.units);
+      setUnits(response.data?.units || []);
     } catch (err) {
       setError(t('eu.loadFailed'));
     } finally {
