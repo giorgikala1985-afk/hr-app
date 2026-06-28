@@ -361,11 +361,14 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   // Dynamic unit columns: one column per unit type actually used this month
   const usedTypeNames = new Set(
     active.flatMap(r => (r.deductions || [])
-      .filter(u => unitTypes.find(t => t.name === u.type) && u.include_in_salary !== false)
+      .filter(u => u.include_in_salary !== false && u.type !== 'OT' && u.type !== 'Overtime')
       .map(u => u.type)
     )
   );
-  const dynUnitCols = unitTypes.filter(ut => usedTypeNames.has(ut.name));
+  const dynUnitCols = [...usedTypeNames].map(name => {
+    const configured = unitTypes.find(ut => ut.name === name);
+    return configured || { name, direction: 'deduction' };
+  });
 
   const dr = selectedRow;
   const drEmp = dr?.employee;
