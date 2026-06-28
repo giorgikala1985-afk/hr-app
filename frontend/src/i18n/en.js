@@ -851,6 +851,7 @@ const en = {
   'orders.promotion': 'Promote',
   'orders.adjusting': 'Adjust',
   'orders.businessTrip': 'Business Trip',
+  'orders.advancePayment': 'Advance Payment',
   'orders.addNew': 'Add New Order',
   'orders.loading': 'Loading orders…',
   'orders.noOrders': 'No orders for {month}',

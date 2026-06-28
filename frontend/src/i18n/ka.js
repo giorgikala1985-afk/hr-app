@@ -849,6 +849,7 @@ const ka = {
   'orders.promotion': 'დაწინაურება',
   'orders.adjusting': 'კორექტირება',
   'orders.businessTrip': 'სამივლინებო',
+  'orders.advancePayment': 'ავანსი',
   'orders.addNew': 'ახალი ბრძანება',
   'orders.loading': 'ბრძანებების ჩატვირთვა...',
   'orders.noOrders': '{month}-ის ბრძანებები არ არის',

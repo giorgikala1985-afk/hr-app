@@ -32,11 +32,12 @@ function fmt(val) {
 }
 
 const ORDER_SUBTAB_KEYS = [
-  { key: 'hiring',        labelKey: 'orders.hiring'        },
-  { key: 'firing',        labelKey: 'orders.firing'        },
-  { key: 'promotion',     labelKey: 'orders.promotion'     },
-  { key: 'adjusting',     labelKey: 'orders.adjusting'     },
-  { key: 'business-trip', labelKey: 'orders.businessTrip'  },
+  { key: 'hiring',           labelKey: 'orders.hiring'          },
+  { key: 'firing',           labelKey: 'orders.firing'          },
+  { key: 'promotion',        labelKey: 'orders.promotion'       },
+  { key: 'adjusting',        labelKey: 'orders.adjusting'       },
+  { key: 'business-trip',    labelKey: 'orders.businessTrip'    },
+  { key: 'advance-payment',  labelKey: 'orders.advancePayment'  },
 ];
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -1968,6 +1969,258 @@ function BusinessTripTab({ employees }) {
   );
 }
 
+// ── Advance Payment Tab ───────────────────────────────────────────────────────
+function AdvancePaymentTab({ employees }) {
+  const { orders, add, remove } = useLocalOrders('hr_advance_payment_orders');
+  const [showForm, setShowForm] = useState(false);
+
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const EMPTY = {
+    employeeId: '',
+    currency: 'GEL',
+    mode: 'automatic',
+    totalAmount: '',
+    numMonths: 1,
+    startMonth: thisMonth,
+    manualSlots: Array.from({ length: 1 }, () => ({ amount: '' })),
+  };
+  const [form, setForm] = useState(EMPTY);
+
+  const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const autoInstallment = (() => {
+    const total = parseFloat(form.totalAmount);
+    if (!total || form.numMonths < 1) return '';
+    return (total / form.numMonths).toFixed(2);
+  })();
+
+  const manualTotal = form.manualSlots.reduce((s, sl) => s + (parseFloat(sl.amount) || 0), 0);
+
+  const getMonthLabel = (startMonth, offset) => {
+    const [y, m] = startMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + offset, 1);
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+  };
+
+  const handleNumMonths = (n) => {
+    const count = Math.max(1, Math.min(12, Number(n)));
+    setForm(p => ({
+      ...p,
+      numMonths: count,
+      manualSlots: Array.from({ length: count }, (_, i) => ({ amount: p.manualSlots[i]?.amount || '' })),
+    }));
+  };
+
+  const updateSlot = (i, val) => {
+    setForm(p => {
+      const slots = [...p.manualSlots];
+      slots[i] = { amount: val };
+      return { ...p, manualSlots: slots };
+    });
+  };
+
+  const canSave = form.employeeId && (
+    form.mode === 'automatic'
+      ? parseFloat(form.totalAmount) > 0
+      : form.manualSlots.some(s => parseFloat(s.amount) > 0)
+  );
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const emp = employees.find(x => String(x.id) === String(form.employeeId));
+    const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
+    const schedule = Array.from({ length: form.numMonths }, (_, i) => ({
+      month: (() => {
+        const [y, m] = form.startMonth.split('-').map(Number);
+        const d = new Date(y, m - 1 + i, 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      })(),
+      amount: form.mode === 'automatic'
+        ? parseFloat(autoInstallment)
+        : parseFloat(form.manualSlots[i]?.amount) || 0,
+    }));
+    const total = form.mode === 'automatic' ? parseFloat(form.totalAmount) : manualTotal;
+    add({ employeeId: form.employeeId, empName, currency: form.currency, mode: form.mode, total, schedule });
+    setShowForm(false);
+    setForm(EMPTY);
+  };
+
+  const CURR_SYMBOLS = { GEL: '₾', USD: '$', EUR: '€' };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button onClick={() => { setForm(EMPTY); setShowForm(true); }}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          + Add New Order
+        </button>
+      </div>
+
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
+        {orders.length === 0 ? (
+          <EmptyState label="Advance Payment" onAdd={() => { setForm(EMPTY); setShowForm(true); }} />
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {['Date', 'Employee', 'Total', 'Currency', 'Mode', 'Months', 'Schedule', ''].map((h, i) => (
+                  <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
+                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
+                  <td style={{ padding: '11px 14px' }}>
+                    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: o.mode === 'automatic' ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.12)', color: o.mode === 'automatic' ? '#60a5fa' : '#a78bfa' }}>
+                      {o.mode === 'automatic' ? 'Auto' : 'Manual'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.schedule?.length || 0}</td>
+                  <td style={{ padding: '11px 14px', maxWidth: 260 }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                      {(o.schedule || []).map((s, i) => (
+                        <span key={i} style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, background: 'var(--surface-2)', color: 'var(--text-2)', border: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>
+                          {s.month} · {CURR_SYMBOLS[o.currency]}{Number(s.amount).toFixed(0)}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ padding: '11px 14px' }}>
+                    <button onClick={() => { if (window.confirm('Delete this advance payment?')) remove(o.id); }}
+                      style={{ ...actionBtn, color: '#f87171' }} title="Delete">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showForm && (
+        <SubTabModal title="Advance Payment" onClose={() => setShowForm(false)}>
+          <form onSubmit={handleSubmit}>
+
+            {/* Employee */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={LABEL}>Employee</label>
+              <select value={form.employeeId} onChange={e => setField('employeeId', e.target.value)} style={INPUT} required>
+                <option value="">Select employee…</option>
+                {employees.map(emp => (
+                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Currency */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={LABEL}>Currency</label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {CURRENCIES.map(c => (
+                  <button key={c.code} type="button"
+                    onClick={() => setField('currency', c.code)}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `2px solid ${form.currency === c.code ? c.color : 'var(--border-2)'}`, background: form.currency === c.code ? `${c.color}22` : 'var(--surface-2)', color: form.currency === c.code ? c.color : 'var(--text-3)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {c.symbol} {c.code}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Mode toggle */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={LABEL}>Schedule Mode</label>
+              <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 9, padding: 3, gap: 3 }}>
+                {['automatic', 'manual'].map(m => (
+                  <button key={m} type="button" onClick={() => setField('mode', m)}
+                    style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', background: form.mode === m ? 'var(--surface)' : 'transparent', color: form.mode === m ? 'var(--text)' : 'var(--text-3)', boxShadow: form.mode === m ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}>
+                    {m === 'automatic' ? 'Automatic' : 'Manual'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Start month + num months (both modes) */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={LABEL}>Start Month</label>
+                <input type="month" value={form.startMonth} onChange={e => setField('startMonth', e.target.value)} style={{ ...INPUT, colorScheme: 'dark' }} />
+              </div>
+              <div>
+                <label style={LABEL}>Number of Months (max 12)</label>
+                <input type="number" min={1} max={12} value={form.numMonths}
+                  onChange={e => handleNumMonths(e.target.value)} style={INPUT} />
+              </div>
+            </div>
+
+            {/* AUTOMATIC mode */}
+            {form.mode === 'automatic' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={LABEL}>Total Amount</label>
+                <input type="number" min={0} step="0.01" value={form.totalAmount}
+                  onChange={e => setField('totalAmount', e.target.value)}
+                  placeholder="e.g. 4000" style={INPUT} />
+                {autoInstallment && (
+                  <div style={{ marginTop: 12, padding: 14, borderRadius: 10, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 8, fontWeight: 600 }}>PAYMENT SCHEDULE</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {Array.from({ length: form.numMonths }, (_, i) => (
+                        <div key={i} style={{ padding: '5px 12px', borderRadius: 7, background: 'var(--surface)', border: '1px solid var(--border-2)', fontSize: 12, color: 'var(--text-2)' }}>
+                          {getMonthLabel(form.startMonth, i)} · <strong style={{ color: 'var(--text)' }}>{CURR_SYMBOLS[form.currency]}{autoInstallment}</strong>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)' }}>
+                      Total: <strong style={{ color: '#4ade80' }}>{CURR_SYMBOLS[form.currency]}{parseFloat(form.totalAmount).toFixed(2)}</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* MANUAL mode */}
+            {form.mode === 'manual' && (
+              <div style={{ marginBottom: 16 }}>
+                <label style={LABEL}>Monthly Amounts</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {form.manualSlots.map((slot, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-3)', width: 80, flexShrink: 0 }}>{getMonthLabel(form.startMonth, i)}</span>
+                      <div style={{ position: 'relative', flex: 1 }}>
+                        <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', fontSize: 13 }}>{CURR_SYMBOLS[form.currency]}</span>
+                        <input type="number" min={0} step="0.01" value={slot.amount}
+                          onChange={e => updateSlot(i, e.target.value)}
+                          placeholder="0.00"
+                          style={{ ...INPUT, paddingLeft: 28 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {manualTotal > 0 && (
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)', textAlign: 'right' }}>
+                    Total: <strong style={{ color: '#4ade80' }}>{CURR_SYMBOLS[form.currency]}{manualTotal.toFixed(2)}</strong>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <SubTabActions onCancel={() => setShowForm(false)} disabled={!canSave} />
+          </form>
+        </SubTabModal>
+      )}
+    </div>
+  );
+}
+
 // ── Shared icon/button styles ─────────────────────────────────────────────────
 const actionBtn = { width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-3)', fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' };
 function EditIcon() {
@@ -2291,10 +2544,11 @@ export default function Orders() {
       </div>
 
       {/* Non-adjusting tabs */}
-      {subTab === 'promotion'     && <PromotionTab employees={employees} />}
-      {subTab === 'hiring'        && <HiringTab />}
-      {subTab === 'firing'        && <FiringTab employees={employees} />}
-      {subTab === 'business-trip' && <BusinessTripTab employees={employees} />}
+      {subTab === 'promotion'        && <PromotionTab employees={employees} />}
+      {subTab === 'hiring'           && <HiringTab />}
+      {subTab === 'firing'           && <FiringTab employees={employees} />}
+      {subTab === 'business-trip'    && <BusinessTripTab employees={employees} />}
+      {subTab === 'advance-payment'  && <AdvancePaymentTab employees={employees} />}
 
       {/* Month picker — adjusting only */}
       {subTab === 'adjusting' && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
