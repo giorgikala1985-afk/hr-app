@@ -1970,9 +1970,18 @@ function BusinessTripTab({ employees }) {
 }
 
 // ── Advance Payment Tab ───────────────────────────────────────────────────────
-function AdvancePaymentTab({ employees }) {
+function AdvancePaymentTab({ employees, gelRate, eurRate }) {
   const { orders, add, remove } = useLocalOrders('hr_advance_payment_orders');
   const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const toUSD = (amount, currency) => {
+    const val = parseFloat(amount);
+    if (currency === 'GEL' && gelRate) return Math.round((val / gelRate) * 100) / 100;
+    if (currency === 'EUR' && eurRate) return Math.round((val / eurRate) * 100) / 100;
+    return val;
+  };
 
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -2027,8 +2036,10 @@ function AdvancePaymentTab({ employees }) {
       : form.manualSlots.some(s => parseFloat(s.amount) > 0)
   );
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
+    setError('');
     const emp = employees.find(x => String(x.id) === String(form.employeeId));
     const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
     const schedule = Array.from({ length: form.numMonths }, (_, i) => ({
@@ -2042,9 +2053,31 @@ function AdvancePaymentTab({ employees }) {
         : parseFloat(form.manualSlots[i]?.amount) || 0,
     }));
     const total = form.mode === 'automatic' ? parseFloat(form.totalAmount) : manualTotal;
+
+    try {
+      await Promise.all(schedule.map(({ month, amount }) => {
+        if (!amount) return Promise.resolve();
+        const [y, m] = month.split('-').map(Number);
+        const lastDay = new Date(y, m, 0).getDate();
+        const date = `${month}-${String(lastDay).padStart(2, '0')}`;
+        return api.post(`/employees/${form.employeeId}/units`, {
+          type: 'Advance',
+          amount: toUSD(amount, form.currency),
+          date,
+          currency: 'USD',
+          include_in_salary: true,
+        });
+      }));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create salary deductions.');
+      setSaving(false);
+      return;
+    }
+
     add({ employeeId: form.employeeId, empName, currency: form.currency, mode: form.mode, total, schedule });
     setShowForm(false);
     setForm(EMPTY);
+    setSaving(false);
   };
 
   const CURR_SYMBOLS = { GEL: '₾', USD: '$', EUR: '€' };
@@ -2108,7 +2141,7 @@ function AdvancePaymentTab({ employees }) {
       </div>
 
       {showForm && (
-        <SubTabModal title="Advance Payment" onClose={() => setShowForm(false)}>
+        <SubTabModal title="Advance Payment" onClose={() => { setShowForm(false); setError(''); }}>
           <form onSubmit={handleSubmit}>
 
             {/* Employee */}
@@ -2213,7 +2246,8 @@ function AdvancePaymentTab({ employees }) {
               </div>
             )}
 
-            <SubTabActions onCancel={() => setShowForm(false)} disabled={!canSave} />
+            {error && <p style={{ color: '#f87171', fontSize: 12, marginTop: 8, marginBottom: 0 }}>{error}</p>}
+            <SubTabActions onCancel={() => { setShowForm(false); setError(''); }} saving={saving} disabled={!canSave} />
           </form>
         </SubTabModal>
       )}
@@ -2548,7 +2582,7 @@ export default function Orders() {
       {subTab === 'hiring'           && <HiringTab />}
       {subTab === 'firing'           && <FiringTab employees={employees} />}
       {subTab === 'business-trip'    && <BusinessTripTab employees={employees} />}
-      {subTab === 'advance-payment'  && <AdvancePaymentTab employees={employees} />}
+      {subTab === 'advance-payment'  && <AdvancePaymentTab employees={employees} gelRate={gelRate} eurRate={eurRate} />}
 
       {/* Month picker — adjusting only */}
       {subTab === 'adjusting' && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
