@@ -11,6 +11,7 @@ import Transfers from './Transfers';
 import PaymentCalendar from './PaymentCalendar';
 import Stock from './Stock';
 import FinBotsPage from './FinBotsPage';
+import JetPage from './JetPage';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Book01Icon,
@@ -37,6 +38,11 @@ const ICONS = {
   calendar:      accIcon(Calendar03Icon, '#ec4899'),
   transfers:     accIcon(ArrowDataTransferHorizontalIcon, '#06b6d4'),
   finbot:        accIcon(AiBrain01Icon, '#ec4899'),
+  jet: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+    </svg>
+  ),
 };
 
 const TAB_KEYS = [
@@ -49,6 +55,7 @@ const TAB_KEYS = [
   { key: 'calendar',       labelKey: 'acc.calendar',    icon: ICONS.calendar },
   { key: 'transfers',      labelKey: 'acc.transfers',   icon: ICONS.transfers },
   { key: 'ai-agent',      labelKey: 'docs.finbot',     icon: ICONS.finbot },
+  { key: 'jet',           labelKey: 'acc.jet',         icon: ICONS.jet },
 ];
 
 const CHEVRON_LEFT = (
@@ -130,6 +137,7 @@ function AccountingPage() {
         {activeTab === 'calendar'       && <PaymentCalendar />}
         {activeTab === 'transfers'      && <Transfers />}
         {activeTab === 'ai-agent'       && <FinBotsPage />}
+        {activeTab === 'jet'            && <JetPage />}
       </main>
     </div>
   );

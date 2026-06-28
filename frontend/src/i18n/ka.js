@@ -801,6 +801,7 @@ const ka = {
   'acc.stock': 'მარაგი',
   'acc.calendar': 'კალენდარი',
   'acc.transfers': 'გადარიცხვები',
+  'acc.jet': 'JET',
   'acc.banking': 'TBC Bank',
   'acc.rsge': 'RS.ge',
 

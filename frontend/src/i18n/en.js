@@ -803,6 +803,7 @@ const en = {
   'acc.stock': 'Stock',
   'acc.calendar': 'Calendar',
   'acc.transfers': 'Transfers',
+  'acc.jet': 'JET',
   'acc.banking': 'TBC Bank',
   'acc.rsge': 'RS.ge',
 
