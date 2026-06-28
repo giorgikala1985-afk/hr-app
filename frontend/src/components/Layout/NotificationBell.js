@@ -64,7 +64,7 @@ export default function NotificationBell() {
   const handleClick = (n) => {
     if (!n.is_read) markRead(n.id);
     setOpen(false);
-    navigate('/accounting');
+    navigate('/finances');
   };
 
   return (
@@ -188,7 +188,7 @@ export default function NotificationBell() {
           {notifications.length > 0 && (
             <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-2)', textAlign: 'center' }}>
               <button
-                onClick={() => { setOpen(false); navigate('/accounting'); }}
+                onClick={() => { setOpen(false); navigate('/finances'); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--accent, #6366f1)' }}
               >
                 Go to Transfers →

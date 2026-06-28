@@ -37,7 +37,7 @@ const ALL_TABS = [
     color: '#06b6d4', bg: '#ecfeff', icon: homeIcon(ExchangeDollarIcon),
   },
   {
-    key: 'doc-finbot', label: 'FinBot', labelKey: 'docs.finbot', section: 'Accounting', route: '/accounting?tab=ai-agent',
+    key: 'doc-finbot', label: 'FinBot', labelKey: 'docs.finbot', section: 'Accounting', route: '/finances?tab=ai-agent',
     color: '#ec4899', bg: '#fdf2f8', icon: homeIcon(AiBrain01Icon),
   },
   {
@@ -55,35 +55,35 @@ const ALL_TABS = [
 
   // Accounting
   {
-    key: 'acc-bookkeeping', label: 'Bookkeeping', labelKey: 'acc.bookkeeping', section: 'Accounting', route: '/accounting?tab=bookkeeping',
+    key: 'acc-bookkeeping', label: 'Bookkeeping', labelKey: 'acc.bookkeeping', section: 'Accounting', route: '/finances?tab=bookkeeping',
     color: '#6366f1', bg: '#eef2ff', icon: homeIcon(Book01Icon),
   },
   {
-    key: 'acc-purchases', label: 'Purchases', labelKey: 'acc.purchases', section: 'Accounting', route: '/accounting?tab=purchases',
+    key: 'acc-purchases', label: 'Purchases', labelKey: 'acc.purchases', section: 'Accounting', route: '/finances?tab=purchases',
     color: '#f97316', bg: '#fff7ed', icon: homeIcon(ShoppingCart01Icon),
   },
   {
-    key: 'acc-sales', label: 'Sales', labelKey: 'acc.sales', section: 'Accounting', route: '/accounting?tab=sales',
+    key: 'acc-sales', label: 'Sales', labelKey: 'acc.sales', section: 'Accounting', route: '/finances?tab=sales',
     color: '#10b981', bg: '#ecfdf5', icon: homeIcon(SaleTag01Icon),
   },
   {
-    key: 'acc-invoices', label: 'Invoices', labelKey: 'acc.invoices', section: 'Accounting', route: '/accounting?tab=invoices',
+    key: 'acc-invoices', label: 'Invoices', labelKey: 'acc.invoices', section: 'Accounting', route: '/finances?tab=invoices',
     color: '#3b82f6', bg: '#eff6ff', icon: homeIcon(Invoice01Icon),
   },
   {
-    key: 'acc-salaries', label: 'Salaries', labelKey: 'acc.salaries', section: 'Accounting', route: '/accounting?tab=salary-accrual',
+    key: 'acc-salaries', label: 'Salaries', labelKey: 'acc.salaries', section: 'Accounting', route: '/finances?tab=salary-accrual',
     color: '#8b5cf6', bg: '#f5f3ff', icon: homeIcon(MoneyBag01Icon),
   },
   {
-    key: 'acc-stock', label: 'Stock', labelKey: 'acc.stock', section: 'Accounting', route: '/accounting?tab=stock',
+    key: 'acc-stock', label: 'Stock', labelKey: 'acc.stock', section: 'Accounting', route: '/finances?tab=stock',
     color: '#f59e0b', bg: '#fffbeb', icon: homeIcon(Package01Icon),
   },
   {
-    key: 'acc-calendar', label: 'Calendar', labelKey: 'acc.calendar', section: 'Accounting', route: '/accounting?tab=calendar',
+    key: 'acc-calendar', label: 'Calendar', labelKey: 'acc.calendar', section: 'Accounting', route: '/finances?tab=calendar',
     color: '#ec4899', bg: '#fdf2f8', icon: homeIcon(Calendar03Icon),
   },
   {
-    key: 'acc-transfers', label: 'Transfers', labelKey: 'acc.transfers', section: 'Accounting', route: '/accounting?tab=transfers',
+    key: 'acc-transfers', label: 'Transfers', labelKey: 'acc.transfers', section: 'Accounting', route: '/finances?tab=transfers',
     color: '#06b6d4', bg: '#ecfeff', icon: homeIcon(ArrowDataTransferHorizontalIcon),
   },
   {

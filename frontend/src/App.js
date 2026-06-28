@@ -144,7 +144,7 @@ function App() {
           />
 
           <Route
-            path="/accounting"
+            path="/finances"
             element={
               <PrivateRoute>
                 <>

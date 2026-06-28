@@ -36,7 +36,7 @@ const NAV_CONFIG = {
     icon: navIcon(File01Icon, '#3b82f6'),
   },
   accounting: {
-    path: '/accounting', end: false, labelKey: 'nav.accounting',
+    path: '/finances', end: false, labelKey: 'nav.accounting',
     icon: navIcon(Calculator01Icon, '#8b5cf6'),
   },
   options: {
