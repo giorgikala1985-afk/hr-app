@@ -8,12 +8,12 @@ const OpenAI = require('openai');
 async function fetchEmployees(userId) {
   const { data } = await supabase
     .from('employees')
-    .select('first_name, last_name, personal_id, position, department, salary, salary_currency, overtime_rate, start_date, end_date, pension, pit_rate, tax_code')
+    .select('id, first_name, last_name, personal_id, position, department, salary, salary_currency, overtime_rate, start_date, end_date, pension, pit_rate, tax_code')
     .eq('user_id', userId)
     .order('first_name');
   if (!data?.length) return '';
   const rows = data.map(e =>
-    `${e.first_name} ${e.last_name} | ID: ${e.personal_id || '-'} | Position: ${e.position || '-'} | Dept: ${e.department || '-'} | Current Salary: ${e.salary ?? 'N/A'} ${e.salary_currency || 'GEL'} | OT Rate: ${e.overtime_rate || 0} | Start: ${e.start_date || '-'} | End: ${e.end_date || 'Active'} | Pension: ${e.pension ? 'Yes' : 'No'} | PIT: ${e.pit_rate || 20}%`
+    `DB_ID:${e.id} | ${e.first_name} ${e.last_name} | Personal ID: ${e.personal_id || '-'} | Position: ${e.position || '-'} | Dept: ${e.department || '-'} | Salary: ${e.salary ?? 'N/A'} ${e.salary_currency || 'GEL'} | Start: ${e.start_date || '-'} | End: ${e.end_date || 'Active'}`
   );
   return `=== EMPLOYEES (${rows.length}) ===\n${rows.join('\n')}`;
 }
@@ -349,9 +349,7 @@ router.post('/chat', async (req, res) => {
 
     const systemContent = [
       systemPrompt ||
-        `You are ${botName}, an AI assistant for Finpilot HR & Finance platform. Answer questions accurately and concisely based on the company data provided below. Be helpful and specific. 
-        
-        DEBUG INSTRUCTION: If you see "(Debug: Received sources: [...])" in the context, you MUST include that exact string in your response so the user can see it.
+        `You are ${botName}, an AI assistant for Finpilot HR & Finance platform. Answer questions accurately and concisely based on the company data provided below. Be helpful and specific.
 
 When the user asks for a chart, graph, or visualization, output a JSON block using EXACTLY this format (no markdown, no code fences, just the tags):
 [CHART]{"type":"bar","title":"Chart Title","labels":["Label1","Label2"],"datasets":[{"label":"Series","data":[100,200],"color":"#3b82f6"}]}[/CHART]
@@ -360,7 +358,20 @@ Supported chart types:
 - bar: column chart, good for comparing values across categories
 - line: trend over time, good for salary history or changes over months
 - pie: proportion/share of a total, good for department breakdowns or cost splits (single dataset only — labels + one data array)
-- treemap: hierarchical proportions, good for showing relative sizes at a glance (single dataset only — labels + one data array)`,
+- treemap: hierarchical proportions, good for showing relative sizes at a glance (single dataset only — labels + one data array)
+
+CREATING HR ORDERS:
+When the user wants to create an HR order (promote, fire/terminate, give advance payment, salary adjustment), ALWAYS respond with a brief confirmation sentence AND an [ORDER_ACTION] block.
+Use EXACTLY this format (no markdown, no code fences):
+[ORDER_ACTION]{"type":"<type>","employeeId":"<DB_ID>","employeeName":"<full name>",...fields}[/ORDER_ACTION]
+
+Order types and required fields:
+- "promotion": employeeId, employeeName, newPosition, oldSalary (number), newSalary (number), effectiveDate (YYYY-MM-DD), notes (optional string)
+- "firing": employeeId, employeeName, endDate (YYYY-MM-DD), reason (string)
+- "advance": employeeId, employeeName, totalAmount (number), currency ("GEL"/"USD"/"EUR"), numMonths (1-12), startMonth (YYYY-MM)
+- "adjusting": employeeId, employeeName, unitType (e.g. "Bonus" or "Deduction"), amount (number), currency ("GEL"/"USD"/"EUR")
+
+IMPORTANT: Use the DB_ID value (e.g. DB_ID:abc123) from the employee data as employeeId. If the user's request is ambiguous (e.g. missing salary or date), ask for the missing info before outputting the block. Always show a brief summary of what will happen alongside the action block.`,
       context
         ? `\n\nCOMPANY DATA:\n\n${context}\n\nUse ONLY this data to answer. If a specific piece of information is genuinely missing, say so — but always check carefully before concluding data is absent.`
         : `\n\nNo data sources are connected to this bot. (Debug: Received sources: ${JSON.stringify(dataSources)}). Tell the user to connect data sources in the bot settings.`,

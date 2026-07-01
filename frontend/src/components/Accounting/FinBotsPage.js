@@ -609,25 +609,186 @@ function ChartBlock({ chartData }) {
 
 function parseMessageParts(content) {
   const parts = [];
-  const re = /\[CHART\]([\s\S]*?)\[\/CHART\]/g;
+  const re = /\[(CHART|ORDER_ACTION)\]([\s\S]*?)\[\/\1\]/g;
   let last = 0, m;
   while ((m = re.exec(content)) !== null) {
     if (m.index > last) parts.push({ kind: 'text', text: content.slice(last, m.index) });
-    try { parts.push({ kind: 'chart', data: JSON.parse(m[1]) }); }
-    catch { parts.push({ kind: 'text', text: m[0] }); }
+    if (m[1] === 'CHART') {
+      try { parts.push({ kind: 'chart', data: JSON.parse(m[2]) }); }
+      catch { parts.push({ kind: 'text', text: m[0] }); }
+    } else {
+      try { parts.push({ kind: 'order_action', data: JSON.parse(m[2]) }); }
+      catch { parts.push({ kind: 'text', text: m[0] }); }
+    }
     last = m.index + m[0].length;
   }
   if (last < content.length) parts.push({ kind: 'text', text: content.slice(last) });
   return parts;
 }
 
-function MessageContent({ content }) {
+function OrderActionCard({ action, botColor }) {
+  const [status, setStatus] = useState('pending'); // pending | executing | done | error
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const ORDERS_KEY = 'local_hr_orders';
+  function loadOrders() { try { return JSON.parse(localStorage.getItem(ORDERS_KEY)) || []; } catch { return []; } }
+  function saveOrders(orders) { localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); }
+
+  const execute = async () => {
+    setStatus('executing');
+    try {
+      const { type, employeeId, employeeName } = action;
+      if (type === 'promotion') {
+        const orders = loadOrders();
+        orders.push({
+          id: Date.now().toString(),
+          type: 'Promotion',
+          employeeId,
+          employeeName,
+          newPosition: action.newPosition,
+          oldSalary: action.oldSalary,
+          newSalary: action.newSalary,
+          effectiveDate: action.effectiveDate,
+          notes: action.notes || '',
+          createdAt: new Date().toISOString(),
+        });
+        saveOrders(orders);
+      } else if (type === 'firing') {
+        const orders = loadOrders();
+        orders.push({
+          id: Date.now().toString(),
+          type: 'Firing',
+          employeeId,
+          employeeName,
+          endDate: action.endDate,
+          reason: action.reason,
+          createdAt: new Date().toISOString(),
+        });
+        saveOrders(orders);
+      } else if (type === 'advance') {
+        const startDate = new Date(action.startMonth + '-01');
+        for (let i = 0; i < action.numMonths; i++) {
+          const d = new Date(startDate.getFullYear(), startDate.getMonth() + i + 1, 0);
+          const dateStr = d.toISOString().slice(0, 10);
+          const monthlyAmount = action.totalAmount / action.numMonths;
+          await api.post(`/employees/${employeeId}/units`, {
+            type: 'Advance',
+            amount: monthlyAmount,
+            date: dateStr,
+            currency: action.currency || 'GEL',
+            include_in_salary: true,
+          });
+        }
+      } else if (type === 'adjusting') {
+        await api.post(`/employees/${employeeId}/units`, {
+          type: action.unitType,
+          amount: action.amount,
+          date: new Date().toISOString().slice(0, 10),
+          currency: action.currency || 'GEL',
+          include_in_salary: true,
+        });
+      }
+      setStatus('done');
+    } catch (err) {
+      setErrorMsg(err.response?.data?.error || err.message || 'Failed');
+      setStatus('error');
+    }
+  };
+
+  const typeLabel = {
+    promotion: 'Promotion Order',
+    firing: 'Termination Order',
+    advance: 'Advance Payment Order',
+    adjusting: 'Salary Adjustment',
+  }[action.type] || 'HR Order';
+
+  const details = [];
+  if (action.employeeName) details.push(['Employee', action.employeeName]);
+  if (action.newPosition) details.push(['New Position', action.newPosition]);
+  if (action.oldSalary != null && action.newSalary != null)
+    details.push(['Salary Change', `${action.oldSalary} → ${action.newSalary}`]);
+  if (action.effectiveDate) details.push(['Effective Date', action.effectiveDate]);
+  if (action.endDate) details.push(['End Date', action.endDate]);
+  if (action.reason) details.push(['Reason', action.reason]);
+  if (action.totalAmount != null) details.push(['Total Amount', `${action.totalAmount} ${action.currency || 'GEL'}`]);
+  if (action.numMonths) details.push(['Months', action.numMonths]);
+  if (action.startMonth) details.push(['Start Month', action.startMonth]);
+  if (action.unitType) details.push(['Type', action.unitType]);
+  if (action.amount != null) details.push(['Amount', `${action.amount} ${action.currency || 'GEL'}`]);
+
+  const color = botColor || '#3b82f6';
+
+  return (
+    <div style={{
+      margin: '12px 0',
+      borderRadius: 14,
+      border: `1.5px solid ${color}44`,
+      background: `linear-gradient(135deg, ${color}08, ${color}14)`,
+      overflow: 'hidden',
+    }}>
+      <div style={{
+        padding: '10px 14px',
+        background: `${color}18`,
+        borderBottom: `1px solid ${color}30`,
+        display: 'flex', alignItems: 'center', gap: 8,
+      }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <path d="M8 13h8"/><path d="M8 17h8"/>
+        </svg>
+        <span style={{ fontSize: 12, fontWeight: 700, color, letterSpacing: '-0.2px' }}>{typeLabel}</span>
+      </div>
+      <div style={{ padding: '10px 14px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <tbody>
+            {details.map(([k, v]) => (
+              <tr key={k}>
+                <td style={{ color: 'var(--text-3)', paddingBottom: 4, paddingRight: 12, whiteSpace: 'nowrap', verticalAlign: 'top' }}>{k}</td>
+                <td style={{ color: 'var(--text)', fontWeight: 600, paddingBottom: 4 }}>{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {status === 'pending' && (
+          <button
+            onClick={execute}
+            style={{
+              marginTop: 10, padding: '6px 16px', borderRadius: 8,
+              background: color, color: '#fff', border: 'none',
+              fontSize: 12, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            Confirm & Create Order
+          </button>
+        )}
+        {status === 'executing' && (
+          <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)' }}>Creating order...</div>
+        )}
+        {status === 'done' && (
+          <div style={{ marginTop: 10, fontSize: 12, color: '#10b981', fontWeight: 600 }}>
+            ✓ Order created successfully
+          </div>
+        )}
+        {status === 'error' && (
+          <div style={{ marginTop: 10, fontSize: 12, color: '#ef4444' }}>
+            Error: {errorMsg}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MessageContent({ content, botColor }) {
   const parts = parseMessageParts(content);
   return (
     <>
       {parts.map((p, i) =>
         p.kind === 'chart'
           ? <ChartBlock key={i} chartData={p.data} />
+          : p.kind === 'order_action'
+          ? <OrderActionCard key={i} action={p.data} botColor={botColor} />
           : <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{p.text}</span>
       )}
     </>
@@ -780,7 +941,7 @@ export function BotChat({ bot, showHeader = true }) {
               <div className="fb-msg-sender">
                 {msg.role === 'user' ? 'You' : msg.role === 'error' ? 'Error' : bot.name}
               </div>
-              <div className="fb-msg-text"><MessageContent content={msg.content} /></div>
+              <div className="fb-msg-text"><MessageContent content={msg.content} botColor={bot.color} /></div>
             </div>
           </div>
         ))}
