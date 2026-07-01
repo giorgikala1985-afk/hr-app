@@ -630,41 +630,33 @@ function OrderActionCard({ action, botColor }) {
   const [status, setStatus] = useState('pending'); // pending | executing | done | error
   const [errorMsg, setErrorMsg] = useState('');
 
-  const ORDERS_KEY = 'local_hr_orders';
-  function loadOrders() { try { return JSON.parse(localStorage.getItem(ORDERS_KEY)) || []; } catch { return []; } }
-  function saveOrders(orders) { localStorage.setItem(ORDERS_KEY, JSON.stringify(orders)); }
+  function localAdd(key, row) {
+    const existing = (() => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } })();
+    localStorage.setItem(key, JSON.stringify([{ id: Date.now(), createdAt: new Date().toISOString(), ...row }, ...existing]));
+  }
 
   const execute = async () => {
     setStatus('executing');
     try {
       const { type, employeeId, employeeName } = action;
       if (type === 'promotion') {
-        const orders = loadOrders();
-        orders.push({
-          id: Date.now().toString(),
-          type: 'Promotion',
+        localAdd('hr_promotion_orders', {
           employeeId,
-          employeeName,
+          empName: employeeName,
           newPosition: action.newPosition,
           oldSalary: action.oldSalary,
           newSalary: action.newSalary,
           effectiveDate: action.effectiveDate,
           notes: action.notes || '',
-          createdAt: new Date().toISOString(),
         });
-        saveOrders(orders);
       } else if (type === 'firing') {
-        const orders = loadOrders();
-        orders.push({
-          id: Date.now().toString(),
-          type: 'Firing',
+        localAdd('hr_firing_orders', {
           employeeId,
-          employeeName,
-          endDate: action.endDate,
+          empName: employeeName,
+          terminationDate: action.endDate,
           reason: action.reason,
-          createdAt: new Date().toISOString(),
+          notes: action.notes || '',
         });
-        saveOrders(orders);
       } else if (type === 'advance') {
         const startDate = new Date(action.startMonth + '-01');
         for (let i = 0; i < action.numMonths; i++) {
