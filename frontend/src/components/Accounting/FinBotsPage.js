@@ -626,8 +626,19 @@ function parseMessageParts(content) {
   return parts;
 }
 
+const CONFIRMED_KEY = 'finbot_confirmed_orders';
+function isConfirmed(action) {
+  try { return (JSON.parse(localStorage.getItem(CONFIRMED_KEY)) || []).includes(JSON.stringify(action)); } catch { return false; }
+}
+function markConfirmed(action) {
+  try {
+    const existing = JSON.parse(localStorage.getItem(CONFIRMED_KEY)) || [];
+    localStorage.setItem(CONFIRMED_KEY, JSON.stringify([...existing, JSON.stringify(action)]));
+  } catch {}
+}
+
 function OrderActionCard({ action, botColor }) {
-  const [status, setStatus] = useState('pending'); // pending | executing | done | error
+  const [status, setStatus] = useState(() => isConfirmed(action) ? 'done' : 'pending');
   const [errorMsg, setErrorMsg] = useState('');
 
   function localAdd(key, row) {
@@ -680,6 +691,7 @@ function OrderActionCard({ action, botColor }) {
           include_in_salary: true,
         });
       }
+      markConfirmed(action);
       setStatus('done');
     } catch (err) {
       setErrorMsg(err.response?.data?.error || err.message || 'Failed');
