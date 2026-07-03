@@ -20,6 +20,7 @@ const en = {
   'docs.devices': 'Devices',
   'docs.nbgRates': 'NBG Rates',
   'docs.finbot': 'FinBot',
+  'docs.journal': 'Journal',
   'docs.orders': 'Orders',
   'docs.dataLake': 'Data Lake',
   'docs.requests': 'Requests',

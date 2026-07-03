@@ -32,7 +32,7 @@ export const OPT_SIDEBAR_ORDER_KEY = 'opt_sidebar_order';
 export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'tools', 'appearance', 'about'];
 
 export const DOCS_SIDEBAR_ORDER_KEY = 'docs_sidebar_order';
-export const DOCS_SIDEBAR_DEFAULT = ['requests', 'employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'orders', 'datalake', 'banking', 'rsge'];
+export const DOCS_SIDEBAR_DEFAULT = ['journal', 'requests', 'employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'orders', 'datalake', 'banking', 'rsge'];
 
 export const NAV_HIDDEN_KEY = 'nav_hidden';
 export const ACC_SIDEBAR_HIDDEN_KEY = 'acc_sidebar_hidden';

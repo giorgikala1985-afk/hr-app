@@ -20,6 +20,7 @@ const ka = {
   'docs.devices': 'მოწყობილობები',
   'docs.nbgRates': 'NBG კურსი',
   'docs.finbot': 'ფინბოტი',
+  'docs.journal': 'ჟურნალი',
   'docs.orders': 'ბრძანებები',
   'docs.dataLake': 'მონაცემთა ბაზა',
   'docs.requests': 'მოთხოვნები',

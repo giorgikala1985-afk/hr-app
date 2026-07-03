@@ -951,6 +951,23 @@ router.delete('/:id/members/:memberId', async (req, res) => {
 
 // ==================== EMPLOYEE UNITS ====================
 
+// GET all units across all employees (for Journal)
+router.get('/units/all', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('employee_units')
+      .select('*, employee:employees(id, first_name, last_name, position)')
+      .eq('user_id', req.userId)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) throw error;
+    res.json({ units: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET units for employee
 router.get('/:id/units', async (req, res) => {
   try {

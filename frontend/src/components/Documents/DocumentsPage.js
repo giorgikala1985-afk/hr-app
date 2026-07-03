@@ -21,6 +21,7 @@ import Agents from '../Accounting/Agents';
 import Agreements from './Agreements';
 import CurrencyRates from './CurrencyRates';
 import Orders from './Orders';
+import JournalPage from './JournalPage';
 import DataLake from './DataLake';
 import Requests from './Requests';
 import TbcBanking from '../Accounting/TbcBanking';
@@ -28,6 +29,9 @@ import RsGeIntegration from '../Accounting/RsGeIntegration';
 import './Documents.css';
 
 const TAB_KEYS = [
+  { key: 'journal', labelKey: 'docs.journal', icon: (
+    <HugeiconsIcon icon={ClipboardListIcon} size={16} color="#f59e0b" strokeWidth={1.8} />
+  )},
   { key: 'employees', labelKey: 'docs.employees', icon: (
     <HugeiconsIcon icon={UserGroupIcon} size={16} color="#3b82f6" strokeWidth={1.8} />
   )},
@@ -122,6 +126,7 @@ function DocumentsPage() {
       </aside>
 
       <main className="docs-content">
+        {activeTab === 'journal' && <JournalPage />}
         {activeTab === 'employees' && <EmployeeList />}
         {activeTab === 'agents' && <Agents />}
         {activeTab === 'agreements' && <Agreements />}
