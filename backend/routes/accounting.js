@@ -191,6 +191,76 @@ router.delete('/sales/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── INVOICE UPLOADS (shared across devices via Supabase) ──
+router.get('/invoices/uploads', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('invoice_uploads')
+      .select('id, file_name, file_type, upload_date, due_date, urgent, created_at')
+      .eq('user_id', req.userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ uploads: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/invoices/uploads/:id/file', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('invoice_uploads')
+      .select('file_name, file_type, file_data')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+    if (error || !data) return res.status(404).json({ error: 'Not found' });
+    res.json({ file_name: data.file_name, file_type: data.file_type, file_data: data.file_data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/invoices/uploads', async (req, res) => {
+  try {
+    const { file_name, file_type, file_data, upload_date, due_date, urgent } = req.body;
+    if (!file_name || !file_data) return res.status(400).json({ error: 'file_name and file_data are required' });
+    const { data, error } = await supabase
+      .from('invoice_uploads')
+      .insert([{ user_id: req.userId, file_name, file_type, file_data, upload_date, due_date: due_date || null, urgent: !!urgent }])
+      .select('id, file_name, file_type, upload_date, due_date, urgent, created_at')
+      .single();
+    if (error) throw error;
+    res.status(201).json({ upload: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.patch('/invoices/uploads/:id', async (req, res) => {
+  try {
+    const { urgent, due_date } = req.body;
+    const patch = {};
+    if (urgent !== undefined) patch.urgent = !!urgent;
+    if (due_date !== undefined) patch.due_date = due_date || null;
+    const { data, error } = await supabase
+      .from('invoice_uploads')
+      .update(patch)
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select('id, file_name, file_type, upload_date, due_date, urgent')
+      .single();
+    if (error) throw error;
+    res.json({ upload: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/invoices/uploads/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('invoice_uploads')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── INVOICES ───────────────────────────────────────────
 router.get('/invoices', async (req, res) => {
   try {

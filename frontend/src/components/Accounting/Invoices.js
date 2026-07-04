@@ -55,9 +55,8 @@ function Invoices() {
   const printRef = useRef();
 
   // Upload tab state
-  const [uploadRecords, setUploadRecords] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('invoice_uploads')) || []; } catch { return []; }
-  });
+  const [uploadRecords, setUploadRecords] = useState([]);
+  const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadPreview, setUploadPreview] = useState(null);
   const [uploadForm, setUploadForm] = useState({ dueDate: '', urgent: false });
@@ -65,9 +64,22 @@ function Invoices() {
   const [uploadSaving, setUploadSaving] = useState(false);
   const uploadInputRef = useRef();
 
-  const saveUploadRecords = (recs) => {
-    try { localStorage.setItem('invoice_uploads', JSON.stringify(recs)); } catch {}
+  const loadUploadRecords = async () => {
+    setUploadLoading(true);
+    try {
+      const res = await api.get('/accounting/invoices/uploads');
+      setUploadRecords((res.data.uploads || []).map(r => ({
+        id: r.id,
+        fileName: r.file_name,
+        fileType: r.file_type,
+        uploadDate: r.upload_date,
+        dueDate: r.due_date,
+        urgent: r.urgent,
+      })));
+    } catch {} finally { setUploadLoading(false); }
   };
+
+  useEffect(() => { loadUploadRecords(); }, []);
 
   const handleUploadFile = (file) => {
     if (!file) return;
@@ -94,18 +106,16 @@ function Invoices() {
         r.onerror = reject;
         r.readAsDataURL(uploadFile);
       });
-      const newRec = {
-        id: Date.now(),
-        fileName: uploadFile.name,
-        fileType: uploadFile.type,
-        fileData,
-        uploadDate: today(),
-        dueDate: uploadForm.dueDate,
+      const res = await api.post('/accounting/invoices/uploads', {
+        file_name: uploadFile.name,
+        file_type: uploadFile.type,
+        file_data: fileData,
+        upload_date: today(),
+        due_date: uploadForm.dueDate || null,
         urgent: uploadForm.urgent,
-      };
-      const next = [newRec, ...uploadRecords];
-      setUploadRecords(next);
-      saveUploadRecords(next);
+      });
+      const r = res.data.upload;
+      setUploadRecords(prev => [{ id: r.id, fileName: r.file_name, fileType: r.file_type, uploadDate: r.upload_date, dueDate: r.due_date, urgent: r.urgent }, ...prev]);
       setUploadFile(null);
       setUploadPreview(null);
       setUploadForm({ dueDate: '', urgent: false });
@@ -117,21 +127,26 @@ function Invoices() {
     }
   };
 
-  const handleUploadDelete = (id) => {
+  const handleUploadDelete = async (id) => {
     if (!window.confirm('ჩანაწერი წაიშლება. გაგრძელება?')) return;
-    const next = uploadRecords.filter(r => r.id !== id);
-    setUploadRecords(next);
-    saveUploadRecords(next);
+    try {
+      await api.delete(`/accounting/invoices/uploads/${id}`);
+      setUploadRecords(prev => prev.filter(r => r.id !== id));
+    } catch {}
   };
 
-  const handleUploadView = (rec) => {
-    const win = window.open('', '_blank');
-    if (rec.fileType === 'application/pdf') {
-      win.document.write(`<html><body style="margin:0"><embed src="${rec.fileData}" width="100%" height="100%" type="application/pdf"/></body></html>`);
-    } else {
-      win.document.write(`<html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${rec.fileData}" style="max-width:100%;max-height:100vh"/></body></html>`);
-    }
-    win.document.close();
+  const handleUploadView = async (rec) => {
+    try {
+      const res = await api.get(`/accounting/invoices/uploads/${rec.id}/file`);
+      const { file_data, file_type } = res.data;
+      const win = window.open('', '_blank');
+      if (file_type === 'application/pdf') {
+        win.document.write(`<html><body style="margin:0"><embed src="${file_data}" width="100%" height="100%" type="application/pdf"/></body></html>`);
+      } else {
+        win.document.write(`<html><body style="margin:0;background:#111;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${file_data}" style="max-width:100%;max-height:100vh"/></body></html>`);
+      }
+      win.document.close();
+    } catch {}
   };
 
   const [uploadFilters, setUploadFilters] = useState({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' });
@@ -146,10 +161,12 @@ function Invoices() {
   });
   const setUF = (field, val) => setUploadFilters(p => ({ ...p, [field]: val }));
 
-  const toggleUrgent = (id) => {
-    const next = uploadRecords.map(r => r.id === id ? { ...r, urgent: !r.urgent } : r);
-    setUploadRecords(next);
-    saveUploadRecords(next);
+  const toggleUrgent = async (id) => {
+    const rec = uploadRecords.find(r => r.id === id);
+    if (!rec) return;
+    setUploadRecords(prev => prev.map(r => r.id === id ? { ...r, urgent: !r.urgent } : r));
+    try { await api.patch(`/accounting/invoices/uploads/${id}`, { urgent: !rec.urgent }); }
+    catch { setUploadRecords(prev => prev.map(r => r.id === id ? { ...r, urgent: rec.urgent } : r)); }
   };
 
   // Scanner state
