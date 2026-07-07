@@ -72,7 +72,19 @@ function Bookkeeping() {
   const [accounts, setAccounts] = useState([]);
   const [agents, setAgents] = useState([]);
 
-  useEffect(() => { loadEntries(); loadAccounts(); loadAgents(); }, []);
+  // Subkonto state
+  const [subkontoTypes, setSubkontoTypes] = useState([]);
+  const [formLineSubkontos, setFormLineSubkontos] = useState([]); // [{debit:{typeId:val}, credit:{typeId:val}}]
+  // Subkonto types management
+  const [skNewName, setSkNewName] = useState('');
+  const [skNewSource, setSkNewSource] = useState('custom');
+  const [skSaving, setSkSaving] = useState(false);
+  const [skError, setSkError] = useState('');
+  // Account → subkonto assignment
+  const [selectedAccountId, setSelectedAccountId] = useState(null);
+  const [skAssigning, setSkAssigning] = useState(false);
+
+  useEffect(() => { loadEntries(); loadAccounts(); loadAgents(); loadSubkontoTypes(); }, []);
 
   const loadEntries = async () => {
     setTxLoading(true); setTxError('');
@@ -96,6 +108,28 @@ function Bookkeeping() {
       const res = await api.get('/accounting/agents');
       setAgents(res.data.records || []);
     } catch {}
+  };
+
+  const loadSubkontoTypes = async () => {
+    try {
+      const res = await api.get('/accounting/subkonto-types');
+      setSubkontoTypes(res.data.types || []);
+    } catch {}
+  };
+
+  // Get subkonto types assigned to an account by its display name
+  const getAccountSubkontos = (accountDisplay) => {
+    const acc = accounts.find(a =>
+      a.name === accountDisplay || `${a.code} - ${a.name}` === accountDisplay || a.code === accountDisplay
+    );
+    return acc?.subkontos || [];
+  };
+
+  const getAccountById = (id) => accounts.find(a => a.id === id);
+
+  // Initialize formLineSubkontos when form lines or accounts change
+  const ensureFormLineSubkontos = (lines) => {
+    setFormLineSubkontos(lines.map(() => ({ debit: {}, credit: {} })));
   };
 
   const agentMap = Object.fromEntries(agents.map(a => [a.id, a.name]));
@@ -141,7 +175,7 @@ function Bookkeeping() {
     setEditTxId(null); setFormDate(new Date().toISOString().slice(0, 10));
     setFormDesc(''); setFormLines([{ ...EMPTY_LINE }]);
     setFormAgentId(''); setAgentSearch(''); setAgentOpen(false);
-    setTxFormError(''); setShowTxForm(true);
+    setTxFormError(''); setFormLineSubkontos([{ debit: {}, credit: {} }]); setShowTxForm(true);
   };
 
   const openEditTx = (txId) => {
@@ -171,12 +205,31 @@ function Bookkeeping() {
     const transaction_id = editTxId || uuidv4();
     try {
       if (editTxId) await api.delete(`/accounting/bookkeeping/transaction/${editTxId}`);
-      await api.post('/accounting/bookkeeping/bulk', {
+      const bulkRes = await api.post('/accounting/bookkeeping/bulk', {
         entries: validLines.flatMap(l => [
           { transaction_id, date: formDate, description: formDesc.trim(), account: l.debitAccount.trim(), debit: parseFloat(l.amount), credit: 0, agent_id: formAgentId || null },
           { transaction_id, date: formDate, description: formDesc.trim(), account: l.creditAccount.trim(), debit: 0, credit: parseFloat(l.amount), agent_id: formAgentId || null },
         ]),
       });
+      // Save subkontos for each entry
+      const savedEntries = bulkRes.data.entries || [];
+      for (let i = 0; i < validLines.length; i++) {
+        const lineSubs = formLineSubkontos[i] || {};
+        const debitEntry = savedEntries[i * 2];
+        const creditEntry = savedEntries[i * 2 + 1];
+        if (debitEntry && lineSubs.debit) {
+          const subs = Object.entries(lineSubs.debit)
+            .filter(([, v]) => v)
+            .map(([typeId, value]) => ({ subkonto_type_id: typeId, value }));
+          if (subs.length) await api.post('/accounting/entry-subkontos/bulk', { entry_id: debitEntry.id, subkontos: subs });
+        }
+        if (creditEntry && lineSubs.credit) {
+          const subs = Object.entries(lineSubs.credit)
+            .filter(([, v]) => v)
+            .map(([typeId, value]) => ({ subkonto_type_id: typeId, value }));
+          if (subs.length) await api.post('/accounting/entry-subkontos/bulk', { entry_id: creditEntry.id, subkontos: subs });
+        }
+      }
       setShowTxForm(false); loadEntries();
     } catch (err) {
       setTxFormError(err.response?.data?.error || 'Failed to save.');
@@ -289,7 +342,7 @@ function Bookkeeping() {
 
       {/* Sub-tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[{ key: 'transactions', label: t('bk.transactions') }, { key: 'trial-balance', label: t('bk.trialBalance') }].map(tab => (
+        {[{ key: 'transactions', label: t('bk.transactions') }, { key: 'trial-balance', label: t('bk.trialBalance') }, { key: 'subkonto', label: 'სუბკონტო' }].map(tab => (
           <button key={tab.key} onClick={() => setView(tab.key)} style={{
             padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
             background: view === tab.key ? 'var(--surface)' : 'transparent',
@@ -405,17 +458,68 @@ function Bookkeeping() {
                     <div style={{ ...lbl, marginBottom: 0, textAlign: 'right' }}>{t('bk.amount')}</div>
                     <div />
                   </div>
-                  {formLines.map((line, idx) => (
-                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: 6 }}>
-                      <input list="bk-accs" value={line.debitAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], debitAccount: e.target.value }; setFormLines(l); }} placeholder="Debit account…" style={{ ...inpStyle, borderColor: line.debitAccount ? '#bbf7d0' : '#e2e8f0', color: '#15803d' }} />
-                      <input list="bk-accs" value={line.creditAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], creditAccount: e.target.value }; setFormLines(l); }} placeholder="Credit account…" style={{ ...inpStyle, borderColor: line.creditAccount ? '#fca5a5' : '#e2e8f0', color: '#b91c1c' }} />
-                      <input type="number" min="0" step="0.01" value={line.amount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], amount: e.target.value }; setFormLines(l); }} placeholder="0.00" style={{ ...inpStyle, textAlign: 'right', fontFamily: 'monospace' }} />
-                      {formLines.length > 1 ? (
-                        <button type="button" onClick={() => setFormLines(formLines.filter((_, i) => i !== idx))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 18, lineHeight: 1, padding: 0, alignSelf: 'center' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>×</button>
-                      ) : <div />}
-                    </div>
-                  ))}
-                  <button type="button" onClick={() => setFormLines([...formLines, { ...EMPTY_LINE }])} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{t('bk.addLine')}</button>
+                  {formLines.map((line, idx) => {
+                    const drSubs = getAccountSubkontos(line.debitAccount);
+                    const crSubs = getAccountSubkontos(line.creditAccount);
+                    const lineSk = formLineSubkontos[idx] || { debit: {}, credit: {} };
+                    return (
+                      <div key={idx} style={{ marginBottom: 10, padding: drSubs.length || crSubs.length ? '8px 10px' : 0, border: drSubs.length || crSubs.length ? '1px solid var(--border-2)' : 'none', borderRadius: 8, background: drSubs.length || crSubs.length ? 'var(--surface-2)' : 'transparent' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: drSubs.length || crSubs.length ? 8 : 0 }}>
+                          <input list="bk-accs" value={line.debitAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], debitAccount: e.target.value }; setFormLines(l); const s = [...formLineSubkontos]; s[idx] = { ...s[idx], debit: {} }; setFormLineSubkontos(s); }} placeholder="Debit account…" style={{ ...inpStyle, borderColor: line.debitAccount ? '#bbf7d0' : 'var(--border-2)', color: '#15803d' }} />
+                          <input list="bk-accs" value={line.creditAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], creditAccount: e.target.value }; setFormLines(l); const s = [...formLineSubkontos]; s[idx] = { ...s[idx], credit: {} }; setFormLineSubkontos(s); }} placeholder="Credit account…" style={{ ...inpStyle, borderColor: line.creditAccount ? '#fca5a5' : 'var(--border-2)', color: '#b91c1c' }} />
+                          <input type="number" min="0" step="0.01" value={line.amount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], amount: e.target.value }; setFormLines(l); }} placeholder="0.00" style={{ ...inpStyle, textAlign: 'right', fontFamily: 'monospace' }} />
+                          {formLines.length > 1 ? (
+                            <button type="button" onClick={() => { setFormLines(formLines.filter((_, i) => i !== idx)); setFormLineSubkontos(formLineSubkontos.filter((_, i) => i !== idx)); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 18, lineHeight: 1, padding: 0, alignSelf: 'center' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>×</button>
+                          ) : <div />}
+                        </div>
+                        {/* Debit subkontos */}
+                        {drSubs.length > 0 && (
+                          <div style={{ marginBottom: crSubs.length ? 6 : 0 }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>სუბკონტო · {line.debitAccount.split(' - ').pop()} (Dr)</div>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              {drSubs.map(s => (
+                                <div key={s.id} style={{ flex: 1, minWidth: 140 }}>
+                                  <label style={{ ...lbl, marginBottom: 2, color: '#15803d', fontSize: 11 }}>{s.subkonto_type?.name}</label>
+                                  {s.subkonto_type?.value_source === 'agents' ? (
+                                    <select value={lineSk.debit?.[s.subkonto_type_id] || ''} onChange={e => { const ns = [...formLineSubkontos]; ns[idx] = { ...ns[idx], debit: { ...ns[idx].debit, [s.subkonto_type_id]: e.target.value } }; setFormLineSubkontos(ns); }} style={{ ...inpStyle, fontSize: 12 }}>
+                                      <option value="">— არჩევა —</option>
+                                      {agents.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+                                    </select>
+                                  ) : s.subkonto_type?.value_source === 'employees' ? (
+                                    <input value={lineSk.debit?.[s.subkonto_type_id] || ''} onChange={e => { const ns = [...formLineSubkontos]; ns[idx] = { ...ns[idx], debit: { ...ns[idx].debit, [s.subkonto_type_id]: e.target.value } }; setFormLineSubkontos(ns); }} placeholder={s.subkonto_type?.name} style={{ ...inpStyle, fontSize: 12 }} />
+                                  ) : (
+                                    <input value={lineSk.debit?.[s.subkonto_type_id] || ''} onChange={e => { const ns = [...formLineSubkontos]; ns[idx] = { ...ns[idx], debit: { ...ns[idx].debit, [s.subkonto_type_id]: e.target.value } }; setFormLineSubkontos(ns); }} placeholder={s.subkonto_type?.name} style={{ ...inpStyle, fontSize: 12 }} />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {/* Credit subkontos */}
+                        {crSubs.length > 0 && (
+                          <div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#b91c1c', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>სუბკონტო · {line.creditAccount.split(' - ').pop()} (Cr)</div>
+                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                              {crSubs.map(s => (
+                                <div key={s.id} style={{ flex: 1, minWidth: 140 }}>
+                                  <label style={{ ...lbl, marginBottom: 2, color: '#b91c1c', fontSize: 11 }}>{s.subkonto_type?.name}</label>
+                                  {s.subkonto_type?.value_source === 'agents' ? (
+                                    <select value={lineSk.credit?.[s.subkonto_type_id] || ''} onChange={e => { const ns = [...formLineSubkontos]; ns[idx] = { ...ns[idx], credit: { ...ns[idx].credit, [s.subkonto_type_id]: e.target.value } }; setFormLineSubkontos(ns); }} style={{ ...inpStyle, fontSize: 12 }}>
+                                      <option value="">— არჩევა —</option>
+                                      {agents.map(a => <option key={a.id} value={a.name}>{a.name}</option>)}
+                                    </select>
+                                  ) : (
+                                    <input value={lineSk.credit?.[s.subkonto_type_id] || ''} onChange={e => { const ns = [...formLineSubkontos]; ns[idx] = { ...ns[idx], credit: { ...ns[idx].credit, [s.subkonto_type_id]: e.target.value } }; setFormLineSubkontos(ns); }} placeholder={s.subkonto_type?.name} style={{ ...inpStyle, fontSize: 12 }} />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <button type="button" onClick={() => { setFormLines([...formLines, { ...EMPTY_LINE }]); setFormLineSubkontos([...formLineSubkontos, { debit: {}, credit: {} }]); }} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{t('bk.addLine')}</button>
                 </div>
                 <div style={{ marginBottom: 20, position: 'relative' }}>
                   <label style={lbl}>{t('bk.projectAgent')}</label>
@@ -521,6 +625,146 @@ function Bookkeeping() {
             </div>
           )}
         </>
+      )}
+
+      {/* ── SUBKONTO VIEW ── */}
+      {view === 'subkonto' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 24 }}>
+
+          {/* Left: Subkonto type management */}
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 14 }}>სუბკონტოს ტიპები</div>
+            {skError && <div style={{ ...errBox, marginBottom: 10, fontSize: 12 }}>{skError}</div>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+              <input
+                placeholder="ახალი ტიპის სახელი (მაგ. კონტრაგენტი)"
+                value={skNewName}
+                onChange={e => setSkNewName(e.target.value)}
+                style={inpStyle}
+              />
+              <select value={skNewSource} onChange={e => setSkNewSource(e.target.value)} style={inpStyle}>
+                <option value="custom">თავისუფალი ტექსტი</option>
+                <option value="agents">კონტრაგენტებიდან</option>
+                <option value="employees">თანამშრომლებიდან</option>
+              </select>
+              <button
+                disabled={skSaving || !skNewName.trim()}
+                onClick={async () => {
+                  setSkSaving(true); setSkError('');
+                  try {
+                    await api.post('/accounting/subkonto-types', { name: skNewName.trim(), value_source: skNewSource });
+                    setSkNewName(''); setSkNewSource('custom');
+                    loadSubkontoTypes();
+                  } catch (e) { setSkError(e.response?.data?.error || 'Failed'); }
+                  finally { setSkSaving(false); }
+                }}
+                style={{ padding: '8px 16px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: skSaving || !skNewName.trim() ? 0.6 : 1 }}
+              >
+                {skSaving ? 'შენახვა...' : '+ დამატება'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {subkontoTypes.map(st => (
+                <div key={st.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{st.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 2 }}>
+                      {st.value_source === 'agents' ? 'კონტრაგენტებიდან' : st.value_source === 'employees' ? 'თანამშრომლებიდან' : 'თავისუფალი ტექსტი'}
+                    </div>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm(`"${st.name}" წაიშლება?`)) return;
+                      try { await api.delete(`/accounting/subkonto-types/${st.id}`); loadSubkontoTypes(); loadAccounts(); }
+                      catch {}
+                    }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 16, padding: 4 }}
+                    onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                    onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}
+                  >×</button>
+                </div>
+              ))}
+              {subkontoTypes.length === 0 && <div style={{ fontSize: 13, color: 'var(--text-4)', textAlign: 'center', padding: 20 }}>სუბკონტოს ტიპები არ არის</div>}
+            </div>
+          </div>
+
+          {/* Right: Assign subkontos to accounts */}
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 14 }}>ანგარიშებზე მიბმა</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 600, overflowY: 'auto' }}>
+              {accounts.map(acc => {
+                const isSelected = selectedAccountId === acc.id;
+                const typeMeta = TYPE_STYLE[acc.type] || {};
+                return (
+                  <div key={acc.id} style={{ border: `1px solid ${isSelected ? '#3b82f6' : 'var(--border-2)'}`, borderRadius: 10, background: isSelected ? '#eff6ff' : 'var(--surface)', overflow: 'hidden' }}>
+                    <div
+                      onClick={() => setSelectedAccountId(isSelected ? null : acc.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer' }}
+                    >
+                      {acc.code && <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)', minWidth: 40 }}>{acc.code}</span>}
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{acc.name}</span>
+                      {acc.type && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, ...typeMeta }}>{acc.type}</span>}
+                      {acc.subkontos?.length > 0 && (
+                        <div style={{ display: 'flex', gap: 4 }}>
+                          {acc.subkontos.map(s => (
+                            <span key={s.id} style={{ fontSize: 10, background: '#ede9fe', color: '#7c3aed', border: '1px solid #ddd6fe', padding: '1px 7px', borderRadius: 20, fontWeight: 600 }}>
+                              {s.subkonto_type?.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <span style={{ fontSize: 11, color: '#3b82f6' }}>{isSelected ? '▲' : '▼'}</span>
+                    </div>
+                    {isSelected && (
+                      <div style={{ borderTop: '1px solid var(--border-2)', padding: '10px 14px', background: 'var(--surface-2)' }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>სუბკონტოს ტიპების მიბმა (max 3):</div>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+                          {acc.subkontos?.map(s => (
+                            <span key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, background: '#ede9fe', color: '#7c3aed', border: '1px solid #ddd6fe', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>
+                              {s.position}. {s.subkonto_type?.name}
+                              <button
+                                onClick={async () => {
+                                  try { await api.delete(`/accounting/account-subkontos/${s.id}`); loadAccounts(); }
+                                  catch {}
+                                }}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#7c3aed', fontSize: 14, padding: 0, lineHeight: 1 }}
+                              >×</button>
+                            </span>
+                          ))}
+                        </div>
+                        {(acc.subkontos?.length || 0) < 3 && subkontoTypes.filter(st => !acc.subkontos?.find(s => s.subkonto_type_id === st.id)).length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {subkontoTypes.filter(st => !acc.subkontos?.find(s => s.subkonto_type_id === st.id)).map(st => (
+                              <button
+                                key={st.id}
+                                disabled={skAssigning}
+                                onClick={async () => {
+                                  setSkAssigning(true);
+                                  try {
+                                    await api.post('/accounting/account-subkontos', {
+                                      account_id: acc.id,
+                                      subkonto_type_id: st.id,
+                                      position: (acc.subkontos?.length || 0) + 1,
+                                    });
+                                    loadAccounts();
+                                  } catch {}
+                                  finally { setSkAssigning(false); }
+                                }}
+                                style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px dashed #7c3aed', background: 'transparent', color: '#7c3aed', cursor: 'pointer', fontWeight: 600 }}
+                              >+ {st.name}</button>
+                            ))}
+                          </div>
+                        )}
+                        {(acc.subkontos?.length || 0) >= 3 && <div style={{ fontSize: 11, color: 'var(--text-4)' }}>მაქსიმუმი 3 სუბკონტო ანგარიშზე</div>}
+                        {subkontoTypes.length === 0 && <div style={{ fontSize: 11, color: 'var(--text-4)' }}>ჯერ შექმენი სუბკონტოს ტიპი მარცხნივ</div>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── T-ACCOUNT MODAL ── */}

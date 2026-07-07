@@ -462,6 +462,109 @@ router.post('/agents/bulk', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── SUBKONTO TYPES ─────────────────────────────────────
+router.get('/subkonto-types', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('subkonto_types')
+      .select('*')
+      .eq('user_id', req.userId)
+      .order('name', { ascending: true });
+    if (error) throw error;
+    res.json({ types: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/subkonto-types', async (req, res) => {
+  try {
+    const { name, value_source } = req.body;
+    if (!name) return res.status(400).json({ error: 'name is required' });
+    const { data, error } = await supabase
+      .from('subkonto_types')
+      .insert([{ user_id: req.userId, name: name.trim(), value_source: value_source || 'custom' }])
+      .select().single();
+    if (error) throw error;
+    res.status(201).json({ type: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/subkonto-types/:id', async (req, res) => {
+  try {
+    const { name, value_source } = req.body;
+    const { data, error } = await supabase
+      .from('subkonto_types')
+      .update({ name: name.trim(), value_source: value_source || 'custom' })
+      .eq('id', req.params.id).eq('user_id', req.userId)
+      .select().single();
+    if (error) throw error;
+    res.json({ type: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/subkonto-types/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('subkonto_types')
+      .delete().eq('id', req.params.id).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── ACCOUNT SUBKONTOS ──────────────────────────────────
+router.get('/account-subkontos', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('account_subkontos')
+      .select('*, subkonto_type:subkonto_types(id, name, value_source)')
+      .eq('user_id', req.userId)
+      .order('position', { ascending: true });
+    if (error) throw error;
+    res.json({ account_subkontos: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/account-subkontos', async (req, res) => {
+  try {
+    const { account_id, subkonto_type_id, position } = req.body;
+    const { data, error } = await supabase
+      .from('account_subkontos')
+      .insert([{ user_id: req.userId, account_id, subkonto_type_id, position: position || 1 }])
+      .select('*, subkonto_type:subkonto_types(id, name, value_source)').single();
+    if (error) throw error;
+    res.status(201).json({ account_subkonto: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/account-subkontos/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('account_subkontos')
+      .delete().eq('id', req.params.id).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── ENTRY SUBKONTOS ────────────────────────────────────
+router.post('/entry-subkontos/bulk', async (req, res) => {
+  try {
+    const { entry_id, subkontos } = req.body; // subkontos: [{subkonto_type_id, value, value_id}]
+    if (!subkontos?.length) return res.json({ entry_subkontos: [] });
+    await supabase.from('entry_subkontos').delete().eq('entry_id', entry_id).eq('user_id', req.userId);
+    const rows = subkontos.map(s => ({
+      user_id: req.userId,
+      entry_id,
+      subkonto_type_id: s.subkonto_type_id,
+      value: s.value || '',
+      value_id: s.value_id || null,
+    }));
+    const { data, error } = await supabase.from('entry_subkontos').insert(rows).select();
+    if (error) throw error;
+    res.status(201).json({ entry_subkontos: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── BOOKKEEPING ACCOUNTS ───────────────────────────────
 router.get('/bookkeeping-accounts', async (req, res) => {
   try {
@@ -471,7 +574,22 @@ router.get('/bookkeeping-accounts', async (req, res) => {
       .eq('user_id', req.userId)
       .order('code', { ascending: true });
     if (error) throw error;
-    res.json({ accounts: data });
+
+    // attach subkontos for each account
+    const { data: asSubs } = await supabase
+      .from('account_subkontos')
+      .select('*, subkonto_type:subkonto_types(id, name, value_source)')
+      .eq('user_id', req.userId)
+      .order('position', { ascending: true });
+
+    const subsByAccount = (asSubs || []).reduce((m, s) => {
+      if (!m[s.account_id]) m[s.account_id] = [];
+      m[s.account_id].push(s);
+      return m;
+    }, {});
+
+    const accounts = (data || []).map(a => ({ ...a, subkontos: subsByAccount[a.id] || [] }));
+    res.json({ accounts });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
@@ -539,7 +657,24 @@ router.get('/bookkeeping', async (req, res) => {
       .order('date', { ascending: false })
       .order('created_at', { ascending: true });
     if (error) throw error;
-    res.json({ entries: data });
+
+    // attach entry subkontos
+    const entryIds = (data || []).map(e => e.id);
+    let subkontoMap = {};
+    if (entryIds.length) {
+      const { data: subs } = await supabase
+        .from('entry_subkontos')
+        .select('*, subkonto_type:subkonto_types(id, name)')
+        .in('entry_id', entryIds)
+        .eq('user_id', req.userId);
+      (subs || []).forEach(s => {
+        if (!subkontoMap[s.entry_id]) subkontoMap[s.entry_id] = [];
+        subkontoMap[s.entry_id].push(s);
+      });
+    }
+
+    const entries = (data || []).map(e => ({ ...e, subkontos: subkontoMap[e.id] || [] }));
+    res.json({ entries });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
