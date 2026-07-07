@@ -3,9 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { PortalAuthProvider } from './contexts/PortalAuthContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext';
-import { Theme } from '@radix-ui/themes';
-import '@radix-ui/themes/styles.css';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import Register from './components/Auth/Register';
@@ -49,19 +47,9 @@ class ErrorBoundary extends React.Component {
   }
 }
 
-function RadixThemeBridge({ children }) {
-  const { theme } = useTheme();
-  return (
-    <Theme appearance={theme} accentColor="indigo" grayColor="slate" radius="medium" scaling="95%">
-      {children}
-    </Theme>
-  );
-}
-
 function App() {
   return (
     <ThemeProvider>
-    <RadixThemeBridge>
     <LanguageProvider>
     <AuthProvider>
       <BrowserRouter>
@@ -197,7 +185,6 @@ function App() {
       </BrowserRouter>
     </AuthProvider>
     </LanguageProvider>
-    </RadixThemeBridge>
     </ThemeProvider>
   );
 }
