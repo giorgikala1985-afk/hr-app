@@ -84,7 +84,15 @@ function Bookkeeping() {
   const [selectedAccountId, setSelectedAccountId] = useState(null);
   const [skAssigning, setSkAssigning] = useState(false);
 
-  useEffect(() => { loadEntries(); loadAccounts(); loadAgents(); loadSubkontoTypes(); }, []);
+  // Posting rules state
+  const [postingRules, setPostingRules] = useState([]);
+  const [prLoading, setPrLoading] = useState(false);
+  const [prError, setPrError] = useState('');
+  const [prForm, setPrForm] = useState({ document_type: 'Bonus', debit_account: '', credit_account: '', description_template: '', is_active: true });
+  const [prEditId, setPrEditId] = useState(null);
+  const [prSaving, setPrSaving] = useState(false);
+
+  useEffect(() => { loadEntries(); loadAccounts(); loadAgents(); loadSubkontoTypes(); loadPostingRules(); }, []);
 
   const loadEntries = async () => {
     setTxLoading(true); setTxError('');
@@ -115,6 +123,54 @@ function Bookkeeping() {
       const res = await api.get('/accounting/subkonto-types');
       setSubkontoTypes(res.data.types || []);
     } catch {}
+  };
+
+  const loadPostingRules = async () => {
+    setPrLoading(true);
+    try {
+      const res = await api.get('/accounting/posting-rules');
+      setPostingRules(res.data.rules || []);
+    } catch (err) {
+      setPrError(err.response?.data?.error || 'Failed to load rules.');
+    } finally { setPrLoading(false); }
+  };
+
+  const PR_DOC_TYPES = ['Bonus', 'Advance', 'Salary', 'OT', 'Other'];
+
+  const openPrEdit = (rule) => {
+    setPrEditId(rule.id);
+    setPrForm({ document_type: rule.document_type, debit_account: rule.debit_account, credit_account: rule.credit_account, description_template: rule.description_template || '', is_active: rule.is_active });
+  };
+
+  const resetPrForm = () => {
+    setPrEditId(null);
+    setPrForm({ document_type: 'Bonus', debit_account: '', credit_account: '', description_template: '', is_active: true });
+    setPrError('');
+  };
+
+  const handleSavePr = async () => {
+    if (!prForm.debit_account.trim() || !prForm.credit_account.trim()) { setPrError('Debit and credit accounts are required.'); return; }
+    setPrSaving(true); setPrError('');
+    try {
+      if (prEditId) {
+        await api.put(`/accounting/posting-rules/${prEditId}`, prForm);
+      } else {
+        await api.post('/accounting/posting-rules', prForm);
+      }
+      resetPrForm();
+      loadPostingRules();
+    } catch (err) {
+      setPrError(err.response?.data?.error || 'Failed to save.');
+    } finally { setPrSaving(false); }
+  };
+
+  const handleDeletePr = async (id) => {
+    if (!window.confirm('Delete this rule?')) return;
+    try { await api.delete(`/accounting/posting-rules/${id}`); loadPostingRules(); } catch {}
+  };
+
+  const togglePrActive = async (rule) => {
+    try { await api.put(`/accounting/posting-rules/${rule.id}`, { ...rule, is_active: !rule.is_active }); loadPostingRules(); } catch {}
   };
 
   // Get subkonto types assigned to an account by its display name
@@ -342,7 +398,7 @@ function Bookkeeping() {
 
       {/* Sub-tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[{ key: 'transactions', label: t('bk.transactions') }, { key: 'trial-balance', label: t('bk.trialBalance') }, { key: 'subkonto', label: 'სუბკონტო' }].map(tab => (
+        {[{ key: 'transactions', label: t('bk.transactions') }, { key: 'trial-balance', label: t('bk.trialBalance') }, { key: 'subkonto', label: 'სუბკონტო' }, { key: 'auto-post', label: 'ავტო-გატარება' }].map(tab => (
           <button key={tab.key} onClick={() => setView(tab.key)} style={{
             padding: '7px 20px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
             background: view === tab.key ? 'var(--surface)' : 'transparent',
@@ -764,6 +820,95 @@ function Bookkeeping() {
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ── AUTO-POST VIEW ── */}
+      {view === 'auto-post' && (
+        <div style={{ maxWidth: 820 }}>
+          <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-3)', lineHeight: 1.6 }}>
+            HR-ის ოპერაცია (პრემია, ავანსი, ზეგანაკვეთური და სხვა) შესრულებისას, პროგრამა ავტომატურად შექმნის ბუღალტრულ გატარებას — ქვემოთ განსაზღვრული წესების მიხედვით.
+          </p>
+
+          {/* Form */}
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)', marginBottom: 14 }}>
+              {prEditId ? '✏️ წესის რედაქტირება' : '+ ახალი წესი'}
+            </div>
+            {prError && <div style={{ ...errBox, marginBottom: 12 }}>{prError}</div>}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={lbl}>დოკუმენტის ტიპი</label>
+                <select value={prForm.document_type} onChange={e => setPrForm(f => ({ ...f, document_type: e.target.value }))} style={inpStyle}>
+                  {PR_DOC_TYPES.map(t => <option key={t} value={t}>{t === 'Bonus' ? 'პრემია (Bonus)' : t === 'Advance' ? 'ავანსი (Advance)' : t === 'Salary' ? 'ხელფასი (Salary)' : t === 'OT' ? 'ზეგანაკვეთური (OT)' : 'სხვა (Other)'}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>დებეტი (Dr)</label>
+                <input list="bk-accs-pr" value={prForm.debit_account} onChange={e => setPrForm(f => ({ ...f, debit_account: e.target.value }))} placeholder="ანგარიში..." style={{ ...inpStyle, borderColor: prForm.debit_account ? '#bbf7d0' : 'var(--border-2)', color: '#15803d' }} />
+              </div>
+              <div>
+                <label style={lbl}>კრედიტი (Cr)</label>
+                <input list="bk-accs-pr" value={prForm.credit_account} onChange={e => setPrForm(f => ({ ...f, credit_account: e.target.value }))} placeholder="ანგარიში..." style={{ ...inpStyle, borderColor: prForm.credit_account ? '#fca5a5' : 'var(--border-2)', color: '#b91c1c' }} />
+              </div>
+            </div>
+            <datalist id="bk-accs-pr">
+              {accountNames.map((n, i) => <option key={i} value={n} />)}
+            </datalist>
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>აღწერის შაბლონი (სურვილისამებრ)</label>
+              <input value={prForm.description_template} onChange={e => setPrForm(f => ({ ...f, description_template: e.target.value }))} placeholder="მაგ: პრემია - {{employee}}" style={inpStyle} />
+              <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 4 }}>{"{{employee}} ადგილზე ჩაიწერება თანამშრომლის სახელი"}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <button onClick={handleSavePr} disabled={prSaving} style={{ padding: '8px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: prSaving ? 0.7 : 1 }}>
+                {prSaving ? 'შენახვა...' : prEditId ? 'განახლება' : '+ დამატება'}
+              </button>
+              {prEditId && <button onClick={resetPrForm} style={cancelBtn}>გაუქმება</button>}
+            </div>
+          </div>
+
+          {/* Rules list */}
+          {prLoading ? (
+            <div style={{ color: 'var(--text-4)', padding: 20 }}>ჩატვირთვა...</div>
+          ) : postingRules.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-4)' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>⚙️</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-3)' }}>ავტო-გატარების წესები არ არის</div>
+              <div style={{ fontSize: 12, marginTop: 4 }}>დაამატე პირველი წესი ზემოთ</div>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {postingRules.map(rule => (
+                <div key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--surface)', border: `1px solid ${rule.is_active ? 'var(--border-2)' : '#e2e8f0'}`, borderRadius: 10, opacity: rule.is_active ? 1 : 0.55 }}>
+                  <div style={{ minWidth: 100 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: rule.document_type === 'Bonus' ? '#fef9c3' : rule.document_type === 'Advance' ? '#e0f2fe' : rule.document_type === 'Salary' ? '#f0fdf4' : rule.document_type === 'OT' ? '#fdf4ff' : '#f1f5f9', color: rule.document_type === 'Bonus' ? '#854d0e' : rule.document_type === 'Advance' ? '#0369a1' : rule.document_type === 'Salary' ? '#15803d' : rule.document_type === 'OT' ? '#7e22ce' : '#475569' }}>
+                      {rule.document_type}
+                    </span>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#15803d' }}>Dr: {rule.debit_account}</span>
+                    <span style={{ color: 'var(--text-4)' }}>→</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#b91c1c' }}>Cr: {rule.credit_account}</span>
+                    {rule.description_template && (
+                      <span style={{ fontSize: 11, color: 'var(--text-4)', fontStyle: 'italic' }}>"{rule.description_template}"</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <button onClick={() => togglePrActive(rule)} title={rule.is_active ? 'Deactivate' : 'Activate'} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid', cursor: 'pointer', fontWeight: 600, background: rule.is_active ? '#f0fdf4' : 'var(--surface-2)', color: rule.is_active ? '#16a34a' : 'var(--text-4)', borderColor: rule.is_active ? '#bbf7d0' : 'var(--border-2)' }}>
+                      {rule.is_active ? 'აქტიური' : 'გათიშული'}
+                    </button>
+                    <button onClick={() => openPrEdit(rule)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }} onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button onClick={() => handleDeletePr(rule.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

@@ -1083,4 +1083,58 @@ router.delete('/transfer-requests/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── POSTING RULES ──────────────────────────────────────
+router.get('/posting-rules', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('posting_rules')
+      .select('*')
+      .eq('user_id', req.userId)
+      .order('document_type', { ascending: true });
+    if (error) throw error;
+    res.json({ rules: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/posting-rules', async (req, res) => {
+  try {
+    const { document_type, debit_account, credit_account, description_template, is_active } = req.body;
+    if (!document_type || !debit_account || !credit_account) {
+      return res.status(400).json({ error: 'document_type, debit_account, and credit_account are required' });
+    }
+    const { data, error } = await supabase
+      .from('posting_rules')
+      .insert([{ user_id: req.userId, document_type, debit_account, credit_account, description_template: description_template || '', is_active: is_active !== false }])
+      .select().single();
+    if (error) throw error;
+    res.status(201).json({ rule: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/posting-rules/:id', async (req, res) => {
+  try {
+    const { document_type, debit_account, credit_account, description_template, is_active } = req.body;
+    const { data, error } = await supabase
+      .from('posting_rules')
+      .update({ document_type, debit_account, credit_account, description_template: description_template || '', is_active: !!is_active })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select().single();
+    if (error) throw error;
+    res.json({ rule: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/posting-rules/:id', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('posting_rules')
+      .delete()
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 module.exports = router;

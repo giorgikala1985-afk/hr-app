@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const supabase = require('../config/supabase');
 // Multer with memory storage for Supabase upload
 const upload = multer({
@@ -1009,6 +1010,37 @@ router.post('/:id/units', async (req, res) => {
       .single();
 
     if (error) throw error;
+
+    // Auto-post to bookkeeping if a matching rule exists
+    try {
+      const { data: rule } = await supabase
+        .from('posting_rules')
+        .select('*')
+        .eq('user_id', req.userId)
+        .eq('document_type', type)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (rule) {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('first_name, last_name')
+          .eq('id', req.params.id)
+          .single();
+        const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
+        const rawTemplate = rule.description_template || `${type} - {{employee}}`;
+        const description = rawTemplate.replace(/\{\{employee\}\}/g, empName);
+        const txId = crypto.randomUUID();
+        const amt = parseFloat(amount);
+        await supabase.from('bookkeeping_entries').insert([
+          { user_id: req.userId, transaction_id: txId, date, description, account: rule.debit_account, debit: amt, credit: 0 },
+          { user_id: req.userId, transaction_id: txId, date, description, account: rule.credit_account, debit: 0, credit: amt },
+        ]);
+      }
+    } catch (autoPostErr) {
+      console.error('Auto-post error:', autoPostErr.message);
+    }
+
     res.status(201).json({ unit: data });
   } catch (err) {
     res.status(500).json({ error: err.message });
