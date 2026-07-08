@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { FileScanIcon, InboxIcon, AiMagicIcon, Loading03Icon } from '@hugeicons/core-free-icons';
+import { FileScanIcon, InboxIcon, AiMagicIcon, Loading03Icon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 
 function Invoices() {
   const { t } = useLanguage();
@@ -135,6 +135,73 @@ function Invoices() {
       exportRecordsToExcel(freshRecords, date);
     } finally {
       setExtractingDate(null);
+    }
+  };
+
+  // Edit Transactions tab — a block's extracted data, opened as editable rows.
+  const [editRecords, setEditRecords] = useState([]);
+  const [editSourceLabel, setEditSourceLabel] = useState('');
+  const [sendingId, setSendingId] = useState(null);
+  const [sendingAll, setSendingAll] = useState(false);
+
+  const openEditTransactions = (dateLabel, records) => {
+    setEditRecords(records.map(r => ({
+      uploadId: r.id,
+      fileName: r.fileName,
+      payee: r.extracted?.payee || '',
+      amount: r.extracted?.amount != null ? String(r.extracted.amount) : '',
+      currency: r.extracted?.currency || 'GEL',
+      invoiceNumber: r.extracted?.invoice_number || '',
+      invoiceDate: r.extracted?.invoice_date || '',
+      dueDate: r.dueDate || r.extracted?.due_date || '',
+      iban: r.extracted?.account_number || '',
+      description: r.extracted?.description || '',
+      sent: false,
+    })));
+    setEditSourceLabel(dateLabel);
+    setTab('edit');
+  };
+
+  const updateEditField = (uploadId, field, value) => {
+    setEditRecords(prev => prev.map(r => r.uploadId === uploadId ? { ...r, [field]: value } : r));
+  };
+
+  const handleSendToTransfers = async (rec) => {
+    if (!rec.payee.trim() || !rec.amount || !rec.dueDate) {
+      alert('შეავსეთ გადამხდელი, თანხა და გადახდის ვადა გაგზავნამდე.');
+      return false;
+    }
+    setSendingId(rec.uploadId);
+    try {
+      await api.post('/accounting/transfers', {
+        client_name: rec.payee.trim(),
+        agent_id: null,
+        amount: parseFloat(rec.amount),
+        due_date: rec.dueDate,
+        description: rec.description || '',
+        iban: rec.iban || null,
+        invoice_number: rec.invoiceNumber || null,
+        status: 'normal',
+      });
+      setEditRecords(prev => prev.map(r => r.uploadId === rec.uploadId ? { ...r, sent: true } : r));
+      return true;
+    } catch (err) {
+      alert(err.response?.data?.error || 'გაგზავნა ვერ მოხერხდა.');
+      return false;
+    } finally {
+      setSendingId(null);
+    }
+  };
+
+  const handleSendAllToTransfers = async () => {
+    setSendingAll(true);
+    try {
+      for (const rec of editRecords.filter(r => !r.sent)) {
+        // eslint-disable-next-line no-await-in-loop
+        await handleSendToTransfers(rec);
+      }
+    } finally {
+      setSendingAll(false);
     }
   };
 
@@ -322,6 +389,10 @@ function Invoices() {
         <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
           <HugeiconsIcon icon={FileScanIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           {t('inv.scanner')}
+        </button>
+        <button className={`docs-inner-tab${tab === 'edit' ? ' active' : ''}`} onClick={() => setTab('edit')}>
+          <HugeiconsIcon icon={TaskEdit01Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Edit Transactions
         </button>
       </div>
 
@@ -632,6 +703,14 @@ function Invoices() {
                       >
                         📊 Excel
                       </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); openEditTransactions(date, dayRecords); }}
+                        title="მონაცემების რედაქტირება და Transfers-ში გაგზავნა"
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}
+                      >
+                        <HugeiconsIcon icon={TaskEdit01Icon} size={14} color="currentColor" strokeWidth={2} />
+                        Edit Transactions
+                      </button>
                     </div>
 
                     {/* Block body */}
@@ -735,9 +814,100 @@ function Invoices() {
         </div>
       )}
 
+      {/* ── EDIT TRANSACTIONS TAB ─────────────────── */}
+      {tab === 'edit' && (
+        <div>
+          {editRecords.length === 0 ? (
+            <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '48px 0', fontSize: 14 }}>
+              აირჩიეთ დღის ბლოკი "Invoice List"-ში და დააჭირეთ <strong>Edit Transactions</strong>-ს, რომ აქ დაარედაქტიროთ მონაცემები.
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: 'var(--text-3)' }}>წყარო: <strong style={{ color: 'var(--text)' }}>{editSourceLabel}</strong> · {editRecords.length} ჩანაწერი</span>
+                <button
+                  onClick={handleSendAllToTransfers}
+                  disabled={sendingAll || editRecords.every(r => r.sent)}
+                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: sendingAll ? 'not-allowed' : 'pointer', opacity: sendingAll || editRecords.every(r => r.sent) ? 0.6 : 1 }}
+                >
+                  <HugeiconsIcon icon={SentIcon} size={14} color="#fff" strokeWidth={2} />
+                  {sendingAll ? 'იგზავნება...' : 'ყველას გაგზავნა Transfers-ში'}
+                </button>
+              </div>
+
+              <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
+                <table className="acc-table" style={{ minWidth: 1300 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 180 }}>ფაილი</th>
+                      <th style={{ width: 170 }}>გადამხდელი</th>
+                      <th style={{ width: 110 }}>თანხა</th>
+                      <th style={{ width: 90 }}>ვალუტა</th>
+                      <th style={{ width: 140 }}>ინვოისის №</th>
+                      <th style={{ width: 150 }}>გადახდის ვადა</th>
+                      <th style={{ width: 180 }}>IBAN/ანგარიში</th>
+                      <th style={{ width: 200 }}>აღწერა</th>
+                      <th style={{ width: 140 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editRecords.map(rec => (
+                      <tr key={rec.uploadId}>
+                        <td style={{ fontSize: 12, color: 'var(--text-3)', wordBreak: 'break-all' }}>{rec.fileName}</td>
+                        <td>
+                          <input value={rec.payee} onChange={e => updateEditField(rec.uploadId, 'payee', e.target.value)} placeholder="გადამხდელი" style={editInpStyle} />
+                        </td>
+                        <td>
+                          <input type="number" min="0" step="0.01" value={rec.amount} onChange={e => updateEditField(rec.uploadId, 'amount', e.target.value)} placeholder="0.00" style={{ ...editInpStyle, fontFamily: 'var(--font-mono)' }} />
+                        </td>
+                        <td>
+                          <select value={rec.currency} onChange={e => updateEditField(rec.uploadId, 'currency', e.target.value)} style={editInpStyle}>
+                            <option>GEL</option><option>USD</option><option>EUR</option>
+                          </select>
+                        </td>
+                        <td>
+                          <input value={rec.invoiceNumber} onChange={e => updateEditField(rec.uploadId, 'invoiceNumber', e.target.value)} placeholder="INV-0001" style={editInpStyle} />
+                        </td>
+                        <td>
+                          <input type="date" value={rec.dueDate} onChange={e => updateEditField(rec.uploadId, 'dueDate', e.target.value)} style={editInpStyle} />
+                        </td>
+                        <td>
+                          <input value={rec.iban} onChange={e => updateEditField(rec.uploadId, 'iban', e.target.value)} placeholder="GE00XX..." style={{ ...editInpStyle, fontFamily: 'var(--font-mono)' }} />
+                        </td>
+                        <td>
+                          <input value={rec.description} onChange={e => updateEditField(rec.uploadId, 'description', e.target.value)} placeholder="აღწერა" style={editInpStyle} />
+                        </td>
+                        <td>
+                          {rec.sent ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} color="#16a34a" strokeWidth={2} />
+                              გაგზავნილია
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleSendToTransfers(rec)}
+                              disabled={sendingId === rec.uploadId || sendingAll}
+                              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer' }}
+                            >
+                              <HugeiconsIcon icon={SentIcon} size={13} color="currentColor" strokeWidth={2} />
+                              {sendingId === rec.uploadId ? 'იგზავნება...' : 'გაგზავნა'}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
     </>
   );
 }
 
+const editInpStyle = { width: '100%', padding: '6px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box' };
 const today = () => new Date().toISOString().split('T')[0];
 export default Invoices;
