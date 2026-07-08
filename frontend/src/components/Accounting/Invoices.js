@@ -1,58 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
-import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { Invoice01Icon, FileScanIcon, InboxIcon } from '@hugeicons/core-free-icons';
-
-const DEFAULT_WIDTHS = [80, 160, 110, 110, 120, 100, 160, 80];
-
-function IconEdit() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-    </svg>
-  );
-}
-
-function IconDelete() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3,6 5,6 21,6"/>
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-      <path d="M10 11v6"/><path d="M14 11v6"/>
-      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-    </svg>
-  );
-}
-
-function IconEye() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  );
-}
-
-const EMPTY_ITEM = { description: '', qty: 1, unit_price: '' };
-const EMPTY_FORM = { client: '', client_email: '', invoice_number: '', date: '', due_date: '', currency: 'USD', status: 'draft', notes: '', account_number: '', items: [{ ...EMPTY_ITEM }], recurrence: 'none', auto_send: false };
+import { FileScanIcon, InboxIcon } from '@hugeicons/core-free-icons';
 
 function Invoices() {
   const { t } = useLanguage();
-  const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
-  const [tab, setTab] = useState('list');
-  const [records, setRecords] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [editId, setEditId] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [previewInv, setPreviewInv] = useState(null);
-  const printRef = useRef();
+  const [tab, setTab] = useState('uploads');
 
   // Upload tab state
   const [uploadRecords, setUploadRecords] = useState([]);
@@ -257,127 +211,12 @@ function Invoices() {
         total,
       });
       setScanSaved(true);
-      load();
     } catch (err) {
       setScanError(err.response?.data?.error || err.message);
     } finally {
       setScanSaving(false);
     }
   };
-
-  useEffect(() => { load(); }, []);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/accounting/invoices');
-      setRecords(res.data.records || []);
-    } catch { setError(t('inv.failedLoad')); }
-    finally { setLoading(false); }
-  };
-
-  const calcTotal = (items) => items.reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.unit_price) || 0), 0);
-
-  const openNew = () => {
-    const num = `INV-${Date.now().toString().slice(-6)}`;
-    setForm({ ...EMPTY_FORM, invoice_number: num, date: today(), due_date: '' });
-    setEditId(null); setShowForm(true); setError('');
-  };
-
-  const openEdit = (r) => {
-    setForm({ client: r.client, client_email: r.client_email || '', invoice_number: r.invoice_number, date: r.date, due_date: r.due_date || '', currency: r.currency, status: r.status, notes: r.notes || '', account_number: r.account_number || '', items: r.items || [{ ...EMPTY_ITEM }], recurrence: r.recurrence || 'none', auto_send: !!r.auto_send });
-    setEditId(r.id); setShowForm(true); setError('');
-  };
-
-  const setItem = (i, field, val) => setForm((prev) => {
-    const items = [...prev.items];
-    items[i] = { ...items[i], [field]: val };
-    return { ...prev, items };
-  });
-
-  const addItem = () => setForm((prev) => ({ ...prev, items: [...prev.items, { ...EMPTY_ITEM }] }));
-  const removeItem = (i) => setForm((prev) => ({ ...prev, items: prev.items.filter((_, idx) => idx !== i) }));
-
-  const handleSave = async () => {
-    if (!form.client || !form.invoice_number || !form.date) { setError(t('inv.validationError')); return; }
-    setSaving(true); setError('');
-    const payload = { ...form, account_number: form.account_number || null, total: calcTotal(form.items) };
-    try {
-      if (editId) await api.put(`/accounting/invoices/${editId}`, payload);
-      else await api.post('/accounting/invoices', payload);
-      setShowForm(false); load();
-    } catch (err) { setError(err.response?.data?.error || t('inv.failedSave')); }
-    finally { setSaving(false); }
-  };
-
-  const [sendingNow, setSendingNow] = useState(false);
-  const handleSendNow = async () => {
-    if (!editId) { setError('Save the invoice first, then send.'); return; }
-    if (!form.client_email) { setError('Add a client email to send the invoice.'); return; }
-    setSendingNow(true); setError('');
-    try {
-      // Persist any edits first so the emailed PDF matches what's on screen.
-      const payload = { ...form, account_number: form.account_number || null, total: calcTotal(form.items) };
-      await api.put(`/accounting/invoices/${editId}`, payload);
-      await api.post(`/accounting/invoices/${editId}/send`);
-      setError('');
-      alert('Invoice emailed to ' + form.client_email);
-      load();
-    } catch (err) { setError(err.response?.data?.error || 'Failed to send invoice.'); }
-    finally { setSendingNow(false); }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm(t('inv.deleteConfirm'))) return;
-    try { await api.delete(`/accounting/invoices/${id}`); load(); if (previewInv?.id === id) setPreviewInv(null); }
-    catch { setError(t('inv.failedDelete')); }
-  };
-
-  const toggleSelect = (id) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === records.length && records.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(records.map(r => r.id)));
-    }
-  };
-
-  const handleBulkDelete = async () => {
-    if (!window.confirm(t('inv.deleteSelectedConfirm', { count: selectedIds.size }))) return;
-    try {
-      await api.delete('/accounting/invoices/bulk', { data: { ids: Array.from(selectedIds) } });
-      setRecords(prev => prev.filter(r => !selectedIds.has(r.id)));
-      if (previewInv && selectedIds.has(previewInv.id)) setPreviewInv(null);
-      setSelectedIds(new Set());
-    } catch { setError(t('inv.failedDeleteSelected')); }
-  };
-
-  const handlePrint = () => {
-    const content = printRef.current?.innerHTML;
-    const win = window.open('', '_blank');
-    win.document.write(`<html><head><title>Invoice</title><style>
-      body{font-family:Arial,sans-serif;padding:48px;color:#1e293b;font-size:14px}
-      h1{color:#0f3460;font-size:24px;margin-bottom:4px}
-      .meta{color:#64748b;font-size:13px;margin-bottom:24px}
-      table{width:100%;border-collapse:collapse;margin-bottom:16px}
-      th{padding:10px;background:#f8fafc;text-align:left;border-bottom:2px solid #e2e8f0;font-weight:600}
-      td{padding:10px;border-bottom:1px solid #f1f5f9}
-      .total-row{font-weight:700;font-size:16px}
-      .notes{color:#64748b;font-size:13px;margin-top:16px}
-    </style></head><body>${content}</body></html>`);
-    win.document.close(); win.print();
-  };
-
-  const statusClass = (s) => `acc-status acc-status-${s}`;
-  const totalPaid = records.filter((r) => r.status === 'paid').reduce((s, r) => s + parseFloat(r.total || 0), 0);
-  const totalPending = records.filter((r) => r.status !== 'paid').reduce((s, r) => s + parseFloat(r.total || 0), 0);
 
   return (
     <>
@@ -386,17 +225,13 @@ function Invoices() {
 
       {/* Sub-tabs */}
       <div className="docs-inner-tabs" style={{ marginBottom: 24 }}>
-        <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>
-          <HugeiconsIcon icon={Invoice01Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          {t('inv.invoiceList')}
+        <button className={`docs-inner-tab${tab === 'uploads' ? ' active' : ''}`} onClick={() => setTab('uploads')}>
+          <HugeiconsIcon icon={InboxIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          ატვირთული
         </button>
         <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
           <HugeiconsIcon icon={FileScanIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           {t('inv.scanner')}
-        </button>
-        <button className={`docs-inner-tab${tab === 'uploads' ? ' active' : ''}`} onClick={() => setTab('uploads')}>
-          <HugeiconsIcon icon={InboxIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          ატვირთული
         </button>
       </div>
 
@@ -741,237 +576,6 @@ function Invoices() {
           )}
         </div>
       )}
-
-      {/* ── LIST TAB ─────────────────────────────── */}
-      {tab === 'list' && <>
-
-      <div className="acc-summary">
-        <div className="acc-summary-card"><span className="acc-summary-label">{t('inv.total')}</span><span className="acc-summary-value">{records.length}</span></div>
-        <div className="acc-summary-card"><span className="acc-summary-label">{t('inv.paid')}</span><span className="acc-summary-value green">${totalPaid.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
-        <div className="acc-summary-card"><span className="acc-summary-label">{t('inv.pending')}</span><span className="acc-summary-value blue">${totalPending.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
-      </div>
-
-      <div className="acc-header-row">
-        <div />
-        <button className="btn-add" onClick={openNew}>{t('inv.newInvoice')}</button>
-      </div>
-
-      {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
-
-      {selectedIds.size > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff8e1', border: '1px solid #ffd54f', borderRadius: 8, padding: '10px 16px', marginBottom: 12, fontSize: 13, fontWeight: 500, color: '#555' }}>
-          <span>{t('inv.selectedCount', { count: selectedIds.size })}</span>
-          <button
-            onClick={handleBulkDelete}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: '#e53935', color: 'white', border: 'none', padding: '6px 14px', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            <IconDelete /> {t('inv.deleteSelected')}
-          </button>
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            style={{ background: '#f5f5f5', color: '#666', border: 'none', padding: '6px 12px', borderRadius: 6, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}
-          >
-            {t('inv.clear')}
-          </button>
-        </div>
-      )}
-
-      <div className="acc-table-wrapper">
-        {loading ? <div className="acc-empty"><p>{t('inv.loading')}</p></div> : records.length === 0 ? (
-          <div className="acc-empty"><div className="acc-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg></div><p>{t('inv.noInvoices')}</p></div>
-        ) : (
-          <table className="acc-table">
-            <colgroup>
-              <col style={{ width: 40 }} />
-              {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
-            </colgroup>
-            <thead><tr>
-              <th style={{ width: 40, textAlign: 'center', verticalAlign: 'middle' }}>
-                <input
-                  type="checkbox"
-                  checked={selectedIds.size === records.length && records.length > 0}
-                  onChange={toggleSelectAll}
-                  title={t('inv.selectAll')}
-                  style={{ width: 15, height: 15, cursor: 'pointer' }}
-                />
-              </th>
-              <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>{t('inv.colNo')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>{t('inv.colClient')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('inv.colDate')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('inv.colDueDate')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('inv.colTotal')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('inv.colStatus')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>{t('inv.colAccountIban')}<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[7], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-            </tr></thead>
-            <tbody>
-              {records.map((r) => (
-                <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
-                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(r.id)}
-                      onChange={() => toggleSelect(r.id)}
-                      style={{ width: 15, height: 15, cursor: 'pointer' }}
-                    />
-                  </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <strong>{r.invoice_number}</strong>
-                      {r.recurrence && r.recurrence !== 'none' && (
-                        <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4, background: '#f0fdfa', color: '#0d9488', border: '1px solid #5eead4', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {r.recurrence}{r.auto_send ? ' ✉' : ''}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.client}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.due_date || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount">{r.currency} {parseFloat(r.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className={statusClass(r.status)}>{r.status}</span></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: 'var(--text-3)', fontSize: 13, fontFamily: 'var(--font-mono)' }}>{r.account_number || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    <div className="action-btns">
-                      <button className="btn-icon" title="Preview" onClick={() => setPreviewInv(r)} style={{ color: '#64748b' }}><IconEye /></button>
-                      <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}><IconEdit /></button>
-                      <button className="btn-icon btn-delete" onClick={() => handleDelete(r.id)} title="Delete"><IconDelete /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {/* Preview */}
-      {previewInv && (
-        <div style={{ marginTop: 28 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <strong style={{ fontSize: 15 }}>{t('inv.previewTitle')} — {previewInv.invoice_number}</strong>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button className="btn-primary btn-sm" onClick={handlePrint}>{t('inv.print')}</button>
-              <button className="ut-cancel-btn" onClick={() => setPreviewInv(null)}>{t('inv.close')}</button>
-            </div>
-          </div>
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '40px 48px', fontFamily: 'Arial, sans-serif', fontSize: 14, color: '#1e293b' }} ref={printRef}>
-            <h1 style={{ color: '#0f3460', fontSize: 24, marginBottom: 4 }}>{t('inv.invoiceLabel')}</h1>
-            <div className="meta" style={{ color: '#64748b', fontSize: 13, marginBottom: 24 }}>
-              <div><strong>Invoice #:</strong> {previewInv.invoice_number}</div>
-              <div><strong>Date:</strong> {previewInv.date}</div>
-              {previewInv.due_date && <div><strong>Due:</strong> {previewInv.due_date}</div>}
-              <div><strong>Client:</strong> {previewInv.client}</div>
-              {previewInv.client_email && <div><strong>Email:</strong> {previewInv.client_email}</div>}
-            </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 16 }}>
-              <thead><tr>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>{t('inv.description')}</th>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>{t('inv.colQty')}</th>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>{t('inv.colUnitPrice')}</th>
-                <th style={{ padding: 10, background: '#f8fafc', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>{t('inv.colTotal')}</th>
-              </tr></thead>
-              <tbody>
-                {(previewInv.items || []).map((it, i) => (
-                  <tr key={i}><td style={{ padding: 10, borderBottom: '1px solid #f1f5f9' }}>{it.description}</td><td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f1f5f9' }}>{it.qty}</td><td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f1f5f9' }}>{previewInv.currency} {parseFloat(it.unit_price || 0).toFixed(2)}</td><td style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #f1f5f9', fontWeight: 600 }}>{previewInv.currency} {(parseFloat(it.qty || 0) * parseFloat(it.unit_price || 0)).toFixed(2)}</td></tr>
-                ))}
-                <tr><td colSpan="3" style={{ padding: 10, textAlign: 'right', fontWeight: 700, fontSize: 16 }}>{t('inv.invoiceTotal')}</td><td style={{ padding: 10, textAlign: 'right', fontWeight: 700, fontSize: 16 }}>{previewInv.currency} {parseFloat(previewInv.total || 0).toFixed(2)}</td></tr>
-              </tbody>
-            </table>
-            {previewInv.notes && <div style={{ color: '#64748b', fontSize: 13 }}><strong>Notes:</strong> {previewInv.notes}</div>}
-          </div>
-        </div>
-      )}
-
-      {/* Form modal */}
-      {showForm && (
-        <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="acc-modal" style={{ maxWidth: 680 }} onClick={(e) => e.stopPropagation()}>
-            <h3>{editId ? t('inv.editInvoice') : t('inv.newInvoiceModal')}</h3>
-            {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
-            <div className="acc-form-grid">
-              <div className="acc-form-group"><label>{t('inv.invoiceNoRequired')}</label><input value={form.invoice_number} onChange={(e) => setForm({ ...form, invoice_number: e.target.value })} /></div>
-              <div className="acc-form-group"><label>{t('inv.status')}</label>
-                <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  <option value="draft">{t('inv.statusDraft')}</option><option value="sent">{t('inv.statusSent')}</option><option value="paid">{t('inv.statusPaid')}</option><option value="overdue">{t('inv.statusOverdue')}</option>
-                </select>
-              </div>
-              <div className="acc-form-group"><label>{t('inv.client')}</label><input value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} placeholder="Client name" /></div>
-              <div className="acc-form-group"><label>{t('inv.clientEmail')}</label><input type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} placeholder="client@example.com" /></div>
-              <div className="acc-form-group"><label>{t('inv.dateRequired')}</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
-              <div className="acc-form-group"><label>{t('inv.dueDate')}</label><input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} /></div>
-              <div className="acc-form-group"><label>{t('inv.currency')}</label>
-                <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
-                  <option>USD</option><option>GEL</option><option>EUR</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Recurrence / auto-send */}
-            <div className="acc-form-grid">
-              <div className="acc-form-group"><label>Repeat</label>
-                <select value={form.recurrence} onChange={(e) => setForm({ ...form, recurrence: e.target.value, auto_send: e.target.value === 'none' ? false : form.auto_send })}>
-                  <option value="none">No — one-time</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                </select>
-              </div>
-              <div className="acc-form-group">
-                <label>Auto-send</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text-2)', height: 38, cursor: form.recurrence === 'none' ? 'not-allowed' : 'pointer', opacity: form.recurrence === 'none' ? 0.5 : 1 }}>
-                  <input type="checkbox" checked={form.auto_send} disabled={form.recurrence === 'none'} onChange={(e) => setForm({ ...form, auto_send: e.target.checked })} />
-                  Email the PDF to the client each period
-                </label>
-              </div>
-            </div>
-            {form.recurrence !== 'none' && (
-              <div style={{ fontSize: 12, color: 'var(--text-3)', margin: '-6px 0 14px' }}>
-                A new invoice will be generated <strong>{form.recurrence}</strong>{form.auto_send ? ' and emailed to ' + (form.client_email || 'the client') : ''}. {!form.client_email && form.auto_send && <span style={{ color: '#d97706' }}>Add a client email to enable sending.</span>}
-              </div>
-            )}
-
-            {/* Line items */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 8 }}>{t('inv.lineItems')}</label>
-              <table className="inv-items-table">
-                <thead><tr><th>{t('inv.description')}</th><th style={{ width: 60 }}>{t('inv.colQty')}</th><th style={{ width: 110 }}>{t('inv.colUnitPrice')}</th><th style={{ width: 100 }}>{t('inv.colTotal')}</th><th style={{ width: 32 }}></th></tr></thead>
-                <tbody>
-                  {form.items.map((it, i) => (
-                    <tr key={i}>
-                      <td><input value={it.description} onChange={(e) => setItem(i, 'description', e.target.value)} placeholder={t('inv.itemDescription')} /></td>
-                      <td><input type="number" min="1" value={it.qty} onChange={(e) => setItem(i, 'qty', e.target.value)} /></td>
-                      <td><input type="number" min="0" step="0.01" value={it.unit_price} onChange={(e) => setItem(i, 'unit_price', e.target.value)} placeholder="0.00" /></td>
-                      <td style={{ fontWeight: 600, paddingLeft: 8 }}>{((parseFloat(it.qty) || 0) * (parseFloat(it.unit_price) || 0)).toFixed(2)}</td>
-                      <td><button style={{ background: 'none', border: 'none', color: '#e53e3e', cursor: 'pointer', fontSize: 16 }} onClick={() => removeItem(i)}>×</button></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <button className="ut-cancel-btn" style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }} onClick={addItem}>{t('inv.addItem')}</button>
-                <div className="inv-total-row"><span className="inv-total">{t('inv.colTotal')}: {form.currency} {calcTotal(form.items).toFixed(2)}</span></div>
-              </div>
-            </div>
-
-            <div className="acc-form-grid">
-              <div className="acc-form-group"><label>{t('inv.accountIban')}</label><input value={form.account_number} onChange={(e) => setForm({ ...form, account_number: e.target.value })} placeholder="GE00TB0000000000000000" /></div>
-              <div className="acc-form-group full"><label>{t('inv.notesField')}</label><textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Payment terms, bank details…" /></div>
-            </div>
-
-            <div className="acc-modal-actions">
-              <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('inv.cancel')}</button>
-              {editId && (
-                <button className="ut-cancel-btn" onClick={handleSendNow} disabled={sendingNow || !form.client_email} title={!form.client_email ? 'Add a client email first' : 'Email the PDF to the client now'} style={{ color: '#2563eb', fontWeight: 600 }}>
-                  {sendingNow ? 'Sending…' : '✉ Send now'}
-                </button>
-              )}
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('inv.saving') : t('inv.saveInvoice')}</button>
-            </div>
-          </div>
-        </div>
-      )}
-      </>}
 
     </>
   );
