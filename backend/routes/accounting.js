@@ -48,60 +48,60 @@ const INVOICE_PROMPT = `You are an invoice analysis expert. Extract the followin
 }
 If a field is not found, use null. Return only valid JSON.`;
 
+// Extract structured invoice fields from a base64 file using GPT-4o. Throws on failure.
+async function analyzeInvoiceFile(data, mimeType) {
+  if (!openai) throw new Error('OpenAI API key not configured.');
+  if (!data) throw new Error('No file data provided.');
+
+  let messages;
+
+  if (mimeType === 'application/pdf') {
+    const buffer = Buffer.from(data, 'base64');
+
+    let pdfText = '';
+    try {
+      const pdf = await pdfParse(buffer);
+      pdfText = pdf.text ? pdf.text.trim() : '';
+    } catch (e) {
+      console.error('pdf-parse error:', e.message);
+    }
+
+    if (pdfText) {
+      messages = [{ role: 'user', content: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
+    } else {
+      // Scanned / image-only PDF (no extractable text). OCR rendering via
+      // Chromium is disabled (not available on serverless). Ask for an image.
+      throw new Error('This PDF appears to be scanned (no readable text). Please upload it as an image (JPG or PNG), or use a text-based PDF.');
+    }
+  } else {
+    // Image — send directly to GPT-4o vision
+    const imageType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(mimeType)
+      ? mimeType : 'image/jpeg';
+    messages = [{
+      role: 'user',
+      content: [
+        { type: 'text', text: INVOICE_PROMPT },
+        { type: 'image_url', image_url: { url: `data:${imageType};base64,${data}` } },
+      ],
+    }];
+  }
+
+  const response = await openai.chat.completions.create({ model: 'gpt-4o', messages, max_tokens: 1000 });
+  const rawText = response.choices[0].message.content.trim();
+  const jsonText = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
+
+  try {
+    return JSON.parse(jsonText);
+  } catch {
+    throw new Error('AI returned an unexpected response. Please try again.');
+  }
+}
+
 // ── INVOICE SCANNER ─────────────────────────────────────
 router.post('/invoices/scan', async (req, res) => {
   try {
-    if (!openai) return res.status(500).json({ error: 'OpenAI API key not configured.' });
     const { data, mimeType } = req.body;
-    if (!data) return res.status(400).json({ error: 'No file data provided.' });
-
-    let messages;
-
-    if (mimeType === 'application/pdf') {
-      const buffer = Buffer.from(data, 'base64');
-
-      // Try text extraction first
-      let pdfText = '';
-      try {
-        const pdf = await pdfParse(buffer);
-        pdfText = pdf.text ? pdf.text.trim() : '';
-      } catch (e) {
-        console.error('pdf-parse error:', e.message);
-      }
-
-      if (pdfText) {
-        messages = [{ role: 'user', content: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
-      } else {
-        // Scanned / image-only PDF (no extractable text). OCR rendering via
-        // Chromium is disabled (not available on serverless). Ask for an image.
-        return res.status(400).json({
-          error: 'This PDF appears to be scanned (no readable text). Please upload it as an image (JPG or PNG), or use a text-based PDF.',
-        });
-      }
-    } else {
-      // Image — send directly to GPT-4o vision
-      const imageType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(mimeType)
-        ? mimeType : 'image/jpeg';
-      messages = [{
-        role: 'user',
-        content: [
-          { type: 'text', text: INVOICE_PROMPT },
-          { type: 'image_url', image_url: { url: `data:${imageType};base64,${data}` } },
-        ],
-      }];
-    }
-
-    const response = await openai.chat.completions.create({ model: 'gpt-4o', messages, max_tokens: 1000 });
-    const rawText = response.choices[0].message.content.trim();
-    const jsonText = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonText);
-    } catch {
-      return res.status(500).json({ error: 'AI returned an unexpected response. Please try again.' });
-    }
-
+    const parsed = await analyzeInvoiceFile(data, mimeType);
     res.json({ result: parsed });
   } catch (err) {
     console.error('Invoice scan error:', err.message);
@@ -196,7 +196,7 @@ router.get('/invoices/uploads', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('invoice_uploads')
-      .select('id, file_name, file_type, upload_date, due_date, urgent, created_at')
+      .select('id, file_name, file_type, upload_date, due_date, urgent, extracted, created_at')
       .eq('user_id', req.userId)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -221,13 +221,54 @@ router.post('/invoices/uploads', async (req, res) => {
   try {
     const { file_name, file_type, file_data, upload_date, due_date, urgent } = req.body;
     if (!file_name || !file_data) return res.status(400).json({ error: 'file_name and file_data are required' });
+
+    // Extract the raw base64 payload from a data: URL for AI analysis.
+    let extracted = null;
+    try {
+      const base64 = file_data.includes(',') ? file_data.split(',')[1] : file_data;
+      extracted = await analyzeInvoiceFile(base64, file_type);
+    } catch (extractErr) {
+      extracted = { error: extractErr.message };
+    }
+
     const { data, error } = await supabase
       .from('invoice_uploads')
-      .insert([{ user_id: req.userId, file_name, file_type, file_data, upload_date, due_date: due_date || null, urgent: !!urgent }])
-      .select('id, file_name, file_type, upload_date, due_date, urgent, created_at')
+      .insert([{ user_id: req.userId, file_name, file_type, file_data, upload_date, due_date: due_date || null, urgent: !!urgent, extracted }])
+      .select('id, file_name, file_type, upload_date, due_date, urgent, extracted, created_at')
       .single();
     if (error) throw error;
     res.status(201).json({ upload: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// Re-run AI extraction on an already-uploaded file (e.g. after a failed first attempt).
+router.post('/invoices/uploads/:id/rescan', async (req, res) => {
+  try {
+    const { data: existing, error: fetchErr } = await supabase
+      .from('invoice_uploads')
+      .select('file_data, file_type')
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .single();
+    if (fetchErr || !existing) return res.status(404).json({ error: 'Not found' });
+
+    let extracted;
+    try {
+      const base64 = existing.file_data.includes(',') ? existing.file_data.split(',')[1] : existing.file_data;
+      extracted = await analyzeInvoiceFile(base64, existing.file_type);
+    } catch (extractErr) {
+      extracted = { error: extractErr.message };
+    }
+
+    const { data, error } = await supabase
+      .from('invoice_uploads')
+      .update({ extracted })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select('id, file_name, file_type, upload_date, due_date, urgent, extracted, created_at')
+      .single();
+    if (error) throw error;
+    res.json({ upload: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

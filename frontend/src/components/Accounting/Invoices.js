@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -29,6 +30,7 @@ function Invoices() {
         uploadDate: r.upload_date,
         dueDate: r.due_date,
         urgent: r.urgent,
+        extracted: r.extracted,
       })));
     } catch {} finally { setUploadLoading(false); }
   };
@@ -69,7 +71,7 @@ function Invoices() {
         urgent: uploadForm.urgent,
       });
       const r = res.data.upload;
-      setUploadRecords(prev => [{ id: r.id, fileName: r.file_name, fileType: r.file_type, uploadDate: r.upload_date, dueDate: r.due_date, urgent: r.urgent }, ...prev]);
+      setUploadRecords(prev => [{ id: r.id, fileName: r.file_name, fileType: r.file_type, uploadDate: r.upload_date, dueDate: r.due_date, urgent: r.urgent, extracted: r.extracted }, ...prev]);
       setUploadFile(null);
       setUploadPreview(null);
       setUploadForm({ dueDate: '', urgent: false });
@@ -79,6 +81,39 @@ function Invoices() {
     } finally {
       setUploadSaving(false);
     }
+  };
+
+  const [rescanningId, setRescanningId] = useState(null);
+  const handleUploadRescan = async (id) => {
+    setRescanningId(id);
+    try {
+      const res = await api.post(`/accounting/invoices/uploads/${id}/rescan`);
+      const r = res.data.upload;
+      setUploadRecords(prev => prev.map(rec => rec.id === id ? { ...rec, extracted: r.extracted } : rec));
+    } catch {} finally { setRescanningId(null); }
+  };
+
+  const handleExportExcel = () => {
+    const rows = filteredUploadRecords.map((r, idx) => ({
+      '№': idx + 1,
+      'ფაილი': r.fileName,
+      'გადამხდელი': r.extracted?.payee || '',
+      'თანხა': r.extracted?.amount || '',
+      'ვალუტა': r.extracted?.currency || '',
+      'ინვოისის №': r.extracted?.invoice_number || '',
+      'ინვოისის თარიღი': r.extracted?.invoice_date || '',
+      'გადახდის ვადა': r.dueDate || r.extracted?.due_date || '',
+      'ბანკი': r.extracted?.bank_name || '',
+      'ანგარიში/IBAN': r.extracted?.account_number || '',
+      'SWIFT/BIC': r.extracted?.swift_bic || '',
+      'აღწერა': r.extracted?.description || '',
+      'ატვირთვის თარიღი': r.uploadDate,
+      'სასწრაფო': r.urgent ? 'დიახ' : 'არა',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
+    XLSX.writeFile(wb, `invoices_${today()}.xlsx`);
   };
 
   const handleUploadDelete = async (id) => {
@@ -106,8 +141,12 @@ function Invoices() {
   const [uploadFilters, setUploadFilters] = useState({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' });
   const uf = uploadFilters;
   const filteredUploadRecords = uploadRecords.filter(r => {
-    if (uf.fileName && !r.fileName.toLowerCase().includes(uf.fileName.toLowerCase())) return false;
-    if (uf.uploadDate && r.uploadDate !== uf.uploadDate) return false;
+    if (uf.fileName) {
+      const q = uf.fileName.toLowerCase();
+      const hay = [r.fileName, r.extracted?.payee, r.extracted?.invoice_number].filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    if (uf.uploadDate && r.extracted?.invoice_date !== uf.uploadDate) return false;
     if (uf.dueDate && r.dueDate !== uf.dueDate) return false;
     if (uf.urgent === 'yes' && !r.urgent) return false;
     if (uf.urgent === 'no' && r.urgent) return false;
@@ -227,7 +266,7 @@ function Invoices() {
       <div className="docs-inner-tabs" style={{ marginBottom: 24 }}>
         <button className={`docs-inner-tab${tab === 'uploads' ? ' active' : ''}`} onClick={() => setTab('uploads')}>
           <HugeiconsIcon icon={InboxIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          ატვირთული
+          Invoice List
         </button>
         <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
           <HugeiconsIcon icon={FileScanIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -439,7 +478,7 @@ function Invoices() {
                       opacity: uploadSaving ? 0.7 : 1, marginBottom: 0,
                     }}
                   >
-                    {uploadSaving ? 'შენახვა...' : 'შენახვა'}
+                    {uploadSaving ? 'ტექსტის ამოცნობა...' : 'შენახვა'}
                   </button>
                   <button
                     onClick={() => { setUploadFile(null); setUploadPreview(null); setUploadError(''); if (uploadInputRef.current) uploadInputRef.current.value = ''; }}
@@ -461,118 +500,161 @@ function Invoices() {
               ატვირთული ინვოისები არ არის
             </div>
           ) : (
-            <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
-              <table className="acc-table" style={{ minWidth: 700 }}>
-                <thead>
-                  <tr>
-                    <th style={{ width: 40 }}>№</th>
-                    <th>ფაილი</th>
-                    <th style={{ width: 140 }}>ატვირთვის თარიღი</th>
-                    <th style={{ width: 140 }}>გადარიცხვის თარიღი</th>
-                    <th style={{ width: 90, textAlign: 'center' }}>სასწრაფო</th>
-                    <th style={{ width: 100 }}></th>
-                  </tr>
-                  <tr style={{ background: 'var(--surface-2)' }}>
-                    <th></th>
-                    <th style={{ padding: '4px 6px' }}>
-                      <input
-                        value={uf.fileName}
-                        onChange={e => setUF('fileName', e.target.value)}
-                        placeholder="ძებნა..."
-                        style={{ width: '100%', padding: '4px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                      />
-                    </th>
-                    <th style={{ padding: '4px 6px' }}>
-                      <input
-                        type="date"
-                        value={uf.uploadDate}
-                        onChange={e => setUF('uploadDate', e.target.value)}
-                        style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                      />
-                    </th>
-                    <th style={{ padding: '4px 6px' }}>
-                      <input
-                        type="date"
-                        value={uf.dueDate}
-                        onChange={e => setUF('dueDate', e.target.value)}
-                        style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                      />
-                    </th>
-                    <th style={{ padding: '4px 6px' }}>
-                      <select
-                        value={uf.urgent}
-                        onChange={e => setUF('urgent', e.target.value)}
-                        style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                      >
-                        <option value="all">ყველა</option>
-                        <option value="yes">სასწრაფო</option>
-                        <option value="no">ჩვეულებრივი</option>
-                      </select>
-                    </th>
-                    <th style={{ padding: '4px 6px', textAlign: 'right' }}>
-                      {(uf.fileName || uf.uploadDate || uf.dueDate || uf.urgent !== 'all') && (
-                        <button
-                          onClick={() => setUploadFilters({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' })}
-                          style={{ padding: '3px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 5, fontSize: 11, cursor: 'pointer', color: 'var(--text-4)' }}
-                        >
-                          გასუფთავება
-                        </button>
-                      )}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredUploadRecords.length === 0 && (
-                    <tr><td colSpan={6} style={{ textAlign: 'center', color: 'var(--text-4)', padding: '32px 0', fontSize: 13 }}>შედეგი არ მოიძებნა</td></tr>
-                  )}
-                  {filteredUploadRecords.map((rec, idx) => (
-                    <tr key={rec.id}>
-                      <td style={{ color: 'var(--text-4)', fontSize: 12 }}>{idx + 1}</td>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          {rec.fileType.startsWith('image/') ? (
-                            <img src={rec.fileData} alt="" style={{ width: 36, height: 28, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)', flexShrink: 0 }} />
-                          ) : (
-                            <span style={{ fontSize: 22, flexShrink: 0 }}>📄</span>
-                          )}
-                          <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all' }}>{rec.fileName}</span>
-                        </div>
-                      </td>
-                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.uploadDate}</td>
-                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.dueDate || '—'}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <button
-                          onClick={() => toggleUrgent(rec.id)}
-                          style={{
-                            padding: '3px 12px', border: 'none', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontSize: 12,
-                            background: rec.urgent ? '#fee2e2' : 'var(--surface-2)',
-                            color: rec.urgent ? '#dc2626' : 'var(--text-4)',
-                          }}
-                        >
-                          {rec.urgent ? 'სასწრაფო' : '—'}
-                        </button>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                          <button
-                            onClick={() => handleUploadView(rec)}
-                            style={{ padding: '4px 10px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-3)' }}
-                          >
-                            ნახვა
-                          </button>
-                          <button
-                            onClick={() => handleUploadDelete(rec.id)}
-                            style={{ padding: '4px 10px', background: '#fee2e2', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#dc2626', fontWeight: 600 }}
-                          >
-                            წაშლა
-                          </button>
-                        </div>
-                      </td>
+            <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                <button
+                  onClick={handleExportExcel}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                >
+                  📊 Excel-ში ექსპორტი
+                </button>
+              </div>
+              <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
+                <table className="acc-table" style={{ minWidth: 1180 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 40 }}>№</th>
+                      <th style={{ width: 200 }}>ფაილი</th>
+                      <th style={{ width: 150 }}>გადამხდელი</th>
+                      <th style={{ width: 110 }}>თანხა</th>
+                      <th style={{ width: 120 }}>ინვოისის №</th>
+                      <th style={{ width: 120 }}>ინვოისის თარიღი</th>
+                      <th style={{ width: 120 }}>გადახდის ვადა</th>
+                      <th style={{ width: 90, textAlign: 'center' }}>სასწრაფო</th>
+                      <th style={{ width: 130 }}></th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    <tr style={{ background: 'var(--surface-2)' }}>
+                      <th></th>
+                      <th style={{ padding: '4px 6px' }}>
+                        <input
+                          value={uf.fileName}
+                          onChange={e => setUF('fileName', e.target.value)}
+                          placeholder="ძებნა ფაილში/გადამხდელში..."
+                          style={{ width: '100%', padding: '4px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                        />
+                      </th>
+                      <th></th>
+                      <th></th>
+                      <th></th>
+                      <th style={{ padding: '4px 6px' }}>
+                        <input
+                          type="date"
+                          value={uf.uploadDate}
+                          onChange={e => setUF('uploadDate', e.target.value)}
+                          title="ინვოისის თარიღი"
+                          style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                        />
+                      </th>
+                      <th style={{ padding: '4px 6px' }}>
+                        <input
+                          type="date"
+                          value={uf.dueDate}
+                          onChange={e => setUF('dueDate', e.target.value)}
+                          style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                        />
+                      </th>
+                      <th style={{ padding: '4px 6px' }}>
+                        <select
+                          value={uf.urgent}
+                          onChange={e => setUF('urgent', e.target.value)}
+                          style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                        >
+                          <option value="all">ყველა</option>
+                          <option value="yes">სასწრაფო</option>
+                          <option value="no">ჩვეულებრივი</option>
+                        </select>
+                      </th>
+                      <th style={{ padding: '4px 6px', textAlign: 'right' }}>
+                        {(uf.fileName || uf.uploadDate || uf.dueDate || uf.urgent !== 'all') && (
+                          <button
+                            onClick={() => setUploadFilters({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' })}
+                            style={{ padding: '3px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 5, fontSize: 11, cursor: 'pointer', color: 'var(--text-4)' }}
+                          >
+                            გასუფთავება
+                          </button>
+                        )}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUploadRecords.length === 0 && (
+                      <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-4)', padding: '32px 0', fontSize: 13 }}>შედეგი არ მოიძებნა</td></tr>
+                    )}
+                    {filteredUploadRecords.map((rec, idx) => {
+                      const ex = rec.extracted;
+                      const failed = ex?.error;
+                      return (
+                        <tr key={rec.id}>
+                          <td style={{ color: 'var(--text-4)', fontSize: 12 }}>{idx + 1}</td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              {rec.fileType.startsWith('image/') ? (
+                                <img src={rec.fileData} alt="" style={{ width: 36, height: 28, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)', flexShrink: 0 }} />
+                              ) : (
+                                <span style={{ fontSize: 22, flexShrink: 0 }}>📄</span>
+                              )}
+                              <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all' }}>{rec.fileName}</span>
+                            </div>
+                          </td>
+                          {failed ? (
+                            <td colSpan={4}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#dc2626' }}>
+                                <span title={ex.error}>ტექსტი ვერ ამოიცნო</span>
+                                <button
+                                  onClick={() => handleUploadRescan(rec.id)}
+                                  disabled={rescanningId === rec.id}
+                                  style={{ padding: '2px 10px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#dc2626', fontWeight: 600 }}
+                                >
+                                  {rescanningId === rec.id ? '...' : 'ხელახლა სკანირება'}
+                                </button>
+                              </div>
+                            </td>
+                          ) : !ex ? (
+                            <td colSpan={4} style={{ fontSize: 12, color: 'var(--text-4)', fontStyle: 'italic' }}>—</td>
+                          ) : (
+                            <>
+                              <td style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{ex.payee || '—'}</td>
+                              <td style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{ex.amount ? `${ex.amount} ${ex.currency || ''}` : '—'}</td>
+                              <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_number || '—'}</td>
+                              <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_date || '—'}</td>
+                            </>
+                          )}
+                          <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.dueDate || '—'}</td>
+                          <td style={{ textAlign: 'center' }}>
+                            <button
+                              onClick={() => toggleUrgent(rec.id)}
+                              style={{
+                                padding: '3px 12px', border: 'none', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                                background: rec.urgent ? '#fee2e2' : 'var(--surface-2)',
+                                color: rec.urgent ? '#dc2626' : 'var(--text-4)',
+                              }}
+                            >
+                              {rec.urgent ? 'სასწრაფო' : '—'}
+                            </button>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={() => handleUploadView(rec)}
+                                style={{ padding: '4px 10px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-3)' }}
+                              >
+                                ნახვა
+                              </button>
+                              <button
+                                onClick={() => handleUploadDelete(rec.id)}
+                                style={{ padding: '4px 10px', background: '#fee2e2', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#dc2626', fontWeight: 600 }}
+                              >
+                                წაშლა
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       )}
