@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { FileScanIcon, InboxIcon } from '@hugeicons/core-free-icons';
+import { FileScanIcon, InboxIcon, AiMagicIcon, Loading03Icon } from '@hugeicons/core-free-icons';
 
 function Invoices() {
   const { t } = useLanguage();
@@ -622,7 +622,8 @@ function Invoices() {
                         title="ტექსტის ამოღება ყველა ფაილიდან და Excel-ში ჩაწერა"
                         style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: extractingDate === date ? 'not-allowed' : 'pointer', opacity: extractingDate === date ? 0.7 : 1 }}
                       >
-                        {extractingDate === date ? '⏳ მუშავდება...' : '🔎 ამოღება'}
+                        <HugeiconsIcon icon={extractingDate === date ? Loading03Icon : AiMagicIcon} size={14} color="currentColor" strokeWidth={2} />
+                        {extractingDate === date ? 'მუშავდება...' : 'Extract'}
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); exportRecordsToExcel(dayRecords, date); }}
