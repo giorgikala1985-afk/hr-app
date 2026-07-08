@@ -117,6 +117,27 @@ function Invoices() {
   };
   const handleExportExcel = () => exportRecordsToExcel(filteredUploadRecords, today());
 
+  const [extractingDate, setExtractingDate] = useState(null);
+  const handleExtractBlock = async (date, records) => {
+    setExtractingDate(date);
+    try {
+      const results = await Promise.all(records.map(async (rec) => {
+        try {
+          const res = await api.post(`/accounting/invoices/uploads/${rec.id}/rescan`);
+          return { id: rec.id, extracted: res.data.upload.extracted };
+        } catch {
+          return null;
+        }
+      }));
+      const byId = new Map(results.filter(Boolean).map(r => [r.id, r.extracted]));
+      setUploadRecords(prev => prev.map(r => byId.has(r.id) ? { ...r, extracted: byId.get(r.id) } : r));
+      const freshRecords = records.map(r => byId.has(r.id) ? { ...r, extracted: byId.get(r.id) } : r);
+      exportRecordsToExcel(freshRecords, date);
+    } finally {
+      setExtractingDate(null);
+    }
+  };
+
   const handleUploadDelete = async (id) => {
     if (!window.confirm('ჩანაწერი წაიშლება. გაგრძელება?')) return;
     try {
@@ -596,9 +617,17 @@ function Invoices() {
                         {dayRecords.length}
                       </span>
                       <button
+                        onClick={e => { e.stopPropagation(); handleExtractBlock(date, dayRecords); }}
+                        disabled={extractingDate === date}
+                        title="ტექსტის ამოღება ყველა ფაილიდან და Excel-ში ჩაწერა"
+                        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: extractingDate === date ? 'not-allowed' : 'pointer', opacity: extractingDate === date ? 0.7 : 1 }}
+                      >
+                        {extractingDate === date ? '⏳ მუშავდება...' : '🔎 ამოღება'}
+                      </button>
+                      <button
                         onClick={e => { e.stopPropagation(); exportRecordsToExcel(dayRecords, date); }}
                         title="ამ დღის Excel-ში გატანა"
-                        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#16a34a', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#16a34a', cursor: 'pointer' }}
                       >
                         📊 Excel
                       </button>
