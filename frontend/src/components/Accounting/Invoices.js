@@ -93,8 +93,8 @@ function Invoices() {
     } catch {} finally { setRescanningId(null); }
   };
 
-  const handleExportExcel = () => {
-    const rows = filteredUploadRecords.map((r, idx) => ({
+  const exportRecordsToExcel = (records, filenameSuffix) => {
+    const rows = records.map((r, idx) => ({
       '№': idx + 1,
       'ფაილი': r.fileName,
       'გადამხდელი': r.extracted?.payee || '',
@@ -113,8 +113,9 @@ function Invoices() {
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
-    XLSX.writeFile(wb, `invoices_${today()}.xlsx`);
+    XLSX.writeFile(wb, `invoices_${filenameSuffix}.xlsx`);
   };
+  const handleExportExcel = () => exportRecordsToExcel(filteredUploadRecords, today());
 
   const handleUploadDelete = async (id) => {
     if (!window.confirm('ჩანაწერი წაიშლება. გაგრძელება?')) return;
@@ -153,6 +154,35 @@ function Invoices() {
     return true;
   });
   const setUF = (field, val) => setUploadFilters(p => ({ ...p, [field]: val }));
+
+  // Group uploads into daily, expandable blocks (newest day first).
+  const groupedByDate = filteredUploadRecords.reduce((acc, r) => {
+    const d = r.uploadDate || 'უცნობი თარიღი';
+    (acc[d] = acc[d] || []).push(r);
+    return acc;
+  }, {});
+  const sortedDates = Object.keys(groupedByDate).sort((a, b) => b.localeCompare(a));
+
+  const [expandedDates, setExpandedDates] = useState(() => new Set());
+  const didInitExpand = useRef(false);
+  useEffect(() => {
+    if (!didInitExpand.current && uploadRecords.length > 0) {
+      const dates = [...new Set(uploadRecords.map(r => r.uploadDate))].sort((a, b) => b.localeCompare(a));
+      if (dates.length) setExpandedDates(new Set([dates[0]]));
+      didInitExpand.current = true;
+    }
+  }, [uploadRecords]);
+  const toggleDateGroup = (d) => setExpandedDates(prev => {
+    const next = new Set(prev);
+    next.has(d) ? next.delete(d) : next.add(d);
+    return next;
+  });
+  const dateGroupLabel = (d) => {
+    if (d === today()) return `დღეს · ${d}`;
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    if (d === yesterday) return `გუშინ · ${d}`;
+    return d;
+  };
 
   const toggleUrgent = async (id) => {
     const rec = uploadRecords.find(r => r.id === id);
@@ -494,166 +524,182 @@ function Invoices() {
             </div>
           )}
 
-          {/* Uploads table */}
+          {/* Uploads — daily blocks */}
           {uploadRecords.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '48px 0', fontSize: 14 }}>
               ატვირთული ინვოისები არ არის
             </div>
           ) : (
             <>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+              {/* Filter toolbar */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+                <input
+                  value={uf.fileName}
+                  onChange={e => setUF('fileName', e.target.value)}
+                  placeholder="ძებნა ფაილში/გადამხდელში..."
+                  style={{ flex: '1 1 220px', padding: '7px 10px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                />
+                <input
+                  type="date"
+                  value={uf.uploadDate}
+                  onChange={e => setUF('uploadDate', e.target.value)}
+                  title="ინვოისის თარიღი"
+                  style={{ padding: '7px 8px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                />
+                <input
+                  type="date"
+                  value={uf.dueDate}
+                  onChange={e => setUF('dueDate', e.target.value)}
+                  title="გადახდის ვადა"
+                  style={{ padding: '7px 8px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                />
+                <select
+                  value={uf.urgent}
+                  onChange={e => setUF('urgent', e.target.value)}
+                  style={{ padding: '7px 8px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                >
+                  <option value="all">ყველა</option>
+                  <option value="yes">სასწრაფო</option>
+                  <option value="no">ჩვეულებრივი</option>
+                </select>
+                {(uf.fileName || uf.uploadDate || uf.dueDate || uf.urgent !== 'all') && (
+                  <button
+                    onClick={() => setUploadFilters({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' })}
+                    style={{ padding: '6px 12px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--text-4)' }}
+                  >
+                    გასუფთავება
+                  </button>
+                )}
                 <button
                   onClick={handleExportExcel}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', marginLeft: 'auto' }}
                 >
-                  📊 Excel-ში ექსპორტი
+                  📊 ყველას ექსპორტი
                 </button>
               </div>
-              <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
-                <table className="acc-table" style={{ minWidth: 1180 }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: 40 }}>№</th>
-                      <th style={{ width: 200 }}>ფაილი</th>
-                      <th style={{ width: 150 }}>გადამხდელი</th>
-                      <th style={{ width: 110 }}>თანხა</th>
-                      <th style={{ width: 120 }}>ინვოისის №</th>
-                      <th style={{ width: 120 }}>ინვოისის თარიღი</th>
-                      <th style={{ width: 120 }}>გადახდის ვადა</th>
-                      <th style={{ width: 90, textAlign: 'center' }}>სასწრაფო</th>
-                      <th style={{ width: 130 }}></th>
-                    </tr>
-                    <tr style={{ background: 'var(--surface-2)' }}>
-                      <th></th>
-                      <th style={{ padding: '4px 6px' }}>
-                        <input
-                          value={uf.fileName}
-                          onChange={e => setUF('fileName', e.target.value)}
-                          placeholder="ძებნა ფაილში/გადამხდელში..."
-                          style={{ width: '100%', padding: '4px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                        />
-                      </th>
-                      <th></th>
-                      <th></th>
-                      <th></th>
-                      <th style={{ padding: '4px 6px' }}>
-                        <input
-                          type="date"
-                          value={uf.uploadDate}
-                          onChange={e => setUF('uploadDate', e.target.value)}
-                          title="ინვოისის თარიღი"
-                          style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                        />
-                      </th>
-                      <th style={{ padding: '4px 6px' }}>
-                        <input
-                          type="date"
-                          value={uf.dueDate}
-                          onChange={e => setUF('dueDate', e.target.value)}
-                          style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                        />
-                      </th>
-                      <th style={{ padding: '4px 6px' }}>
-                        <select
-                          value={uf.urgent}
-                          onChange={e => setUF('urgent', e.target.value)}
-                          style={{ width: '100%', padding: '4px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                        >
-                          <option value="all">ყველა</option>
-                          <option value="yes">სასწრაფო</option>
-                          <option value="no">ჩვეულებრივი</option>
-                        </select>
-                      </th>
-                      <th style={{ padding: '4px 6px', textAlign: 'right' }}>
-                        {(uf.fileName || uf.uploadDate || uf.dueDate || uf.urgent !== 'all') && (
-                          <button
-                            onClick={() => setUploadFilters({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' })}
-                            style={{ padding: '3px 8px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 5, fontSize: 11, cursor: 'pointer', color: 'var(--text-4)' }}
-                          >
-                            გასუფთავება
-                          </button>
-                        )}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUploadRecords.length === 0 && (
-                      <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--text-4)', padding: '32px 0', fontSize: 13 }}>შედეგი არ მოიძებნა</td></tr>
+
+              {sortedDates.length === 0 ? (
+                <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '32px 0', fontSize: 13 }}>შედეგი არ მოიძებნა</div>
+              ) : sortedDates.map(date => {
+                const dayRecords = groupedByDate[date];
+                const isOpen = expandedDates.has(date);
+                return (
+                  <div key={date} style={{ border: '1px solid var(--border-2)', borderRadius: 12, marginBottom: 14, overflow: 'hidden' }}>
+                    {/* Block header */}
+                    <div
+                      onClick={() => toggleDateGroup(date)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--surface-2)', cursor: 'pointer' }}
+                    >
+                      <span style={{ fontSize: 12, color: 'var(--text-4)', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▶</span>
+                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{dateGroupLabel(date)}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, background: 'var(--surface)', border: '1px solid var(--border-2)', color: 'var(--text-3)', borderRadius: 20, padding: '2px 10px' }}>
+                        {dayRecords.length}
+                      </span>
+                      <button
+                        onClick={e => { e.stopPropagation(); exportRecordsToExcel(dayRecords, date); }}
+                        title="ამ დღის Excel-ში გატანა"
+                        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#16a34a', cursor: 'pointer' }}
+                      >
+                        📊 Excel
+                      </button>
+                    </div>
+
+                    {/* Block body */}
+                    {isOpen && (
+                      <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
+                        <table className="acc-table" style={{ minWidth: 1100 }}>
+                          <thead>
+                            <tr>
+                              <th style={{ width: 40 }}>№</th>
+                              <th style={{ width: 200 }}>ფაილი</th>
+                              <th style={{ width: 150 }}>გადამხდელი</th>
+                              <th style={{ width: 110 }}>თანხა</th>
+                              <th style={{ width: 120 }}>ინვოისის №</th>
+                              <th style={{ width: 120 }}>ინვოისის თარიღი</th>
+                              <th style={{ width: 120 }}>გადახდის ვადა</th>
+                              <th style={{ width: 90, textAlign: 'center' }}>სასწრაფო</th>
+                              <th style={{ width: 130 }}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dayRecords.map((rec, idx) => {
+                              const ex = rec.extracted;
+                              const failed = ex?.error;
+                              return (
+                                <tr key={rec.id}>
+                                  <td style={{ color: 'var(--text-4)', fontSize: 12 }}>{idx + 1}</td>
+                                  <td>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                      {rec.fileType.startsWith('image/') ? (
+                                        <img src={rec.fileData} alt="" style={{ width: 36, height: 28, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)', flexShrink: 0 }} />
+                                      ) : (
+                                        <span style={{ fontSize: 22, flexShrink: 0 }}>📄</span>
+                                      )}
+                                      <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all' }}>{rec.fileName}</span>
+                                    </div>
+                                  </td>
+                                  {failed ? (
+                                    <td colSpan={4}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#dc2626' }}>
+                                        <span title={ex.error}>ტექსტი ვერ ამოიცნო</span>
+                                        <button
+                                          onClick={() => handleUploadRescan(rec.id)}
+                                          disabled={rescanningId === rec.id}
+                                          style={{ padding: '2px 10px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#dc2626', fontWeight: 600 }}
+                                        >
+                                          {rescanningId === rec.id ? '...' : 'ხელახლა სკანირება'}
+                                        </button>
+                                      </div>
+                                    </td>
+                                  ) : !ex ? (
+                                    <td colSpan={4} style={{ fontSize: 12, color: 'var(--text-4)', fontStyle: 'italic' }}>—</td>
+                                  ) : (
+                                    <>
+                                      <td style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{ex.payee || '—'}</td>
+                                      <td style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{ex.amount ? `${ex.amount} ${ex.currency || ''}` : '—'}</td>
+                                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_number || '—'}</td>
+                                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_date || '—'}</td>
+                                    </>
+                                  )}
+                                  <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.dueDate || '—'}</td>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <button
+                                      onClick={() => toggleUrgent(rec.id)}
+                                      style={{
+                                        padding: '3px 12px', border: 'none', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontSize: 12,
+                                        background: rec.urgent ? '#fee2e2' : 'var(--surface-2)',
+                                        color: rec.urgent ? '#dc2626' : 'var(--text-4)',
+                                      }}
+                                    >
+                                      {rec.urgent ? 'სასწრაფო' : '—'}
+                                    </button>
+                                  </td>
+                                  <td>
+                                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                      <button
+                                        onClick={() => handleUploadView(rec)}
+                                        style={{ padding: '4px 10px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-3)' }}
+                                      >
+                                        ნახვა
+                                      </button>
+                                      <button
+                                        onClick={() => handleUploadDelete(rec.id)}
+                                        style={{ padding: '4px 10px', background: '#fee2e2', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#dc2626', fontWeight: 600 }}
+                                      >
+                                        წაშლა
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
-                    {filteredUploadRecords.map((rec, idx) => {
-                      const ex = rec.extracted;
-                      const failed = ex?.error;
-                      return (
-                        <tr key={rec.id}>
-                          <td style={{ color: 'var(--text-4)', fontSize: 12 }}>{idx + 1}</td>
-                          <td>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              {rec.fileType.startsWith('image/') ? (
-                                <img src={rec.fileData} alt="" style={{ width: 36, height: 28, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)', flexShrink: 0 }} />
-                              ) : (
-                                <span style={{ fontSize: 22, flexShrink: 0 }}>📄</span>
-                              )}
-                              <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500, wordBreak: 'break-all' }}>{rec.fileName}</span>
-                            </div>
-                          </td>
-                          {failed ? (
-                            <td colSpan={4}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#dc2626' }}>
-                                <span title={ex.error}>ტექსტი ვერ ამოიცნო</span>
-                                <button
-                                  onClick={() => handleUploadRescan(rec.id)}
-                                  disabled={rescanningId === rec.id}
-                                  style={{ padding: '2px 10px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#dc2626', fontWeight: 600 }}
-                                >
-                                  {rescanningId === rec.id ? '...' : 'ხელახლა სკანირება'}
-                                </button>
-                              </div>
-                            </td>
-                          ) : !ex ? (
-                            <td colSpan={4} style={{ fontSize: 12, color: 'var(--text-4)', fontStyle: 'italic' }}>—</td>
-                          ) : (
-                            <>
-                              <td style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{ex.payee || '—'}</td>
-                              <td style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{ex.amount ? `${ex.amount} ${ex.currency || ''}` : '—'}</td>
-                              <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_number || '—'}</td>
-                              <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_date || '—'}</td>
-                            </>
-                          )}
-                          <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.dueDate || '—'}</td>
-                          <td style={{ textAlign: 'center' }}>
-                            <button
-                              onClick={() => toggleUrgent(rec.id)}
-                              style={{
-                                padding: '3px 12px', border: 'none', borderRadius: 20, cursor: 'pointer', fontWeight: 700, fontSize: 12,
-                                background: rec.urgent ? '#fee2e2' : 'var(--surface-2)',
-                                color: rec.urgent ? '#dc2626' : 'var(--text-4)',
-                              }}
-                            >
-                              {rec.urgent ? 'სასწრაფო' : '—'}
-                            </button>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                              <button
-                                onClick={() => handleUploadView(rec)}
-                                style={{ padding: '4px 10px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-3)' }}
-                              >
-                                ნახვა
-                              </button>
-                              <button
-                                onClick={() => handleUploadDelete(rec.id)}
-                                style={{ padding: '4px 10px', background: '#fee2e2', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#dc2626', fontWeight: 600 }}
-                              >
-                                წაშლა
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                  </div>
+                );
+              })}
             </>
           )}
         </div>
