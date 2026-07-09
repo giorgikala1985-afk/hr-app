@@ -15,7 +15,65 @@ const SUB_STYLE = {
   canceled: { bg: '#f8fafc', color: '#64748b', border: '#e2e8f0', label: 'Canceled' },
 };
 
-function ProfilePage() {
+// ── Member profile (sub-users) ──────────────────────────────────────────────
+function MemberProfilePage() {
+  const memberUser = (() => {
+    try { return JSON.parse(localStorage.getItem('member_user') || 'null'); } catch { return null; }
+  })();
+
+  if (!memberUser) return null;
+
+  const initial = (memberUser.name || memberUser.email || 'U').charAt(0).toUpperCase();
+  const card = { background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, padding: '24px 28px' };
+  const labelStyle = { fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 5, display: 'block' };
+  const valueStyle = { fontSize: 15, fontWeight: 500, color: 'var(--text)' };
+
+  return (
+    <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 32px' }}>
+      {/* Avatar + name */}
+      <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 20, marginBottom: 20 }}>
+        <div style={{ width: 68, height: 68, borderRadius: '50%', background: 'linear-gradient(135deg,#3b82f6,#6366f1)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800, flexShrink: 0 }}>
+          {initial}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text)' }}>{memberUser.name || '—'}</div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 3 }}>{memberUser.email}</div>
+          {memberUser.rights && (
+            <span style={{ display: 'inline-block', marginTop: 6, fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 5, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+              {memberUser.rights}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Details */}
+      <div style={card}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', marginBottom: 18 }}>Account Details</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+          <div>
+            <span style={labelStyle}>Full Name</span>
+            <div style={valueStyle}>{memberUser.name || '—'}</div>
+          </div>
+          <div>
+            <span style={labelStyle}>Email</span>
+            <div style={valueStyle}>{memberUser.email || '—'}</div>
+          </div>
+          <div>
+            <span style={labelStyle}>Role</span>
+            <div style={valueStyle}>{memberUser.rights || '—'}</div>
+          </div>
+          <div>
+            <span style={labelStyle}>Account Type</span>
+            <div style={valueStyle}>Team Member</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Owner profile ────────────────────────────────────────────────────────────
+function OwnerProfilePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -167,4 +225,7 @@ function ProfilePage() {
   );
 }
 
-export default ProfilePage;
+export default function ProfilePage() {
+  const isMember = !!localStorage.getItem('member_token');
+  return isMember ? <MemberProfilePage /> : <OwnerProfilePage />;
+}
