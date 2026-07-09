@@ -115,7 +115,7 @@ function FloatingBots() {
       <style>{`
         .fbf-root {
           position: fixed;
-          right: 22px;
+          right: 88px;
           bottom: 22px;
           z-index: 900;
           display: flex;
@@ -128,7 +128,7 @@ function FloatingBots() {
         .fbf-window {
           width: 384px;
           height: 560px;
-          max-width: calc(100vw - 44px);
+          max-width: calc(100vw - 110px);
           max-height: calc(100vh - 130px);
           background: var(--surface);
           border: 1px solid var(--border);
