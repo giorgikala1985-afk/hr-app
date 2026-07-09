@@ -837,18 +837,18 @@ function Invoices() {
               </div>
 
               <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
-                <table className="acc-table" style={{ minWidth: 1300 }}>
+                <table className="acc-table" style={{ minWidth: 1000, tableLayout: 'fixed', width: '100%' }}>
                   <thead>
                     <tr>
-                      <th style={{ width: 180 }}>ფაილი</th>
-                      <th style={{ width: 170 }}>გადამხდელი</th>
-                      <th style={{ width: 110 }}>თანხა</th>
-                      <th style={{ width: 90 }}>ვალუტა</th>
-                      <th style={{ width: 140 }}>ინვოისის №</th>
-                      <th style={{ width: 150 }}>გადახდის ვადა</th>
-                      <th style={{ width: 180 }}>IBAN/ანგარიში</th>
-                      <th style={{ width: 200 }}>აღწერა</th>
-                      <th style={{ width: 140 }}></th>
+                      <th style={{ width: 140 }}>ფაილი</th>
+                      <th style={{ width: 130 }}>გადამხდელი</th>
+                      <th style={{ width: 90 }}>თანხა</th>
+                      <th style={{ width: 72 }}>ვალუტა</th>
+                      <th style={{ width: 110 }}>ინვოისის №</th>
+                      <th style={{ width: 120 }}>გადახდის ვადა</th>
+                      <th style={{ width: 150 }}>IBAN/ანგარიში</th>
+                      <th>აღწერა</th>
+                      <th style={{ width: 120 }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -917,6 +917,6 @@ function Invoices() {
   );
 }
 
-const editInpStyle = { width: '100%', padding: '6px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box' };
+const editInpStyle = { width: '100%', padding: '5px 6px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box' };
 const today = () => new Date().toISOString().split('T')[0];
 export default Invoices;
