@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { FileScanIcon, InboxIcon, AiMagicIcon, Loading03Icon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
+import { FileScanIcon, InboxIcon, AiMagicIcon, Loading03Icon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, SpreadsheetIcon } from '@hugeicons/core-free-icons';
 
 function Invoices() {
   const { t } = useLanguage();
@@ -651,7 +651,8 @@ function Invoices() {
                   onClick={handleExportExcel}
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', marginLeft: 'auto' }}
                 >
-                  📊 ყველას ექსპორტი
+                  <HugeiconsIcon icon={SpreadsheetIcon} size={14} color="#fff" strokeWidth={2} />
+                  ყველას ექსპორტი
                 </button>
               </div>
 
@@ -677,7 +678,8 @@ function Invoices() {
                         title="ინვოისის ატვირთვა"
                         style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer' }}
                       >
-                        📎 ატვირთვა
+                        <HugeiconsIcon icon={Upload01Icon} size={14} color="currentColor" strokeWidth={2} />
+                        ატვირთვა
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); handleExtractBlock(date, dayRecords); }}
@@ -693,7 +695,8 @@ function Invoices() {
                         title="ამ დღის Excel-ში გატანა"
                         style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#16a34a', cursor: 'pointer' }}
                       >
-                        📊 Excel
+                        <HugeiconsIcon icon={SpreadsheetIcon} size={14} color="currentColor" strokeWidth={2} />
+                        Excel
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); openEditTransactions(date, dayRecords); }}
