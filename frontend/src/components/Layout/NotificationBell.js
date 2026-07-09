@@ -104,7 +104,7 @@ export default function NotificationBell() {
       {open && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-          width: 420, minWidth: 340,
+          width: 520, minWidth: 420,
           background: 'var(--surface)', border: '1px solid var(--border-2)',
           borderRadius: 14, boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
           zIndex: 300, overflow: 'hidden',
