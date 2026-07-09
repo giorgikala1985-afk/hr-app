@@ -840,6 +840,7 @@ function Invoices() {
                 <table className="acc-table" style={{ minWidth: 1000, tableLayout: 'fixed', width: '100%' }}>
                   <thead>
                     <tr>
+                      <th style={{ width: 120 }}></th>
                       <th style={{ width: 140 }}>ფაილი</th>
                       <th style={{ width: 130 }}>გადამხდელი</th>
                       <th style={{ width: 90 }}>თანხა</th>
@@ -848,12 +849,28 @@ function Invoices() {
                       <th style={{ width: 120 }}>გადახდის ვადა</th>
                       <th style={{ width: 150 }}>IBAN/ანგარიში</th>
                       <th>აღწერა</th>
-                      <th style={{ width: 120 }}></th>
                     </tr>
                   </thead>
                   <tbody>
                     {editRecords.map(rec => (
                       <tr key={rec.uploadId}>
+                        <td>
+                          {rec.sent ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#16a34a" strokeWidth={2.5} />
+                              გაგზავნილია
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleSendToTransfers(rec)}
+                              disabled={sendingId === rec.uploadId || sendingAll}
+                              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer' }}
+                            >
+                              <HugeiconsIcon icon={SentIcon} size={13} color="currentColor" strokeWidth={2} />
+                              {sendingId === rec.uploadId ? 'იგზავნება...' : 'გაგზავნა'}
+                            </button>
+                          )}
+                        </td>
                         <td>
                           <button
                             onClick={() => handleUploadView({ id: rec.uploadId })}
@@ -885,23 +902,6 @@ function Invoices() {
                         </td>
                         <td>
                           <input value={rec.description} onChange={e => updateEditField(rec.uploadId, 'description', e.target.value)} placeholder="აღწერა" style={editInpStyle} />
-                        </td>
-                        <td>
-                          {rec.sent ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
-                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#16a34a" strokeWidth={2.5} />
-                              გაგზავნილია
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => handleSendToTransfers(rec)}
-                              disabled={sendingId === rec.uploadId || sendingAll}
-                              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer' }}
-                            >
-                              <HugeiconsIcon icon={SentIcon} size={13} color="currentColor" strokeWidth={2} />
-                              {sendingId === rec.uploadId ? 'იგზავნება...' : 'გაგზავნა'}
-                            </button>
-                          )}
                         </td>
                       </tr>
                     ))}
