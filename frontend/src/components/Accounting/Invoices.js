@@ -193,11 +193,6 @@ function Invoices() {
       markSent(rec.uploadId);
       return true;
     } catch (err) {
-      if (err.response?.status === 409) {
-        // Already transferred — treat as success
-        markSent(rec.uploadId);
-        return true;
-      }
       alert(err.response?.data?.error || 'გაგზავნა ვერ მოხერხდა.');
       return false;
     } finally {
