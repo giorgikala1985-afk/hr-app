@@ -398,7 +398,7 @@ function Invoices() {
 
       {/* ── SCANNER TAB ─────────────────────────── */}
       {tab === 'scanner' && (
-        <div style={{ maxWidth: 780 }}>
+        <div style={{ maxWidth: 1400 }}>
           {/* Upload area */}
           {!scanResult && (
             <div
@@ -520,7 +520,7 @@ function Invoices() {
 
       {/* ── UPLOADS TAB ─────────────────────────── */}
       {tab === 'uploads' && (
-        <div style={{ maxWidth: 900 }}>
+        <div style={{ maxWidth: 1400 }}>
           {/* Drop zone */}
           <div
             onClick={() => uploadInputRef.current.click()}
