@@ -185,8 +185,8 @@ function UsersSettings() {
     setMatrixError('');
     try {
       const res = await api.get('/user-matrix');
-      setMatrixRows(res.data.rows && res.data.rows.length > 0 ? res.data.rows : DEFAULT_MATRIX);
-    } catch { setMatrixRows(DEFAULT_MATRIX); }
+      setMatrixRows(res.data.rows || []);
+    } catch { setMatrixRows([]); }
   };
 
   const saveMatrix = async () => {
@@ -207,10 +207,9 @@ function UsersSettings() {
   const loadOrdersMatrix = () => {
     try {
       const local = localStorage.getItem('orders_matrix');
-      if (local) setOrdersMatrixRows(JSON.parse(local));
-      else setOrdersMatrixRows(DEFAULT_ORDERS_MATRIX);
+      setOrdersMatrixRows(local ? JSON.parse(local) : []);
     } catch {
-      setOrdersMatrixRows(DEFAULT_ORDERS_MATRIX);
+      setOrdersMatrixRows([]);
     }
   };
 
