@@ -848,7 +848,15 @@ function Invoices() {
                   <tbody>
                     {editRecords.map(rec => (
                       <tr key={rec.uploadId}>
-                        <td style={{ fontSize: 12, color: 'var(--text-3)', wordBreak: 'break-all' }}>{rec.fileName}</td>
+                        <td>
+                          <button
+                            onClick={() => handleUploadView({ id: rec.uploadId })}
+                            title="ფაილის გახსნა"
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontSize: 12, color: '#3b82f6', textDecoration: 'underline', wordBreak: 'break-all', fontFamily: 'inherit' }}
+                          >
+                            {rec.fileName}
+                          </button>
+                        </td>
                         <td>
                           <input value={rec.payee} onChange={e => updateEditField(rec.uploadId, 'payee', e.target.value)} placeholder="გადამხდელი" style={editInpStyle} />
                         </td>
