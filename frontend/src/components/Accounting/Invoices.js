@@ -143,6 +143,8 @@ function Invoices() {
   const [editSourceLabel, setEditSourceLabel] = useState('');
   const [sendingId, setSendingId] = useState(null);
   const [sendingAll, setSendingAll] = useState(false);
+  // Persists sent state across tab switches so the green badge doesn't reset
+  const [sentUploadIds, setSentUploadIds] = useState(new Set());
 
   const openEditTransactions = (dateLabel, records) => {
     setEditRecords(records.map(r => ({
@@ -156,7 +158,7 @@ function Invoices() {
       dueDate: r.dueDate || r.extracted?.due_date || '',
       iban: r.extracted?.account_number || '',
       description: r.extracted?.description || '',
-      sent: false,
+      sent: sentUploadIds.has(r.id),
     })));
     setEditSourceLabel(dateLabel);
     setTab('edit');
@@ -164,6 +166,11 @@ function Invoices() {
 
   const updateEditField = (uploadId, field, value) => {
     setEditRecords(prev => prev.map(r => r.uploadId === uploadId ? { ...r, [field]: value } : r));
+  };
+
+  const markSent = (uploadId) => {
+    setSentUploadIds(prev => new Set([...prev, uploadId]));
+    setEditRecords(prev => prev.map(r => r.uploadId === uploadId ? { ...r, sent: true } : r));
   };
 
   const handleSendToTransfers = async (rec) => {
@@ -183,9 +190,14 @@ function Invoices() {
         invoice_number: rec.invoiceNumber || null,
         status: 'normal',
       });
-      setEditRecords(prev => prev.map(r => r.uploadId === rec.uploadId ? { ...r, sent: true } : r));
+      markSent(rec.uploadId);
       return true;
     } catch (err) {
+      if (err.response?.status === 409) {
+        // Already transferred — treat as success
+        markSent(rec.uploadId);
+        return true;
+      }
       alert(err.response?.data?.error || 'გაგზავნა ვერ მოხერხდა.');
       return false;
     } finally {

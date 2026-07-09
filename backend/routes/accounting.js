@@ -899,6 +899,20 @@ const APPROVAL_TITLES = {
 router.post('/transfers', checkPermission('initiate_transfer'), async (req, res) => {
   try {
     const { client_name, agent_id, amount, due_date, description, status, invoice_raw, iban, invoice_number, auto_approved } = req.body;
+
+    // Prevent duplicate transfer for the same invoice number
+    if (invoice_number) {
+      const { data: existing } = await supabase
+        .from('accounting_transfers')
+        .select('id')
+        .eq('user_id', req.userId)
+        .eq('invoice_number', invoice_number)
+        .maybeSingle();
+      if (existing) {
+        return res.status(409).json({ error: 'Transfer for this invoice already exists', transfer_id: existing.id });
+      }
+    }
+
     const requester_name = await resolveUserName(req);
     const requester_email = req.user?.email || null;
     const { data, error } = await supabase.from('accounting_transfers').insert([{
