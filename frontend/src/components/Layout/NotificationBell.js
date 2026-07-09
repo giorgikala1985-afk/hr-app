@@ -61,13 +61,19 @@ export default function NotificationBell() {
     setLoading(false);
   };
 
-  const handleClick = (n) => {
-    if (!n.is_read) markRead(n.id);
+  const clearAndNavigate = async (dest) => {
     setOpen(false);
+    setNotifications([]);
+    setUnread(0);
+    try { await api.put('/notifications/read-all'); } catch {}
+    navigate(dest);
+  };
+
+  const handleClick = (n) => {
     const dest = n.type === 'transfer_submitted' || n.type === 'transfer_approved' || n.type === 'transfer_rejected' || n.type === 'transfer_partial' || n.type === 'transfer_wait'
       ? '/finances?tab=transfers'
       : '/finances';
-    navigate(dest);
+    clearAndNavigate(dest);
   };
 
   return (
@@ -191,7 +197,7 @@ export default function NotificationBell() {
           {notifications.length > 0 && (
             <div style={{ padding: '8px 16px', borderTop: '1px solid var(--border-2)', textAlign: 'center' }}>
               <button
-                onClick={() => { setOpen(false); navigate('/finances?tab=transfers'); }}
+                onClick={() => clearAndNavigate('/finances?tab=transfers')}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--accent, #6366f1)' }}
               >
                 Go to Transfers →
