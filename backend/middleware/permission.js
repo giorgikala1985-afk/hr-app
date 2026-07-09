@@ -4,15 +4,19 @@ const checkPermission = (permissionKey) => async (req, res, next) => {
   try {
     let role = req.userRights;
 
-    // For Supabase-authenticated users, look up their role from app_users
+    // For Supabase-authenticated users, look up their role from app_users.
+    // Sub-users are stored with the OWNER's user_id, so query by email only.
     if (!role) {
       const { data: appUser } = await supabase
         .from('app_users')
-        .select('rights')
-        .eq('user_id', req.userId)
+        .select('rights, user_id')
         .eq('email', req.user?.email)
         .maybeSingle();
-      role = appUser?.rights;
+      if (appUser) {
+        role = appUser.rights;
+        // Fix req.userId so the matrix lookup uses the owner's userId (consistent with member-login path)
+        req.userId = appUser.user_id;
+      }
       // If still no role found, this is the company owner (Super Admin) — allow
       if (!role) return next();
     }
