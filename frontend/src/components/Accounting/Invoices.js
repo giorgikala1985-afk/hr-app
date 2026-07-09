@@ -879,8 +879,8 @@ function Invoices() {
                         </td>
                         <td>
                           {rec.sent ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
-                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={16} color="#16a34a" strokeWidth={2} />
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#16a34a" strokeWidth={2.5} />
                               გაგზავნილია
                             </span>
                           ) : (
