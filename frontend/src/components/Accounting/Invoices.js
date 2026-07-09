@@ -23,7 +23,7 @@ function Invoices() {
     setUploadLoading(true);
     try {
       const res = await api.get('/accounting/invoices/uploads');
-      setUploadRecords((res.data.uploads || []).map(r => ({
+      const uploads = (res.data.uploads || []).map(r => ({
         id: r.id,
         fileName: r.file_name,
         fileType: r.file_type,
@@ -31,7 +31,11 @@ function Invoices() {
         dueDate: r.due_date,
         urgent: r.urgent,
         extracted: r.extracted,
-      })));
+        sent: r.sent || false,
+      }));
+      setUploadRecords(uploads);
+      // Seed sentUploadIds from DB so green badge survives refresh
+      setSentUploadIds(new Set(uploads.filter(u => u.sent).map(u => u.id)));
     } catch {} finally { setUploadLoading(false); }
   };
 
@@ -158,7 +162,7 @@ function Invoices() {
       dueDate: r.dueDate || r.extracted?.due_date || '',
       iban: r.extracted?.account_number || '',
       description: r.extracted?.description || '',
-      sent: sentUploadIds.has(r.id),
+      sent: r.sent || sentUploadIds.has(r.id),
     })));
     setEditSourceLabel(dateLabel);
     setTab('edit');
@@ -171,6 +175,8 @@ function Invoices() {
   const markSent = (uploadId) => {
     setSentUploadIds(prev => new Set([...prev, uploadId]));
     setEditRecords(prev => prev.map(r => r.uploadId === uploadId ? { ...r, sent: true } : r));
+    setUploadRecords(prev => prev.map(r => r.id === uploadId ? { ...r, sent: true } : r));
+    api.patch(`/accounting/invoices/uploads/${uploadId}`, { sent: true }).catch(() => {});
   };
 
   const handleSendToTransfers = async (rec) => {

@@ -196,7 +196,7 @@ router.get('/invoices/uploads', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('invoice_uploads')
-      .select('id, file_name, file_type, upload_date, due_date, urgent, extracted, created_at')
+      .select('id, file_name, file_type, upload_date, due_date, urgent, extracted, sent, created_at')
       .eq('user_id', req.userId)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -274,10 +274,11 @@ router.post('/invoices/uploads/:id/rescan', async (req, res) => {
 
 router.patch('/invoices/uploads/:id', async (req, res) => {
   try {
-    const { urgent, due_date } = req.body;
+    const { urgent, due_date, sent } = req.body;
     const patch = {};
     if (urgent !== undefined) patch.urgent = !!urgent;
     if (due_date !== undefined) patch.due_date = due_date || null;
+    if (sent !== undefined) patch.sent = !!sent;
     const { data, error } = await supabase
       .from('invoice_uploads')
       .update(patch)
