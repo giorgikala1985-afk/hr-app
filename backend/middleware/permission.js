@@ -4,6 +4,22 @@ const checkPermission = (permissionKey) => async (req, res, next) => {
   try {
     let role = req.userRights;
 
+    // For member accounts (custom JWT), always read live rights from DB
+    // to avoid stale JWT after an admin changes the member's role.
+    if (req.appUserId) {
+      const { data: appUser } = await supabase
+        .from('app_users')
+        .select('rights, user_id')
+        .eq('id', req.appUserId)
+        .maybeSingle();
+      if (appUser) {
+        role = appUser.rights;
+        req.userId = appUser.user_id;
+      } else {
+        return res.status(403).json({ error: 'Member account not found.' });
+      }
+    }
+
     // For Supabase-authenticated users, look up their role from app_users.
     // Sub-users are stored with the OWNER's user_id, so query by email only.
     if (!role) {
@@ -14,7 +30,6 @@ const checkPermission = (permissionKey) => async (req, res, next) => {
         .maybeSingle();
       if (appUser) {
         role = appUser.rights;
-        // Fix req.userId so the matrix lookup uses the owner's userId (consistent with member-login path)
         req.userId = appUser.user_id;
       }
       // If still no role found, this is the company owner (Super Admin) — allow

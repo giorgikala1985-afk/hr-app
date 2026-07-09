@@ -60,6 +60,20 @@ router.delete('/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /api/users/me — returns the current member's fresh profile from DB
+router.get('/me', async (req, res) => {
+  try {
+    if (!req.appUserId) return res.status(403).json({ error: 'Not a member account' });
+    const { data, error } = await supabase
+      .from('app_users')
+      .select('id, name, email, phone, rights')
+      .eq('id', req.appUserId)
+      .single();
+    if (error || !data) return res.status(404).json({ error: 'Member not found' });
+    res.json({ member: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // PUT /api/users/:id/password — Super Admin sets password for a user
 router.put('/:id/password', async (req, res) => {
   try {
