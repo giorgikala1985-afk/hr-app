@@ -528,36 +528,14 @@ function Invoices() {
       {/* ── UPLOADS TAB ─────────────────────────── */}
       {tab === 'uploads' && (
         <div style={{ maxWidth: 1400 }}>
-          {/* Drop zone */}
-          <div
-            onClick={() => uploadInputRef.current.click()}
-            onDragOver={e => e.preventDefault()}
-            onDrop={e => {
-              e.preventDefault();
-              const f = e.dataTransfer.files[0];
-              if (f) handleUploadFile(f);
-            }}
-            style={{
-              border: '2px dashed var(--border)', borderRadius: 14, padding: '36px 32px',
-              textAlign: 'center', cursor: 'pointer', background: 'var(--surface-2)',
-              marginBottom: 20, transition: 'border-color 0.2s',
-            }}
-          >
-            <div style={{ fontSize: 38, marginBottom: 8 }}>📎</div>
-            <div style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', marginBottom: 4 }}>
-              PDF / JPG / PNG ატვირთვა
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--text-4)' }}>
-              გადმოიტანეთ ან დააჭირეთ ასარჩევად &middot; მაქს. 10MB
-            </div>
-            <input
-              ref={uploadInputRef}
-              type="file"
-              accept=".pdf,.jpg,.jpeg,.png"
-              style={{ display: 'none' }}
-              onChange={e => handleUploadFile(e.target.files[0])}
-            />
-          </div>
+          {/* Hidden file input */}
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            style={{ display: 'none' }}
+            onChange={e => handleUploadFile(e.target.files[0])}
+          />
 
           {uploadError && (
             <div className="msg-error" style={{ marginBottom: 12 }}>{uploadError}</div>
@@ -695,10 +673,17 @@ function Invoices() {
                         {dayRecords.length}
                       </span>
                       <button
+                        onClick={e => { e.stopPropagation(); uploadInputRef.current.click(); }}
+                        title="ინვოისის ატვირთვა"
+                        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer' }}
+                      >
+                        📎 ატვირთვა
+                      </button>
+                      <button
                         onClick={e => { e.stopPropagation(); handleExtractBlock(date, dayRecords); }}
                         disabled={extractingDate === date}
                         title="ტექსტის ამოღება ყველა ფაილიდან და Excel-ში ჩაწერა"
-                        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: extractingDate === date ? 'not-allowed' : 'pointer', opacity: extractingDate === date ? 0.7 : 1 }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: extractingDate === date ? 'not-allowed' : 'pointer', opacity: extractingDate === date ? 0.7 : 1 }}
                       >
                         <HugeiconsIcon icon={extractingDate === date ? Loading03Icon : AiMagicIcon} size={14} color="currentColor" strokeWidth={2} />
                         {extractingDate === date ? 'მუშავდება...' : 'Extract'}
