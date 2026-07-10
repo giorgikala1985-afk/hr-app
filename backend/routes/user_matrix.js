@@ -27,13 +27,17 @@ router.get('/permissions', async (req, res) => {
 
     const { data: rows } = await supabase
       .from('user_matrix').select('*').eq('user_id', ownerId).eq('role', role)
-      .order('sort_order', { ascending: true }).limit(1);
+      .order('sort_order', { ascending: true });
 
-    const row = rows && rows[0];
     // Role not in matrix → default allow
-    if (!row) return res.json({ isOwner: false, role, ...all });
+    if (!rows || rows.length === 0) return res.json({ isOwner: false, role, ...all });
 
-    res.json({ isOwner: false, role, ...row });
+    // If duplicate rows exist for the same role, be permissive: Yes if ANY row says Yes
+    const keys = ['initiate_transfer','approve_transfer','reject_transfer','view_transactions','cancel_transaction','set_limits','manage_users','audit_reports'];
+    const perms = {};
+    keys.forEach(k => { perms[k] = rows.some(r => r[k] !== 'No') ? 'Yes' : 'No'; });
+
+    res.json({ isOwner: false, role, ...perms });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
