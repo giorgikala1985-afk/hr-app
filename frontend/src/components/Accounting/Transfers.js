@@ -92,30 +92,12 @@ function TransfersList() {
 
   const loadPermission = async () => {
     try {
-      const stored = localStorage.getItem('member_user');
-      if (!stored) { setCanInitiate(true); setCanApprove(true); setCanReject(true); setIsCFO(true); return; } // Super Admin / Supabase user
-
-      // Always fetch fresh role from server — localStorage may be stale if admin changed the role after login
-      let role;
-      try {
-        const meRes = await api.get('/users/me');
-        role = meRes.data.member?.rights;
-        if (role) {
-          const cached = JSON.parse(stored);
-          localStorage.setItem('member_user', JSON.stringify({ ...cached, rights: role }));
-        }
-      } catch {
-        role = JSON.parse(stored)?.rights; // fall back to cached if offline / non-member
-      }
-
-      setIsCFO(role === 'CFO');
-      if (!role) { setCanInitiate(true); setCanApprove(true); setCanReject(true); return; }
-      const res = await api.get('/user-matrix');
-      const matches = (res.data.rows || []).filter(r => r.role === role);
-      const denied = (key) => matches.some(r => r[key] === 'No');
-      setCanInitiate(matches.length > 0 ? !denied('initiate_transfer') : true);
-      setCanApprove(matches.length > 0 ? !denied('approve_transfer') : true);
-      setCanReject(matches.length > 0 ? !denied('reject_transfer') : true);
+      const res = await api.get('/user-matrix/permissions');
+      const p = res.data;
+      setIsCFO(p.isOwner || p.role === 'CFO');
+      setCanInitiate(p.initiate_transfer !== 'No');
+      setCanApprove(p.approve_transfer !== 'No');
+      setCanReject(p.reject_transfer !== 'No');
     } catch { setCanInitiate(true); setCanApprove(true); setCanReject(true); setIsCFO(false); }
   };
 

@@ -2,6 +2,41 @@ const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
 
+// GET /api/user-matrix/permissions — current caller's effective permissions (always live from DB)
+router.get('/permissions', async (req, res) => {
+  try {
+    let role = null;
+    let ownerId = req.userId;
+
+    if (req.appUserId) {
+      // Member JWT — read live role from app_users
+      const { data: appUser } = await supabase
+        .from('app_users').select('rights, user_id').eq('id', req.appUserId).maybeSingle();
+      if (appUser) { role = appUser.rights; ownerId = appUser.user_id; }
+    } else if (req.user?.email) {
+      // Supabase sub-user — look up by email
+      const { data: appUser } = await supabase
+        .from('app_users').select('rights, user_id').eq('email', req.user.email).maybeSingle();
+      if (appUser) { role = appUser.rights; ownerId = appUser.user_id; }
+    }
+
+    const all = { initiate_transfer: 'Yes', approve_transfer: 'Yes', reject_transfer: 'Yes', view_transactions: 'Yes', cancel_transaction: 'Yes', set_limits: 'Yes', manage_users: 'Yes', audit_reports: 'Yes' };
+
+    // No role = company owner → all allowed
+    if (!role) return res.json({ isOwner: true, role: null, ...all });
+
+    const { data: rows } = await supabase
+      .from('user_matrix').select('*').eq('user_id', ownerId).eq('role', role)
+      .order('sort_order', { ascending: true }).limit(1);
+
+    const row = rows && rows[0];
+    // Role not in matrix → default allow
+    if (!row) return res.json({ isOwner: false, role, ...all });
+
+    res.json({ isOwner: false, role, ...row });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // GET /api/user-matrix
 router.get('/', async (req, res) => {
   try {
