@@ -94,8 +94,20 @@ function TransfersList() {
     try {
       const stored = localStorage.getItem('member_user');
       if (!stored) { setCanInitiate(true); setCanApprove(true); setCanReject(true); setIsCFO(true); return; } // Super Admin / Supabase user
-      const member = JSON.parse(stored);
-      const role = member?.rights;
+
+      // Always fetch fresh role from server — localStorage may be stale if admin changed the role after login
+      let role;
+      try {
+        const meRes = await api.get('/users/me');
+        role = meRes.data.member?.rights;
+        if (role) {
+          const cached = JSON.parse(stored);
+          localStorage.setItem('member_user', JSON.stringify({ ...cached, rights: role }));
+        }
+      } catch {
+        role = JSON.parse(stored)?.rights; // fall back to cached if offline / non-member
+      }
+
       setIsCFO(role === 'CFO');
       if (!role) { setCanInitiate(true); setCanApprove(true); setCanReject(true); return; }
       const res = await api.get('/user-matrix');
