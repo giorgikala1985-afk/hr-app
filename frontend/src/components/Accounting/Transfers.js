@@ -90,15 +90,17 @@ function TransfersList() {
 
   useEffect(() => { loadTransfers(); loadAgents(); loadPermission(); }, []);
 
+  const [permDebug, setPermDebug] = useState('loading…');
   const loadPermission = async () => {
     try {
       const res = await api.get('/user-matrix/permissions');
       const p = res.data;
+      setPermDebug(`role="${p.role}" approve=${p.approve_transfer} reject=${p.reject_transfer}`);
       setIsCFO(p.isOwner || p.role === 'CFO');
       setCanInitiate(p.initiate_transfer !== 'No');
       setCanApprove(p.approve_transfer !== 'No');
       setCanReject(p.reject_transfer !== 'No');
-    } catch { setCanInitiate(true); setCanApprove(true); setCanReject(true); setIsCFO(false); }
+    } catch (e) { setPermDebug(`ERROR: ${e.message}`); setCanInitiate(true); setCanApprove(true); setCanReject(true); setIsCFO(false); }
   };
 
   const doAction = async (id, action, body) => {
@@ -295,6 +297,7 @@ function TransfersList() {
         </button>
       </div>
 
+      <div style={{ fontSize: 11, color: '#f87171', marginBottom: 8, fontFamily: 'monospace' }}>DEBUG: {permDebug}</div>
       {error && <div style={errBox}>{error}</div>}
 
       {loading ? (
