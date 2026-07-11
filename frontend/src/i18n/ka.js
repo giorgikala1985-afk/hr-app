@@ -851,6 +851,7 @@ const ka = {
   'orders.adjusting': 'კორექტირება',
   'orders.businessTrip': 'სამივლინებო',
   'orders.advancePayment': 'ავანსი',
+  'orders.handover': 'ჩაბარება-მიბარება',
   'orders.addNew': 'ახალი ბრძანება',
   'orders.loading': 'ბრძანებების ჩატვირთვა...',
   'orders.noOrders': '{month}-ის ბრძანებები არ არის',
@@ -956,6 +957,12 @@ const ka = {
   'orders.effectiveDateShort': 'ძალაში შესვლის თარიღი',
   'orders.note': 'შენიშვნა',
   'orders.recordChange': 'ცვლილების ჩაწერა',
+  'orders.newHandoverOrder': 'ახალი ჩაბარება-მიბარების ბრძანება',
+  'orders.editHandoverOrder': 'ჩაბარება-მიბარების ბრძანების რედაქტირება',
+  'orders.fromEmployee': 'გამამბარებელი',
+  'orders.toEmployee': 'მიმბარებელი',
+  'orders.handoverDate': 'ჩაბარება-მიბარების თარიღი',
+  'orders.handoverItems': 'ნივთები / პასუხისმგებლობები',
 
   // ===== Employee Portal =====
   'portal.title': 'თანამშრომლის პორტალი',

@@ -38,6 +38,7 @@ const ORDER_SUBTAB_KEYS = [
   { key: 'adjusting',        labelKey: 'orders.adjusting'       },
   { key: 'business-trip',    labelKey: 'orders.businessTrip'    },
   { key: 'advance-payment',  labelKey: 'orders.advancePayment'  },
+  { key: 'handover',         labelKey: 'orders.handover'        },
 ];
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -2300,6 +2301,102 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
   );
 }
 
+// ── Handover Tab ──────────────────────────────────────────────────────────────
+function HandoverTab({ employees }) {
+  const { t } = useLanguage();
+  const { orders, add, update, remove } = useLocalOrders('hr_handover_orders');
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const EMPTY = { fromEmployeeId: '', toEmployeeId: '', handoverDate: '', items: '', notes: '', immediateEffect: true };
+  const [form, setForm] = useState(EMPTY);
+  const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
+  const openEdit = (o) => {
+    setEditing(o.id);
+    setForm({ fromEmployeeId: o.fromEmployeeId, toEmployeeId: o.toEmployeeId, handoverDate: o.handoverDate, items: o.items || '', notes: o.notes || '', immediateEffect: o.immediateEffect !== false });
+    setShowForm(true);
+  };
+  const close = () => { setShowForm(false); setEditing(null); };
+
+  const getName = (id) => { const e = employees.find(x => x.id === id); return e ? `${e.first_name} ${e.last_name}` : '—'; };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const row = { ...form, fromName: getName(form.fromEmployeeId), toName: getName(form.toEmployeeId) };
+    editing ? update(editing, row) : add(row);
+    close();
+  };
+
+  const canSave = form.fromEmployeeId && form.toEmployeeId && form.fromEmployeeId !== form.toEmployeeId && form.handoverDate;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          + {t('orders.addNew')}
+        </button>
+      </div>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
+        {orders.length === 0 ? <EmptyState label={t('orders.handover')} onAdd={openAdd} /> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {[t('orders.date'), t('orders.fromEmployee'), t('orders.toEmployee'), t('orders.handoverDate'), t('orders.handoverItems'), t('orders.notes'), ''].map((h, i) => (
+                  <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.fromName || getName(o.fromEmployeeId)}</td>
+                  <td style={{ padding: '11px 14px', fontWeight: 600, color: '#3b82f6', whiteSpace: 'nowrap' }}>{o.toName || getName(o.toEmployeeId)}</td>
+                  <td style={{ padding: '11px 14px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.handoverDate}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-2)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.items || '—'}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
+                  <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
+                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>×</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+      {showForm && (
+        <SubTabModal title={editing ? t('orders.editHandoverOrder') : t('orders.newHandoverOrder')} onClose={close}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gap: 14 }}>
+              <div><label style={LABEL}>{t('orders.fromEmployee')} *</label>
+                <select value={form.fromEmployeeId} onChange={f('fromEmployeeId')} required style={{ ...INPUT, width: '100%' }}>
+                  <option value="">{t('orders.selectEmployee')}</option>
+                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+                </select>
+              </div>
+              <div><label style={LABEL}>{t('orders.toEmployee')} *</label>
+                <select value={form.toEmployeeId} onChange={f('toEmployeeId')} required style={{ ...INPUT, width: '100%' }}>
+                  <option value="">{t('orders.selectEmployee')}</option>
+                  {employees.filter(e => e.id !== form.fromEmployeeId).map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+                </select>
+              </div>
+              <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, handoverDate: v ? p.handoverDate : endOfMonth(currentMonthStr()) }))} />
+              <div><label style={LABEL}>{t('orders.handoverDate')} *</label><input type="date" value={form.handoverDate} onChange={f('handoverDate')} required style={{ ...INPUT, width: '100%' }} /></div>
+              <div><label style={LABEL}>{t('orders.handoverItems')}</label><textarea value={form.items} onChange={f('items')} rows={3} placeholder="e.g. Laptop, project documentation, client contacts…" style={{ ...INPUT, resize: 'vertical', fontFamily: 'inherit' }} /></div>
+              <div><label style={LABEL}>{t('orders.notes')}</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
+            </div>
+            <SubTabActions onCancel={close} disabled={!canSave} />
+          </form>
+        </SubTabModal>
+      )}
+    </div>
+  );
+}
+
 // ── Shared icon/button styles ─────────────────────────────────────────────────
 const actionBtn = { width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-3)', fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'color 0.15s' };
 function EditIcon() {
@@ -2703,6 +2800,7 @@ export default function Orders() {
       {subTab === 'firing'           && <FiringTab employees={employees} />}
       {subTab === 'business-trip'    && <BusinessTripTab employees={employees} />}
       {subTab === 'advance-payment'  && <AdvancePaymentTab employees={employees} gelRate={gelRate} eurRate={eurRate} />}
+      {subTab === 'handover'         && <HandoverTab employees={employees} />}
 
       {/* Month picker — adjusting only */}
       {subTab === 'adjusting' && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>

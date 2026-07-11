@@ -853,6 +853,7 @@ const en = {
   'orders.adjusting': 'Adjust',
   'orders.businessTrip': 'Business Trip',
   'orders.advancePayment': 'Advance Payment',
+  'orders.handover': 'Handover',
   'orders.addNew': 'Add New Order',
   'orders.loading': 'Loading orders…',
   'orders.noOrders': 'No orders for {month}',
@@ -958,6 +959,12 @@ const en = {
   'orders.effectiveDateShort': 'Effective Date',
   'orders.note': 'Note',
   'orders.recordChange': 'Record Change',
+  'orders.newHandoverOrder': 'New Handover Order',
+  'orders.editHandoverOrder': 'Edit Handover Order',
+  'orders.fromEmployee': 'From Employee',
+  'orders.toEmployee': 'To Employee',
+  'orders.handoverDate': 'Handover Date',
+  'orders.handoverItems': 'Items / Responsibilities',
 
   // ===== Employee Portal =====
   'portal.title': 'Employee Portal',
