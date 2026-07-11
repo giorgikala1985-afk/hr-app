@@ -837,7 +837,28 @@ router.delete('/stock/:id', async (req, res) => {
 // ── TRANSFERS ───────────────────────────────────────────
 router.get('/transfers', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('accounting_transfers').select('*').eq('user_id', req.userId).order('due_date', { ascending: true });
+    let query = supabase.from('accounting_transfers').select('*').eq('user_id', req.userId);
+
+    // Sub-users: only show their own transfers unless they can approve (need full visibility)
+    if (req.appUserId) {
+      const { data: appUser } = await supabase
+        .from('app_users').select('rights').eq('id', req.appUserId).maybeSingle();
+      if (appUser?.rights) {
+        const { data: matrixRows } = await supabase
+          .from('user_matrix').select('approve_transfer')
+          .eq('user_id', req.userId).eq('role', appUser.rights);
+        const canApprove = !matrixRows || matrixRows.length === 0 ||
+          matrixRows.some(r => r.approve_transfer !== 'No');
+        if (!canApprove && req.user?.email) {
+          query = query.eq('requester_email', req.user.email);
+        }
+      } else if (req.user?.email) {
+        // Role not found — default to own only for safety
+        query = query.eq('requester_email', req.user.email);
+      }
+    }
+
+    const { data, error } = await query.order('due_date', { ascending: true });
     if (error) throw error;
     res.json({ records: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
