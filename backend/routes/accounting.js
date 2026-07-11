@@ -838,8 +838,29 @@ router.delete('/stock/:id', async (req, res) => {
 router.get('/transfers', async (req, res) => {
   try {
     const email = req.user?.email;
+
+    if (!req.appUserId) {
+      // Owner — sees all transfers
+      const { data, error } = await supabase
+        .from('accounting_transfers').select('*')
+        .eq('user_id', req.userId)
+        .order('due_date', { ascending: true });
+      if (error) throw error;
+      return res.json({ records: data });
+    }
+
+    // Sub-user — sees own transfers + owner's transfers
+    // Get owner email to include their transfers
+    const { data: ownerData } = await supabase.auth.admin.getUserById(req.userId);
+    const ownerEmail = ownerData?.user?.email;
+
     let query = supabase.from('accounting_transfers').select('*').eq('user_id', req.userId);
-    if (email) query = query.eq('requester_email', email);
+    if (email && ownerEmail && email !== ownerEmail) {
+      query = query.or(`requester_email.eq.${email},requester_email.eq.${ownerEmail},requester_email.is.null`);
+    } else if (email) {
+      query = query.eq('requester_email', email);
+    }
+
     const { data, error } = await query.order('due_date', { ascending: true });
     if (error) throw error;
     res.json({ records: data });
