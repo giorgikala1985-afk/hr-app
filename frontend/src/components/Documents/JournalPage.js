@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const TYPE_META = {
-  hiring:       { label: 'Hiring',         color: '#3b82f6', icon: 'person-add' },
-  firing:       { label: 'Termination',    color: '#ef4444', icon: 'person-remove' },
-  promotion:    { label: 'Promotion',      color: '#10b981', icon: 'arrow-up' },
-  business_trip:{ label: 'Business Trip',  color: '#f59e0b', icon: 'plane' },
-  advance:      { label: 'Advance',        color: '#8b5cf6', icon: 'cash' },
-  adjustment:   { label: 'Adjustment',     color: '#06b6d4', icon: 'sliders' },
+  hiring:        { labelKey: 'journal.typeHiring',       color: '#3b82f6', icon: 'person-add' },
+  firing:        { labelKey: 'journal.typeFiring',       color: '#ef4444', icon: 'person-remove' },
+  promotion:     { labelKey: 'journal.typePromotion',    color: '#10b981', icon: 'arrow-up' },
+  business_trip: { labelKey: 'journal.typeBusinessTrip', color: '#f59e0b', icon: 'plane' },
+  advance:       { labelKey: 'journal.typeAdvance',      color: '#8b5cf6', icon: 'cash' },
+  adjustment:    { labelKey: 'journal.typeAdjustment',   color: '#06b6d4', icon: 'sliders' },
 };
 
 const ICONS = {
@@ -64,7 +65,10 @@ function formatDate(str) {
   return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-function Badge({ color, label }) {
+function Badge({ color, typeKey }) {
+  const { t } = useLanguage();
+  const meta = TYPE_META[typeKey];
+  const label = meta ? t(meta.labelKey) : typeKey;
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -72,33 +76,42 @@ function Badge({ color, label }) {
       background: color + '18', border: `1px solid ${color}33`,
       color, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
     }}>
-      {ICONS[TYPE_META[label]?.icon || 'sliders']?.(color)}
-      {TYPE_META[label]?.label || label}
+      {ICONS[meta?.icon || 'sliders']?.(color)}
+      {label}
     </span>
   );
 }
 
 function SummaryText({ type, row }) {
+  const { t } = useLanguage();
+
   if (type === 'hiring') {
     const name = [row.firstName, row.lastName].filter(Boolean).join(' ') || '—';
-    return <>{name} hired as <strong>{row.position || '—'}</strong>{row.department ? ` · ${row.department}` : ''}</>;
+    const hiredAs = t('journal.hiredAs');
+    return <>{name} {hiredAs} <strong>{row.position || '—'}</strong>{row.department ? ` · ${row.department}` : ''}</>;
   }
   if (type === 'firing') {
-    return <>{row.empName || '—'} terminated{row.terminationDate ? ` on ${formatDate(row.terminationDate)}` : ''}{row.reason ? ` · ${row.reason}` : ''}</>;
+    const onWord = t('journal.on');
+    const dateStr = row.terminationDate
+      ? `${onWord ? ` ${onWord}` : ''} ${formatDate(row.terminationDate)}`
+      : '';
+    return <>{row.empName || '—'} {t('journal.terminated')}{dateStr}{row.reason ? ` · ${row.reason}` : ''}</>;
   }
   if (type === 'promotion') {
     return <>{row.empName || '—'} → <strong>{row.newPosition || '—'}</strong>{row.oldSalary && row.newSalary ? ` · ${row.oldSalary} → ${row.newSalary}` : ''}</>;
   }
   if (type === 'business_trip') {
-    const name = row.isGroup ? (row.groupName || 'Group') : (row.empName || '—');
+    const name = row.isGroup ? (row.groupName || t('journal.group')) : (row.empName || '—');
     return <>{name} · {row.countryName || '—'}{row.cityName ? `, ${row.cityName}` : ''}{row.fromDate ? ` (${formatDate(row.fromDate)}–${formatDate(row.toDate)})` : ''}</>;
   }
   if (type === 'advance') {
-    return <>{row.empName || '—'} · {row.totalAmount} {row.currency} over {row.numMonths} month{row.numMonths !== 1 ? 's' : ''}</>;
+    const overWord = t('journal.over');
+    return <>{row.empName || '—'} · {row.totalAmount} {row.currency} {overWord ? `${overWord} ` : ''}{row.numMonths} {t('journal.months')}</>;
   }
   if (type === 'adjustment') {
     const dir = row.direction === 'addition' ? '+' : '-';
-    return <>{row.empName || row.employee?.first_name + ' ' + row.employee?.last_name || '—'} · {row.type} {dir}{row.amount} USD</>;
+    const name = row.empName || (row.employee ? `${row.employee.first_name} ${row.employee.last_name}` : '—');
+    return <>{name} · {row.type} {dir}{row.amount} USD</>;
   }
   return null;
 }
@@ -106,6 +119,7 @@ function SummaryText({ type, row }) {
 const ALL_TYPES = Object.keys(TYPE_META);
 
 export default function JournalPage() {
+  const { t } = useLanguage();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -151,38 +165,45 @@ export default function JournalPage() {
   const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const counts = {};
-  ALL_TYPES.forEach(t => { counts[t] = rows.filter(r => r._type === t).length; });
+  ALL_TYPES.forEach(typeKey => { counts[typeKey] = rows.filter(r => r._type === typeKey).length; });
+
+  const COLS = [
+    t('journal.colDate'),
+    t('journal.colType'),
+    t('journal.colSummary'),
+    t('journal.colNotes'),
+  ];
 
   return (
     <div style={{ padding: '28px 28px 40px', maxWidth: 1100 }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>Journal</h2>
-        <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 4 }}>All HR transactions in one place</p>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text)', margin: 0, letterSpacing: '-0.5px' }}>{t('journal.title')}</h2>
+        <p style={{ fontSize: 13, color: 'var(--text-3)', marginTop: 4 }}>{t('journal.subtitle')}</p>
       </div>
 
-      {/* Stats row */}
+      {/* Type filter chips */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 20 }}>
-        {ALL_TYPES.map(t => (
+        {ALL_TYPES.map(typeKey => (
           <button
-            key={t}
-            onClick={() => { setFilterType(filterType === t ? 'all' : t); setPage(1); }}
+            key={typeKey}
+            onClick={() => { setFilterType(filterType === typeKey ? 'all' : typeKey); setPage(1); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '7px 13px', borderRadius: 10,
-              border: `1.5px solid ${filterType === t ? TYPE_META[t].color : 'var(--border-2)'}`,
-              background: filterType === t ? TYPE_META[t].color + '18' : 'var(--surface)',
-              color: filterType === t ? TYPE_META[t].color : 'var(--text-3)',
+              border: `1.5px solid ${filterType === typeKey ? TYPE_META[typeKey].color : 'var(--border-2)'}`,
+              background: filterType === typeKey ? TYPE_META[typeKey].color + '18' : 'var(--surface)',
+              color: filterType === typeKey ? TYPE_META[typeKey].color : 'var(--text-3)',
               fontWeight: 700, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s',
             }}
           >
-            {ICONS[TYPE_META[t].icon](filterType === t ? TYPE_META[t].color : 'var(--text-3)')}
-            {TYPE_META[t].label}
+            {ICONS[TYPE_META[typeKey].icon](filterType === typeKey ? TYPE_META[typeKey].color : 'var(--text-3)')}
+            {t(TYPE_META[typeKey].labelKey)}
             <span style={{
-              background: filterType === t ? TYPE_META[t].color : 'var(--border-2)',
-              color: filterType === t ? '#fff' : 'var(--text-3)',
+              background: filterType === typeKey ? TYPE_META[typeKey].color : 'var(--border-2)',
+              color: filterType === typeKey ? '#fff' : 'var(--text-3)',
               borderRadius: 20, padding: '1px 7px', fontSize: 10, fontWeight: 800,
-            }}>{counts[t]}</span>
+            }}>{counts[typeKey]}</span>
           </button>
         ))}
       </div>
@@ -195,7 +216,7 @@ export default function JournalPage() {
             <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
           </svg>
           <input
-            placeholder="Search by name, type, notes…"
+            placeholder={t('journal.search')}
             value={search}
             onChange={e => { setSearch(e.target.value); setPage(1); }}
             style={{
@@ -215,24 +236,24 @@ export default function JournalPage() {
             <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
-          Refresh
+          {t('journal.refresh')}
         </button>
         {filterType !== 'all' && (
           <button onClick={() => { setFilterType('all'); setPage(1); }} style={{
             padding: '8px 14px', borderRadius: 9, border: '1px solid var(--border-2)',
             background: 'var(--surface)', color: 'var(--text-3)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>
-            Clear filter
+            {t('journal.clearFilter')}
           </button>
         )}
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-4)', whiteSpace: 'nowrap' }}>
-          {filtered.length} record{filtered.length !== 1 ? 's' : ''}
+          {filtered.length} {filtered.length !== 1 ? t('journal.records') : t('journal.record')}
         </span>
       </div>
 
       {/* Table */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-3)' }}>Loading…</div>
+        <div style={{ textAlign: 'center', padding: 60, color: 'var(--text-3)' }}>{t('journal.loading')}</div>
       ) : filtered.length === 0 ? (
         <div style={{
           textAlign: 'center', padding: '60px 20px',
@@ -243,15 +264,15 @@ export default function JournalPage() {
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
             <polyline points="14 2 14 8 20 8"/>
           </svg>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>No records found</div>
-          <div style={{ fontSize: 12 }}>Create orders from the Orders tab or via FinBot</div>
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>{t('journal.noRecords')}</div>
+          <div style={{ fontSize: 12 }}>{t('journal.noRecordsHint')}</div>
         </div>
       ) : (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {['Date', 'Type', 'Summary', 'Notes'].map(h => (
+                {COLS.map(h => (
                   <th key={h} style={{
                     padding: '10px 16px', textAlign: 'left', fontWeight: 700,
                     fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase',
@@ -263,7 +284,7 @@ export default function JournalPage() {
             </thead>
             <tbody>
               {pageRows.map((row, i) => {
-                const meta = TYPE_META[row._type] || { color: '#64748b', label: row._type };
+                const meta = TYPE_META[row._type] || { color: '#64748b' };
                 return (
                   <tr
                     key={row.id || i}
@@ -275,7 +296,7 @@ export default function JournalPage() {
                       {formatDate(row.createdAt)}
                     </td>
                     <td style={{ padding: '12px 16px' }}>
-                      <Badge color={meta.color} label={row._type} />
+                      <Badge color={meta.color} typeKey={row._type} />
                     </td>
                     <td style={{ padding: '12px 16px', color: 'var(--text)', lineHeight: 1.5 }}>
                       <SummaryText type={row._type} row={row} />
@@ -297,12 +318,14 @@ export default function JournalPage() {
             }}>
               <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                 style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1, fontSize: 12, fontWeight: 600 }}>
-                ← Prev
+                {t('journal.prev')}
               </button>
-              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>Page {page} of {totalPages}</span>
+              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                {t('journal.pageOf').replace('{page}', page).replace('{total}', totalPages)}
+              </span>
               <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                 style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.4 : 1, fontSize: 12, fontWeight: 600 }}>
-                Next →
+                {t('journal.next')}
               </button>
             </div>
           )}
