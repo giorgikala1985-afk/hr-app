@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { FileScanIcon, InboxIcon, AiMagicIcon, Loading03Icon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, FileSpreadsheetIcon } from '@hugeicons/core-free-icons';
+import { InboxIcon, AiMagicIcon, Loading03Icon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, FileSpreadsheetIcon } from '@hugeicons/core-free-icons';
 
 function Invoices() {
   const { t } = useLanguage();
@@ -55,7 +55,7 @@ function Invoices() {
     }
   };
 
-  const handleUploadSave = async () => {
+  const handleUploadSave = async (onSuccess) => {
     if (!uploadFile) return;
     setUploadSaving(true);
     setUploadError('');
@@ -80,6 +80,7 @@ function Invoices() {
       setUploadPreview(null);
       setUploadForm({ dueDate: '', urgent: false });
       if (uploadInputRef.current) uploadInputRef.current.value = '';
+      if (onSuccess) onSuccess();
     } catch {
       setUploadError('ფაილის შენახვა ვერ მოხერხდა.');
     } finally {
@@ -293,101 +294,6 @@ function Invoices() {
     catch { setUploadRecords(prev => prev.map(r => r.id === id ? { ...r, urgent: rec.urgent } : r)); }
   };
 
-  // Scanner state
-  const [scanFile, setScanFile] = useState(null);
-  const [scanPreview, setScanPreview] = useState(null);
-  const [scanning, setScanning] = useState(false);
-  const [scanResult, setScanResult] = useState(null);
-  const [scanError, setScanError] = useState('');
-  const [scanSaving, setScanSaving] = useState(false);
-  const [scanSaved, setScanSaved] = useState(false);
-  const scanInputRef = useRef();
-
-  const handleScanFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setScanFile(file);
-    setScanResult(null);
-    setScanError('');
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setScanPreview(ev.target.result);
-      reader.readAsDataURL(file);
-    } else {
-      setScanPreview(null);
-    }
-  };
-
-  const handleScan = async () => {
-    if (!scanFile) return;
-    setScanning(true);
-    setScanError('');
-    setScanResult(null);
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(scanFile);
-      });
-      const res = await api.post('/accounting/invoices/scan', {
-        data: base64,
-        mimeType: scanFile.type,
-      });
-      setScanResult(res.data.result);
-    } catch (err) {
-      setScanError(err.response?.data?.error || err.message);
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const resetScan = () => {
-    setScanFile(null);
-    setScanPreview(null);
-    setScanResult(null);
-    setScanError('');
-    setScanSaved(false);
-    if (scanInputRef.current) scanInputRef.current.value = '';
-  };
-
-  const handleSaveScanned = async () => {
-    if (!scanResult) return;
-    setScanSaving(true);
-    setScanError('');
-    try {
-      const bankDetails = [
-        scanResult.bank_name && `Bank: ${scanResult.bank_name}`,
-        scanResult.account_number && `Account: ${scanResult.account_number}`,
-        scanResult.swift_bic && `SWIFT/BIC: ${scanResult.swift_bic}`,
-        scanResult.notes,
-      ].filter(Boolean).join('\n');
-
-      const num = scanResult.invoice_number || `INV-${Date.now().toString().slice(-6)}`;
-      const items = [{ description: scanResult.description || 'Invoice payment', qty: 1, unit_price: parseFloat(scanResult.amount) || 0 }];
-      const total = parseFloat(scanResult.amount) || 0;
-
-      await api.post('/accounting/invoices', {
-        client: scanResult.payee || 'Unknown',
-        client_email: '',
-        invoice_number: num,
-        date: scanResult.invoice_date || today(),
-        due_date: scanResult.due_date || null,
-        currency: scanResult.currency || 'USD',
-        status: 'draft',
-        notes: bankDetails,
-        account_number: scanResult.account_number || null,
-        items,
-        total,
-      });
-      setScanSaved(true);
-    } catch (err) {
-      setScanError(err.response?.data?.error || err.message);
-    } finally {
-      setScanSaving(false);
-    }
-  };
-
   return (
     <>
       <h2>{t('inv.title')}</h2>
@@ -399,9 +305,9 @@ function Invoices() {
           <HugeiconsIcon icon={InboxIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           Invoice List
         </button>
-        <button className={`docs-inner-tab${tab === 'scanner' ? ' active' : ''}`} onClick={() => setTab('scanner')}>
-          <HugeiconsIcon icon={FileScanIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          {t('inv.scanner')}
+        <button className={`docs-inner-tab${tab === 'upload' ? ' active' : ''}`} onClick={() => setTab('upload')}>
+          <HugeiconsIcon icon={Upload01Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Upload
         </button>
         <button className={`docs-inner-tab${tab === 'edit' ? ' active' : ''}`} onClick={() => setTab('edit')}>
           <HugeiconsIcon icon={TaskEdit01Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
@@ -409,122 +315,100 @@ function Invoices() {
         </button>
       </div>
 
-      {/* ── SCANNER TAB ─────────────────────────── */}
-      {tab === 'scanner' && (
-        <div style={{ maxWidth: 1400 }}>
-          {/* Upload area */}
-          {!scanResult && (
+      {/* ── UPLOAD TAB ─────────────────────────── */}
+      {tab === 'upload' && (
+        <div style={{ maxWidth: 640 }}>
+          <input
+            ref={uploadInputRef}
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png"
+            style={{ display: 'none' }}
+            onChange={e => handleUploadFile(e.target.files[0])}
+          />
+
+          {!uploadFile ? (
             <div
-              onClick={() => scanInputRef.current.click()}
+              onClick={() => uploadInputRef.current.click()}
               onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) { setScanFile(f); setScanResult(null); setScanError(''); if (f.type.startsWith('image/')) { const r = new FileReader(); r.onload = ev => setScanPreview(ev.target.result); r.readAsDataURL(f); } else setScanPreview(null); } }}
+              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleUploadFile(f); }}
               style={{
-                border: '2px dashed var(--border)', borderRadius: 14, padding: '48px 32px',
+                border: '2px dashed var(--border)', borderRadius: 14, padding: '64px 32px',
                 textAlign: 'center', cursor: 'pointer', background: 'var(--surface-2)',
-                transition: 'border-color 0.2s', marginBottom: 20,
+                transition: 'border-color 0.2s',
               }}
               onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
               onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
             >
-              <input ref={scanInputRef} type="file" accept="image/*,.pdf" onChange={handleScanFile} style={{ display: 'none' }} />
-              <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <HugeiconsIcon icon={Upload01Icon} size={28} color="var(--accent, #6366f1)" strokeWidth={1.8} />
+                </div>
+              </div>
               <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 6 }}>
-                {scanFile ? scanFile.name : t('inv.dropHere')}
+                Click or drag & drop to upload
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>{t('inv.supports')}</div>
+              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>PDF, JPG, PNG — max 10MB</div>
             </div>
-          )}
-
-          {/* Image preview */}
-          {scanPreview && !scanResult && (
-            <div style={{ marginBottom: 20, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)', maxHeight: 320 }}>
-              <img src={scanPreview} alt="Invoice preview" style={{ width: '100%', objectFit: 'contain', display: 'block' }} />
-            </div>
-          )}
-
-          {/* Action buttons */}
-          {scanFile && !scanResult && (
-            <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-              <button
-                className="btn-add"
-                onClick={handleScan}
-                disabled={scanning}
-                style={{ opacity: scanning ? 0.7 : 1 }}
-              >
-                {scanning ? t('inv.analyzing') : t('inv.analyze')}
-              </button>
-              <button className="btn-secondary-outline" onClick={resetScan}>{t('inv.clearScan')}</button>
-            </div>
-          )}
-
-          {scanError && (
-            <div className="msg-error" style={{ marginBottom: 16 }}>{scanError}</div>
-          )}
-
-          {/* Scanning spinner */}
-          {scanning && (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-3)', fontSize: 15 }}>
-              <div style={{ fontSize: 32, marginBottom: 10 }}>⚙️</div>
-              {t('inv.geminiReading')}
-            </div>
-          )}
-
-          {/* Results */}
-          {scanResult && (
+          ) : (
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
-              <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>{t('inv.analyzed')}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 2 }}>{t('inv.extractedDetails')}</div>
+              {uploadPreview && (
+                <div style={{ borderBottom: '1px solid var(--border-2)', maxHeight: 260, overflow: 'hidden' }}>
+                  <img src={uploadPreview} alt="preview" style={{ width: '100%', objectFit: 'contain', display: 'block', maxHeight: 260 }} />
                 </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {scanSaved ? (
-                    <span style={{ color: '#16a34a', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 4 }}>{t('inv.savedToInvoices')}</span>
-                  ) : (
-                    <button className="btn-add" onClick={handleSaveScanned} disabled={scanSaving} style={{ fontSize: 13 }}>
-                      {scanSaving ? t('inv.saving') : t('inv.saveToInvoices')}
-                    </button>
-                  )}
-                  <button className="btn-secondary-outline" onClick={resetScan} style={{ fontSize: 13 }}>{t('inv.scanAnother')}</button>
+              )}
+              <div style={{ padding: '20px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <HugeiconsIcon icon={Upload01Icon} size={18} color="var(--accent, #6366f1)" strokeWidth={2} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{(uploadFile.size / 1024).toFixed(0)} KB</div>
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ padding: '24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                {/* Amount highlight */}
-                <div style={{ gridColumn: '1 / -1', background: 'rgba(37,99,235,0.08)', border: '1.5px solid rgba(37,99,235,0.2)', borderRadius: 10, padding: '18px 24px', display: 'flex', alignItems: 'center', gap: 20 }}>
-                  <div style={{ fontSize: 36 }}>💰</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text-3)', marginBottom: 4 }}>{t('inv.amountToTransfer')}</div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-mono)' }}>
-                      {scanResult.amount ? `${scanResult.amount} ${scanResult.currency || ''}` : '—'}
-                    </div>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Due Date</label>
+                    <input
+                      type="date"
+                      value={uploadForm.dueDate}
+                      onChange={e => setUploadForm(f => ({ ...f, dueDate: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 22 }}>
+                    <input
+                      type="checkbox"
+                      id="upload-urgent"
+                      checked={uploadForm.urgent}
+                      onChange={e => setUploadForm(f => ({ ...f, urgent: e.target.checked }))}
+                      style={{ width: 16, height: 16, cursor: 'pointer' }}
+                    />
+                    <label htmlFor="upload-urgent" style={{ fontSize: 13, fontWeight: 600, color: uploadForm.urgent ? '#f87171' : 'var(--text)', cursor: 'pointer' }}>
+                      Urgent
+                    </label>
                   </div>
                 </div>
 
-                {[
-                  { icon: '🏢', label: t('inv.payTo'), value: scanResult.payee },
-                  { icon: '📅', label: t('inv.dueDate'), value: scanResult.due_date },
-                  { icon: '📋', label: t('inv.invoiceDate'), value: scanResult.invoice_date },
-                  { icon: '🔢', label: t('inv.invoiceNo'), value: scanResult.invoice_number },
-                  { icon: '🏦', label: t('inv.bank'), value: scanResult.bank_name },
-                  { icon: '💳', label: t('inv.accountIban'), value: scanResult.account_number },
-                  { icon: '🌐', label: t('inv.swiftBic'), value: scanResult.swift_bic },
-                  { icon: '📝', label: t('inv.description'), value: scanResult.description },
-                ].map(({ icon, label, value }) => (
-                  <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-4)' }}>{icon} {label}</div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: value ? 'var(--text)' : 'var(--text-4)', fontStyle: value ? 'normal' : 'italic' }}>
-                      {value || t('inv.notFound')}
-                    </div>
-                  </div>
-                ))}
+                {uploadError && <div className="msg-error" style={{ marginBottom: 14 }}>{uploadError}</div>}
 
-                {scanResult.notes && (
-                  <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border-2)', paddingTop: 16, marginTop: 4 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, color: 'var(--text-4)', marginBottom: 6 }}>{t('inv.notes')}</div>
-                    <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6 }}>{scanResult.notes}</div>
-                  </div>
-                )}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    className="btn-add"
+                    onClick={() => handleUploadSave(() => setTab('uploads'))}
+                    disabled={uploadSaving}
+                    style={{ opacity: uploadSaving ? 0.7 : 1 }}
+                  >
+                    {uploadSaving ? 'Saving…' : 'Save Invoice'}
+                  </button>
+                  <button
+                    className="btn-secondary-outline"
+                    onClick={() => { setUploadFile(null); setUploadPreview(null); setUploadForm({ dueDate: '', urgent: false }); setUploadError(''); if (uploadInputRef.current) uploadInputRef.current.value = ''; }}
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -534,79 +418,6 @@ function Invoices() {
       {/* ── UPLOADS TAB ─────────────────────────── */}
       {tab === 'uploads' && (
         <div style={{ maxWidth: 1400 }}>
-          {/* Hidden file input */}
-          <input
-            ref={uploadInputRef}
-            type="file"
-            accept=".pdf,.jpg,.jpeg,.png"
-            style={{ display: 'none' }}
-            onChange={e => handleUploadFile(e.target.files[0])}
-          />
-
-          {uploadError && (
-            <div className="msg-error" style={{ marginBottom: 12 }}>{uploadError}</div>
-          )}
-
-          {/* Selected file + form */}
-          {uploadFile && (
-            <div style={{
-              background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12,
-              padding: 20, marginBottom: 20, display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap',
-            }}>
-              {uploadPreview ? (
-                <img src={uploadPreview} alt="preview" style={{ width: 100, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0 }} />
-              ) : (
-                <div style={{
-                  width: 100, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: 'var(--surface-2)', borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0, fontSize: 32,
-                }}>📄</div>
-              )}
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 12 }}>{uploadFile.name}</div>
-                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)' }}>გადარიცხვის თარიღი</label>
-                    <input
-                      type="date"
-                      value={uploadForm.dueDate}
-                      onChange={e => setUploadForm(p => ({ ...p, dueDate: e.target.value }))}
-                      style={{ padding: '7px 10px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)' }}
-                    />
-                  </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14, color: 'var(--text)', fontWeight: 600, paddingBottom: 7 }}>
-                    <input
-                      type="checkbox"
-                      checked={uploadForm.urgent}
-                      onChange={e => setUploadForm(p => ({ ...p, urgent: e.target.checked }))}
-                      style={{ width: 16, height: 16 }}
-                    />
-                    სასწრაფო
-                  </label>
-                  <button
-                    onClick={handleUploadSave}
-                    disabled={uploadSaving}
-                    style={{
-                      padding: '8px 22px', background: '#3b82f6', color: '#fff', border: 'none',
-                      borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: uploadSaving ? 'not-allowed' : 'pointer',
-                      opacity: uploadSaving ? 0.7 : 1, marginBottom: 0,
-                    }}
-                  >
-                    {uploadSaving ? 'ტექსტის ამოცნობა...' : 'შენახვა'}
-                  </button>
-                  <button
-                    onClick={() => { setUploadFile(null); setUploadPreview(null); setUploadError(''); if (uploadInputRef.current) uploadInputRef.current.value = ''; }}
-                    style={{
-                      padding: '8px 14px', background: 'var(--surface-2)', color: 'var(--text-3)', border: '1px solid var(--border-2)',
-                      borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', marginBottom: 0,
-                    }}
-                  >
-                    გაუქმება
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Uploads — daily blocks */}
           {uploadRecords.length === 0 ? (
             <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '48px 0', fontSize: 14 }}>
@@ -680,7 +491,7 @@ function Invoices() {
                         {dayRecords.length}
                       </span>
                       <button
-                        onClick={e => { e.stopPropagation(); uploadInputRef.current.click(); }}
+                        onClick={e => { e.stopPropagation(); setTab('upload'); }}
                         title="ინვოისის ატვირთვა"
                         style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer' }}
                       >
@@ -841,6 +652,7 @@ function Invoices() {
                   <thead>
                     <tr>
                       <th style={{ width: 180 }}>ფაილი</th>
+                      <th style={{ width: 130 }}></th>
                       <th style={{ width: 170 }}>გადამხდელი</th>
                       <th style={{ width: 110 }}>თანხა</th>
                       <th style={{ width: 90 }}>ვალუტა</th>
@@ -848,7 +660,6 @@ function Invoices() {
                       <th style={{ width: 150 }}>გადახდის ვადა</th>
                       <th style={{ width: 180 }}>IBAN/ანგარიში</th>
                       <th style={{ width: 200 }}>აღწერა</th>
-                      <th style={{ width: 140 }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -862,6 +673,23 @@ function Invoices() {
                           >
                             {rec.fileName}
                           </button>
+                        </td>
+                        <td>
+                          {rec.sent ? (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#16a34a" strokeWidth={2.5} />
+                              გაგზავნილია
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleSendToTransfers(rec)}
+                              disabled={sendingId === rec.uploadId || sendingAll}
+                              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer' }}
+                            >
+                              <HugeiconsIcon icon={SentIcon} size={13} color="currentColor" strokeWidth={2} />
+                              {sendingId === rec.uploadId ? 'იგზავნება...' : 'გაგზავნა'}
+                            </button>
+                          )}
                         </td>
                         <td>
                           <input value={rec.payee} onChange={e => updateEditField(rec.uploadId, 'payee', e.target.value)} placeholder="გადამხდელი" style={editInpStyle} />
@@ -885,23 +713,6 @@ function Invoices() {
                         </td>
                         <td>
                           <input value={rec.description} onChange={e => updateEditField(rec.uploadId, 'description', e.target.value)} placeholder="აღწერა" style={editInpStyle} />
-                        </td>
-                        <td>
-                          {rec.sent ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
-                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#16a34a" strokeWidth={2.5} />
-                              გაგზავნილია
-                            </span>
-                          ) : (
-                            <button
-                              onClick={() => handleSendToTransfers(rec)}
-                              disabled={sendingId === rec.uploadId || sendingAll}
-                              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: 'pointer' }}
-                            >
-                              <HugeiconsIcon icon={SentIcon} size={13} color="currentColor" strokeWidth={2} />
-                              {sendingId === rec.uploadId ? 'იგზავნება...' : 'გაგზავნა'}
-                            </button>
-                          )}
                         </td>
                       </tr>
                     ))}

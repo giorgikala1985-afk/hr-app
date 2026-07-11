@@ -113,6 +113,39 @@ function SubTabActions({ onSave, onCancel, saving, disabled }) {
   );
 }
 
+const endOfMonth = (monthStr) => {
+  const [y, m] = monthStr.split('-').map(Number);
+  return new Date(y, m, 0).toISOString().split('T')[0];
+};
+const currentMonthStr = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+};
+
+function ImmediateEffectToggle({ value, onToggle }) {
+  return (
+    <div style={{ marginBottom: 4 }}>
+      <label style={LABEL}>Effect Timing</label>
+      <div style={{ display: 'inline-flex', borderRadius: 8, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+        <button
+          type="button"
+          onClick={() => onToggle(true)}
+          style={{ padding: '7px 16px', fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: value ? '#3b82f6' : 'var(--surface-2)', color: value ? '#fff' : 'var(--text-3)', transition: 'all 0.15s' }}
+        >
+          ⚡ Immediate Effect
+        </button>
+        <button
+          type="button"
+          onClick={() => onToggle(false)}
+          style={{ padding: '7px 16px', fontSize: 12, fontWeight: 700, border: 'none', borderLeft: '1px solid var(--border-2)', cursor: 'pointer', fontFamily: 'inherit', background: !value ? '#3b82f6' : 'var(--surface-2)', color: !value ? '#fff' : 'var(--text-3)', transition: 'all 0.15s' }}
+        >
+          📅 End of month
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function EmptyState({ label, onAdd }) {
   const { t } = useLanguage();
   return (
@@ -133,7 +166,7 @@ function PromotionTab({ employees }) {
   const [editing, setEditing] = useState(null);
   const [positions, setPositions] = useState([]);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
-  const EMPTY = { employeeId: '', newPosition: '', oldSalary: '', newSalary: '', effectiveDate: '', notes: '' };
+  const EMPTY = { employeeId: '', newPosition: '', oldSalary: '', newSalary: '', effectiveDate: '', notes: '', immediateEffect: true };
 
   const handleDownloadPDF = async (o, idx) => {
     setPdfLoadingId(o.id);
@@ -239,6 +272,7 @@ function PromotionTab({ employees }) {
                 <div><label style={LABEL}>{t('orders.oldSalary')}</label><input type="number" value={form.oldSalary} readOnly style={{ ...INPUT, width: '100%', opacity: 0.6 }} /></div>
                 <div><label style={LABEL}>{t('orders.newSalary')} *</label><input type="number" value={form.newSalary} onChange={f('newSalary')} required style={{ ...INPUT, width: '100%' }} /></div>
               </div>
+              <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, effectiveDate: v ? p.effectiveDate : endOfMonth(currentMonthStr()) }))} />
               <div><label style={LABEL}>{t('orders.effectiveDate')} *</label><input type="date" value={form.effectiveDate} onChange={f('effectiveDate')} required style={{ ...INPUT, width: '100%' }} /></div>
               <div><label style={LABEL}>{t('orders.notes')}</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
             </div>
@@ -268,6 +302,7 @@ function HiringTab() {
     position: '', department: '', startDate: '', endDate: '',
     salary: '', salaryCurrency: 'GEL', accountNumber: '', pitRate: '20',
     pension: false, personalEmail: '', phone: '', address: '', notes: '',
+    immediateEffect: true,
   };
   const [form, setForm] = useState(EMPTY);
   const fv = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
@@ -484,6 +519,9 @@ function HiringTab() {
                             >{cur}</button>
                           ))}
                         </div>
+                      </div>
+                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                        <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, startDate: v ? p.startDate : endOfMonth(currentMonthStr()) }))} />
                       </div>
                       <div className="form-group">
                         <label>{t('orders.startDate')} *</label>
@@ -1184,7 +1222,7 @@ function FiringTab({ employees }) {
   const { orders, add, update, remove } = useLocalOrders('hr_firing_orders');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
-  const EMPTY = { employeeId: '', terminationDate: '', reason: '', notes: '' };
+  const EMPTY = { employeeId: '', terminationDate: '', reason: '', notes: '', immediateEffect: true };
   const [form, setForm] = useState(EMPTY);
   const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
 
@@ -1249,6 +1287,7 @@ function FiringTab({ employees }) {
                   {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
                 </select>
               </div>
+              <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, terminationDate: v ? p.terminationDate : endOfMonth(currentMonthStr()) }))} />
               <div><label style={LABEL}>{t('orders.terminationDate')} *</label><input type="date" value={form.terminationDate} onChange={f('terminationDate')} required style={{ ...INPUT, width: '100%' }} /></div>
               <div><label style={LABEL}>{t('orders.reason')} *</label><input value={form.reason} onChange={f('reason')} required style={{ ...INPUT, width: '100%' }} /></div>
               <div><label style={LABEL}>{t('orders.notes')}</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
@@ -1488,6 +1527,7 @@ function BusinessTripTab({ employees }) {
     fromDate: '', toDate: '',
     countryCode: '', countryName: '', cityName: '',
     perDiem: '', amount: '', notes: '',
+    immediateEffect: true,
   };
   const [form, setForm] = useState(EMPTY);
 
@@ -1833,6 +1873,7 @@ function BusinessTripTab({ employees }) {
                   </div>
                 </div>
 
+                <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => { const eom = endOfMonth(currentMonthStr()); setForm(f => ({ ...f, immediateEffect: v, fromDate: v ? f.fromDate : eom, toDate: v ? f.toDate : eom })); }} />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={LABEL}>From *</label>
@@ -1994,6 +2035,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     numMonths: 1,
     startMonth: thisMonth,
     manualSlots: Array.from({ length: 1 }, () => ({ amount: '' })),
+    immediateEffect: true,
   };
   const [form, setForm] = useState(EMPTY);
 
@@ -2182,6 +2224,9 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
               </div>
             </div>
 
+            {/* Immediate Effect toggle */}
+            <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, startMonth: v ? p.startMonth : currentMonthStr() }))} />
+
             {/* Start month + num months (both modes) */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
@@ -2281,7 +2326,7 @@ export default function Orders() {
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
-  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: 'USD', includeInSalary: true, date: '' };
+  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: 'USD', includeInSalary: true, date: '', immediateEffect: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
 
@@ -2854,6 +2899,11 @@ export default function Orders() {
                   <div style={{ fontSize: 11, marginTop: 5, color: getDirection(form.type) === 'addition' ? '#4ade80' : '#f87171' }}>
                     {getDirection(form.type) === 'addition' ? t('orders.addedToNet') : t('orders.deductedFromNet')}
                   </div>
+                </div>
+
+                {/* Immediate Effect toggle */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, date: v ? p.date : monthLastDay }))} />
                 </div>
 
                 {/* Date */}

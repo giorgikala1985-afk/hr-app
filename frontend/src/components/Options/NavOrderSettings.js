@@ -26,13 +26,13 @@ export const NAV_ORDER_KEY = 'nav_order';
 export const NAV_KEYS_DEFAULT = ['home', 'analytics', 'documents', 'accounting', 'options'];
 
 export const ACC_SIDEBAR_ORDER_KEY = 'acc_sidebar_order';
-export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'ai-agent'];
+export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'orders', 'ai-agent'];
 
 export const OPT_SIDEBAR_ORDER_KEY = 'opt_sidebar_order';
 export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'tools', 'appearance', 'about'];
 
 export const DOCS_SIDEBAR_ORDER_KEY = 'docs_sidebar_order';
-export const DOCS_SIDEBAR_DEFAULT = ['journal', 'requests', 'employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'orders', 'datalake', 'banking', 'rsge'];
+export const DOCS_SIDEBAR_DEFAULT = ['journal', 'requests', 'employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'datalake', 'banking', 'rsge'];
 
 export const NAV_HIDDEN_KEY = 'nav_hidden';
 export const ACC_SIDEBAR_HIDDEN_KEY = 'acc_sidebar_hidden';
@@ -85,7 +85,6 @@ const DOCS_ICONS = {
   agreements: listIcon(Agreement01Icon),
   devices: listIcon(ComputerIcon),
   'nbg-rates': listIcon(ExchangeDollarIcon),
-  orders: listIcon(ClipboardListIcon),
   datalake: listIcon(Database01Icon),
   banking: listIcon(BankIcon),
   rsge: listIcon(SecurityCheckIcon),
@@ -100,6 +99,7 @@ const ACC_ICONS = {
   stock: listIcon(Package01Icon),
   calendar: listIcon(Calendar03Icon),
   transfers: listIcon(ArrowDataTransferHorizontalIcon),
+  orders: listIcon(ClipboardListIcon),
   'ai-agent': listIcon(AiBrain01Icon),
 };
 

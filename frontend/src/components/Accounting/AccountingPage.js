@@ -12,6 +12,7 @@ import PaymentCalendar from './PaymentCalendar';
 import Stock from './Stock';
 import FinBotsPage from './FinBotsPage';
 import JetPage from './JetPage';
+import Orders from '../Documents/Orders';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
   Book01Icon,
@@ -22,7 +23,8 @@ import {
   Package01Icon,
   Calendar03Icon,
   ArrowDataTransferHorizontalIcon,
-  AiBrain01Icon,
+  ChatSpark01Icon,
+  ClipboardListIcon,
 } from '@hugeicons/core-free-icons';
 import './Accounting.css';
 
@@ -37,7 +39,8 @@ const ICONS = {
   stock:         accIcon(Package01Icon, '#f59e0b'),
   calendar:      accIcon(Calendar03Icon, '#ec4899'),
   transfers:     accIcon(ArrowDataTransferHorizontalIcon, '#06b6d4'),
-  finbot:        accIcon(AiBrain01Icon, '#ec4899'),
+  orders:        accIcon(ClipboardListIcon, '#f97316'),
+  finbot:        accIcon(ChatSpark01Icon, '#ec4899'),
   jet: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
@@ -54,6 +57,7 @@ const TAB_KEYS = [
   { key: 'stock',          labelKey: 'acc.stock',       icon: ICONS.stock },
   { key: 'calendar',       labelKey: 'acc.calendar',    icon: ICONS.calendar },
   { key: 'transfers',      labelKey: 'acc.transfers',   icon: ICONS.transfers },
+  { key: 'orders',        labelKey: 'docs.orders',     icon: ICONS.orders },
   { key: 'ai-agent',      labelKey: 'docs.finbot',     icon: ICONS.finbot },
   { key: 'jet',           labelKey: 'acc.jet',         icon: ICONS.jet },
 ];
@@ -136,6 +140,7 @@ function AccountingPage() {
         {activeTab === 'stock'          && <Stock />}
         {activeTab === 'calendar'       && <PaymentCalendar />}
         {activeTab === 'transfers'      && <Transfers />}
+        {activeTab === 'orders'         && <Orders />}
         {activeTab === 'ai-agent'       && <FinBotsPage />}
         {activeTab === 'jet'            && <JetPage />}
       </main>

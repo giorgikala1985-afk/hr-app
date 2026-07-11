@@ -7,7 +7,7 @@ import WeatherWidget from './WeatherWidget';
 import CurrencyWidget from './CurrencyWidget';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
-  UserGroupIcon, Briefcase01Icon, Agreement01Icon, ExchangeDollarIcon, AiBrain01Icon,
+  UserGroupIcon, Briefcase01Icon, Agreement01Icon, ExchangeDollarIcon, ChatSpark01Icon,
   ClipboardListIcon, Database01Icon, ComputerIcon, Book01Icon, ShoppingCart01Icon,
   SaleTag01Icon, Invoice01Icon, MoneyBag01Icon, Package01Icon, Calendar03Icon,
   ArrowDataTransferHorizontalIcon, BankIcon, SecurityCheckIcon, TaxesIcon, Globe02Icon,
@@ -38,10 +38,10 @@ const ALL_TABS = [
   },
   {
     key: 'doc-finbot', label: 'FinBot', labelKey: 'docs.finbot', section: 'Accounting', route: '/finances?tab=ai-agent',
-    color: '#ec4899', bg: '#fdf2f8', icon: homeIcon(AiBrain01Icon),
+    color: '#ec4899', bg: '#fdf2f8', icon: homeIcon(ChatSpark01Icon),
   },
   {
-    key: 'doc-orders', label: 'Orders', labelKey: 'docs.orders', section: 'Documents', route: '/documents?tab=orders',
+    key: 'doc-orders', label: 'Orders', labelKey: 'docs.orders', section: 'Accounting', route: '/finances?tab=orders',
     color: '#f59e0b', bg: '#fffbeb', icon: homeIcon(ClipboardListIcon),
   },
   {

@@ -20,7 +20,6 @@ import EmployeeList from '../Employees/EmployeeList';
 import Agents from '../Accounting/Agents';
 import Agreements from './Agreements';
 import CurrencyRates from './CurrencyRates';
-import Orders from './Orders';
 import JournalPage from './JournalPage';
 import DataLake from './DataLake';
 import Requests from './Requests';
@@ -46,9 +45,6 @@ const TAB_KEYS = [
   )},
   { key: 'nbg-rates', labelKey: 'docs.nbgRates', icon: (
     <HugeiconsIcon icon={ExchangeDollarIcon} size={16} color="#06b6d4" strokeWidth={1.8} />
-  )},
-  { key: 'orders', labelKey: 'docs.orders', icon: (
-    <HugeiconsIcon icon={ClipboardListIcon} size={16} color="#f59e0b" strokeWidth={1.8} />
   )},
   { key: 'datalake', labelKey: 'docs.dataLake', icon: (
     <HugeiconsIcon icon={Database01Icon} size={16} color="#14b8a6" strokeWidth={1.8} />
@@ -131,7 +127,6 @@ function DocumentsPage() {
         {activeTab === 'agents' && <Agents />}
         {activeTab === 'agreements' && <Agreements />}
         {activeTab === 'nbg-rates' && <CurrencyRates />}
-        {activeTab === 'orders' && <Orders />}
         {activeTab === 'devices' && (
           <div className="docs-blank">
             <div className="docs-blank-icon">

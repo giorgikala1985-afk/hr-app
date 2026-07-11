@@ -1,14 +1,24 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { HugeiconsIcon } from '@hugeicons/react';
+import {
+  ArrowDataTransferHorizontalIcon,
+  CheckmarkCircleIcon,
+  CancelCircleIcon,
+  PieChartIcon,
+  ClockIcon,
+  ArchiveIcon,
+  BellIcon,
+} from '@hugeicons/core-free-icons';
 
-const TYPE_ICON = {
-  transfer_submitted: '📤',
-  transfer_approved:  '✅',
-  transfer_rejected:  '❌',
-  transfer_partial:   '½',
-  transfer_wait:      '⏸',
-  transfer_archived:  '📦',
+const TYPE_CONFIG = {
+  transfer_submitted: { icon: ArrowDataTransferHorizontalIcon, color: '#60a5fa', bg: 'rgba(59,130,246,0.14)' },
+  transfer_approved:  { icon: CheckmarkCircleIcon,             color: '#4ade80', bg: 'rgba(22,163,74,0.14)' },
+  transfer_rejected:  { icon: CancelCircleIcon,                color: '#f87171', bg: 'rgba(220,38,38,0.14)' },
+  transfer_partial:   { icon: PieChartIcon,                    color: '#60a5fa', bg: 'rgba(59,130,246,0.14)' },
+  transfer_wait:      { icon: ClockIcon,                       color: '#cbd5e1', bg: 'rgba(148,163,184,0.14)' },
+  transfer_archived:  { icon: ArchiveIcon,                     color: '#a78bfa', bg: 'rgba(139,92,246,0.14)' },
 };
 
 function timeAgo(ts) {
@@ -145,10 +155,14 @@ export default function NotificationBell() {
           <div style={{ maxHeight: 380, overflowY: 'auto' }}>
             {notifications.length === 0 ? (
               <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-3)', fontSize: 13 }}>
-                <div style={{ fontSize: 28, marginBottom: 8 }}>🔔</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                  <HugeiconsIcon icon={BellIcon} size={28} color="var(--text-4)" strokeWidth={1.5} />
+                </div>
                 No notifications yet
               </div>
-            ) : notifications.map(n => (
+            ) : notifications.map(n => {
+              const cfg = TYPE_CONFIG[n.type] || { icon: BellIcon, color: '#94a3b8', bg: 'rgba(148,163,184,0.14)' };
+              return (
               <div
                 key={n.id}
                 onClick={() => handleClick(n)}
@@ -161,9 +175,9 @@ export default function NotificationBell() {
                 onMouseEnter={e => e.currentTarget.style.background = n.is_read ? 'var(--surface-2)' : 'rgba(99,102,241,0.13)'}
                 onMouseLeave={e => e.currentTarget.style.background = n.is_read ? 'transparent' : 'rgba(99,102,241,0.07)'}
               >
-                <span style={{ fontSize: 20, lineHeight: '1.3', flexShrink: 0 }}>
-                  {TYPE_ICON[n.type] || '🔔'}
-                </span>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <HugeiconsIcon icon={cfg.icon} size={18} color={cfg.color} strokeWidth={2} />
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontWeight: n.is_read ? 500 : 700, fontSize: 13,
@@ -191,7 +205,7 @@ export default function NotificationBell() {
                   }} />
                 )}
               </div>
-            ))}
+            ); })}
           </div>
 
           {notifications.length > 0 && (
