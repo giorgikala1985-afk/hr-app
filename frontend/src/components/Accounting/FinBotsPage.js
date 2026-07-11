@@ -29,6 +29,7 @@ const CHART_TYPES = [
   { key: 'scatter',    label: 'Scatter',    icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><circle cx="5" cy="15" r="2" fill={c}/><circle cx="9" cy="8" r="2" fill={c}/><circle cx="14" cy="12" r="2" fill={c}/><circle cx="18" cy="4" r="2" fill={c}/><circle cx="22" cy="9" r="2" fill={c}/><circle cx="25" cy="6" r="2" fill={c}/><circle cx="11" cy="15" r="2" fill={c} fillOpacity="0.5"/></svg> },
   { key: 'radial-bar', label: 'Radial',     icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><path d="M14,10 m-8,0 a8,8 0 0,1 7,-7" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeOpacity="0.35"/><path d="M14,10 m-6,0 a6,6 0 0,1 6,-6" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeOpacity="0.55"/><path d="M14,10 m-4,0 a4,4 0 0,1 4,-3.5" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round"/></svg> },
   { key: 'funnel',     label: 'Funnel',     icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><polygon points="4,2 24,2 20,8 8,8" fill={c} fillOpacity="0.7"/><polygon points="8,9 20,9 17,14 11,14" fill={c} fillOpacity="0.5"/><polygon points="11,15 17,15 15,19 13,19" fill={c} fillOpacity="0.35"/></svg> },
+  { key: 'matrix',     label: 'Matrix',     icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><rect x="1" y="1" width="26" height="18" rx="2" fill="none" stroke={c} strokeWidth="1.2"/><line x1="1" y1="7" x2="27" y2="7" stroke={c} strokeWidth="1.2"/><line x1="8" y1="1" x2="8" y2="19" stroke={c} strokeWidth="1"/><line x1="15" y1="1" x2="15" y2="19" stroke={c} strokeWidth="1"/><line x1="22" y1="1" x2="22" y2="19" stroke={c} strokeWidth="1"/><rect x="2" y="2" width="5" height="4" rx="1" fill={c} fillOpacity="0.6"/><rect x="9" y="2" width="5" height="4" rx="1" fill={c} fillOpacity="0.4"/><rect x="16" y="2" width="5" height="4" rx="1" fill={c} fillOpacity="0.25"/></svg> },
 ];
 
 const DATA_SOURCE_DEFS = [
@@ -399,6 +400,104 @@ function BotModal({ bot, onSave, onClose }) {
   );
 }
 
+// ── Matrix table ─────────────────────────────────────────────────────────────
+function MatrixTable({ chartData }) {
+  const { labels = [], datasets = [], totals = true } = chartData;
+  const [sortColIdx, setSortColIdx] = useState(null);
+  const [sortDir, setSortDir] = useState(-1);
+
+  const sortedRows = sortColIdx === null
+    ? datasets
+    : [...datasets].sort((a, b) => {
+        const av = Number(a.data[sortColIdx]) || 0;
+        const bv = Number(b.data[sortColIdx]) || 0;
+        return (av - bv) * sortDir;
+      });
+
+  const rowTotals = sortedRows.map(ds => ds.data.reduce((s, v) => s + (Number(v) || 0), 0));
+  const colTotals = labels.map((_, ci) => sortedRows.reduce((s, ds) => s + (Number(ds.data[ci]) || 0), 0));
+  const grandTotal = rowTotals.reduce((s, v) => s + v, 0);
+
+  const allVals = sortedRows.flatMap(ds => ds.data.map(Number)).filter(v => !isNaN(v));
+  const minVal = allVals.length ? Math.min(...allVals) : 0;
+  const maxVal = allVals.length ? Math.max(...allVals) : 0;
+
+  const heatBg = (val) => {
+    if (maxVal === minVal) return 'transparent';
+    const pct = (Number(val) - minVal) / (maxVal - minVal);
+    return `rgba(59,130,246,${(pct * 0.52).toFixed(2)})`;
+  };
+
+  const fmt = (v) => {
+    const n = Number(v);
+    if (isNaN(n)) return v ?? '—';
+    return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  };
+
+  const handleColClick = (ci) => {
+    if (sortColIdx === ci) setSortDir(d => -d);
+    else { setSortColIdx(ci); setSortDir(-1); }
+  };
+
+  const thBase = {
+    padding: '7px 12px', fontSize: 11, fontWeight: 700, color: 'var(--text-3)',
+    borderBottom: '2px solid var(--border-2)', background: 'var(--surface-2)',
+    whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 1,
+    cursor: 'pointer', userSelect: 'none',
+  };
+  const tdBase = {
+    padding: '6px 12px', fontSize: 12, textAlign: 'right',
+    borderBottom: '1px solid var(--border)', color: 'var(--text-1)', whiteSpace: 'nowrap',
+  };
+
+  return (
+    <div style={{ overflowX: 'auto', maxHeight: 380, overflowY: 'auto', borderRadius: 10, border: '1px solid var(--border-2)' }}>
+      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 320, tableLayout: 'auto' }}>
+        <thead>
+          <tr>
+            <th style={{ ...thBase, textAlign: 'left', left: 0, zIndex: 2, cursor: 'default', borderRight: '1.5px solid var(--border-2)' }}></th>
+            {labels.map((l, ci) => (
+              <th key={ci} style={{ ...thBase, textAlign: 'right' }} onClick={() => handleColClick(ci)}>
+                {l}
+                {sortColIdx === ci && <span style={{ marginLeft: 4, opacity: 0.6 }}>{sortDir === -1 ? '↓' : '↑'}</span>}
+              </th>
+            ))}
+            {totals !== false && <th style={{ ...thBase, textAlign: 'right', borderLeft: '1.5px solid var(--border-2)', color: 'var(--text-2)' }}>Total</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {sortedRows.map((ds, ri) => (
+            <tr key={ri} style={{ background: ri % 2 === 1 ? 'var(--surface-0, var(--bg))' : 'transparent' }}>
+              <td style={{ ...tdBase, textAlign: 'left', fontWeight: 600, color: 'var(--text-2)', position: 'sticky', left: 0, background: ri % 2 === 1 ? 'var(--surface-0, var(--bg))' : 'var(--surface-1)', zIndex: 1, borderRight: '1.5px solid var(--border-2)' }}>
+                {ds.label}
+              </td>
+              {ds.data.map((val, ci) => (
+                <td key={ci} style={{ ...tdBase, background: heatBg(val) }}>{fmt(val)}</td>
+              ))}
+              {totals !== false && (
+                <td style={{ ...tdBase, fontWeight: 700, borderLeft: '1.5px solid var(--border-2)' }}>{fmt(rowTotals[ri])}</td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+        {totals !== false && (
+          <tfoot>
+            <tr>
+              <td style={{ ...tdBase, textAlign: 'left', fontWeight: 800, color: 'var(--text-1)', position: 'sticky', left: 0, background: 'var(--surface-2)', zIndex: 1, borderRight: '1.5px solid var(--border-2)', borderTop: '2px solid var(--border-2)' }}>
+                Total
+              </td>
+              {colTotals.map((v, ci) => (
+                <td key={ci} style={{ ...tdBase, fontWeight: 700, background: 'var(--surface-2)', borderTop: '2px solid var(--border-2)' }}>{fmt(v)}</td>
+              ))}
+              <td style={{ ...tdBase, fontWeight: 800, borderLeft: '1.5px solid var(--border-2)', background: 'var(--surface-2)', borderTop: '2px solid var(--border-2)' }}>{fmt(grandTotal)}</td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
+
 // ── Chart rendering ──────────────────────────────────────────────────────────
 const CHART_COLORS = [
   { start: '#6366f1', end: '#818cf8', glow: 'rgba(99,102,241,0.3)' }, // Indigo
@@ -754,9 +853,13 @@ function ChartBlock({ chartData }) {
           </button>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={['treemap', 'radar', 'radial-bar', 'funnel'].includes(type) ? 360 : 320}>
-        {chart}
-      </ResponsiveContainer>
+      {type === 'matrix' ? (
+        <MatrixTable chartData={chartData} />
+      ) : (
+        <ResponsiveContainer width="100%" height={['treemap', 'radar', 'radial-bar', 'funnel'].includes(type) ? 360 : 320}>
+          {chart}
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

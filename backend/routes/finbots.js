@@ -365,6 +365,7 @@ Supported chart types:
 - scatter: scatter plot, good for showing distribution or correlation
 - radial-bar: semicircular bar chart, good for progress toward targets (single dataset only)
 - funnel: funnel chart, good for pipeline stages or conversion rates (single dataset only)
+- matrix: pivot/cross-tab table (like Power BI Matrix) — use standard format where labels=column headers and each dataset row has label=row name and data[]=values for each column. Add "totals":true to show row/column totals. Best for multi-dimension breakdowns (e.g. department × month, employee × category).
 ${preferredChartType && preferredChartType !== 'bar' ? `\nPREFERRED CHART FOR THIS BOT: "${preferredChartType}" — default to this chart type when the user asks for a visualization, unless they explicitly request a different type.` : ''}
 
 CREATING HR ORDERS:
