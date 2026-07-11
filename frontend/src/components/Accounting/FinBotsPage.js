@@ -7,10 +7,29 @@ import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import {
   BarChart, Bar, LineChart, Line,
+  AreaChart, Area,
+  ComposedChart,
   PieChart, Pie, Cell,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  ScatterChart, Scatter, ZAxis,
+  RadialBarChart, RadialBar,
+  FunnelChart, Funnel, LabelList,
   Treemap,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
+
+const CHART_TYPES = [
+  { key: 'bar',        label: 'Bar',        icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><rect x="2" y="10" width="5" height="9" fill={c} rx="1"/><rect x="9" y="4" width="5" height="15" fill={c} rx="1"/><rect x="16" y="7" width="5" height="12" fill={c} rx="1"/><rect x="23" y="1" width="5" height="18" fill={c} rx="1"/></svg> },
+  { key: 'line',       label: 'Line',       icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><polyline points="2,17 8,10 14,13 20,4 26,7" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+  { key: 'area',       label: 'Area',       icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><path d="M2,17 L8,10 L14,13 L20,4 L26,7 L26,18 L2,18 Z" fill={c} fillOpacity="0.4" stroke={c} strokeWidth="1.5"/></svg> },
+  { key: 'composed',   label: 'Composed',   icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><rect x="3" y="12" width="4" height="7" fill={c} fillOpacity="0.5" rx="1"/><rect x="9" y="8" width="4" height="11" fill={c} fillOpacity="0.5" rx="1"/><rect x="15" y="10" width="4" height="9" fill={c} fillOpacity="0.5" rx="1"/><rect x="21" y="5" width="4" height="14" fill={c} fillOpacity="0.5" rx="1"/><polyline points="5,9 11,5 17,7 23,2" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+  { key: 'pie',        label: 'Pie',        icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><circle cx="14" cy="10" r="8" fill="none" stroke={c} strokeWidth="1"/><path d="M14,10 L14,2 A8,8 0 0,1 21.7,14 Z" fill={c} fillOpacity="0.8"/><path d="M14,10 L21.7,14 A8,8 0 0,1 6.3,14 Z" fill={c} fillOpacity="0.5"/><path d="M14,10 L6.3,14 A8,8 0 0,1 14,2 Z" fill={c} fillOpacity="0.3"/></svg> },
+  { key: 'treemap',    label: 'Treemap',    icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><rect x="1" y="1" width="14" height="12" fill={c} fillOpacity="0.7" rx="1"/><rect x="17" y="1" width="10" height="7" fill={c} fillOpacity="0.5" rx="1"/><rect x="17" y="10" width="10" height="9" fill={c} fillOpacity="0.35" rx="1"/><rect x="1" y="15" width="14" height="4" fill={c} fillOpacity="0.4" rx="1"/></svg> },
+  { key: 'radar',      label: 'Radar',      icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><polygon points="14,2 25,10 21,18 7,18 3,10" fill={c} fillOpacity="0.2" stroke={c} strokeWidth="1.2"/><polygon points="14,6 20.5,10 18,15 10,15 7.5,10" fill={c} fillOpacity="0.35" stroke={c} strokeWidth="1"/><line x1="14" y1="2" x2="14" y2="18" stroke={c} strokeWidth="0.5" strokeDasharray="2"/><line x1="3" y1="10" x2="25" y2="10" stroke={c} strokeWidth="0.5" strokeDasharray="2"/><line x1="7" y1="18" x2="21" y2="2" stroke={c} strokeWidth="0.5" strokeDasharray="2"/><line x1="21" y1="18" x2="7" y2="2" stroke={c} strokeWidth="0.5" strokeDasharray="2"/></svg> },
+  { key: 'scatter',    label: 'Scatter',    icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><circle cx="5" cy="15" r="2" fill={c}/><circle cx="9" cy="8" r="2" fill={c}/><circle cx="14" cy="12" r="2" fill={c}/><circle cx="18" cy="4" r="2" fill={c}/><circle cx="22" cy="9" r="2" fill={c}/><circle cx="25" cy="6" r="2" fill={c}/><circle cx="11" cy="15" r="2" fill={c} fillOpacity="0.5"/></svg> },
+  { key: 'radial-bar', label: 'Radial',     icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><path d="M14,10 m-8,0 a8,8 0 0,1 7,-7" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeOpacity="0.35"/><path d="M14,10 m-6,0 a6,6 0 0,1 6,-6" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" strokeOpacity="0.55"/><path d="M14,10 m-4,0 a4,4 0 0,1 4,-3.5" fill="none" stroke={c} strokeWidth="3" strokeLinecap="round"/></svg> },
+  { key: 'funnel',     label: 'Funnel',     icon: (c) => <svg width="28" height="20" viewBox="0 0 28 20"><polygon points="4,2 24,2 20,8 8,8" fill={c} fillOpacity="0.7"/><polygon points="8,9 20,9 17,14 11,14" fill={c} fillOpacity="0.5"/><polygon points="11,15 17,15 15,19 13,19" fill={c} fillOpacity="0.35"/></svg> },
+];
 
 const DATA_SOURCE_DEFS = [
   { key: 'employees',  labelKey: 'fb.ds.employees', descKey: 'fb.ds.employees.desc', color: '#3b82f6' },
@@ -37,10 +56,12 @@ function readDLTables() {
 }
 
 export function mapBot(b) {
+  const pref = (b.data_sources || []).find(s => s.startsWith('__pref_chart:'));
   return {
     ...b,
     dataSources: b.data_sources || [],
     systemPrompt: b.system_prompt || '',
+    preferredChart: pref ? pref.replace('__pref_chart:', '') : 'bar',
     createdAt: b.created_at,
     updatedAt: b.updated_at,
   };
@@ -141,12 +162,13 @@ function BotModal({ bot, onSave, onClose }) {
   const DATA_SOURCES = DATA_SOURCE_DEFS.map(ds => ({ ...ds, label: t(ds.labelKey), desc: t(ds.descKey) }));
   const [name, setName] = useState(bot?.name || '');
   const [description, setDescription] = useState(bot?.description || '');
-  const [sources, setSources] = useState(bot?.dataSources || []);
+  const [sources, setSources] = useState((bot?.dataSources || []).filter(s => !s.startsWith('__pref_chart:')));
   const [systemPrompt, setSystemPrompt] = useState(bot?.systemPrompt || '');
   const [color, setColor] = useState(bot?.color || '#ec4899');
   const [icon, setIcon] = useState(bot?.icon || 'bot');
   const [floating, setFloatingState] = useState(() => isFloating(bot?.id));
   const [dlTables] = useState(() => readDLTables());
+  const [preferredChart, setPreferredChart] = useState(bot?.preferredChart || 'bar');
 
   const toggleSource = (key) => {
     setSources(prev => prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]);
@@ -154,11 +176,14 @@ function BotModal({ bot, onSave, onClose }) {
 
   const handleSave = () => {
     if (!name.trim()) return;
+    const finalSources = preferredChart !== 'bar'
+      ? [...sources.filter(s => !s.startsWith('__pref_chart:')), `__pref_chart:${preferredChart}`]
+      : sources.filter(s => !s.startsWith('__pref_chart:'));
     onSave({
       id: bot?.id || `temp_${Date.now()}`,
       name: name.trim(),
       description: description.trim(),
-      dataSources: sources,
+      dataSources: finalSources,
       systemPrompt: systemPrompt.trim(),
       color,
       icon,
@@ -284,6 +309,23 @@ function BotModal({ bot, onSave, onClose }) {
                   boxShadow: '0 1px 3px rgba(0,0,0,0.3)', transition: 'left 0.18s',
                 }} />
               </button>
+            </div>
+          </div>
+
+          {/* Chart type picker */}
+          <div className="fb-field" style={{ gridColumn: '1 / -1' }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8, display: 'block' }}>Default Chart Type</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+              {CHART_TYPES.map(ct => {
+                const active = preferredChart === ct.key;
+                return (
+                  <button key={ct.key} type="button" onClick={() => setPreferredChart(ct.key)}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 4px', borderRadius: 10, border: `1.5px solid ${active ? color : 'var(--border-2)'}`, background: active ? color + '18' : 'var(--surface-2)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {ct.icon(active ? color : 'var(--text-4)')}
+                    <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? color : 'var(--text-3)', letterSpacing: '0.02em' }}>{ct.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -525,6 +567,118 @@ function ChartBlock({ chartData }) {
         ))}
       </LineChart>
     );
+  } else if (type === 'area') {
+    chart = (
+      <AreaChart data={xyData} margin={margin}>
+        <Gradients />
+        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
+        <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
+        <Tooltip {...tip} />
+        {datasets.length > 1 && <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />}
+        {datasets.map((ds, i) => (
+          <Area
+            key={ds.label} type="monotone" dataKey={ds.label}
+            stroke={CHART_COLORS[i % CHART_COLORS.length].start}
+            fill={`url(#grad-${i % CHART_COLORS.length})`}
+            strokeWidth={2.5} fillOpacity={0.25}
+            dot={{ r: 3, strokeWidth: 2, fill: 'var(--surface)' }}
+            animationDuration={1400}
+          />
+        ))}
+      </AreaChart>
+    );
+  } else if (type === 'composed') {
+    chart = (
+      <ComposedChart data={xyData} margin={margin}>
+        <Gradients />
+        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
+        <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
+        <Tooltip {...tip} />
+        {datasets.length > 1 && <Legend verticalAlign="top" align="right" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />}
+        {datasets.map((ds, i) =>
+          i === datasets.length - 1 && datasets.length > 1 ? (
+            <Line key={ds.label} type="monotone" dataKey={ds.label}
+              stroke={CHART_COLORS[i % CHART_COLORS.length].start} strokeWidth={3}
+              dot={{ r: 4, strokeWidth: 2, fill: 'var(--surface)' }} animationDuration={1400} />
+          ) : (
+            <Bar key={ds.label} dataKey={ds.label}
+              fill={`url(#grad-${i % CHART_COLORS.length})`}
+              radius={[5, 5, 0, 0]} animationDuration={1200}
+              barSize={Math.min(36, 280 / xyData.length)} />
+          )
+        )}
+      </ComposedChart>
+    );
+  } else if (type === 'radar') {
+    const radarData = labels.map((name, i) => {
+      const obj = { name };
+      datasets.forEach(ds => { obj[ds.label] = ds.data[i] || 0; });
+      return obj;
+    });
+    chart = (
+      <RadarChart data={radarData} margin={{ top: 10, right: 30, left: 30, bottom: 10 }}>
+        <PolarGrid stroke="var(--border-2)" />
+        <PolarAngleAxis dataKey="name" {...ax} />
+        <PolarRadiusAxis {...ax} axisLine={false} tickLine={false} />
+        {datasets.length > 1 && <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: 11 }} />}
+        {datasets.map((ds, i) => (
+          <Radar key={ds.label} name={ds.label} dataKey={ds.label}
+            stroke={CHART_COLORS[i % CHART_COLORS.length].start}
+            fill={CHART_COLORS[i % CHART_COLORS.length].start}
+            fillOpacity={0.25} strokeWidth={2} animationDuration={1200} />
+        ))}
+        <Tooltip {...tip} />
+      </RadarChart>
+    );
+  } else if (type === 'scatter') {
+    const scatterData = labels.map((name, i) => ({ x: i + 1, y: datasets[0]?.data[i] || 0, name }));
+    chart = (
+      <ScatterChart margin={margin}>
+        <CartesianGrid strokeDasharray="4 4" stroke="var(--border-2)" opacity={0.6} />
+        <XAxis type="number" dataKey="x" name="index" {...ax} axisLine={false} tickLine={false} />
+        <YAxis type="number" dataKey="y" name="value" {...ax} width={40} axisLine={false} tickLine={false} />
+        <ZAxis range={[40, 40]} />
+        <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ payload }) => {
+          if (!payload?.length) return null;
+          const d = payload[0]?.payload;
+          return (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 8, padding: '8px 12px', fontSize: 12 }}>
+              <div style={{ fontWeight: 600 }}>{labels[d?.x - 1] || d?.x}</div>
+              <div style={{ color: CHART_COLORS[0].start }}>{Number(d?.y).toLocaleString()}</div>
+            </div>
+          );
+        }} />
+        {datasets.map((ds, i) => (
+          <Scatter key={ds.label} name={ds.label}
+            data={labels.map((name, j) => ({ x: j + 1, y: ds.data[j] || 0, name }))}
+            fill={CHART_COLORS[i % CHART_COLORS.length].start} fillOpacity={0.85} />
+        ))}
+      </ScatterChart>
+    );
+  } else if (type === 'radial-bar') {
+    const rData = singleData.map((d, i) => ({ ...d, fill: CHART_COLORS[i % CHART_COLORS.length].start }));
+    chart = (
+      <RadialBarChart innerRadius="20%" outerRadius="90%" data={rData} startAngle={180} endAngle={0}
+        margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+        <RadialBar dataKey="value" label={{ position: 'insideStart', fill: '#fff', fontSize: 10, fontWeight: 600 }} animationDuration={1400} />
+        <Legend iconSize={10} layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+        <Tooltip {...tip} formatter={(v) => v.toLocaleString()} />
+      </RadialBarChart>
+    );
+  } else if (type === 'funnel') {
+    const funnelData = singleData.map((d, i) => ({
+      ...d, fill: CHART_COLORS[i % CHART_COLORS.length].start,
+    }));
+    chart = (
+      <FunnelChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+        <Tooltip {...tip} formatter={(v) => v.toLocaleString()} />
+        <Funnel dataKey="value" data={funnelData} isAnimationActive animationDuration={1200}>
+          <LabelList position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={(v, entry) => entry?.name ? `${entry.name}: ${Number(v).toLocaleString()}` : v} />
+        </Funnel>
+      </FunnelChart>
+    );
   } else {
     chart = (
       <BarChart data={xyData} margin={margin}>
@@ -600,7 +754,7 @@ function ChartBlock({ chartData }) {
           </button>
         </div>
       </div>
-      <ResponsiveContainer width="100%" height={type === 'treemap' ? 360 : 320}>
+      <ResponsiveContainer width="100%" height={['treemap', 'radar', 'radial-bar', 'funnel'].includes(type) ? 360 : 320}>
         {chart}
       </ResponsiveContainer>
     </div>
@@ -840,8 +994,9 @@ export function BotChat({ bot, showHeader = true }) {
 
       const res = await api.post('/finbots/chat', {
         botName: bot.name,
-        dataSources: (bot.dataSources || []).filter(s => !s.startsWith('dl_table:')),
+        dataSources: (bot.dataSources || []).filter(s => !s.startsWith('dl_table:') && !s.startsWith('__pref_chart:')),
         systemPrompt: bot.systemPrompt || '',
+        preferredChartType: bot.preferredChart || 'bar',
         messages: newMessages.filter(m => m.role === 'user' || m.role === 'assistant'),
         dlTablesData,
       });

@@ -291,7 +291,7 @@ router.delete('/:id', async (req, res) => {
 // ── POST /api/finbots/chat ───────────────────────────────────────────────────
 router.post('/chat', async (req, res) => {
   try {
-    const { dataSources = [], messages = [], botName = 'FinBot', systemPrompt = '', dlTablesData = [] } = req.body;
+    const { dataSources = [], messages = [], botName = 'FinBot', systemPrompt = '', dlTablesData = [], preferredChartType = 'bar' } = req.body;
 
     if (!messages.length) return res.status(400).json({ error: 'No messages provided.' });
 
@@ -357,8 +357,15 @@ You may include text before or after the [CHART] block. Use real values from the
 Supported chart types:
 - bar: column chart, good for comparing values across categories
 - line: trend over time, good for salary history or changes over months
-- pie: proportion/share of a total, good for department breakdowns or cost splits (single dataset only — labels + one data array)
-- treemap: hierarchical proportions, good for showing relative sizes at a glance (single dataset only — labels + one data array)
+- area: filled line chart, good for showing volume or cumulative totals over time
+- composed: bar columns + line overlay on the same axes (last dataset becomes the line)
+- pie: proportion/share of a total, good for department breakdowns (single dataset only — labels + one data array)
+- treemap: hierarchical proportions, good for showing relative sizes (single dataset only)
+- radar: spider/radar chart, good for comparing multiple metrics per category
+- scatter: scatter plot, good for showing distribution or correlation
+- radial-bar: semicircular bar chart, good for progress toward targets (single dataset only)
+- funnel: funnel chart, good for pipeline stages or conversion rates (single dataset only)
+${preferredChartType && preferredChartType !== 'bar' ? `\nPREFERRED CHART FOR THIS BOT: "${preferredChartType}" — default to this chart type when the user asks for a visualization, unless they explicitly request a different type.` : ''}
 
 CREATING HR ORDERS:
 When the user wants to create an HR order (promote, fire/terminate, give advance payment, salary adjustment), ALWAYS respond with a brief confirmation sentence AND an [ORDER_ACTION] block.
