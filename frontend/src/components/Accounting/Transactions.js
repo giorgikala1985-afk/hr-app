@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const DEFAULT_WIDTHS = [110, 160, 150, 110, 220, 70];
 
@@ -66,6 +67,7 @@ function IconClear() {
 
 function Transactions() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +83,28 @@ function Transactions() {
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
 
   useEffect(() => { load(); loadAgents(); }, []);
+
+  useEffect(() => {
+    if (user?.email !== 'giorgi@powerbi.ge') return;
+    if (localStorage.getItem('hr_demo_purchases_seeded')) return;
+    const mkDate = (daysAgo) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString().split('T')[0]; };
+    const items = [
+      { client: 'Tegeta Motors', item_type: 'Vehicle maintenance', amount: 450, note: 'Fleet service Q2' },
+      { client: 'Geocell', item_type: 'Mobile services', amount: 230, note: 'Corporate SIM plan' },
+      { client: 'Delta Office', item_type: 'Office supplies', amount: 180, note: 'Stationery & paper' },
+      { client: 'TBC Bank', item_type: 'Banking fees', amount: 95, note: 'Monthly service charge' },
+      { client: 'Biliki', item_type: 'Catering', amount: 320, note: 'Staff lunch July' },
+      { client: 'Cartu Group', item_type: 'IT services', amount: 1200, note: 'Network setup' },
+      { client: 'Georgian Post', item_type: 'Courier', amount: 45, note: 'Document delivery' },
+      { client: 'Tbilisi Water', item_type: 'Utilities', amount: 85, note: 'Water bill June' },
+      { client: 'PSPC', item_type: 'Security', amount: 560, note: 'Office security system' },
+      { client: 'Amazon Web Services', item_type: 'Cloud hosting', amount: 340, note: 'Server costs' },
+    ];
+    items.forEach((item, i) => {
+      api.post('/accounting/transactions', { ...item, date: mkDate(i * 6 + 1) }).catch(() => {});
+    });
+    localStorage.setItem('hr_demo_purchases_seeded', 'true');
+  }, [user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async () => {
     setLoading(true);

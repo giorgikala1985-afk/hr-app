@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const DEFAULT_WIDTHS = [110, 160, 150, 130, 200, 120, 80];
 
@@ -30,6 +31,7 @@ const CATEGORIES = ['Product', 'Service', 'Consulting', 'License', 'Subscription
 
 function Sales() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -42,6 +44,28 @@ function Sales() {
   const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => { load(); loadAgents(); }, []);
+
+  useEffect(() => {
+    if (user?.email !== 'giorgi@powerbi.ge') return;
+    if (localStorage.getItem('hr_demo_sales_seeded')) return;
+    const mkDate = (daysAgo) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString().split('T')[0]; };
+    const items = [
+      { client: 'Magti GSM', product: 'IT Consulting', description: 'HR system consultation Q2', amount: 2500, currency: 'USD', category: 'Consulting' },
+      { client: 'Bank of Georgia', product: 'Software License', description: 'Annual Finpilot license', amount: 4800, currency: 'USD', category: 'License' },
+      { client: 'Silknet', product: 'Network Maintenance', description: 'Monthly retainer July', amount: 1200, currency: 'USD', category: 'Service' },
+      { client: 'Aris.ge', product: 'Marketing Package', description: 'Social media & SEO', amount: 800, currency: 'USD', category: 'Service' },
+      { client: 'GPB', product: 'HR Platform', description: 'Annual subscription renewal', amount: 3600, currency: 'USD', category: 'Subscription' },
+      { client: 'Rustavi Steel', product: 'ERP Consulting', description: 'Business process audit', amount: 2100, currency: 'USD', category: 'Consulting' },
+      { client: 'Tegeta Motors', product: 'ERP Integration', description: 'System integration phase 1', amount: 5500, currency: 'USD', category: 'Product' },
+      { client: 'Georgian Oil & Gas', product: 'Data Analytics', description: 'BI dashboard setup', amount: 1800, currency: 'USD', category: 'Service' },
+      { client: 'GTC', product: 'Training Program', description: 'Staff onboarding training', amount: 950, currency: 'USD', category: 'Service' },
+      { client: 'Skytel', product: 'Software Product', description: 'Custom reporting module', amount: 3200, currency: 'USD', category: 'Product' },
+    ];
+    items.forEach((item, i) => {
+      api.post('/accounting/sales', { ...item, date: mkDate(i * 5 + 2) }).catch(() => {});
+    });
+    localStorage.setItem('hr_demo_sales_seeded', 'true');
+  }, [user?.email]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = async () => {
     setLoading(true);
