@@ -2376,6 +2376,81 @@ export default function Orders() {
   useEffect(() => { loadStatic(); loadRates(); }, [loadStatic, loadRates]);
   useEffect(() => { loadSalaries(month); }, [month, loadSalaries]);
 
+  // ── Demo seed (giorgi@powerbi.ge only, runs once) ────────────
+  useEffect(() => {
+    if (user?.email !== 'giorgi@powerbi.ge') return;
+    if (localStorage.getItem('hr_demo_seeded')) return;
+    if (employees.length === 0) return;
+
+    const get = (i) => employees[i] || employees[0];
+    const ts = Date.now();
+    const mkId = (i) => ts - i * 100001;
+    const mkDate = (daysAgo) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString().split('T')[0]; };
+    const mkCAt = (daysAgo) => new Date(Date.now() - daysAgo * 86400000).toISOString();
+
+    // Hiring
+    const hiringData = [
+      { firstName: 'Ana', lastName: 'Beridze', personalId: '01234567891', position: 'Accountant', department: 'Finance', startDate: mkDate(10), salary: '2500', salaryCurrency: 'GEL', pitRate: '20', pension: false, immediateEffect: true },
+      { firstName: 'Giorgi', lastName: 'Kvaratskhelia', personalId: '01234567892', position: 'Developer', department: 'IT', startDate: mkDate(20), salary: '3500', salaryCurrency: 'GEL', pitRate: '20', pension: true, immediateEffect: true },
+      { firstName: 'Nino', lastName: 'Tsiklauri', personalId: '01234567893', position: 'HR Manager', department: 'HR', startDate: mkDate(30), salary: '2800', salaryCurrency: 'GEL', pitRate: '20', pension: true, immediateEffect: true },
+      { firstName: 'Levan', lastName: 'Sharabidze', personalId: '01234567894', position: 'Sales Manager', department: 'Sales', startDate: mkDate(40), salary: '3200', salaryCurrency: 'GEL', pitRate: '20', pension: false, immediateEffect: true },
+      { firstName: 'Tamar', lastName: 'Chikvanaia', personalId: '01234567895', position: 'Marketing Specialist', department: 'Marketing', startDate: mkDate(50), salary: '2200', salaryCurrency: 'GEL', pitRate: '20', pension: true, immediateEffect: true },
+    ].map((d, i) => ({ id: mkId(i), createdAt: mkCAt(i * 5), ...d }));
+    localStorage.setItem('hr_hiring_orders', JSON.stringify(hiringData));
+
+    // Firing
+    const firingData = [0,1,2,3,4].map((i) => {
+      const emp = get(i);
+      return { id: mkId(i + 10), createdAt: mkCAt(i * 4), employeeId: emp.id, empName: `${emp.first_name} ${emp.last_name}`, position: emp.position || 'Employee', terminationDate: mkDate(i * 5 + 2), reason: ['Resignation', 'End of contract', 'Mutual agreement', 'Restructuring', 'Performance'][i], notes: '', immediateEffect: true };
+    });
+    localStorage.setItem('hr_firing_orders', JSON.stringify(firingData));
+
+    // Promotion
+    const newPositions = ['Senior Developer', 'Team Lead', 'Project Manager', 'Senior Accountant', 'Chief Marketing Officer'];
+    const newSalaries = ['4500', '5000', '6000', '3800', '4200'];
+    const promotionData = [0,1,2,3,4].map((i) => {
+      const emp = get(i);
+      return { id: mkId(i + 20), createdAt: mkCAt(i * 3), employeeId: emp.id, empName: `${emp.first_name} ${emp.last_name}`, oldPosition: emp.position || 'Junior', newPosition: newPositions[i], oldSalary: emp.salary ? String(emp.salary) : '2000', newSalary: newSalaries[i], effectiveDate: mkDate(i * 7), notes: 'Performance-based promotion', immediateEffect: true };
+    });
+    localStorage.setItem('hr_promotion_orders', JSON.stringify(promotionData));
+
+    // Business Trip
+    const trips = [
+      { countryCode: 'DE', countryName: 'Germany', cityName: 'Berlin', perDiem: '95' },
+      { countryCode: 'FR', countryName: 'France', cityName: 'Paris', perDiem: '120' },
+      { countryCode: 'TR', countryName: 'Turkey', cityName: 'Istanbul', perDiem: '65' },
+      { countryCode: 'PL', countryName: 'Poland', cityName: 'Warsaw', perDiem: '70' },
+      { countryCode: 'AE', countryName: 'UAE', cityName: 'Dubai', perDiem: '130' },
+    ];
+    const tripData = [0,1,2,3,4].map((i) => {
+      const emp = get(i); const c = trips[i];
+      const fromDate = mkDate(40 - i * 5); const toDate = mkDate(35 - i * 5);
+      return { id: mkId(i + 30), createdAt: mkCAt(i * 6), employeeId: emp.id, empName: `${emp.first_name} ${emp.last_name}`, fromDate, toDate, days: 5, countryCode: c.countryCode, countryName: c.countryName, cityName: c.cityName, perDiem: c.perDiem, amount: String(parseFloat(c.perDiem) * 5), immediateEffect: true };
+    });
+    localStorage.setItem('hr_business_trip_orders', JSON.stringify(tripData));
+
+    // Advance Payment
+    const advCurrencies = ['GEL', 'USD', 'GEL', 'USD', 'GEL'];
+    const advTotals = [3000, 2000, 4000, 1500, 2500];
+    const [cy, cm] = currentMonth.split('-').map(Number);
+    const nextM = new Date(cy, cm, 1); const nextMonthStr = `${nextM.getFullYear()}-${String(nextM.getMonth() + 1).padStart(2, '0')}`;
+    const advanceData = [0,1,2,3,4].map((i) => {
+      const emp = get(i); const total = advTotals[i];
+      return { id: mkId(i + 40), createdAt: mkCAt(i * 2), employeeId: emp.id, empName: `${emp.first_name} ${emp.last_name}`, currency: advCurrencies[i], mode: 'automatic', total, schedule: [{ month: currentMonth, amount: total / 2 }, { month: nextMonthStr, amount: total / 2 }], immediateEffect: true };
+    });
+    localStorage.setItem('hr_advance_payment_orders', JSON.stringify(advanceData));
+
+    // Adjusting — real API calls
+    const adjTypes = ['OT', 'OT', 'OT', 'OT', 'OT'];
+    const adjAmounts = [250, 180, 320, 150, 210];
+    [0,1,2,3,4].forEach((i) => {
+      const emp = get(i);
+      api.post(`/employees/${emp.id}/units`, { type: adjTypes[i], amount: adjAmounts[i], date: mkDate(i * 3), currency: 'USD', include_in_salary: true }).catch(() => {});
+    });
+
+    localStorage.setItem('hr_demo_seeded', 'true');
+  }, [user?.email, employees]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Helpers ──────────────────────────────────────────────────
   const monthLastDay = (() => {
     const [y, m] = month.split('-');
