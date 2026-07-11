@@ -77,6 +77,7 @@ function AccountingPage() {
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'bookkeeping');
+  const [loadingTab, setLoadingTab] = useState(null);
   const [sidebarOrder, setSidebarOrder] = useState(() => loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT));
   const [hiddenTabs, setHiddenTabs] = useState(() => loadHidden(ACC_SIDEBAR_HIDDEN_KEY));
   const TABS = TAB_KEYS.map(tab => ({ ...tab, label: t(tab.labelKey) }));
@@ -96,6 +97,9 @@ function AccountingPage() {
   const { getItemProps } = useSidebarReorder(ACC_SIDEBAR_ORDER_KEY, orderedTabs.map(tab => tab.key), setSidebarOrder);
 
   const handleTabChange = (key) => {
+    if (key === activeTab) return;
+    setLoadingTab(key);
+    setTimeout(() => setLoadingTab(null), 280);
     setActiveTab(key);
     setSearchParams({ tab: key }, { replace: true });
   };
@@ -128,21 +132,24 @@ function AccountingPage() {
           >
             <span className="acc-sidebar-icon">{tab.icon}</span>
             <span className="acc-sidebar-btn-label">{tab.label}</span>
+            {loadingTab === tab.key && !collapsed && <span className="fp-spinner" />}
           </button>
         ))}
       </aside>
       <main className="acc-content">
-        {activeTab === 'purchases'      && <Purchases />}
-        {activeTab === 'sales'          && <Sales />}
-        {activeTab === 'invoices'       && <Invoices />}
-        {activeTab === 'salary-accrual' && <SalariesPage />}
-        {activeTab === 'bookkeeping'    && <Bookkeeping />}
-        {activeTab === 'stock'          && <Stock />}
-        {activeTab === 'calendar'       && <PaymentCalendar />}
-        {activeTab === 'transfers'      && <Transfers />}
-        {activeTab === 'orders'         && <Orders />}
-        {activeTab === 'ai-agent'       && <FinBotsPage />}
-        {activeTab === 'jet'            && <JetPage />}
+        <div key={activeTab} className="fp-tab-enter">
+          {activeTab === 'purchases'      && <Purchases />}
+          {activeTab === 'sales'          && <Sales />}
+          {activeTab === 'invoices'       && <Invoices />}
+          {activeTab === 'salary-accrual' && <SalariesPage />}
+          {activeTab === 'bookkeeping'    && <Bookkeeping />}
+          {activeTab === 'stock'          && <Stock />}
+          {activeTab === 'calendar'       && <PaymentCalendar />}
+          {activeTab === 'transfers'      && <Transfers />}
+          {activeTab === 'orders'         && <Orders />}
+          {activeTab === 'ai-agent'       && <FinBotsPage />}
+          {activeTab === 'jet'            && <JetPage />}
+        </div>
       </main>
     </div>
   );

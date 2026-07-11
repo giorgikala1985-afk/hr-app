@@ -2407,6 +2407,7 @@ export default function Orders() {
   const { t } = useLanguage();
   const ORDER_SUBTABS = ORDER_SUBTAB_KEYS.map(s => ({ ...s, label: t(s.labelKey) }));
   const [subTab, setSubTab] = useState('hiring');
+  const [loadingSubTab, setLoadingSubTab] = useState(null);
   const [month, setMonth] = useState(currentMonth);
   const [employees, setEmployees] = useState([]);
   const [unitTypes, setUnitTypes] = useState([]);
@@ -2779,9 +2780,15 @@ export default function Orders() {
         {ORDER_SUBTABS.map(tab => (
           <button
             key={tab.key}
-            onClick={() => setSubTab(tab.key)}
+            onClick={() => {
+              if (tab.key === subTab) return;
+              setLoadingSubTab(tab.key);
+              setTimeout(() => setLoadingSubTab(null), 220);
+              setSubTab(tab.key);
+            }}
             style={{
-              padding: '7px 22px', border: 'none', borderRadius: 7,
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '7px 18px', border: 'none', borderRadius: 7,
               fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
               background: subTab === tab.key ? 'var(--surface)' : 'transparent',
               color: subTab === tab.key ? 'var(--text)' : 'var(--text-3)',
@@ -2790,17 +2797,20 @@ export default function Orders() {
             }}
           >
             {tab.label}
+            {loadingSubTab === tab.key && <span className="fp-spinner fp-spinner-sm" />}
           </button>
         ))}
       </div>
 
       {/* Non-adjusting tabs */}
-      {subTab === 'promotion'        && <PromotionTab employees={employees} />}
-      {subTab === 'hiring'           && <HiringTab />}
-      {subTab === 'firing'           && <FiringTab employees={employees} />}
-      {subTab === 'business-trip'    && <BusinessTripTab employees={employees} />}
-      {subTab === 'advance-payment'  && <AdvancePaymentTab employees={employees} gelRate={gelRate} eurRate={eurRate} />}
-      {subTab === 'handover'         && <HandoverTab employees={employees} />}
+      <div key={subTab} className="fp-subtab-enter">
+        {subTab === 'promotion'        && <PromotionTab employees={employees} />}
+        {subTab === 'hiring'           && <HiringTab />}
+        {subTab === 'firing'           && <FiringTab employees={employees} />}
+        {subTab === 'business-trip'    && <BusinessTripTab employees={employees} />}
+        {subTab === 'advance-payment'  && <AdvancePaymentTab employees={employees} gelRate={gelRate} eurRate={eurRate} />}
+        {subTab === 'handover'         && <HandoverTab employees={employees} />}
+      </div>
 
       {/* Month picker — adjusting only */}
       {subTab === 'adjusting' && <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>

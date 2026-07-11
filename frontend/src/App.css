@@ -1,4 +1,54 @@
 /* Global App Styles */
+
+/* ── Transition animations ──────────────────────────────────────────────────── */
+
+@keyframes fp-page-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.995); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);     }
+}
+
+@keyframes fp-tab-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+
+@keyframes fp-subtab-in {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes fp-spin {
+  to { transform: rotate(360deg); }
+}
+
+.fp-page-enter    { animation: fp-page-in   0.28s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.fp-tab-enter     { animation: fp-tab-in    0.20s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.fp-subtab-enter  { animation: fp-subtab-in 0.15s ease-out both; }
+
+.fp-spinner {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-top-color: var(--accent, #3b82f6);
+  border-right-color: var(--accent, #3b82f6);
+  animation: fp-spin 0.5s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: 0.85;
+}
+
+/* smaller variant for Orders pill tabs */
+.fp-spinner-sm {
+  width: 9px;
+  height: 9px;
+  border-width: 1.5px;
+  border-top-color: var(--accent, #3b82f6);
+  border-right-color: rgba(59,130,246,0.3);
+  margin-left: 2px;
+}
+
 :root {
   --font-mono: var(--font-mono-override, 'ui-monospace', 'Cascadia Code', 'SF Mono', 'Fira Mono', 'Menlo', 'Consolas', monospace);
 }

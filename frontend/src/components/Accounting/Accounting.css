@@ -112,6 +112,7 @@
   overflow: hidden;
   transition: opacity 0.15s, max-width 0.22s ease;
   max-width: 200px;
+  flex: 1;
 }
 
 .acc-sidebar.collapsed .acc-sidebar-btn-label {

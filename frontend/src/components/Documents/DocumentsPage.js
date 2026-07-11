@@ -72,6 +72,7 @@ function DocumentsPage() {
     return searchParams.get('tab') || order[0] || 'employees';
   });
   const [innerTab, setInnerTab] = useState(searchParams.get('inner') || 'hr');
+  const [loadingTab, setLoadingTab] = useState(null);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('docs_sidebar_collapsed') === 'true'; } catch { return false; }
   });
@@ -86,6 +87,13 @@ function DocumentsPage() {
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
   }, []);
+
+  const handleTabChange = (key) => {
+    if (key === activeTab) return;
+    setLoadingTab(key);
+    setTimeout(() => setLoadingTab(null), 280);
+    setActiveTab(key);
+  };
 
   const toggleSidebar = () => setCollapsed(v => {
     const next = !v;
@@ -111,38 +119,41 @@ function DocumentsPage() {
           <button
             key={tab.key}
             className={`docs-sidebar-btn${activeTab === tab.key ? ' active' : ''}`}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => handleTabChange(tab.key)}
             title={collapsed ? tab.label : ''}
             {...getItemProps(tab.key)}
           >
             <span className="docs-sidebar-icon">{tab.icon}</span>
             <span className="docs-sidebar-btn-label">{tab.label}</span>
+            {loadingTab === tab.key && !collapsed && <span className="fp-spinner" />}
           </button>
         ))}
       </aside>
 
       <main className="docs-content">
-        {activeTab === 'journal' && <JournalPage />}
-        {activeTab === 'employees' && <EmployeeList />}
-        {activeTab === 'agents' && <Agents />}
-        {activeTab === 'agreements' && <Agreements />}
-        {activeTab === 'nbg-rates' && <CurrencyRates />}
-        {activeTab === 'devices' && (
-          <div className="docs-blank">
-            <div className="docs-blank-icon">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
-                <line x1="12" y1="17" x2="12" y2="21"/>
-              </svg>
+        <div key={activeTab} className="fp-tab-enter">
+          {activeTab === 'journal' && <JournalPage />}
+          {activeTab === 'employees' && <EmployeeList />}
+          {activeTab === 'agents' && <Agents />}
+          {activeTab === 'agreements' && <Agreements />}
+          {activeTab === 'nbg-rates' && <CurrencyRates />}
+          {activeTab === 'devices' && (
+            <div className="docs-blank">
+              <div className="docs-blank-icon">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <h3>{t('docs.devices')}</h3>
+              <p>{t('docs.devicesComingSoon')}</p>
             </div>
-            <h3>{t('docs.devices')}</h3>
-            <p>{t('docs.devicesComingSoon')}</p>
-          </div>
-        )}
-        {activeTab === 'datalake' && <DataLake />}
-        {activeTab === 'requests' && <Requests />}
-        {activeTab === 'banking' && <TbcBanking />}
-        {activeTab === 'rsge' && <RsGeIntegration />}
+          )}
+          {activeTab === 'datalake' && <DataLake />}
+          {activeTab === 'requests' && <Requests />}
+          {activeTab === 'banking' && <TbcBanking />}
+          {activeTab === 'rsge' && <RsGeIntegration />}
+        </div>
       </main>
     </div>
   );

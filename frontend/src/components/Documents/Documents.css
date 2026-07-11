@@ -130,6 +130,7 @@
   transition: opacity 0.15s, max-width 0.22s ease;
   max-width: 200px;
   white-space: nowrap;
+  flex: 1;
 }
 
 .docs-sidebar.collapsed .docs-sidebar-btn-label {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { PortalAuthProvider } from './contexts/PortalAuthContext';
@@ -28,6 +28,11 @@ import PortalDocuments from './components/Portal/PortalDocuments';
 import PortalPayroll from './components/Portal/PortalPayroll';
 import PortalScan from './components/Portal/PortalScan';
 import './App.css';
+
+function PageTransition({ children }) {
+  const location = useLocation();
+  return <div key={location.pathname} className="fp-page-enter">{children}</div>;
+}
 
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { error: null }; }
@@ -66,7 +71,7 @@ function App() {
               <PrivateRoute>
                 <>
                   <Header />
-                  <HomePage />
+                  <PageTransition><HomePage /></PageTransition>
                 </>
               </PrivateRoute>
             }
@@ -78,7 +83,7 @@ function App() {
               <PrivateRoute>
                 <>
                   <Header />
-                  <EmployeeForm />
+                  <PageTransition><EmployeeForm /></PageTransition>
                 </>
               </PrivateRoute>
             }
@@ -89,7 +94,7 @@ function App() {
               <PrivateRoute>
                 <>
                   <Header />
-                  <EmployeeForm />
+                  <PageTransition><EmployeeForm /></PageTransition>
                 </>
               </PrivateRoute>
             }
@@ -101,7 +106,7 @@ function App() {
               <PrivateRoute>
                 <ErrorBoundary>
                   <Header />
-                  <OptionsPage />
+                  <PageTransition><OptionsPage /></PageTransition>
                 </ErrorBoundary>
               </PrivateRoute>
             }
@@ -113,7 +118,7 @@ function App() {
               <PrivateRoute>
                 <>
                   <Header />
-                  <ProfilePage />
+                  <PageTransition><ProfilePage /></PageTransition>
                 </>
               </PrivateRoute>
             }
@@ -125,7 +130,7 @@ function App() {
               <PrivateRoute>
                 <>
                   <Header />
-                  <Analytics />
+                  <PageTransition><Analytics /></PageTransition>
                 </>
               </PrivateRoute>
             }
@@ -137,7 +142,7 @@ function App() {
               <PrivateRoute>
                 <>
                   <Header />
-                  <DocumentsPage />
+                  <PageTransition><DocumentsPage /></PageTransition>
                 </>
               </PrivateRoute>
             }
@@ -149,7 +154,7 @@ function App() {
               <PrivateRoute>
                 <>
                   <Header />
-                  <AccountingPage />
+                  <PageTransition><AccountingPage /></PageTransition>
                 </>
               </PrivateRoute>
             }
