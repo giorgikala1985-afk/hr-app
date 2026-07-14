@@ -1165,6 +1165,8 @@ const en = {
   'sales.optionalNotes': 'Optional notes…',
   'sales.hierarchy': 'Hierarchy',
   'sales.noHierarchy': '— None —',
+  'sales.tabSaleInfo': 'Sale Info',
+  'sales.tabCategory': 'Category',
   'sales.cancel': 'Cancel',
   'sales.save': 'Save',
   'sales.saving': 'Saving…',

@@ -28,6 +28,67 @@ function IconDelete() {
 
 const EMPTY = { client: '', product: '', description: '', amount: '', currency: 'USD', category: '', date: '', hierarchy_id: '' };
 const CATEGORIES = ['Product', 'Service', 'Consulting', 'License', 'Subscription', 'Other'];
+const NODE_W = 160;
+const NODE_H = 52;
+
+function HierarchyPreview({ hierarchy }) {
+  const nodes = hierarchy?.nodes || [];
+  const edges = hierarchy?.edges || [];
+  if (nodes.length === 0) return null;
+
+  const minX = Math.min(...nodes.map(n => n.x));
+  const minY = Math.min(...nodes.map(n => n.y));
+  const maxX = Math.max(...nodes.map(n => n.x + NODE_W));
+  const maxY = Math.max(...nodes.map(n => n.y + NODE_H));
+  const pad = 16;
+  const vbW = (maxX - minX) + pad * 2;
+  const vbH = (maxY - minY) + pad * 2;
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+
+  const edgePath = (src, tgt) => {
+    const sx = src.x + NODE_W / 2, sy = src.y + NODE_H;
+    const tx = tgt.x + NODE_W / 2, ty = tgt.y;
+    const cy = Math.max(40, Math.abs(ty - sy) * 0.55);
+    return `M ${sx} ${sy} C ${sx} ${sy + cy}, ${tx} ${ty - cy}, ${tx} ${ty}`;
+  };
+
+  return (
+    <div style={{
+      marginTop: 10, border: '1px solid var(--border-2)', borderRadius: 10,
+      background: 'var(--surface-2)', maxHeight: 260, overflow: 'auto',
+    }}>
+      <svg
+        viewBox={`${minX - pad} ${minY - pad} ${vbW} ${vbH}`}
+        width={Math.min(vbW, 640)} height={Math.min(vbH, 260)}
+        style={{ display: 'block', margin: '0 auto' }}
+      >
+        <defs>
+          <marker id="hp-arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8" />
+          </marker>
+        </defs>
+        {edges.map(edge => {
+          const src = nodeMap[edge.from], tgt = nodeMap[edge.to];
+          if (!src || !tgt) return null;
+          return (
+            <path key={edge.id} d={edgePath(src, tgt)} fill="none"
+              stroke="#94a3b8" strokeWidth={2} markerEnd="url(#hp-arr)" strokeLinejoin="round" />
+          );
+        })}
+        {nodes.map(n => (
+          <g key={n.id}>
+            <rect x={n.x} y={n.y} width={NODE_W} height={NODE_H} rx={10}
+              fill="var(--surface)" stroke="var(--border-2)" strokeWidth={2} />
+            <text x={n.x + NODE_W / 2} y={n.y + NODE_H / 2 + 4}
+              textAnchor="middle" fontSize="13" fontWeight="600" fill="var(--text)">
+              {n.name.length > 20 ? n.name.slice(0, 19) + '…' : n.name}
+            </text>
+          </g>
+        ))}
+      </svg>
+    </div>
+  );
+}
 
 function Sales() {
   const { t } = useLanguage();
@@ -38,6 +99,7 @@ function Sales() {
   const [hierarchies, setHierarchies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [formTab, setFormTab] = useState('info');
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -91,8 +153,8 @@ function Sales() {
     } catch { /* non-critical */ }
   };
 
-  const openNew = () => { setForm({ ...EMPTY, date: today() }); setEditId(null); setShowForm(true); setError(''); };
-  const openEdit = (r) => { setForm({ client: r.client, product: r.product || '', description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date, hierarchy_id: r.hierarchy_id || '' }); setEditId(r.id); setShowForm(true); setError(''); };
+  const openNew = () => { setForm({ ...EMPTY, date: today() }); setEditId(null); setShowForm(true); setFormTab('info'); setError(''); };
+  const openEdit = (r) => { setForm({ client: r.client, product: r.product || '', description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date, hierarchy_id: r.hierarchy_id || '' }); setEditId(r.id); setShowForm(true); setFormTab('info'); setError(''); };
 
   const handleSave = async () => {
     if (!form.client || !form.amount || !form.date) { setError(t('sales.validationError')); return; }
@@ -235,41 +297,77 @@ function Sales() {
           <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{editId ? t('sales.editSale') : t('sales.newSale')}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
-            <div className="acc-form-grid">
-              <div className="acc-form-group">
-                <label>{t('sales.client')}</label>
-                <select value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })}>
-                  <option value="">{t('sales.selectClient')}</option>
-                  {agents.map((a) => (
-                    <option key={a.id} value={a.name}>{a.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="acc-form-group"><label>{t('sales.product')}</label><input type="text" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} placeholder="e.g. Website design" /></div>
-              <div className="acc-form-group"><label>{t('sales.date')}</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
-              <div className="acc-form-group"><label>{t('sales.amount')}</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" /></div>
-              <div className="acc-form-group"><label>{t('sales.currency')}</label>
-                <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
-                  <option>USD</option><option>GEL</option><option>EUR</option>
-                </select>
-              </div>
-              <div className="acc-form-group"><label>{t('sales.category')}</label>
-                <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                  <option value="">{t('sales.selectCategory')}</option>
-                  {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
-                </select>
-              </div>
-              <div className="acc-form-group">
-                <label>{t('sales.hierarchy')}</label>
-                <select value={form.hierarchy_id} onChange={(e) => setForm({ ...form, hierarchy_id: e.target.value })}>
-                  <option value="">{t('sales.noHierarchy')}</option>
-                  {hierarchies.map((h) => (
-                    <option key={h.id} value={h.id}>{h.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="acc-form-group full"><label>{t('sales.colDescription')}</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('sales.optionalNotes')} /></div>
+
+            <div style={{ display: 'flex', gap: 4, marginBottom: 18, borderBottom: '2px solid var(--border-2)' }}>
+              {[
+                { key: 'info', label: t('sales.tabSaleInfo') },
+                { key: 'category', label: t('sales.tabCategory') },
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setFormTab(tab.key)}
+                  style={{
+                    padding: '9px 18px', border: 'none', background: 'none',
+                    color: formTab === tab.key ? '#3b82f6' : 'var(--text-3)',
+                    fontWeight: formTab === tab.key ? 700 : 500, fontSize: 14, cursor: 'pointer',
+                    borderBottom: formTab === tab.key ? '2px solid #3b82f6' : '2px solid transparent',
+                    marginBottom: -2, transition: 'all 0.15s',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
+
+            {formTab === 'info' && (
+              <div className="acc-form-grid">
+                <div className="acc-form-group">
+                  <label>{t('sales.client')}</label>
+                  <select value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })}>
+                    <option value="">{t('sales.selectClient')}</option>
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.name}>{a.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="acc-form-group"><label>{t('sales.product')}</label><input type="text" value={form.product} onChange={(e) => setForm({ ...form, product: e.target.value })} placeholder="e.g. Website design" /></div>
+                <div className="acc-form-group"><label>{t('sales.date')}</label><input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></div>
+                <div className="acc-form-group"><label>{t('sales.amount')}</label><input type="number" step="0.01" min="0" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0.00" /></div>
+                <div className="acc-form-group"><label>{t('sales.currency')}</label>
+                  <select value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })}>
+                    <option>USD</option><option>GEL</option><option>EUR</option>
+                  </select>
+                </div>
+                <div className="acc-form-group full"><label>{t('sales.colDescription')}</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('sales.optionalNotes')} /></div>
+              </div>
+            )}
+
+            {formTab === 'category' && (
+              <div>
+                <div className="acc-form-grid">
+                  <div className="acc-form-group"><label>{t('sales.category')}</label>
+                    <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+                      <option value="">{t('sales.selectCategory')}</option>
+                      {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="acc-form-group">
+                    <label>{t('sales.hierarchy')}</label>
+                    <select value={form.hierarchy_id} onChange={(e) => setForm({ ...form, hierarchy_id: e.target.value })}>
+                      <option value="">{t('sales.noHierarchy')}</option>
+                      {hierarchies.map((h) => (
+                        <option key={h.id} value={h.id}>{h.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                {form.hierarchy_id && (
+                  <HierarchyPreview hierarchy={hierarchies.find(h => h.id === form.hierarchy_id)} />
+                )}
+              </div>
+            )}
+
             <div className="acc-modal-actions">
               <button className="ut-cancel-btn" onClick={() => setShowForm(false)}>{t('sales.cancel')}</button>
               <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('sales.saving') : t('sales.save')}</button>

@@ -1163,6 +1163,8 @@ const ka = {
   'sales.optionalNotes': 'შენიშვნა (სურვილისამებრ)…',
   'sales.hierarchy': 'სქემა',
   'sales.noHierarchy': '— არცერთი —',
+  'sales.tabSaleInfo': 'გაყიდვის ინფო',
+  'sales.tabCategory': 'კატეგორია',
   'sales.cancel': 'გაუქმება',
   'sales.save': 'შენახვა',
   'sales.saving': 'შენახვა…',
