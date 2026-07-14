@@ -272,17 +272,15 @@ function Sales() {
                   {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
-              {hierarchies.length > 0 && (
-                <div className="acc-form-group">
-                  <label>{t('sales.hierarchy')}</label>
-                  <select value={form.hierarchy_id} onChange={(e) => setForm({ ...form, hierarchy_id: e.target.value })}>
-                    <option value="">{t('sales.noHierarchy')}</option>
-                    {hierarchies.map((h) => (
-                      <option key={h.id} value={h.id}>{h.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div className="acc-form-group">
+                <label>{t('sales.hierarchy')}</label>
+                <select value={form.hierarchy_id} onChange={(e) => setForm({ ...form, hierarchy_id: e.target.value })}>
+                  <option value="">{t('sales.noHierarchy')}</option>
+                  {hierarchies.map((h) => (
+                    <option key={h.id} value={h.id}>{h.name}</option>
+                  ))}
+                </select>
+              </div>
               <div className="acc-form-group full"><label>{t('sales.colDescription')}</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('sales.optionalNotes')} /></div>
             </div>
             <div className="acc-modal-actions">
