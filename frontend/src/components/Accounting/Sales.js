@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -26,65 +26,131 @@ function IconDelete() {
   );
 }
 
-const EMPTY = { client: '', product: '', description: '', amount: '', currency: 'USD', category: '', date: '', hierarchy_id: '' };
+const EMPTY = { client: '', product: '', description: '', amount: '', currency: 'USD', category: '', date: '', hierarchy_id: '', hierarchy_node_id: '' };
 const CATEGORIES = ['Product', 'Service', 'Consulting', 'License', 'Subscription', 'Other'];
-const NODE_W = 160;
-const NODE_H = 52;
+const TREE_NW = 148;
+const TREE_NH = 46;
+const TREE_HGAP = 20;
+const TREE_VGAP = 52;
 
-function HierarchyPreview({ hierarchy }) {
+// Lays out nodes as a top-down tree using edges (from=parent, to=child).
+// Nodes with no incoming edge become roots; forests are placed side by side.
+function computeTreeLayout(nodes, edges) {
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const childrenMap = {};
+  const hasParent = new Set();
+  edges.forEach(e => {
+    if (!nodeMap[e.from] || !nodeMap[e.to]) return;
+    (childrenMap[e.from] = childrenMap[e.from] || []).push(e.to);
+    hasParent.add(e.to);
+  });
+
+  let roots = nodes.filter(n => !hasParent.has(n.id)).map(n => n.id);
+  if (roots.length === 0 && nodes.length > 0) roots = [nodes[0].id];
+
+  const widths = {};
+  const widthVisited = new Set();
+  const computeWidth = (id) => {
+    if (widthVisited.has(id)) return 0;
+    widthVisited.add(id);
+    const children = (childrenMap[id] || []).filter(c => nodeMap[c]);
+    if (children.length === 0) { widths[id] = TREE_NW; return TREE_NW; }
+    let total = 0;
+    children.forEach((c, i) => { total += computeWidth(c); if (i > 0) total += TREE_HGAP; });
+    widths[id] = Math.max(TREE_NW, total);
+    return widths[id];
+  };
+  roots.forEach(computeWidth);
+
+  const positions = {};
+  const placed = new Set();
+  const place = (id, x, y) => {
+    if (placed.has(id)) return;
+    placed.add(id);
+    const w = widths[id] || TREE_NW;
+    positions[id] = { x: x + w / 2 - TREE_NW / 2, y };
+    let cx = x;
+    (childrenMap[id] || []).filter(c => nodeMap[c]).forEach(c => {
+      place(c, cx, y + TREE_NH + TREE_VGAP);
+      cx += (widths[c] || TREE_NW) + TREE_HGAP;
+    });
+  };
+  let rx = 0;
+  roots.forEach(r => {
+    place(r, rx, 0);
+    rx += (widths[r] || TREE_NW) + TREE_HGAP * 2;
+  });
+
+  return positions;
+}
+
+function HierarchyTreeSelect({ hierarchy, selectedNodeId, onSelect }) {
   const nodes = hierarchy?.nodes || [];
   const edges = hierarchy?.edges || [];
+  const positions = useMemo(() => computeTreeLayout(nodes, edges), [nodes, edges]);
+
   if (nodes.length === 0) return null;
 
-  const minX = Math.min(...nodes.map(n => n.x));
-  const minY = Math.min(...nodes.map(n => n.y));
-  const maxX = Math.max(...nodes.map(n => n.x + NODE_W));
-  const maxY = Math.max(...nodes.map(n => n.y + NODE_H));
+  const xs = nodes.map(n => positions[n.id]?.x ?? 0);
+  const ys = nodes.map(n => positions[n.id]?.y ?? 0);
+  const minX = Math.min(...xs), minY = Math.min(...ys);
+  const maxX = Math.max(...xs) + TREE_NW, maxY = Math.max(...ys) + TREE_NH;
   const pad = 16;
   const vbW = (maxX - minX) + pad * 2;
   const vbH = (maxY - minY) + pad * 2;
-  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
 
-  const edgePath = (src, tgt) => {
-    const sx = src.x + NODE_W / 2, sy = src.y + NODE_H;
-    const tx = tgt.x + NODE_W / 2, ty = tgt.y;
-    const cy = Math.max(40, Math.abs(ty - sy) * 0.55);
+  const edgePath = (srcPos, tgtPos) => {
+    const sx = srcPos.x + TREE_NW / 2, sy = srcPos.y + TREE_NH;
+    const tx = tgtPos.x + TREE_NW / 2, ty = tgtPos.y;
+    const cy = Math.max(30, Math.abs(ty - sy) * 0.55);
     return `M ${sx} ${sy} C ${sx} ${sy + cy}, ${tx} ${ty - cy}, ${tx} ${ty}`;
   };
 
   return (
     <div style={{
       marginTop: 10, border: '1px solid var(--border-2)', borderRadius: 10,
-      background: 'var(--surface-2)', maxHeight: 260, overflow: 'auto',
+      background: 'var(--surface-2)', maxHeight: 280, overflow: 'auto', padding: 4,
     }}>
       <svg
         viewBox={`${minX - pad} ${minY - pad} ${vbW} ${vbH}`}
-        width={Math.min(vbW, 640)} height={Math.min(vbH, 260)}
+        width={Math.min(vbW, 640)} height={Math.min(vbH, 272)}
         style={{ display: 'block', margin: '0 auto' }}
       >
         <defs>
-          <marker id="hp-arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <marker id="hts-arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
             <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8" />
           </marker>
         </defs>
         {edges.map(edge => {
-          const src = nodeMap[edge.from], tgt = nodeMap[edge.to];
-          if (!src || !tgt) return null;
+          const srcPos = positions[edge.from], tgtPos = positions[edge.to];
+          if (!srcPos || !tgtPos) return null;
           return (
-            <path key={edge.id} d={edgePath(src, tgt)} fill="none"
-              stroke="#94a3b8" strokeWidth={2} markerEnd="url(#hp-arr)" strokeLinejoin="round" />
+            <path key={edge.id} d={edgePath(srcPos, tgtPos)} fill="none"
+              stroke="#94a3b8" strokeWidth={2} markerEnd="url(#hts-arr)" strokeLinejoin="round" />
           );
         })}
-        {nodes.map(n => (
-          <g key={n.id}>
-            <rect x={n.x} y={n.y} width={NODE_W} height={NODE_H} rx={10}
-              fill="var(--surface)" stroke="var(--border-2)" strokeWidth={2} />
-            <text x={n.x + NODE_W / 2} y={n.y + NODE_H / 2 + 4}
-              textAnchor="middle" fontSize="13" fontWeight="600" fill="var(--text)">
-              {n.name.length > 20 ? n.name.slice(0, 19) + '…' : n.name}
-            </text>
-          </g>
-        ))}
+        {nodes.map(n => {
+          const pos = positions[n.id];
+          if (!pos) return null;
+          const isSel = selectedNodeId === n.id;
+          return (
+            <g
+              key={n.id}
+              onClick={() => onSelect(isSel ? '' : n.id)}
+              style={{ cursor: 'pointer' }}
+            >
+              <rect x={pos.x} y={pos.y} width={TREE_NW} height={TREE_NH} rx={10}
+                fill={isSel ? '#3b82f61a' : 'var(--surface)'}
+                stroke={isSel ? '#3b82f6' : 'var(--border-2)'}
+                strokeWidth={isSel ? 2.5 : 2} />
+              <text x={pos.x + TREE_NW / 2} y={pos.y + TREE_NH / 2 + 4}
+                textAnchor="middle" fontSize="12.5" fontWeight="600"
+                fill={isSel ? '#3b82f6' : 'var(--text)'}>
+                {n.name.length > 18 ? n.name.slice(0, 17) + '…' : n.name}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
@@ -154,7 +220,7 @@ function Sales() {
   };
 
   const openNew = () => { setForm({ ...EMPTY, date: today() }); setEditId(null); setShowForm(true); setFormTab('info'); setError(''); };
-  const openEdit = (r) => { setForm({ client: r.client, product: r.product || '', description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date, hierarchy_id: r.hierarchy_id || '' }); setEditId(r.id); setShowForm(true); setFormTab('info'); setError(''); };
+  const openEdit = (r) => { setForm({ client: r.client, product: r.product || '', description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date, hierarchy_id: r.hierarchy_id || '', hierarchy_node_id: r.hierarchy_node_id || '' }); setEditId(r.id); setShowForm(true); setFormTab('info'); setError(''); };
 
   const handleSave = async () => {
     if (!form.client || !form.amount || !form.date) { setError(t('sales.validationError')); return; }
@@ -274,7 +340,13 @@ function Sales() {
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     {r.hierarchy_id ? (() => {
                       const h = hierarchies.find(h => h.id === r.hierarchy_id);
-                      return h ? <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>{h.name}</span> : '—';
+                      if (!h) return '—';
+                      const node = r.hierarchy_node_id ? h.nodes?.find(n => n.id === r.hierarchy_node_id) : null;
+                      return (
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                          {h.name}{node ? ` · ${node.name}` : ''}
+                        </span>
+                      );
                     })() : '—'}
                   </td>
                   <td style={{ color: '#64748b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.description || '—'}</td>
@@ -354,7 +426,7 @@ function Sales() {
                   </div>
                   <div className="acc-form-group">
                     <label>{t('sales.hierarchy')}</label>
-                    <select value={form.hierarchy_id} onChange={(e) => setForm({ ...form, hierarchy_id: e.target.value })}>
+                    <select value={form.hierarchy_id} onChange={(e) => setForm({ ...form, hierarchy_id: e.target.value, hierarchy_node_id: '' })}>
                       <option value="">{t('sales.noHierarchy')}</option>
                       {hierarchies.map((h) => (
                         <option key={h.id} value={h.id}>{h.name}</option>
@@ -363,7 +435,16 @@ function Sales() {
                   </div>
                 </div>
                 {form.hierarchy_id && (
-                  <HierarchyPreview hierarchy={hierarchies.find(h => h.id === form.hierarchy_id)} />
+                  <>
+                    <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 12, marginBottom: -2 }}>
+                      {t('sales.hierarchyNodeHint')}
+                    </div>
+                    <HierarchyTreeSelect
+                      hierarchy={hierarchies.find(h => h.id === form.hierarchy_id)}
+                      selectedNodeId={form.hierarchy_node_id}
+                      onSelect={(id) => setForm({ ...form, hierarchy_node_id: id })}
+                    />
+                  </>
                 )}
               </div>
             )}

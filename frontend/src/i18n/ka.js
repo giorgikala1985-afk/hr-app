@@ -1165,6 +1165,7 @@ const ka = {
   'sales.noHierarchy': '— არცერთი —',
   'sales.tabSaleInfo': 'გაყიდვის ინფო',
   'sales.tabCategory': 'კატეგორია',
+  'sales.hierarchyNodeHint': 'დაჭირეთ კვანძზე ამ გაყიდვის დასაკავშირებლად (არასავალდებულო)',
   'sales.cancel': 'გაუქმება',
   'sales.save': 'შენახვა',
   'sales.saving': 'შენახვა…',

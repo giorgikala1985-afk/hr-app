@@ -1167,6 +1167,7 @@ const en = {
   'sales.noHierarchy': '— None —',
   'sales.tabSaleInfo': 'Sale Info',
   'sales.tabCategory': 'Category',
+  'sales.hierarchyNodeHint': 'Click a node to link this sale to it (optional)',
   'sales.cancel': 'Cancel',
   'sales.save': 'Save',
   'sales.saving': 'Saving…',
