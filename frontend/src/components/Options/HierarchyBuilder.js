@@ -29,6 +29,86 @@ const BLUE = '#3b82f6';
 const RED  = '#ef4444';
 const GREY = '#94a3b8';
 
+// Builds parent→children map from edges (from=parent, to=child) and finds roots
+// (nodes with no incoming edge). Falls back to the first node if none found.
+function buildTree(nodes, edges) {
+  const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
+  const childrenMap = {};
+  const hasParent = new Set();
+  edges.forEach(e => {
+    if (!nodeMap[e.from] || !nodeMap[e.to]) return;
+    (childrenMap[e.from] = childrenMap[e.from] || []).push(e.to);
+    hasParent.add(e.to);
+  });
+  let roots = nodes.filter(n => !hasParent.has(n.id)).map(n => n.id);
+  if (roots.length === 0 && nodes.length > 0) roots = [nodes[0].id];
+  return { nodeMap, childrenMap, roots };
+}
+
+function TreeRow({ id, depth, nodeMap, childrenMap, expanded, toggleExpand, selectedNodeId, onSelect, onDoubleSelect, visited }) {
+  if (visited.has(id)) return null; // guard against cycles
+  const node = nodeMap[id];
+  if (!node) return null;
+  const children = (childrenMap[id] || []).filter(c => nodeMap[c]);
+  const hasChildren = children.length > 0;
+  const isExpanded = expanded.has(id);
+  const isSel = selectedNodeId === id;
+  const childVisited = new Set(visited); childVisited.add(id);
+
+  return (
+    <div>
+      <div
+        onClick={() => onSelect(id)}
+        onDoubleClick={() => onDoubleSelect(id)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          paddingLeft: 8 + depth * 18, paddingRight: 8,
+          height: 30, borderRadius: 6, cursor: 'pointer',
+          background: isSel ? '#3b82f61a' : 'transparent',
+          transition: 'background 0.1s',
+        }}
+        onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--surface-2)'; }}
+        onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}
+      >
+        {hasChildren ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleExpand(id); }}
+            style={{
+              width: 16, height: 16, flexShrink: 0, borderRadius: 4,
+              border: '1px solid var(--border-2)', background: 'var(--surface)',
+              color: 'var(--text-3)', fontSize: 11, fontWeight: 700, lineHeight: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', padding: 0,
+            }}
+          >{isExpanded ? '−' : '+'}</button>
+        ) : (
+          <span style={{ width: 16, height: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--border-2)' }} />
+          </span>
+        )}
+        <span style={{
+          fontSize: 13, fontWeight: isSel ? 700 : 500,
+          color: isSel ? BLUE : 'var(--text)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{node.name}</span>
+      </div>
+      {hasChildren && isExpanded && (
+        <div style={{ marginLeft: 8 + depth * 18 + 8, borderLeft: '1px solid var(--border-2)' }}>
+          {children.map(cid => (
+            <TreeRow
+              key={cid} id={cid} depth={depth + 1}
+              nodeMap={nodeMap} childrenMap={childrenMap}
+              expanded={expanded} toggleExpand={toggleExpand}
+              selectedNodeId={selectedNodeId} onSelect={onSelect} onDoubleSelect={onDoubleSelect}
+              visited={childVisited}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function HierarchyBuilder() {
   const { t } = useLanguage();
 
@@ -47,6 +127,7 @@ export default function HierarchyBuilder() {
   const [editingName,  setEditingName] = useState('');
   const [hoverPort,    setHoverPort]   = useState(null);
   const [hoverTarget,  setHoverTarget] = useState(null);
+  const [treeExpanded, setTreeExpanded] = useState(() => new Set());
 
   // ── refs ──────────────────────────────────────────────────────
   const canvasRef       = useRef(null);
@@ -70,6 +151,16 @@ export default function HierarchyBuilder() {
   const nodes   = useMemo(() => hier?.nodes || [], [hier]);
   const edges   = useMemo(() => hier?.edges || [], [hier]);
   const nodeMap = useMemo(() => Object.fromEntries(nodes.map(n => [n.id, n])), [nodes]);
+  const { childrenMap: treeChildrenMap, roots: treeRoots } = useMemo(() => buildTree(nodes, edges), [nodes, edges]);
+
+  // Expand every node by default whenever the active chart changes
+  useEffect(() => { setTreeExpanded(new Set(nodes.map(n => n.id))); }, [activeId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleTreeExpand = useCallback((id) => setTreeExpanded(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  }), []);
 
   // ── initial load ──────────────────────────────────────────────
   useEffect(() => {
@@ -293,6 +384,32 @@ export default function HierarchyBuilder() {
   const zoomPct = Math.round(zoom * 100);
   const changeZoom = (delta) => setZoom(z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, parseFloat((z + delta).toFixed(2)))));
 
+  const focusNode = (id) => {
+    const node = nodeMap[id];
+    const wrap = canvasRef.current;
+    if (!node || !wrap) return;
+    const z = zoomRef.current;
+    const targetX = node.x * z - wrap.clientWidth  / 2 + (NW * z) / 2;
+    const targetY = node.y * z - wrap.clientHeight / 2 + (NH * z) / 2;
+    wrap.scrollTo({ left: Math.max(0, targetX), top: Math.max(0, targetY), behavior: 'smooth' });
+  };
+
+  const selectFromTree = (id) => {
+    if (editingId && editingId !== id) commitEdit();
+    setSelectedNode(prev => prev === id ? null : id);
+    setSelectedEdge(null);
+    focusNode(id);
+  };
+
+  const renameFromTree = (id) => {
+    const n = nodeMap[id];
+    setSelectedNode(id);
+    setSelectedEdge(null);
+    setEditingId(id);
+    setEditingName(n?.name || '');
+    focusNode(id);
+  };
+
   // ── loading state ─────────────────────────────────────────────
   if (loading) {
     return (
@@ -370,8 +487,37 @@ export default function HierarchyBuilder() {
         </button>
       </div>
 
-      {/* ── Canvas wrapper ── */}
-      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+      {/* ── Body: tree sidebar + canvas ── */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* ── Tree sidebar ── */}
+        <div style={{
+          width: 220, flexShrink: 0, overflow: 'auto',
+          borderRight: '1px solid var(--border-2)', background: 'var(--surface)',
+          padding: '10px 6px',
+        }}>
+          <div style={{
+            fontSize: 11, fontWeight: 700, color: 'var(--text-4)',
+            textTransform: 'uppercase', letterSpacing: '0.5px',
+            padding: '2px 8px 8px',
+          }}>{t('hier.nodes')}</div>
+          {nodes.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--text-4)', padding: '0 8px' }}>{t('hier.empty')}</div>
+          ) : (
+            treeRoots.map(rid => (
+              <TreeRow
+                key={rid} id={rid} depth={0}
+                nodeMap={nodeMap} childrenMap={treeChildrenMap}
+                expanded={treeExpanded} toggleExpand={toggleTreeExpand}
+                selectedNodeId={selectedNode} onSelect={selectFromTree} onDoubleSelect={renameFromTree}
+                visited={new Set()}
+              />
+            ))
+          )}
+        </div>
+
+        {/* ── Canvas wrapper ── */}
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
 
         <div
           ref={canvasRef}
@@ -599,6 +745,7 @@ export default function HierarchyBuilder() {
             onClick={() => changeZoom(ZOOM_STEP)} disabled={zoom >= ZOOM_MAX}
             style={zoomBtn(zoom >= ZOOM_MAX)}
           >+</button>
+        </div>
         </div>
       </div>
 
