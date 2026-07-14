@@ -136,23 +136,10 @@ function Sales() {
     } catch { setError(t('sales.failedDeleteSelected')); }
   };
 
-  const total = records.reduce((s, r) => s + parseFloat(r.amount), 0);
-
   return (
     <>
       <h2>{t('sales.title')}</h2>
       <p className="acc-subtitle">{t('sales.subtitle')}</p>
-
-      <div className="acc-summary">
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">{t('sales.totalRecords')}</span>
-          <span className="acc-summary-value">{records.length}</span>
-        </div>
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">{t('sales.totalRevenue')}</span>
-          <span className="acc-summary-value green">${total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-        </div>
-      </div>
 
       <div className="acc-header-row">
         <div />
