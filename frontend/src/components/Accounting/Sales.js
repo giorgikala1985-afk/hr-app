@@ -28,14 +28,9 @@ function IconDelete() {
 
 const EMPTY = { client: '', product: '', description: '', amount: '', currency: 'USD', category: '', date: '', hierarchy_id: '', hierarchy_node_id: '' };
 const CATEGORIES = ['Product', 'Service', 'Consulting', 'License', 'Subscription', 'Other'];
-const TREE_NW = 148;
-const TREE_NH = 46;
-const TREE_HGAP = 20;
-const TREE_VGAP = 52;
-
-// Lays out nodes as a top-down tree using edges (from=parent, to=child).
-// Nodes with no incoming edge become roots; forests are placed side by side.
-function computeTreeLayout(nodes, edges) {
+// Builds parent→children map from edges (from=parent, to=child) and finds roots
+// (nodes with no incoming edge). Falls back to the first node if none found.
+function buildTree(nodes, edges) {
   const nodeMap = Object.fromEntries(nodes.map(n => [n.id, n]));
   const childrenMap = {};
   const hasParent = new Set();
@@ -44,114 +39,104 @@ function computeTreeLayout(nodes, edges) {
     (childrenMap[e.from] = childrenMap[e.from] || []).push(e.to);
     hasParent.add(e.to);
   });
-
   let roots = nodes.filter(n => !hasParent.has(n.id)).map(n => n.id);
   if (roots.length === 0 && nodes.length > 0) roots = [nodes[0].id];
+  return { nodeMap, childrenMap, roots };
+}
 
-  const widths = {};
-  const widthVisited = new Set();
-  const computeWidth = (id) => {
-    if (widthVisited.has(id)) return 0;
-    widthVisited.add(id);
-    const children = (childrenMap[id] || []).filter(c => nodeMap[c]);
-    if (children.length === 0) { widths[id] = TREE_NW; return TREE_NW; }
-    let total = 0;
-    children.forEach((c, i) => { total += computeWidth(c); if (i > 0) total += TREE_HGAP; });
-    widths[id] = Math.max(TREE_NW, total);
-    return widths[id];
-  };
-  roots.forEach(computeWidth);
+function TreeRow({ id, depth, nodeMap, childrenMap, expanded, toggleExpand, selectedNodeId, onSelect, visited }) {
+  if (visited.has(id)) return null; // guard against cycles
+  const node = nodeMap[id];
+  if (!node) return null;
+  const children = (childrenMap[id] || []).filter(c => nodeMap[c]);
+  const hasChildren = children.length > 0;
+  const isExpanded = expanded.has(id);
+  const isSel = selectedNodeId === id;
+  const childVisited = new Set(visited); childVisited.add(id);
 
-  const positions = {};
-  const placed = new Set();
-  const place = (id, x, y) => {
-    if (placed.has(id)) return;
-    placed.add(id);
-    const w = widths[id] || TREE_NW;
-    positions[id] = { x: x + w / 2 - TREE_NW / 2, y };
-    let cx = x;
-    (childrenMap[id] || []).filter(c => nodeMap[c]).forEach(c => {
-      place(c, cx, y + TREE_NH + TREE_VGAP);
-      cx += (widths[c] || TREE_NW) + TREE_HGAP;
-    });
-  };
-  let rx = 0;
-  roots.forEach(r => {
-    place(r, rx, 0);
-    rx += (widths[r] || TREE_NW) + TREE_HGAP * 2;
-  });
-
-  return positions;
+  return (
+    <div>
+      <div
+        onClick={() => onSelect(isSel ? '' : id)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          paddingLeft: 8 + depth * 20, paddingRight: 8,
+          height: 30, borderRadius: 6, cursor: 'pointer',
+          background: isSel ? '#3b82f61a' : 'transparent',
+          transition: 'background 0.1s',
+        }}
+        onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--surface)'; }}
+        onMouseLeave={e => { if (!isSel) e.currentTarget.style.background = 'transparent'; }}
+      >
+        {hasChildren ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); toggleExpand(id); }}
+            style={{
+              width: 16, height: 16, flexShrink: 0, borderRadius: 4,
+              border: '1px solid var(--border-2)', background: 'var(--surface)',
+              color: 'var(--text-3)', fontSize: 11, fontWeight: 700, lineHeight: 1,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', padding: 0,
+            }}
+          >{isExpanded ? '−' : '+'}</button>
+        ) : (
+          <span style={{ width: 16, height: 16, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--border-2)' }} />
+          </span>
+        )}
+        <span style={{
+          fontSize: 13, fontWeight: isSel ? 700 : 500,
+          color: isSel ? '#3b82f6' : 'var(--text)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{node.name}</span>
+      </div>
+      {hasChildren && isExpanded && (
+        <div style={{ marginLeft: 8 + depth * 20 + 8, borderLeft: '1px solid var(--border-2)' }}>
+          {children.map(cid => (
+            <TreeRow
+              key={cid} id={cid} depth={depth + 1}
+              nodeMap={nodeMap} childrenMap={childrenMap}
+              expanded={expanded} toggleExpand={toggleExpand}
+              selectedNodeId={selectedNodeId} onSelect={onSelect}
+              visited={childVisited}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function HierarchyTreeSelect({ hierarchy, selectedNodeId, onSelect }) {
   const nodes = hierarchy?.nodes || [];
   const edges = hierarchy?.edges || [];
-  const positions = useMemo(() => computeTreeLayout(nodes, edges), [nodes, edges]);
+  const { nodeMap, childrenMap, roots } = useMemo(() => buildTree(nodes, edges), [nodes, edges]);
+  const [expanded, setExpanded] = useState(() => new Set(nodes.map(n => n.id)));
+
+  useEffect(() => { setExpanded(new Set(nodes.map(n => n.id))); }, [hierarchy?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (nodes.length === 0) return null;
 
-  const xs = nodes.map(n => positions[n.id]?.x ?? 0);
-  const ys = nodes.map(n => positions[n.id]?.y ?? 0);
-  const minX = Math.min(...xs), minY = Math.min(...ys);
-  const maxX = Math.max(...xs) + TREE_NW, maxY = Math.max(...ys) + TREE_NH;
-  const pad = 16;
-  const vbW = (maxX - minX) + pad * 2;
-  const vbH = (maxY - minY) + pad * 2;
-
-  const edgePath = (srcPos, tgtPos) => {
-    const sx = srcPos.x + TREE_NW / 2, sy = srcPos.y + TREE_NH;
-    const tx = tgtPos.x + TREE_NW / 2, ty = tgtPos.y;
-    const cy = Math.max(30, Math.abs(ty - sy) * 0.55);
-    return `M ${sx} ${sy} C ${sx} ${sy + cy}, ${tx} ${ty - cy}, ${tx} ${ty}`;
-  };
+  const toggleExpand = (id) => setExpanded(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return next;
+  });
 
   return (
     <div style={{
       marginTop: 10, border: '1px solid var(--border-2)', borderRadius: 10,
-      background: 'var(--surface-2)', maxHeight: 280, overflow: 'auto', padding: 4,
+      background: 'var(--surface-2)', maxHeight: 220, overflow: 'auto', padding: '6px 4px',
     }}>
-      <svg
-        viewBox={`${minX - pad} ${minY - pad} ${vbW} ${vbH}`}
-        width={Math.min(vbW, 640)} height={Math.min(vbH, 272)}
-        style={{ display: 'block', margin: '0 auto' }}
-      >
-        <defs>
-          <marker id="hts-arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#94a3b8" />
-          </marker>
-        </defs>
-        {edges.map(edge => {
-          const srcPos = positions[edge.from], tgtPos = positions[edge.to];
-          if (!srcPos || !tgtPos) return null;
-          return (
-            <path key={edge.id} d={edgePath(srcPos, tgtPos)} fill="none"
-              stroke="#94a3b8" strokeWidth={2} markerEnd="url(#hts-arr)" strokeLinejoin="round" />
-          );
-        })}
-        {nodes.map(n => {
-          const pos = positions[n.id];
-          if (!pos) return null;
-          const isSel = selectedNodeId === n.id;
-          return (
-            <g
-              key={n.id}
-              onClick={() => onSelect(isSel ? '' : n.id)}
-              style={{ cursor: 'pointer' }}
-            >
-              <rect x={pos.x} y={pos.y} width={TREE_NW} height={TREE_NH} rx={10}
-                fill={isSel ? '#3b82f61a' : 'var(--surface)'}
-                stroke={isSel ? '#3b82f6' : 'var(--border-2)'}
-                strokeWidth={isSel ? 2.5 : 2} />
-              <text x={pos.x + TREE_NW / 2} y={pos.y + TREE_NH / 2 + 4}
-                textAnchor="middle" fontSize="12.5" fontWeight="600"
-                fill={isSel ? '#3b82f6' : 'var(--text)'}>
-                {n.name.length > 18 ? n.name.slice(0, 17) + '…' : n.name}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      {roots.map(rid => (
+        <TreeRow
+          key={rid} id={rid} depth={0}
+          nodeMap={nodeMap} childrenMap={childrenMap}
+          expanded={expanded} toggleExpand={toggleExpand}
+          selectedNodeId={selectedNodeId} onSelect={onSelect}
+          visited={new Set()}
+        />
+      ))}
     </div>
   );
 }
