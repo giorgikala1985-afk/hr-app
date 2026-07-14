@@ -35,6 +35,7 @@ const requestRoutes = require('./routes/requests');
 const accountRoutes = require('./routes/account');
 const cronRoutes = require('./routes/cron');
 const testDebugRoutes = require('./routes/test_debug');
+const hierarchyRoutes = require('./routes/hierarchies');
 const { authenticateUser } = require('./middleware/auth');
 
 // Force restart to apply FinBot debug changes
@@ -109,6 +110,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/portal', portalRoutes);
 
 app.use('/api/test-debug', testDebugRoutes);
+app.use('/api/hierarchies', authenticateUser, hierarchyRoutes);
 // Documents: sign route is public (no auth), rest needs auth
 app.use('/api/documents/sign', documentRoutes);
 app.use('/api/documents', authenticateUser, documentRoutes);

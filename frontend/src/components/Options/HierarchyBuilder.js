@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
-
-const HIER_KEY   = 'finpilot_hierarchies';
-const ACTIVE_KEY = 'finpilot_hierarchy_active';
+import api from '../../services/api';
 
 const NW = 160;
 const NH = 52;
@@ -13,14 +11,6 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
 
 function uid() { return Math.random().toString(36).slice(2, 11); }
-
-function loadHierarchies() {
-  try {
-    const s = JSON.parse(localStorage.getItem(HIER_KEY));
-    if (s && s.length) return s.map(h => ({ ...h, nodes: h.nodes || [], edges: h.edges || [] }));
-  } catch {}
-  return [{ id: 'h0', name: 'My Hierarchy', nodes: [], edges: [] }];
-}
 
 function edgePath(src, tgt) {
   const sx = src.x + NW / 2, sy = src.y + NH;
@@ -43,10 +33,9 @@ export default function HierarchyBuilder() {
   const { t } = useLanguage();
 
   // ── data ──────────────────────────────────────────────────────
-  const [hierarchies, setHierarchies] = useState(loadHierarchies);
-  const [activeId, setActiveId] = useState(() => {
-    try { return localStorage.getItem(ACTIVE_KEY) || 'h0'; } catch { return 'h0'; }
-  });
+  const [hierarchies, setHierarchies] = useState([]);
+  const [activeId,    setActiveId]    = useState(null);
+  const [loading,     setLoading]     = useState(true);
 
   // ── interaction ───────────────────────────────────────────────
   const [zoom,         setZoom]        = useState(1);
@@ -60,41 +49,61 @@ export default function HierarchyBuilder() {
   const [hoverTarget,  setHoverTarget] = useState(null);
 
   // ── refs ──────────────────────────────────────────────────────
-  const canvasRef      = useRef(null);
-  const draggingRef    = useRef(null);
-  const connectingRef  = useRef(null);
-  const activeIdRef    = useRef(activeId);
-  const zoomRef        = useRef(zoom);
-  const didDragRef     = useRef(false);
-  const hoverTargetRef = useRef(null);
+  const canvasRef       = useRef(null);
+  const draggingRef     = useRef(null);
+  const connectingRef   = useRef(null);
+  const activeIdRef     = useRef(activeId);
+  const hierarchiesRef  = useRef(hierarchies);
+  const zoomRef         = useRef(zoom);
+  const didDragRef      = useRef(false);
+  const hoverTargetRef  = useRef(null);
 
   useEffect(() => { draggingRef.current    = dragging;    }, [dragging]);
   useEffect(() => { connectingRef.current  = connecting;  }, [connecting]);
   useEffect(() => { activeIdRef.current    = activeId;    }, [activeId]);
+  useEffect(() => { hierarchiesRef.current = hierarchies; }, [hierarchies]);
   useEffect(() => { zoomRef.current        = zoom;        }, [zoom]);
   useEffect(() => { hoverTargetRef.current = hoverTarget; }, [hoverTarget]);
 
   // ── derived ───────────────────────────────────────────────────
   const hier    = useMemo(() => hierarchies.find(h => h.id === activeId) || hierarchies[0], [hierarchies, activeId]);
-  const nodes   = hier?.nodes || [];
-  const edges   = hier?.edges || [];
+  const nodes   = useMemo(() => hier?.nodes || [], [hier]);
+  const edges   = useMemo(() => hier?.edges || [], [hier]);
   const nodeMap = useMemo(() => Object.fromEntries(nodes.map(n => [n.id, n])), [nodes]);
 
-  // ── persistence ───────────────────────────────────────────────
-  const saveAll = useCallback((hs) => {
-    localStorage.setItem(HIER_KEY, JSON.stringify(hs));
-    setHierarchies(hs);
+  // ── initial load ──────────────────────────────────────────────
+  useEffect(() => {
+    api.get('/hierarchies')
+      .then(async r => {
+        let hs = r.data.hierarchies || [];
+        if (hs.length === 0) {
+          const cr = await api.post('/hierarchies', { name: 'My Hierarchy', nodes: [], edges: [] });
+          hs = [cr.data.hierarchy];
+        }
+        setHierarchies(hs);
+        setActiveId(hs[0].id);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const patchActive = useCallback((patch) => {
+  // ── helpers ───────────────────────────────────────────────────
+  // Update local state only (no API call — used during drag)
+  const patchLocalActive = useCallback((patch) => {
+    setHierarchies(prev => prev.map(h => h.id === activeIdRef.current ? { ...h, ...patch } : h));
+  }, []);
+
+  // Update local state + save to API
+  const saveActive = useCallback((patch) => {
     setHierarchies(prev => {
       const next = prev.map(h => h.id === activeIdRef.current ? { ...h, ...patch } : h);
-      localStorage.setItem(HIER_KEY, JSON.stringify(next));
+      const updated = next.find(h => h.id === activeIdRef.current);
+      if (updated) api.put(`/hierarchies/${updated.id}`, patch).catch(() => {});
       return next;
     });
   }, []);
 
-  // ── mouse → canvas coords (accounts for scroll + zoom) ────────
+  // ── mouse → canvas coords ─────────────────────────────────────
   const canvasMouse = useCallback((e) => {
     const el = canvasRef.current;
     if (!el) return { x: 0, y: 0 };
@@ -115,16 +124,13 @@ export default function HierarchyBuilder() {
       if (drag) {
         didDragRef.current = true;
         const { x, y } = canvasMouse(e);
-        setHierarchies(prev => {
-          const next = prev.map(h => h.id === activeIdRef.current ? {
-            ...h,
-            nodes: h.nodes.map(n => n.id === drag.nodeId
-              ? { ...n, x: Math.max(0, x - drag.offX), y: Math.max(0, y - drag.offY) }
-              : n),
-          } : h);
-          localStorage.setItem(HIER_KEY, JSON.stringify(next));
-          return next;
-        });
+        // Local-only update during drag (smooth, no API spam)
+        setHierarchies(prev => prev.map(h => h.id === activeIdRef.current ? {
+          ...h,
+          nodes: h.nodes.map(n => n.id === drag.nodeId
+            ? { ...n, x: Math.max(0, x - drag.offX), y: Math.max(0, y - drag.offY) }
+            : n),
+        } : h));
       }
 
       if (conn) {
@@ -139,9 +145,16 @@ export default function HierarchyBuilder() {
     };
 
     const onUp = (e) => {
-      if (draggingRef.current) setDragging(null);
-
+      const drag = draggingRef.current;
       const conn = connectingRef.current;
+
+      if (drag) {
+        setDragging(null);
+        // Save final position to API after drag ends
+        const h = hierarchiesRef.current.find(h => h.id === activeIdRef.current);
+        if (h) api.put(`/hierarchies/${h.id}`, { nodes: h.nodes }).catch(() => {});
+      }
+
       if (conn) {
         const el = document.elementFromPoint(e.clientX, e.clientY);
         const nodeEl = el?.closest('[data-nodeid]');
@@ -153,9 +166,9 @@ export default function HierarchyBuilder() {
             const existingEdges = h.edges || [];
             if (existingEdges.some(e => e.from === conn.fromId && e.to === toId)) return prev;
             const newEdge = { id: uid(), from: conn.fromId, to: toId };
-            const next = prev.map(hh => hh.id === activeIdRef.current
-              ? { ...hh, edges: [...existingEdges, newEdge] } : hh);
-            localStorage.setItem(HIER_KEY, JSON.stringify(next));
+            const newEdges = [...existingEdges, newEdge];
+            const next = prev.map(hh => hh.id === activeIdRef.current ? { ...hh, edges: newEdges } : hh);
+            api.put(`/hierarchies/${activeIdRef.current}`, { edges: newEdges }).catch(() => {});
             return next;
           });
         }
@@ -183,63 +196,73 @@ export default function HierarchyBuilder() {
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, []);
+  }, [loading]);
 
   // ── node ops ─────────────────────────────────────────────────
   const addNode = () => {
+    if (!hier) return;
     const wrap = canvasRef.current;
     const z = zoomRef.current;
     const cx = wrap ? (wrap.scrollLeft + wrap.clientWidth  / 2) / z - NW / 2 : 300;
     const cy = wrap ? (wrap.scrollTop  + wrap.clientHeight / 2) / z - NH / 2 : 200;
     const n = { id: uid(), name: t('hier.newNode'), x: Math.round(cx), y: Math.round(cy) };
-    patchActive({ nodes: [...nodes, n] });
+    const newNodes = [...nodes, n];
+    saveActive({ nodes: newNodes });
     setSelectedNode(n.id);
     setSelectedEdge(null);
     setTimeout(() => { setEditingId(n.id); setEditingName(n.name); }, 60);
   };
 
   const deleteNode = (id) => {
-    patchActive({
-      nodes: nodes.filter(n => n.id !== id),
-      edges: edges.filter(e => e.from !== id && e.to !== id),
-    });
+    const newNodes = nodes.filter(n => n.id !== id);
+    const newEdges = edges.filter(e => e.from !== id && e.to !== id);
+    saveActive({ nodes: newNodes, edges: newEdges });
     if (selectedNode === id) setSelectedNode(null);
-    if (editingId === id) setEditingId(null);
+    if (editingId   === id) setEditingId(null);
   };
 
   const deleteEdge = (id) => {
-    patchActive({ edges: edges.filter(e => e.id !== id) });
+    const newEdges = edges.filter(e => e.id !== id);
+    saveActive({ edges: newEdges });
     if (selectedEdge === id) setSelectedEdge(null);
   };
 
   const commitEdit = () => {
     if (!editingId) return;
-    patchActive({ nodes: nodes.map(n => n.id === editingId ? { ...n, name: editingName.trim() || n.name } : n) });
+    const newNodes = nodes.map(n => n.id === editingId ? { ...n, name: editingName.trim() || n.name } : n);
+    saveActive({ nodes: newNodes });
     setEditingId(null);
   };
 
   // ── hierarchy ops ─────────────────────────────────────────────
-  const addHierarchy = () => {
-    const h = { id: uid(), name: t('hier.newHierarchy'), nodes: [], edges: [] };
-    saveAll([...hierarchies, h]);
-    setActiveId(h.id);
-    localStorage.setItem(ACTIVE_KEY, h.id);
+  const addHierarchy = async () => {
+    try {
+      const r = await api.post('/hierarchies', { name: t('hier.newHierarchy'), nodes: [], edges: [] });
+      const h = r.data.hierarchy;
+      setHierarchies(prev => [...prev, h]);
+      setActiveId(h.id);
+      setSelectedNode(null); setSelectedEdge(null); setEditingId(null);
+    } catch {}
   };
 
-  const deleteHierarchy = () => {
-    if (hierarchies.length === 1) return;
-    const next = hierarchies.filter(h => h.id !== activeId);
-    saveAll(next);
-    const nid = next[0].id;
-    setActiveId(nid);
-    localStorage.setItem(ACTIVE_KEY, nid);
+  const deleteHierarchy = async () => {
+    if (hierarchies.length === 1 || !hier) return;
+    try {
+      await api.delete(`/hierarchies/${hier.id}`);
+      const next = hierarchies.filter(h => h.id !== hier.id);
+      setHierarchies(next);
+      setActiveId(next[0].id);
+      setSelectedNode(null); setSelectedEdge(null);
+    } catch {}
   };
 
-  const renameHierarchy = (name) => saveAll(hierarchies.map(h => h.id === activeId ? { ...h, name } : h));
+  const renameHierarchy = (name) => {
+    saveActive({ name });
+  };
 
   const switchHierarchy = (id) => {
+    if (editingId) commitEdit();
     setActiveId(id);
-    localStorage.setItem(ACTIVE_KEY, id);
     setSelectedNode(null); setSelectedEdge(null);
     setConnecting(null); setDragging(null); setEditingId(null);
   };
@@ -269,6 +292,15 @@ export default function HierarchyBuilder() {
 
   const zoomPct = Math.round(zoom * 100);
   const changeZoom = (delta) => setZoom(z => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, parseFloat((z + delta).toFixed(2)))));
+
+  // ── loading state ─────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-4)', fontSize: 14 }}>
+        Loading…
+      </div>
+    );
+  }
 
   // ── render ────────────────────────────────────────────────────
   return (
@@ -338,10 +370,9 @@ export default function HierarchyBuilder() {
         </button>
       </div>
 
-      {/* ── Canvas wrapper (contains scroll area + floating zoom controls) ── */}
+      {/* ── Canvas wrapper ── */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
 
-        {/* Scrollable canvas */}
         <div
           ref={canvasRef}
           onMouseDown={e => {
@@ -356,9 +387,7 @@ export default function HierarchyBuilder() {
           }}
           style={{ position: 'absolute', inset: 0, overflow: 'auto', background: 'var(--surface-2)' }}
         >
-          {/* Scroll extent tracks zoom */}
           <div style={{ width: CANVAS_W * zoom, height: CANVAS_H * zoom, position: 'relative', flexShrink: 0 }}>
-            {/* Scaled content */}
             <div
               className="canvas-inner"
               style={{
@@ -367,7 +396,6 @@ export default function HierarchyBuilder() {
                 transform: `scale(${zoom})`, transformOrigin: '0 0',
               }}
             >
-              {/* SVG: dots + edges + preview */}
               <svg
                 style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
                 onMouseDown={e => { if (e.target.tagName === 'svg') { setSelectedNode(null); setSelectedEdge(null); } }}
@@ -415,7 +443,6 @@ export default function HierarchyBuilder() {
                 )}
               </svg>
 
-              {/* Nodes */}
               {nodes.map(node => {
                 const isSel    = selectedNode === node.id;
                 const isSrc    = connecting?.fromId === node.id;
@@ -486,7 +513,6 @@ export default function HierarchyBuilder() {
                       }}>{node.name}</span>
                     )}
 
-                    {/* Connect port */}
                     <div
                       className="hb-port"
                       onMouseDown={e => {
@@ -507,9 +533,7 @@ export default function HierarchyBuilder() {
                         borderRadius: '50%',
                         background: hoverPort === node.id ? BLUE : 'var(--surface)',
                         border: `2.5px solid ${hoverPort === node.id ? BLUE : GREY}`,
-                        cursor: 'crosshair',
-                        transition: 'all 0.12s',
-                        zIndex: 30,
+                        cursor: 'crosshair', transition: 'all 0.12s', zIndex: 30,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         boxShadow: hoverPort === node.id ? `0 0 0 3px ${BLUE}25` : 'none',
                       }}
@@ -545,78 +569,35 @@ export default function HierarchyBuilder() {
           </div>
         </div>
 
-        {/* ── Zoom controls (floating bottom-right) ── */}
+        {/* ── Zoom controls ── */}
         <div style={{
           position: 'absolute', bottom: 16, right: 16,
           display: 'flex', alignItems: 'center', gap: 6,
-          background: 'var(--surface)',
-          border: '1px solid var(--border-2)',
-          borderRadius: 12,
-          padding: '6px 10px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.12)',
-          zIndex: 200,
-          userSelect: 'none',
+          background: 'var(--surface)', border: '1px solid var(--border-2)',
+          borderRadius: 12, padding: '6px 10px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.12)', zIndex: 200, userSelect: 'none',
         }}>
-          {/* − button */}
           <button
-            onClick={() => changeZoom(-ZOOM_STEP)}
-            disabled={zoom <= ZOOM_MIN}
-            style={{
-              width: 28, height: 28, borderRadius: 7,
-              border: '1.5px solid var(--border-2)',
-              background: 'var(--surface-2)',
-              color: zoom <= ZOOM_MIN ? 'var(--text-4)' : 'var(--text)',
-              cursor: zoom <= ZOOM_MIN ? 'default' : 'pointer',
-              fontSize: 18, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              lineHeight: 1, padding: 0,
-              transition: 'all 0.1s',
-            }}
+            onClick={() => changeZoom(-ZOOM_STEP)} disabled={zoom <= ZOOM_MIN}
+            style={zoomBtn(zoom <= ZOOM_MIN)}
           >−</button>
-
-          {/* Slider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input
-              type="range"
-              min={ZOOM_MIN}
-              max={ZOOM_MAX}
-              step={0.01}
-              value={zoom}
-              onChange={e => setZoom(parseFloat(e.target.value))}
-              style={{
-                width: 96, height: 4, cursor: 'pointer',
-                accentColor: BLUE,
-                appearance: 'auto',
-              }}
-            />
-            {/* Percentage label — click to reset */}
-            <span
-              onClick={() => setZoom(1)}
-              title="Reset to 100%"
-              style={{
-                fontSize: 11, fontWeight: 700,
-                color: zoom === 1 ? 'var(--text-4)' : BLUE,
-                cursor: 'pointer', minWidth: 34, textAlign: 'right',
-                transition: 'color 0.1s',
-              }}
-            >{zoomPct}%</span>
-          </div>
-
-          {/* + button */}
-          <button
-            onClick={() => changeZoom(ZOOM_STEP)}
-            disabled={zoom >= ZOOM_MAX}
+          <input
+            type="range" min={ZOOM_MIN} max={ZOOM_MAX} step={0.01} value={zoom}
+            onChange={e => setZoom(parseFloat(e.target.value))}
+            style={{ width: 96, height: 4, cursor: 'pointer', accentColor: BLUE }}
+          />
+          <span
+            onClick={() => setZoom(1)} title="Reset to 100%"
             style={{
-              width: 28, height: 28, borderRadius: 7,
-              border: '1.5px solid var(--border-2)',
-              background: 'var(--surface-2)',
-              color: zoom >= ZOOM_MAX ? 'var(--text-4)' : 'var(--text)',
-              cursor: zoom >= ZOOM_MAX ? 'default' : 'pointer',
-              fontSize: 18, fontWeight: 700,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              lineHeight: 1, padding: 0,
-              transition: 'all 0.1s',
+              fontSize: 11, fontWeight: 700,
+              color: zoom === 1 ? 'var(--text-4)' : BLUE,
+              cursor: 'pointer', minWidth: 34, textAlign: 'right',
+              transition: 'color 0.1s',
             }}
+          >{zoomPct}%</span>
+          <button
+            onClick={() => changeZoom(ZOOM_STEP)} disabled={zoom >= ZOOM_MAX}
+            style={zoomBtn(zoom >= ZOOM_MAX)}
           >+</button>
         </div>
       </div>
@@ -638,5 +619,17 @@ function toolBtn(bg = 'var(--surface)', border = 'var(--border-2)', color = 'var
     background: bg, color, fontSize: 12, fontWeight: 600,
     cursor: 'pointer', whiteSpace: 'nowrap',
     display: 'inline-flex', alignItems: 'center', gap: 4,
+  };
+}
+
+function zoomBtn(disabled) {
+  return {
+    width: 28, height: 28, borderRadius: 7,
+    border: '1.5px solid var(--border-2)', background: 'var(--surface-2)',
+    color: disabled ? 'var(--text-4)' : 'var(--text)',
+    cursor: disabled ? 'default' : 'pointer',
+    fontSize: 18, fontWeight: 700,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    lineHeight: 1, padding: 0, transition: 'all 0.1s',
   };
 }
