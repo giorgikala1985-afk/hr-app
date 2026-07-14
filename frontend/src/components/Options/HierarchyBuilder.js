@@ -1,145 +1,211 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const HIER_KEY   = 'finpilot_hierarchies';
 const ACTIVE_KEY = 'finpilot_hierarchy_active';
 
-const NW = 156;  // node width
-const NH = 44;   // node height
-const HG = 36;   // horizontal gap between subtrees
-const VG = 68;   // vertical gap between levels
+const NW = 160;        // node width
+const NH = 52;         // node height
+const CANVAS_W = 3200;
+const CANVAS_H = 2000;
 
-function uid() {
-  return Math.random().toString(36).slice(2, 11);
-}
+function uid() { return Math.random().toString(36).slice(2, 11); }
 
 function loadHierarchies() {
   try {
     const s = JSON.parse(localStorage.getItem(HIER_KEY));
     if (s && s.length) return s;
   } catch {}
-  return [{ id: 'h0', name: 'My Hierarchy', nodes: [] }];
+  return [{ id: 'h0', name: 'My Hierarchy', nodes: [], edges: [] }];
 }
 
-function wouldCycle(nodes, childId, newParentId) {
-  if (!newParentId) return false;
-  const map = Object.fromEntries(nodes.map(n => [n.id, n]));
-  let cur = newParentId;
-  while (cur) {
-    if (cur === childId) return true;
-    cur = map[cur]?.parentId;
-  }
-  return false;
+// Bezier path between two nodes (bottom-center → top-center)
+function edgePath(src, tgt) {
+  const sx = src.x + NW / 2, sy = src.y + NH;
+  const tx = tgt.x + NW / 2, ty = tgt.y;
+  const cy = Math.max(60, Math.abs(ty - sy) * 0.55);
+  return `M ${sx} ${sy} C ${sx} ${sy + cy}, ${tx} ${ty - cy}, ${tx} ${ty}`;
 }
 
-function computeLayout(nodes) {
-  if (!nodes.length) return { positions: {}, svgW: 0, svgH: 0 };
-
-  const validIds = new Set(nodes.map(n => n.id));
-  const childrenOf = {};
-  nodes.forEach(n => (childrenOf[n.id] = []));
-  nodes.forEach(n => {
-    if (n.parentId && validIds.has(n.parentId))
-      childrenOf[n.parentId].push(n.id);
-  });
-  const roots = nodes.filter(n => !n.parentId || !validIds.has(n.parentId));
-
-  const sw = {};
-  const calcSW = (id) => {
-    const ch = childrenOf[id] || [];
-    sw[id] = ch.length ? ch.reduce((s, c) => s + calcSW(c), 0) : NW + HG;
-    return sw[id];
-  };
-  roots.forEach(r => calcSW(r.id));
-
-  const pos = {};
-  const place = (id, x, depth) => {
-    pos[id] = { x, y: depth * (NH + VG) + 50 };
-    const ch = childrenOf[id] || [];
-    let cx = x - sw[id] / 2;
-    ch.forEach(cid => { place(cid, cx + sw[cid] / 2, depth + 1); cx += sw[cid]; });
-  };
-
-  let rx = 0;
-  roots.forEach(r => { place(r.id, rx + sw[r.id] / 2, 0); rx += sw[r.id]; });
-
-  // Normalize: left edge → NW/2 + 24
-  const xs = Object.values(pos).map(p => p.x);
-  const ys = Object.values(pos).map(p => p.y);
-  const dx = NW / 2 + 24 - Math.min(...xs);
-  Object.keys(pos).forEach(id => (pos[id].x += dx));
-
-  const fxs = Object.values(pos).map(p => p.x);
-  const svgW = Math.max(...fxs) + NW / 2 + 24;
-  const svgH = Math.max(...ys) + NH + 44;
-
-  return { positions: pos, svgW, svgH };
+// Bezier for rubber-band preview
+function previewPath(src, mx, my) {
+  const sx = src.x + NW / 2, sy = src.y + NH + 8;
+  const cy = Math.max(40, Math.abs(my - sy) * 0.5);
+  return `M ${sx} ${sy} C ${sx} ${sy + cy}, ${mx} ${my - cy}, ${mx} ${my}`;
 }
 
-function trunc(s, max = 17) {
-  return s.length > max ? s.slice(0, max) + '…' : s;
-}
-
-const ACCENT = '#3b82f6';
-const AMBER  = '#f59e0b';
+const BLUE = '#3b82f6';
+const RED  = '#ef4444';
+const GREY = '#94a3b8';
 
 export default function HierarchyBuilder() {
   const { t } = useLanguage();
 
+  // ── data state ────────────────────────────────────────────────
   const [hierarchies, setHierarchies] = useState(loadHierarchies);
   const [activeId, setActiveId] = useState(() => {
     try { return localStorage.getItem(ACTIVE_KEY) || 'h0'; } catch { return 'h0'; }
   });
-  const [selectedId,  setSelectedId]  = useState(null);
-  const [connectMode, setConnectMode] = useState(false);
-  const [connectSrc,  setConnectSrc]  = useState(null);
 
-  const hier  = useMemo(
-    () => hierarchies.find(h => h.id === activeId) || hierarchies[0],
-    [hierarchies, activeId],
-  );
+  // ── interaction state ─────────────────────────────────────────
+  const [dragging,      setDragging]      = useState(null); // { nodeId, offX, offY }
+  const [connecting,    setConnecting]    = useState(null); // { fromId, mouseX, mouseY }
+  const [selectedNode,  setSelectedNode]  = useState(null);
+  const [selectedEdge,  setSelectedEdge]  = useState(null);
+  const [editingId,     setEditingId]     = useState(null);
+  const [editingName,   setEditingName]   = useState('');
+  const [hoverPort,     setHoverPort]     = useState(null);
+  const [hoverTarget,   setHoverTarget]   = useState(null); // nodeId highlighted as drop target
+
+  // ── refs (avoid stale closures in global event handlers) ───────
+  const canvasRef      = useRef(null);
+  const draggingRef    = useRef(null);
+  const connectingRef  = useRef(null);
+  const activeIdRef    = useRef(activeId);
+  const didDragRef     = useRef(false);
+  const hoverTargetRef = useRef(null);
+
+  useEffect(() => { draggingRef.current    = dragging;    }, [dragging]);
+  useEffect(() => { connectingRef.current  = connecting;  }, [connecting]);
+  useEffect(() => { activeIdRef.current    = activeId;    }, [activeId]);
+  useEffect(() => { hoverTargetRef.current = hoverTarget; }, [hoverTarget]);
+
+  // ── derived ───────────────────────────────────────────────────
+  const hier  = useMemo(() => hierarchies.find(h => h.id === activeId) || hierarchies[0], [hierarchies, activeId]);
   const nodes = hier?.nodes || [];
+  const edges = hier?.edges || [];
+  const nodeMap = useMemo(() => Object.fromEntries(nodes.map(n => [n.id, n])), [nodes]);
 
-  useEffect(() => {
-    setSelectedId(null);
-    setConnectMode(false);
-    setConnectSrc(null);
-  }, [activeId]);
-
-  // ── persistence ──────────────────────────────────────────────
+  // ── persistence helpers ───────────────────────────────────────
   const saveAll = useCallback((hs) => {
     localStorage.setItem(HIER_KEY, JSON.stringify(hs));
     setHierarchies(hs);
   }, []);
 
-  const patchNodes = useCallback((newNodes) => {
-    saveAll(hierarchies.map(h => h.id === activeId ? { ...h, nodes: newNodes } : h));
-  }, [hierarchies, activeId, saveAll]);
+  const patchActive = useCallback((patch) => {
+    setHierarchies(prev => {
+      const next = prev.map(h => h.id === activeIdRef.current ? { ...h, ...patch } : h);
+      localStorage.setItem(HIER_KEY, JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // ── mouse helpers ─────────────────────────────────────────────
+  const canvasMouse = useCallback((e) => {
+    const el = canvasRef.current;
+    if (!el) return { x: 0, y: 0 };
+    const r = el.getBoundingClientRect();
+    return { x: e.clientX - r.left + el.scrollLeft, y: e.clientY - r.top + el.scrollTop };
+  }, []);
+
+  // ── global mouse events (set up once) ─────────────────────────
+  useEffect(() => {
+    const onMove = (e) => {
+      const drag = draggingRef.current;
+      const conn = connectingRef.current;
+
+      if (drag) {
+        didDragRef.current = true;
+        const { x, y } = canvasMouse(e);
+        setHierarchies(prev => {
+          const next = prev.map(h => h.id === activeIdRef.current ? {
+            ...h,
+            nodes: h.nodes.map(n => n.id === drag.nodeId
+              ? { ...n, x: Math.max(0, x - drag.offX), y: Math.max(0, y - drag.offY) }
+              : n),
+          } : h);
+          localStorage.setItem(HIER_KEY, JSON.stringify(next));
+          return next;
+        });
+      }
+
+      if (conn) {
+        const { x, y } = canvasMouse(e);
+        setConnecting(prev => prev ? { ...prev, mouseX: x, mouseY: y } : null);
+
+        // Detect target node under cursor
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const nodeEl = el?.closest('[data-nodeid]');
+        const toId = nodeEl?.dataset.nodeid || null;
+        const newTarget = (toId && toId !== conn.fromId) ? toId : null;
+        if (newTarget !== hoverTargetRef.current) setHoverTarget(newTarget);
+      }
+    };
+
+    const onUp = (e) => {
+      const drag = draggingRef.current;
+      const conn = connectingRef.current;
+
+      if (drag) {
+        setDragging(null);
+      }
+
+      if (conn) {
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const nodeEl = el?.closest('[data-nodeid]');
+        const toId = nodeEl?.dataset.nodeid;
+        if (toId && toId !== conn.fromId) {
+          // Create edge
+          setHierarchies(prev => {
+            const h = prev.find(h => h.id === activeIdRef.current);
+            if (!h) return prev;
+            if (h.edges.some(e => e.from === conn.fromId && e.to === toId)) return prev;
+            const newEdge = { id: uid(), from: conn.fromId, to: toId };
+            const next = prev.map(hh => hh.id === activeIdRef.current
+              ? { ...hh, edges: [...hh.edges, newEdge] }
+              : hh);
+            localStorage.setItem(HIER_KEY, JSON.stringify(next));
+            return next;
+          });
+        }
+        setConnecting(null);
+        setHoverTarget(null);
+      }
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, [canvasMouse]); // canvasMouse is stable
 
   // ── node ops ─────────────────────────────────────────────────
   const addNode = () => {
-    const n = { id: uid(), name: t('hier.newNode'), parentId: selectedId || null };
-    patchNodes([...nodes, n]);
-    setSelectedId(n.id);
+    const wrap = canvasRef.current;
+    const cx = wrap ? wrap.scrollLeft + wrap.clientWidth / 2 - NW / 2 : 300;
+    const cy = wrap ? wrap.scrollTop  + wrap.clientHeight / 2 - NH / 2 : 200;
+    const n = { id: uid(), name: t('hier.newNode'), x: Math.round(cx), y: Math.round(cy) };
+    patchActive({ nodes: [...nodes, n] });
+    setSelectedNode(n.id);
+    setSelectedEdge(null);
+    setTimeout(() => { setEditingId(n.id); setEditingName(n.name); }, 60);
   };
 
   const deleteNode = (id) => {
-    patchNodes(
-      nodes.filter(n => n.id !== id).map(n => n.parentId === id ? { ...n, parentId: null } : n),
-    );
-    if (selectedId === id) setSelectedId(null);
+    patchActive({
+      nodes: nodes.filter(n => n.id !== id),
+      edges: edges.filter(e => e.from !== id && e.to !== id),
+    });
+    if (selectedNode === id) setSelectedNode(null);
+    if (editingId === id) setEditingId(null);
   };
 
-  const renameNode = (id, name) => patchNodes(nodes.map(n => n.id === id ? { ...n, name } : n));
+  const deleteEdge = (id) => {
+    patchActive({ edges: edges.filter(e => e.id !== id) });
+    if (selectedEdge === id) setSelectedEdge(null);
+  };
 
-  const setParentOf = (childId, parentId) => {
-    if (wouldCycle(nodes, childId, parentId)) return;
-    patchNodes(nodes.map(n => n.id === childId ? { ...n, parentId: parentId || null } : n));
+  const commitEdit = () => {
+    if (!editingId) return;
+    patchActive({ nodes: nodes.map(n => n.id === editingId ? { ...n, name: editingName.trim() || n.name } : n) });
+    setEditingId(null);
   };
 
   // ── hierarchy ops ─────────────────────────────────────────────
   const addHierarchy = () => {
-    const h = { id: uid(), name: t('hier.newHierarchy'), nodes: [] };
+    const h = { id: uid(), name: t('hier.newHierarchy'), nodes: [], edges: [] };
     saveAll([...hierarchies, h]);
     setActiveId(h.id);
     localStorage.setItem(ACTIVE_KEY, h.id);
@@ -154,49 +220,51 @@ export default function HierarchyBuilder() {
     localStorage.setItem(ACTIVE_KEY, nid);
   };
 
-  const renameHierarchy = (name) =>
-    saveAll(hierarchies.map(h => h.id === activeId ? { ...h, name } : h));
+  const renameHierarchy = (name) => saveAll(hierarchies.map(h => h.id === activeId ? { ...h, name } : h));
 
   const switchHierarchy = (id) => {
     setActiveId(id);
     localStorage.setItem(ACTIVE_KEY, id);
+    setSelectedNode(null); setSelectedEdge(null);
+    setConnecting(null); setDragging(null); setEditingId(null);
   };
 
-  // ── connect mode ─────────────────────────────────────────────
-  const handleCanvasClick = (nodeId) => {
-    if (connectMode) {
-      if (!connectSrc) {
-        setConnectSrc(nodeId);
-      } else if (connectSrc === nodeId) {
-        setConnectSrc(null);
-      } else {
-        setParentOf(nodeId, connectSrc);
-        setConnectSrc(null);
-        setConnectMode(false);
+  const connSrcNode = connecting ? nodeMap[connecting.fromId] : null;
+
+  // ── keyboard delete ───────────────────────────────────────────
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (document.activeElement.tagName === 'INPUT') return;
+        if (selectedNode) deleteNode(selectedNode);
+        if (selectedEdge) deleteEdge(selectedEdge);
       }
-    } else {
-      setSelectedId(nodeId === selectedId ? null : nodeId);
-    }
-  };
+      if (e.key === 'Escape') {
+        setConnecting(null); setHoverTarget(null);
+        setEditingId(null); setSelectedNode(null); setSelectedEdge(null);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
-  const toggleConnect = () => {
-    setConnectMode(v => !v);
-    setConnectSrc(null);
-  };
+  // ── hint text ─────────────────────────────────────────────────
+  const hint = connecting ? t('hier.hintConnecting')
+    : selectedNode   ? t('hier.hintSelected')
+    : selectedEdge   ? t('hier.hintEdge')
+    : t('hier.hint');
 
-  // ── layout ───────────────────────────────────────────────────
-  const { positions, svgW, svgH } = useMemo(() => computeLayout(nodes), [nodes]);
-
-  const sourceNode = nodes.find(n => n.id === connectSrc);
-
+  // ── render ────────────────────────────────────────────────────
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 580 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 600 }}>
 
-      {/* ── Top bar ── */}
+      {/* ── Toolbar ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, padding: '14px 20px 12px',
-        borderBottom: '1px solid var(--border-2)', flexShrink: 0, flexWrap: 'wrap',
+        display: 'flex', alignItems: 'center', gap: 8, padding: '11px 20px',
+        borderBottom: '1px solid var(--border-2)', flexShrink: 0,
+        background: 'var(--surface)', flexWrap: 'wrap',
       }}>
+        {/* Hierarchy name */}
         <input
           value={hier?.name || ''}
           onChange={e => renameHierarchy(e.target.value)}
@@ -209,278 +277,286 @@ export default function HierarchyBuilder() {
           placeholder={t('hier.hierarchyName')}
         />
 
+        {/* Chart tabs */}
         {hierarchies.length > 1 && (
-          <select
-            value={activeId}
-            onChange={e => switchHierarchy(e.target.value)}
-            style={selectSty()}
-          >
-            {hierarchies.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: 3, background: 'var(--surface-2)', borderRadius: 8, padding: 3 }}>
+            {hierarchies.map(h => (
+              <button
+                key={h.id}
+                onClick={() => switchHierarchy(h.id)}
+                style={{
+                  padding: '4px 12px', borderRadius: 6, border: 'none', fontSize: 12, fontWeight: 600,
+                  background: h.id === activeId ? 'var(--surface)' : 'transparent',
+                  color: h.id === activeId ? 'var(--text)' : 'var(--text-3)',
+                  cursor: 'pointer',
+                  boxShadow: h.id === activeId ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+                  transition: 'all 0.13s',
+                }}
+              >{h.name}</button>
+            ))}
+          </div>
         )}
 
-        <button onClick={addHierarchy} style={btn('var(--surface)', 'var(--border-2)', 'var(--text-3)')}>
-          + {t('hier.newHierarchy')}
-        </button>
+        <button onClick={addHierarchy} style={toolBtn()}>+ {t('hier.newHierarchy')}</button>
 
         {hierarchies.length > 1 && (
-          <button onClick={deleteHierarchy} style={btn('var(--surface)', '#ef4444', '#ef4444')}>
+          <button onClick={deleteHierarchy} style={toolBtn('#ef444410', '#ef444440', RED)}>
             {t('hier.delete')}
           </button>
         )}
 
         <div style={{ flex: 1 }} />
 
-        {/* Connect toggle */}
-        <button
-          onClick={toggleConnect}
-          title={t('hier.connectHint')}
-          style={btn(
-            connectMode ? '#f59e0b22' : 'var(--surface)',
-            connectMode ? AMBER : 'var(--border-2)',
-            connectMode ? AMBER : 'var(--text-3)',
-          )}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="18" cy="5"  r="3"/><circle cx="6"  cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-          </svg>
-          {connectMode ? t('hier.connecting') : t('hier.connect')}
-        </button>
+        {/* Context actions */}
+        {selectedNode && (
+          <>
+            <button
+              onClick={() => { const n = nodeMap[selectedNode]; setEditingId(selectedNode); setEditingName(n?.name || ''); }}
+              style={toolBtn()}
+            >✏ {t('hier.rename')}</button>
+            <button onClick={() => deleteNode(selectedNode)} style={toolBtn('#ef444410', '#ef444440', RED)}>
+              ✕ {t('hier.deleteNode')}
+            </button>
+          </>
+        )}
+        {selectedEdge && (
+          <button onClick={() => deleteEdge(selectedEdge)} style={toolBtn('#ef444410', '#ef444440', RED)}>
+            ✕ {t('hier.deleteEdge')}
+          </button>
+        )}
 
-        {/* Add node */}
-        <button onClick={addNode} style={btn(ACCENT, ACCENT, '#fff')}>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          {t('hier.addNode')}
+        <button onClick={addNode} style={toolBtn(BLUE, BLUE, '#fff')}>
+          + {t('hier.addNode')}
         </button>
       </div>
 
-      {/* ── Main split ── */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      {/* ── Canvas ── */}
+      <div
+        ref={canvasRef}
+        onMouseDown={e => {
+          // Click on canvas background = deselect
+          if (e.target === canvasRef.current || e.target.classList.contains('canvas-inner')) {
+            if (!didDragRef.current) {
+              setSelectedNode(null);
+              setSelectedEdge(null);
+              if (editingId) commitEdit();
+            }
+            didDragRef.current = false;
+          }
+        }}
+        style={{ flex: 1, overflow: 'auto', position: 'relative', background: 'var(--surface-2)' }}
+      >
+        <div
+          className="canvas-inner"
+          style={{ position: 'relative', width: CANVAS_W, height: CANVAS_H }}
+        >
+          {/* SVG layer: dots + edges + preview */}
+          <svg
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible' }}
+            onMouseDown={e => { if (e.target.tagName === 'svg') { setSelectedNode(null); setSelectedEdge(null); } }}
+          >
+            <defs>
+              <pattern id="hb-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+                <circle cx="1" cy="1" r="1" fill="var(--border-2)" fillOpacity="0.7" />
+              </pattern>
+              {/* Arrow markers */}
+              {[['arr', GREY], ['arr-sel', RED], ['arr-conn', BLUE]].map(([id, fill]) => (
+                <marker key={id} id={id} markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+                  <path d="M0,0 L0,6 L8,3 z" fill={fill} />
+                </marker>
+              ))}
+            </defs>
 
-        {/* ── Left: node list ── */}
-        <div style={{
-          width: 272, flexShrink: 0, borderRight: '1px solid var(--border-2)',
-          overflowY: 'auto', padding: '14px 10px',
-          display: 'flex', flexDirection: 'column', gap: 6,
-        }}>
-          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>
-            {t('hier.nodes')} ({nodes.length})
-          </div>
+            {/* Dot grid */}
+            <rect width="100%" height="100%" fill="url(#hb-dots)" />
 
-          {nodes.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '28px 0', color: 'var(--text-4)', fontSize: 13 }}>
-              {t('hier.empty')}
-            </div>
-          )}
+            {/* Edges */}
+            {edges.map(edge => {
+              const src = nodeMap[edge.from], tgt = nodeMap[edge.to];
+              if (!src || !tgt) return null;
+              const d = edgePath(src, tgt);
+              const isSel = selectedEdge === edge.id;
+              return (
+                <g key={edge.id}>
+                  {/* Wide invisible hit zone */}
+                  <path d={d} fill="none" stroke="transparent" strokeWidth={18}
+                    style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                    onMouseDown={e => { e.stopPropagation(); setSelectedEdge(edge.id); setSelectedNode(null); if (editingId) commitEdit(); }}
+                  />
+                  {/* Visible line */}
+                  <path d={d} fill="none"
+                    stroke={isSel ? RED : GREY} strokeWidth={isSel ? 2.5 : 2}
+                    markerEnd={isSel ? 'url(#arr-sel)' : 'url(#arr)'}
+                    strokeLinejoin="round"
+                    pointerEvents="none"
+                  />
+                </g>
+              );
+            })}
 
+            {/* Preview rubber-band */}
+            {connecting && connSrcNode && (
+              <path
+                d={previewPath(connSrcNode, connecting.mouseX, connecting.mouseY)}
+                fill="none" stroke={BLUE} strokeWidth={2}
+                strokeDasharray="7 4" markerEnd="url(#arr-conn)"
+                pointerEvents="none"
+              />
+            )}
+          </svg>
+
+          {/* Node divs */}
           {nodes.map(node => {
-            const isSel = selectedId === node.id;
+            const isSel    = selectedNode === node.id;
+            const isSrc    = connecting?.fromId === node.id;
+            const isTarget = hoverTarget === node.id;
+            const isDrag   = dragging?.nodeId === node.id;
+
+            const borderColor = isTarget ? BLUE : isSrc ? '#f59e0b' : isSel ? BLUE : 'var(--border-2)';
+            const shadow = (isSel || isTarget)
+              ? `0 0 0 3px ${BLUE}30, 0 4px 20px rgba(0,0,0,0.12)`
+              : '0 2px 8px rgba(0,0,0,0.08)';
+
             return (
               <div
                 key={node.id}
-                onClick={() => !connectMode && setSelectedId(node.id === selectedId ? null : node.id)}
+                data-nodeid={node.id}
                 style={{
-                  border: `1.5px solid ${isSel ? ACCENT : 'var(--border-2)'}`,
-                  borderRadius: 10, padding: '8px 10px',
-                  background: isSel ? '#3b82f608' : 'var(--surface)',
-                  cursor: 'pointer', transition: 'border-color 0.14s, background 0.14s',
+                  position: 'absolute',
+                  left: node.x, top: node.y,
+                  width: NW, height: NH,
+                  borderRadius: 12,
+                  background: isTarget ? '#3b82f60e' : 'var(--surface)',
+                  border: `2px solid ${borderColor}`,
+                  boxShadow: shadow,
+                  cursor: isDrag ? 'grabbing' : 'grab',
+                  userSelect: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  zIndex: isSel || isDrag ? 10 : 1,
+                  transition: isDrag ? 'none' : 'border-color 0.12s, box-shadow 0.12s',
+                }}
+                onMouseDown={e => {
+                  if (e.target.closest('.hb-port')) return;
+                  e.stopPropagation();
+                  didDragRef.current = false;
+                  const { x, y } = canvasMouse(e);
+                  setDragging({ nodeId: node.id, offX: x - node.x, offY: y - node.y });
+                  setSelectedNode(node.id);
+                  setSelectedEdge(null);
+                  if (editingId && editingId !== node.id) commitEdit();
+                }}
+                onDoubleClick={e => {
+                  e.stopPropagation();
+                  setEditingId(node.id);
+                  setEditingName(node.name);
                 }}
               >
-                {/* Name */}
-                <input
-                  value={node.name}
-                  onChange={e => renameNode(node.id, e.target.value)}
-                  onClick={e => e.stopPropagation()}
-                  placeholder={t('hier.nodeName')}
-                  style={{
-                    width: '100%', border: 'none', background: 'transparent',
-                    color: 'var(--text)', fontSize: 13, fontWeight: 600,
-                    outline: 'none', padding: 0, marginBottom: 6,
-                  }}
-                />
-                {/* Parent + delete row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <select
-                    value={node.parentId || ''}
-                    onChange={e => { e.stopPropagation(); setParentOf(node.id, e.target.value); }}
-                    onClick={e => e.stopPropagation()}
-                    style={selectSty(true)}
-                  >
-                    <option value="">{t('hier.root')}</option>
-                    {nodes
-                      .filter(n => n.id !== node.id && !wouldCycle(nodes, node.id, n.id))
-                      .map(n => <option key={n.id} value={n.id}>{n.name || t('hier.unnamed')}</option>)}
-                  </select>
-                  <button
-                    onClick={e => { e.stopPropagation(); deleteNode(node.id); }}
-                    title={t('hier.deleteNode')}
-                    style={{
-                      border: 'none', background: 'none', color: '#ef444480',
-                      cursor: 'pointer', fontSize: 16, padding: '2px 5px',
-                      borderRadius: 4, lineHeight: 1, flexShrink: 0,
+                {/* Name / edit input */}
+                {editingId === node.id ? (
+                  <input
+                    autoFocus
+                    value={editingName}
+                    onChange={e => setEditingName(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter')  commitEdit();
+                      if (e.key === 'Escape') setEditingId(null);
+                      e.stopPropagation();
                     }}
-                  >×</button>
+                    onMouseDown={e => e.stopPropagation()}
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      width: '90%', border: 'none', background: 'transparent',
+                      color: 'var(--text)', fontSize: 13, fontWeight: 600,
+                      outline: 'none', textAlign: 'center',
+                    }}
+                  />
+                ) : (
+                  <span style={{
+                    fontSize: 13, fontWeight: 600, color: 'var(--text)',
+                    padding: '0 12px', textAlign: 'center',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    width: '100%',
+                  }}>
+                    {node.name}
+                  </span>
+                )}
+
+                {/* Connect port — bottom center */}
+                <div
+                  className="hb-port"
+                  onMouseDown={e => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const { x, y } = canvasMouse(e);
+                    setConnecting({ fromId: node.id, mouseX: x, mouseY: y });
+                    setHoverPort(null);
+                  }}
+                  onMouseEnter={() => setHoverPort(node.id)}
+                  onMouseLeave={() => setHoverPort(null)}
+                  style={{
+                    position: 'absolute',
+                    bottom: hoverPort === node.id ? -11 : -8,
+                    left: '50%', transform: 'translateX(-50%)',
+                    width:  hoverPort === node.id ? 20 : 14,
+                    height: hoverPort === node.id ? 20 : 14,
+                    borderRadius: '50%',
+                    background: hoverPort === node.id ? BLUE : 'var(--surface)',
+                    border: `2.5px solid ${hoverPort === node.id ? BLUE : GREY}`,
+                    cursor: 'crosshair',
+                    transition: 'all 0.12s',
+                    zIndex: 30,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: hoverPort === node.id ? `0 0 0 3px ${BLUE}25` : 'none',
+                  }}
+                >
+                  {hoverPort === node.id && (
+                    <svg width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                      <line x1="5" y1="1" x2="5" y2="9"/><line x1="1" y1="5" x2="9" y2="5"/>
+                    </svg>
+                  )}
                 </div>
               </div>
             );
           })}
 
-          <button
-            onClick={addNode}
-            style={{
-              marginTop: 4, padding: '9px', borderRadius: 10,
-              border: `1.5px dashed var(--border-2)`, background: 'transparent',
-              color: 'var(--text-4)', fontSize: 13, cursor: 'pointer',
-              fontWeight: 500, textAlign: 'center',
-            }}
-          >
-            + {t('hier.addNode')}
-          </button>
-        </div>
-
-        {/* ── Right: visual canvas ── */}
-        <div style={{ flex: 1, overflow: 'auto', background: 'var(--surface-2)', position: 'relative' }}>
-          {nodes.length === 0 ? (
+          {/* Empty state overlay */}
+          {nodes.length === 0 && (
             <div style={{
               position: 'absolute', inset: 0,
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-              gap: 14, color: 'var(--text-4)',
+              gap: 16, pointerEvents: 'none',
             }}>
-              <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.25 }}>
-                <circle cx="12" cy="4"  r="2.5"/>
-                <line x1="12" y1="6.5" x2="12" y2="10"/>
-                <line x1="12"  y1="10" x2="6"  y2="13"/>
-                <line x1="12"  y1="10" x2="18" y2="13"/>
-                <circle cx="6"  cy="16" r="2.5"/>
-                <circle cx="18" cy="16" r="2.5"/>
+              <svg width="72" height="72" viewBox="0 0 80 80" fill="none" stroke="var(--border-2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="28" y="4" width="24" height="18" rx="5"/>
+                <line x1="40" y1="22" x2="40" y2="34"/>
+                <line x1="40" y1="34" x2="14" y2="44"/>
+                <line x1="40" y1="34" x2="66" y2="44"/>
+                <rect x="2" y="44" width="24" height="18" rx="5"/>
+                <rect x="54" y="44" width="24" height="18" rx="5"/>
               </svg>
-              <span style={{ fontSize: 14, fontWeight: 500 }}>{t('hier.emptyCanvas')}</span>
-              <button onClick={addNode} style={{ ...btn(ACCENT, ACCENT, '#fff'), fontSize: 13 }}>
-                + {t('hier.addNode')}
-              </button>
-            </div>
-          ) : (
-            <svg
-              width={svgW}
-              height={svgH}
-              style={{ display: 'block', minWidth: '100%', minHeight: '100%' }}
-            >
-              {/* Grid dots */}
-              <defs>
-                <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
-                  <circle cx="1" cy="1" r="1" fill="var(--border-2)" fillOpacity="0.5" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-
-              {/* Edges */}
-              {nodes.map(node => {
-                if (!node.parentId || !positions[node.parentId] || !positions[node.id]) return null;
-                const px = positions[node.parentId].x;
-                const py = positions[node.parentId].y + NH;
-                const cx = positions[node.id].x;
-                const cy = positions[node.id].y;
-                const my = (py + cy) / 2;
-                return (
-                  <path
-                    key={`e${node.id}`}
-                    d={`M ${px} ${py} C ${px} ${my}, ${cx} ${my}, ${cx} ${cy}`}
-                    fill="none"
-                    stroke="var(--border-2)"
-                    strokeWidth={2}
-                    strokeLinejoin="round"
-                  />
-                );
-              })}
-
-              {/* Nodes */}
-              {nodes.map(node => {
-                const p = positions[node.id];
-                if (!p) return null;
-                const nx = p.x - NW / 2;
-                const ny = p.y;
-                const isSel   = selectedId === node.id;
-                const isSrc   = connectSrc === node.id;
-                const stroke  = isSrc ? AMBER : isSel ? ACCENT : 'var(--border-2)';
-                const fill    = isSrc ? '#f59e0b18' : isSel ? '#3b82f614' : 'var(--surface)';
-                const sw      = isSrc || isSel ? 2.2 : 1.5;
-
-                return (
-                  <g
-                    key={node.id}
-                    onClick={() => handleCanvasClick(node.id)}
-                    style={{ cursor: connectMode ? 'crosshair' : 'pointer' }}
-                  >
-                    {/* Shadow */}
-                    <rect x={nx + 2} y={ny + 3} width={NW} height={NH} rx={10} fill="rgba(0,0,0,0.07)" />
-                    {/* Box */}
-                    <rect x={nx} y={ny} width={NW} height={NH} rx={10} fill={fill} stroke={stroke} strokeWidth={sw} />
-                    {/* Name */}
-                    <text
-                      x={p.x} y={ny + NH / 2}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontSize={13}
-                      fontWeight={600}
-                      fill="var(--text)"
-                      style={{ pointerEvents: 'none', userSelect: 'none' }}
-                    >
-                      {trunc(node.name)}
-                    </text>
-                    {/* Connect-source indicator dot */}
-                    {isSrc && (
-                      <circle cx={p.x} cy={ny + NH + 8} r={4} fill={AMBER} />
-                    )}
-                  </g>
-                );
-              })}
-            </svg>
-          )}
-
-          {/* Connect mode badge */}
-          {connectMode && (
-            <div style={{
-              position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)',
-              background: AMBER, color: '#fff', borderRadius: 20,
-              padding: '6px 18px', fontSize: 12, fontWeight: 700,
-              boxShadow: '0 2px 10px rgba(245,158,11,0.45)', pointerEvents: 'none',
-              whiteSpace: 'nowrap',
-            }}>
-              {connectSrc
-                ? `${t('hier.selectTarget')}: "${sourceNode?.name || ''}"`
-                : t('hier.selectSource')}
+              <span style={{ fontSize: 14, color: 'var(--text-4)', fontWeight: 500 }}>{t('hier.emptyCanvas')}</span>
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── Hint bar ── */}
+      <div style={{
+        padding: '5px 20px', borderTop: '1px solid var(--border-2)',
+        background: 'var(--surface)', fontSize: 11, color: 'var(--text-4)', flexShrink: 0,
+      }}>
+        {hint}
       </div>
     </div>
   );
 }
 
-function btn(bg, border, color) {
+function toolBtn(bg = 'var(--surface)', border = 'var(--border-2)', color = 'var(--text-3)') {
   return {
-    padding: '7px 13px', borderRadius: 8,
-    border: `1.5px solid ${border}`,
+    padding: '6px 12px', borderRadius: 8, border: `1.5px solid ${border}`,
     background: bg, color, fontSize: 12, fontWeight: 600,
-    cursor: 'pointer', whiteSpace: 'nowrap', transition: 'opacity 0.15s',
-    display: 'inline-flex', alignItems: 'center', gap: 5,
-  };
-}
-
-function selectSty(compact = false) {
-  return {
-    flex: compact ? 1 : undefined,
-    fontSize: compact ? 11 : 12,
-    padding: compact ? '3px 6px' : '5px 10px',
-    borderRadius: 7,
-    border: '1px solid var(--border-2)',
-    background: 'var(--surface-2)',
-    color: 'var(--text-3)',
-    outline: 'none',
-    cursor: 'pointer',
+    cursor: 'pointer', whiteSpace: 'nowrap',
+    display: 'inline-flex', alignItems: 'center', gap: 4,
   };
 }

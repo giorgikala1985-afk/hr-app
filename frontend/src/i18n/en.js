@@ -1708,8 +1708,14 @@ const en = {
   'hier.emptyCanvas': 'Add nodes to build your hierarchy',
   'hier.nodeName': 'Node name…',
   'hier.root': '— Root (no parent)',
-  'hier.deleteNode': 'Delete node',
+  'hier.deleteNode': 'Delete Node',
+  'hier.deleteEdge': 'Delete Connection',
+  'hier.rename': 'Rename',
   'hier.unnamed': 'Unnamed',
+  'hier.hint': 'Drag nodes to position · Hover the ⊕ dot and drag to connect · Double-click to rename',
+  'hier.hintSelected': 'Drag to move · Drag the ⊕ dot to connect to another node · Double-click to rename · Del to delete',
+  'hier.hintConnecting': 'Drag to a target node to create a connection · Release on empty space to cancel',
+  'hier.hintEdge': 'Connection selected · Press Delete to remove it',
 
   // ===== Journal =====
   'journal.title': 'Journal',
