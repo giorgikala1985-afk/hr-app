@@ -14,7 +14,7 @@ function uid() { return Math.random().toString(36).slice(2, 11); }
 function loadHierarchies() {
   try {
     const s = JSON.parse(localStorage.getItem(HIER_KEY));
-    if (s && s.length) return s;
+    if (s && s.length) return s.map(h => ({ ...h, nodes: h.nodes || [], edges: h.edges || [] }));
   } catch {}
   return [{ id: 'h0', name: 'My Hierarchy', nodes: [], edges: [] }];
 }
@@ -149,10 +149,11 @@ export default function HierarchyBuilder() {
           setHierarchies(prev => {
             const h = prev.find(h => h.id === activeIdRef.current);
             if (!h) return prev;
-            if (h.edges.some(e => e.from === conn.fromId && e.to === toId)) return prev;
+            const existingEdges = h.edges || [];
+            if (existingEdges.some(e => e.from === conn.fromId && e.to === toId)) return prev;
             const newEdge = { id: uid(), from: conn.fromId, to: toId };
             const next = prev.map(hh => hh.id === activeIdRef.current
-              ? { ...hh, edges: [...hh.edges, newEdge] }
+              ? { ...hh, edges: [...existingEdges, newEdge] }
               : hh);
             localStorage.setItem(HIER_KEY, JSON.stringify(next));
             return next;
