@@ -1163,6 +1163,8 @@ const en = {
   'sales.category': 'Category',
   'sales.selectCategory': '— Select —',
   'sales.optionalNotes': 'Optional notes…',
+  'sales.hierarchy': 'Hierarchy',
+  'sales.noHierarchy': '— None —',
   'sales.cancel': 'Cancel',
   'sales.save': 'Save',
   'sales.saving': 'Saving…',

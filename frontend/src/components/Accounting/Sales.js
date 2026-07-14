@@ -4,7 +4,7 @@ import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResiz
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 
-const DEFAULT_WIDTHS = [110, 160, 150, 130, 200, 120, 80];
+const DEFAULT_WIDTHS = [110, 160, 150, 130, 140, 200, 120, 80];
 
 function IconEdit() {
   return (
@@ -26,7 +26,7 @@ function IconDelete() {
   );
 }
 
-const EMPTY = { client: '', product: '', description: '', amount: '', currency: 'USD', category: '', date: '' };
+const EMPTY = { client: '', product: '', description: '', amount: '', currency: 'USD', category: '', date: '', hierarchy_id: '' };
 const CATEGORIES = ['Product', 'Service', 'Consulting', 'License', 'Subscription', 'Other'];
 
 function Sales() {
@@ -35,6 +35,7 @@ function Sales() {
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
+  const [hierarchies, setHierarchies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -43,7 +44,7 @@ function Sales() {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  useEffect(() => { load(); loadAgents(); }, []);
+  useEffect(() => { load(); loadAgents(); loadHierarchies(); }, []);
 
   useEffect(() => {
     if (user?.email !== 'giorgi@powerbi.ge') return;
@@ -83,8 +84,15 @@ function Sales() {
     } catch { /* non-critical */ }
   };
 
+  const loadHierarchies = async () => {
+    try {
+      const res = await api.get('/hierarchies');
+      setHierarchies(res.data.hierarchies || []);
+    } catch { /* non-critical */ }
+  };
+
   const openNew = () => { setForm({ ...EMPTY, date: today() }); setEditId(null); setShowForm(true); setError(''); };
-  const openEdit = (r) => { setForm({ client: r.client, product: r.product || '', description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date }); setEditId(r.id); setShowForm(true); setError(''); };
+  const openEdit = (r) => { setForm({ client: r.client, product: r.product || '', description: r.description || '', amount: r.amount, currency: r.currency, category: r.category || '', date: r.date, hierarchy_id: r.hierarchy_id || '' }); setEditId(r.id); setShowForm(true); setError(''); };
 
   const handleSave = async () => {
     if (!form.client || !form.amount || !form.date) { setError(t('sales.validationError')); return; }
@@ -194,9 +202,10 @@ function Sales() {
               <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>{t('sales.colClient')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('sales.colProduct')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('sales.colCategory')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('sales.colDescription')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('sales.colAmount')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('sales.hierarchy')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('sales.colDescription')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>{t('sales.colAmount')}<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[7], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
             </tr></thead>
             <tbody>
               {records.map((r) => (
@@ -213,6 +222,12 @@ function Sales() {
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.product || '—'}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.category && <span className="acc-category-badge">{r.category}</span>}</td>
+                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {r.hierarchy_id ? (() => {
+                      const h = hierarchies.find(h => h.id === r.hierarchy_id);
+                      return h ? <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>{h.name}</span> : '—';
+                    })() : '—'}
+                  </td>
                   <td style={{ color: '#64748b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.description || '—'}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount income">+{r.currency} {parseFloat(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
@@ -257,6 +272,17 @@ function Sales() {
                   {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                 </select>
               </div>
+              {hierarchies.length > 0 && (
+                <div className="acc-form-group">
+                  <label>{t('sales.hierarchy')}</label>
+                  <select value={form.hierarchy_id} onChange={(e) => setForm({ ...form, hierarchy_id: e.target.value })}>
+                    <option value="">{t('sales.noHierarchy')}</option>
+                    {hierarchies.map((h) => (
+                      <option key={h.id} value={h.id}>{h.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="acc-form-group full"><label>{t('sales.colDescription')}</label><textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('sales.optionalNotes')} /></div>
             </div>
             <div className="acc-modal-actions">

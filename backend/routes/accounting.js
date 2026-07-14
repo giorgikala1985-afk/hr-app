@@ -155,8 +155,8 @@ router.get('/sales', async (req, res) => {
 
 router.post('/sales', async (req, res) => {
   try {
-    const { client, product, description, amount, currency, category, date } = req.body;
-    const { data, error } = await supabase.from('accounting_sales').insert([{ user_id: req.userId, client, product, description, amount: parseFloat(amount), currency, category, date }]).select().single();
+    const { client, product, description, amount, currency, category, date, hierarchy_id } = req.body;
+    const { data, error } = await supabase.from('accounting_sales').insert([{ user_id: req.userId, client, product, description, amount: parseFloat(amount), currency, category, date, hierarchy_id: hierarchy_id || null }]).select().single();
     if (error) throw error;
     res.status(201).json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -164,8 +164,8 @@ router.post('/sales', async (req, res) => {
 
 router.put('/sales/:id', async (req, res) => {
   try {
-    const { client, product, description, amount, currency, category, date } = req.body;
-    const { data, error } = await supabase.from('accounting_sales').update({ client, product, description, amount: parseFloat(amount), currency, category, date }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    const { client, product, description, amount, currency, category, date, hierarchy_id } = req.body;
+    const { data, error } = await supabase.from('accounting_sales').update({ client, product, description, amount: parseFloat(amount), currency, category, date, hierarchy_id: hierarchy_id || null }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
     res.json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }

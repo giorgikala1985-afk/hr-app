@@ -1161,6 +1161,8 @@ const ka = {
   'sales.category': 'კატეგორია',
   'sales.selectCategory': '— აირჩიეთ —',
   'sales.optionalNotes': 'შენიშვნა (სურვილისამებრ)…',
+  'sales.hierarchy': 'სქემა',
+  'sales.noHierarchy': '— არცერთი —',
   'sales.cancel': 'გაუქმება',
   'sales.save': 'შენახვა',
   'sales.saving': 'შენახვა…',
