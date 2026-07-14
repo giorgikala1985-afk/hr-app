@@ -1688,6 +1688,27 @@ const ka = {
   'req.update': 'განახლება',
   'req.submit': 'მოთხოვნის გაგზავნა',
 
+  // ===== სქემის აგებლი =====
+  'options.hierarchy': 'სქემა',
+  'hier.title': 'ორგანიზაციული სქემა',
+  'hier.hierarchyName': 'სქემის სახელი…',
+  'hier.newHierarchy': 'ახალი სქემა',
+  'hier.delete': 'წაშლა',
+  'hier.connect': 'დაკავშირება',
+  'hier.connecting': 'კავშირი…',
+  'hier.connectHint': 'დაჭირეთ კავშირის რეჟიმისთვის, შემდეგ აირჩიეთ მშობელი → შვილი კვანძი',
+  'hier.selectSource': 'დაჭირეთ მშობელ კვანძზე',
+  'hier.selectTarget': 'ახლა დაჭირეთ შვილ კვანძზე',
+  'hier.addNode': 'კვანძის დამატება',
+  'hier.newNode': 'ახალი კვანძი',
+  'hier.nodes': 'კვანძები',
+  'hier.empty': 'კვანძები არ არის. დაჭირეთ "+ კვანძის დამატება".',
+  'hier.emptyCanvas': 'დაამატეთ კვანძები სქემის შესაქმნელად',
+  'hier.nodeName': 'კვანძის სახელი…',
+  'hier.root': '— ძირი (მშობელი არ არის)',
+  'hier.deleteNode': 'კვანძის წაშლა',
+  'hier.unnamed': 'უსახელო',
+
   // ===== ჟურნალი =====
   'journal.title': 'ჟურნალი',
   'journal.subtitle': 'HR ტრანზაქციები ერთ ადგილას',

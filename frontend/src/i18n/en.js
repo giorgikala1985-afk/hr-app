@@ -1690,6 +1690,27 @@ const en = {
   'req.update': 'Update',
   'req.submit': 'Submit Request',
 
+  // ===== Hierarchy Builder =====
+  'options.hierarchy': 'Hierarchy',
+  'hier.title': 'Hierarchy Builder',
+  'hier.hierarchyName': 'Hierarchy name…',
+  'hier.newHierarchy': 'New Chart',
+  'hier.delete': 'Delete',
+  'hier.connect': 'Connect',
+  'hier.connecting': 'Connecting…',
+  'hier.connectHint': 'Click to enter connect mode, then click source → target node',
+  'hier.selectSource': 'Click a node to set as parent',
+  'hier.selectTarget': 'Now click the child node',
+  'hier.addNode': 'Add Node',
+  'hier.newNode': 'New Node',
+  'hier.nodes': 'Nodes',
+  'hier.empty': 'No nodes yet. Click "+ Add Node" to start.',
+  'hier.emptyCanvas': 'Add nodes to build your hierarchy',
+  'hier.nodeName': 'Node name…',
+  'hier.root': '— Root (no parent)',
+  'hier.deleteNode': 'Delete node',
+  'hier.unnamed': 'Unnamed',
+
   // ===== Journal =====
   'journal.title': 'Journal',
   'journal.subtitle': 'All HR transactions in one place',

@@ -13,6 +13,7 @@ import NavOrderSettings, { loadSidebarOrder, loadHidden, useSidebarReorder, OPT_
 import UsersSettings from './UsersSettings';
 import AccountsSettings from './AccountsSettings';
 import ToolsPage from './Tools/ToolsPage';
+import HierarchyBuilder from './HierarchyBuilder';
 import BgColorSettings from './BgColorSettings';
 import FontSettings from './FontSettings';
 import LogoSettings from './LogoSettings';
@@ -87,6 +88,13 @@ function OptionsPage() {
     { key: 'navorder', label: t('options.navOrder'), icon: optIcon(Menu01Icon, '#6366f1') },
     { key: 'accounts', label: t('options.accounts'), icon: optIcon(AccountSetting01Icon, '#0369a1') },
     ...(isSuperAdmin ? [{ key: 'users', label: t('options.users'), icon: optIcon(UserSettings01Icon, '#7c3aed') }] : []),
+    { key: 'hierarchy', label: t('options.hierarchy'), icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="4"  r="2.2"/><line x1="12" y1="6.2" x2="12" y2="9.5"/>
+        <line x1="12" y1="9.5" x2="5.5" y2="13"/><line x1="12" y1="9.5" x2="18.5" y2="13"/>
+        <circle cx="5.5" cy="15.2" r="2.2"/><circle cx="18.5" cy="15.2" r="2.2"/>
+      </svg>
+    )},
     { key: 'tools', label: t('options.tools'), icon: optIcon(Settings01Icon, '#f59e0b') },
     { key: 'appearance', label: t('options.appearance'), icon: optIcon(PaintBoardIcon, '#f43f5e') },
     { key: 'about', label: t('options.about'), icon: optIcon(InformationSquareIcon, '#ec4899') },
@@ -178,6 +186,7 @@ function OptionsPage() {
         {activeTab === 'navorder' && <NavOrderSettings />}
         {activeTab === 'accounts' && <AccountsSettings />}
         {activeTab === 'users' && isSuperAdmin && <UsersSettings />}
+        {activeTab === 'hierarchy' && <HierarchyBuilder />}
         {activeTab === 'tools' && <ToolsPage />}
         {activeTab === 'appearance' && (
           <div>
