@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import * as XLSX from 'xlsx';
 import api from '../../services/api';
 
 const fmt = (n) =>
@@ -375,38 +376,198 @@ function SalaryPayments() {
   );
 }
 
+// ── Excel column fuzzy matching for TBC statement exports ──
+const norm = s => String(s).toLowerCase().replace(/[\s_\-.]+/g, '').trim();
+const getCol = (row, ...keys) => {
+  const normKeys = keys.map(norm);
+  for (const col of Object.keys(row)) {
+    if (normKeys.includes(norm(col))) return row[col];
+  }
+  return undefined;
+};
+const excelDateToStr = (value) => {
+  if (value == null || value === '') return '';
+  if (typeof value === 'number') {
+    const d = XLSX.SSF.parse_date_code(value);
+    if (d) return `${d.y}-${String(d.m).padStart(2, '0')}-${String(d.d).padStart(2, '0')}`;
+  }
+  const str = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+  if (/^\d{2}[./]\d{2}[./]\d{4}/.test(str)) {
+    const [d, m, y] = str.split(/[./]/);
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+  }
+  const parsed = new Date(str);
+  if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
+  return str;
+};
+const toNum = (v) => {
+  if (v == null || v === '') return 0;
+  const n = parseFloat(String(v).replace(/[,\s]/g, ''));
+  return isNaN(n) ? 0 : n;
+};
+
+function parseStatementExcel(data) {
+  return data.map(row => {
+    const date = excelDateToStr(getCol(row, 'Date', 'თარიღი', 'ოპერაციის თარიღი', 'Booking Date', 'Value Date', 'Transaction Date', 'დამატების თარიღი'));
+    const description = getCol(row, 'Description', 'დანიშნულება', 'Purpose', 'Details', 'Remittance Information', 'გადახდის დანიშნულება', 'ოპერაციის დანიშნულება') || '';
+    const counterparty = getCol(row, 'Counterparty', 'Beneficiary', 'Payee', 'Payer', 'მიმღები', 'გადამხდელი', 'Name', 'Contragent', 'კონტრაგენტი', 'მეორე მხარე') || '';
+    const currency = String(getCol(row, 'Currency', 'ვალუტა', 'Ccy') || 'GEL').toUpperCase().trim();
+    const debit = getCol(row, 'Debit', 'დებეტი', 'Withdrawal', 'Outgoing', 'Expense', 'გასავალი');
+    const credit = getCol(row, 'Credit', 'კრედიტი', 'Deposit', 'Incoming', 'Income', 'შემოსავალი');
+    let amount;
+    if (debit !== undefined || credit !== undefined) {
+      amount = toNum(credit) - toNum(debit);
+    } else {
+      amount = toNum(getCol(row, 'Amount', 'თანხა', 'Sum', 'Value'));
+    }
+    const balance = getCol(row, 'Balance', 'ნაშთი', 'Running Balance');
+    const docNumber = getCol(row, 'Document Number', 'დოკუმენტის ნომერი', 'Reference', 'Ref', 'Doc No', 'ნომერი');
+    return {
+      date, description, currency, amount,
+      creditorName: amount >= 0 ? counterparty : '',
+      debtorName: amount < 0 ? counterparty : '',
+      balance: balance !== undefined ? toNum(balance) : null,
+      docNumber: docNumber || '',
+      _valid: !!date && !!counterparty,
+    };
+  });
+}
+
+function IconUpload() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+      <polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+  );
+}
+
+function IconArrowUp() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5,12 12,5 19,12"/>
+    </svg>
+  );
+}
+
+function IconArrowDown() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19,12 12,19 5,12"/>
+    </svg>
+  );
+}
+
 // ── BANK STATEMENTS ──────────────────────────────────
 function BankStatements() {
+  const [mode, setMode] = useState('upload'); // 'upload' | 'api'
+
+  // Upload mode state
+  const [fileName, setFileName] = useState('');
+  const [dragOver, setDragOver] = useState(false);
+  const [parseError, setParseError] = useState('');
+  const fileRef = useRef(null);
+
+  // API mode state
   const [accountId, setAccountId] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [statements, setStatements] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [apiLoading, setApiLoading] = useState(false);
+
+  // Shared state
+  const [transactions, setTransactions] = useState(null);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [selectedTx, setSelectedTx] = useState(new Set());
+  const [search, setSearch] = useState('');
 
+  const resetResults = () => {
+    setTransactions(null);
+    setSelectedTx(new Set());
+    setError(''); setSuccess(''); setParseError('');
+  };
+
+  const switchMode = (m) => {
+    if (m === mode) return;
+    setMode(m);
+    resetResults();
+    setFileName('');
+  };
+
+  // ── Excel upload ──
+  const processFile = (file) => {
+    if (!file) return;
+    setFileName(file.name);
+    resetResults();
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (data.length === 0) { setParseError('The file appears to be empty.'); return; }
+        const parsed = parseStatementExcel(data);
+        const valid = parsed.filter(t => t._valid);
+        if (valid.length === 0) {
+          const cols = Object.keys(data[0]).join(', ');
+          setParseError(`Couldn't detect date/counterparty columns. Columns found: ${cols}`);
+          return;
+        }
+        setTransactions(valid);
+        setSelectedTx(new Set(valid.map((_, i) => i)));
+      } catch (err) {
+        setParseError('Failed to parse file: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const handleFileInput = (e) => processFile(e.target.files[0]);
+  const handleDrop = (e) => {
+    e.preventDefault(); setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) processFile(file);
+    else setParseError('Please upload a .xlsx or .xls file.');
+  };
+  const clearFile = () => {
+    setFileName(''); resetResults();
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  // ── API fetch ──
   const loadStatements = async () => {
     if (!accountId.trim()) { setError('Account ID / IBAN is required'); return; }
-    setLoading(true); setError(''); setStatements(null);
+    setApiLoading(true); resetResults();
     try {
       const params = new URLSearchParams({ accountId: accountId.trim() });
       if (dateFrom) params.append('dateFrom', dateFrom);
       if (dateTo) params.append('dateTo', dateTo);
       const res = await api.get(`/tbc-bank/statements?${params.toString()}`);
-      const data = res.data?.statements || {};
-      setStatements(data);
-      // Auto-select all transactions
-      if (data?.transactions) {
-        setSelectedTx(new Set(data.transactions.map((_, i) => i)));
-      }
+      const txs = res.data?.statements?.transactions || [];
+      setTransactions(txs);
+      setSelectedTx(new Set(txs.map((_, i) => i)));
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to fetch statements');
     } finally {
-      setLoading(false);
+      setApiLoading(false);
     }
   };
+
+  // ── Shared: filtering, selection, import ──
+  const filtered = useMemo(() => {
+    if (!transactions) return [];
+    if (!search.trim()) return transactions.map((tx, i) => ({ tx, i }));
+    const q = search.toLowerCase();
+    return transactions
+      .map((tx, i) => ({ tx, i }))
+      .filter(({ tx }) =>
+        (tx.description || '').toLowerCase().includes(q) ||
+        (tx.creditorName || '').toLowerCase().includes(q) ||
+        (tx.debtorName || '').toLowerCase().includes(q)
+      );
+  }, [transactions, search]);
 
   const toggleTx = (idx) => {
     setSelectedTx(prev => {
@@ -415,10 +576,19 @@ function BankStatements() {
       return next;
     });
   };
+  const toggleAllFiltered = () => {
+    const filteredIdx = filtered.map(f => f.i);
+    const allSelected = filteredIdx.every(i => selectedTx.has(i));
+    setSelectedTx(prev => {
+      const next = new Set(prev);
+      filteredIdx.forEach(i => allSelected ? next.delete(i) : next.add(i));
+      return next;
+    });
+  };
 
   const handleImport = async () => {
-    if (!statements?.transactions) return;
-    const txs = statements.transactions.filter((_, i) => selectedTx.has(i));
+    if (!transactions) return;
+    const txs = transactions.filter((_, i) => selectedTx.has(i));
     if (txs.length === 0) { setError('No transactions selected'); return; }
     if (!window.confirm(`Import ${txs.length} transactions into accounting?`)) return;
 
@@ -434,79 +604,218 @@ function BankStatements() {
     }
   };
 
+  // ── Summary stats (grouped by currency) ──
+  const stats = useMemo(() => {
+    if (!transactions || transactions.length === 0) return [];
+    const byCcy = {};
+    transactions.forEach(tx => {
+      const ccy = tx.currency || 'GEL';
+      if (!byCcy[ccy]) byCcy[ccy] = { count: 0, income: 0, expense: 0 };
+      byCcy[ccy].count += 1;
+      if ((tx.amount || 0) >= 0) byCcy[ccy].income += tx.amount;
+      else byCcy[ccy].expense += Math.abs(tx.amount);
+    });
+    return Object.entries(byCcy).map(([ccy, s]) => ({ ccy, ...s, net: s.income - s.expense }));
+  }, [transactions]);
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every(f => selectedTx.has(f.i));
+
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div>
-          <label style={lbl}>Account ID / IBAN *</label>
-          <input value={accountId} onChange={e => setAccountId(e.target.value)} placeholder="GE29TB..." style={{ ...inpStyle, width: 260 }} />
-        </div>
-        <div>
-          <label style={lbl}>From</label>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...inpStyle, width: 160 }} />
-        </div>
-        <div>
-          <label style={lbl}>To</label>
-          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...inpStyle, width: 160 }} />
-        </div>
-        <button onClick={loadStatements} disabled={loading} style={primaryBtn}>
-          {loading ? 'Loading...' : 'Fetch Statements'}
-        </button>
+      {/* Mode toggle */}
+      <div style={{ display: 'flex', gap: 3, background: 'var(--surface-2)', borderRadius: 10, padding: 3, marginBottom: 20, width: 'fit-content' }}>
+        {[
+          { key: 'upload', label: 'Upload Excel' },
+          { key: 'api', label: 'Fetch via API' },
+        ].map(m => (
+          <button
+            key={m.key}
+            onClick={() => switchMode(m.key)}
+            style={{
+              padding: '8px 18px', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              background: mode === m.key ? 'var(--surface)' : 'transparent',
+              color: mode === m.key ? 'var(--text)' : 'var(--text-3)',
+              boxShadow: mode === m.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >{m.label}</button>
+        ))}
       </div>
+
+      {mode === 'upload' && !transactions && (
+        <div
+          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={() => fileRef.current?.click()}
+          style={{
+            border: `2px dashed ${dragOver ? '#3b82f6' : 'var(--border-2)'}`,
+            borderRadius: 16, padding: '48px 24px', textAlign: 'center', cursor: 'pointer',
+            background: dragOver ? 'rgba(59,130,246,0.06)' : 'var(--surface-2)',
+            transition: 'all 0.15s', marginBottom: 16,
+          }}
+        >
+          <input ref={fileRef} type="file" accept=".xlsx,.xls" onChange={handleFileInput} style={{ display: 'none' }} />
+          <div style={{
+            width: 56, height: 56, borderRadius: 16, background: 'rgba(59,130,246,0.12)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px',
+          }}>
+            <IconUpload />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', marginBottom: 6 }}>
+            Drop your TBC bank statement here
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 4 }}>
+            or click to browse · .xlsx or .xls
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 12 }}>
+            Supports Date, Description, Counterparty, Debit/Credit or Amount, Currency columns (English or Georgian)
+          </div>
+        </div>
+      )}
+
+      {mode === 'upload' && fileName && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+          padding: '10px 16px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 10,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/>
+          </svg>
+          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', flex: 1 }}>{fileName}</span>
+          <button onClick={clearFile} style={{ ...secondaryBtn, padding: '5px 12px', fontSize: 12 }}>Clear</button>
+        </div>
+      )}
+
+      {mode === 'upload' && parseError && <div style={{ ...errBox, marginBottom: 14 }}>{parseError}</div>}
+
+      {mode === 'api' && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 20, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <div>
+            <label style={lbl}>Account ID / IBAN *</label>
+            <input value={accountId} onChange={e => setAccountId(e.target.value)} placeholder="GE29TB..." style={{ ...inpStyle, width: 260 }} />
+          </div>
+          <div>
+            <label style={lbl}>From</label>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} style={{ ...inpStyle, width: 160 }} />
+          </div>
+          <div>
+            <label style={lbl}>To</label>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} style={{ ...inpStyle, width: 160 }} />
+          </div>
+          <button onClick={loadStatements} disabled={apiLoading} style={primaryBtn}>
+            {apiLoading ? 'Loading...' : 'Fetch Statements'}
+          </button>
+        </div>
+      )}
 
       {error && <div style={{ ...errBox, marginBottom: 14 }}>{error}</div>}
       {success && <div style={{ ...successBox, marginBottom: 14 }}>{success}</div>}
 
-      {statements?.transactions && statements.transactions.length > 0 && (
+      {transactions && transactions.length > 0 && (
         <>
-          <div style={{ overflowX: 'auto', marginBottom: 16 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                  <th style={{ ...th, width: 40 }}>
-                    <input
-                      type="checkbox"
-                      checked={selectedTx.size === statements.transactions.length}
-                      onChange={() => {
-                        if (selectedTx.size === statements.transactions.length) setSelectedTx(new Set());
-                        else setSelectedTx(new Set(statements.transactions.map((_, i) => i)));
-                      }}
-                    />
-                  </th>
-                  <th style={th}>Date</th>
-                  <th style={th}>Description</th>
-                  <th style={th}>Counterparty</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Amount</th>
-                  <th style={th}>Currency</th>
-                </tr>
-              </thead>
-              <tbody>
-                {statements.transactions.map((tx, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                    <td style={td}><input type="checkbox" checked={selectedTx.has(i)} onChange={() => toggleTx(i)} /></td>
-                    <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{tx.bookingDate || tx.date}</td>
-                    <td style={{ ...td, color: 'var(--text-2)' }}>{tx.remittanceInformation || tx.description || '-'}</td>
-                    <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{tx.creditorName || tx.debtorName || '-'}</td>
-                    <td style={{
-                      ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700,
-                      color: (tx.amount || 0) >= 0 ? '#4ade80' : '#f87171',
-                    }}>
-                      {(tx.amount || 0) >= 0 ? '+' : ''}{fmt(tx.amount)}
-                    </td>
-                    <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{tx.currency || 'GEL'}</td>
+          {/* Summary stat cards */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div style={statCard()}>
+              <div style={statLabel}>Transactions</div>
+              <div style={{ ...statValue, color: 'var(--text)' }}>{transactions.length}</div>
+            </div>
+            {stats.map(s => (
+              <React.Fragment key={s.ccy}>
+                <div style={statCard('#16a34a')}>
+                  <div style={statLabel}>Income {stats.length > 1 ? `(${s.ccy})` : ''}</div>
+                  <div style={{ ...statValue, color: '#4ade80', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <IconArrowUp />{fmt(s.income)} {s.ccy}
+                  </div>
+                </div>
+                <div style={statCard('#dc2626')}>
+                  <div style={statLabel}>Expense {stats.length > 1 ? `(${s.ccy})` : ''}</div>
+                  <div style={{ ...statValue, color: '#f87171', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <IconArrowDown />{fmt(s.expense)} {s.ccy}
+                  </div>
+                </div>
+                <div style={statCard(s.net >= 0 ? '#16a34a' : '#dc2626')}>
+                  <div style={statLabel}>Net {stats.length > 1 ? `(${s.ccy})` : ''}</div>
+                  <div style={{ ...statValue, color: s.net >= 0 ? '#4ade80' : '#f87171' }}>
+                    {s.net >= 0 ? '+' : ''}{fmt(s.net)} {s.ccy}
+                  </div>
+                </div>
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* Search */}
+          <div style={{ marginBottom: 14 }}>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search description or counterparty..."
+              style={{ ...inpStyle, width: 320 }}
+            />
+          </div>
+
+          <div style={{
+            border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden', marginBottom: 16,
+            boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+          }}>
+            <div style={{ overflowX: 'auto', maxHeight: 480, overflowY: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
+                    <th style={{ ...th, width: 40, position: 'sticky', top: 0, background: 'var(--surface-2)' }}>
+                      <input type="checkbox" checked={allFilteredSelected} onChange={toggleAllFiltered} />
+                    </th>
+                    <th style={{ ...th, position: 'sticky', top: 0, background: 'var(--surface-2)' }}>Date</th>
+                    <th style={{ ...th, position: 'sticky', top: 0, background: 'var(--surface-2)' }}>Description</th>
+                    <th style={{ ...th, position: 'sticky', top: 0, background: 'var(--surface-2)' }}>Counterparty</th>
+                    <th style={{ ...th, textAlign: 'right', position: 'sticky', top: 0, background: 'var(--surface-2)' }}>Amount</th>
+                    <th style={{ ...th, position: 'sticky', top: 0, background: 'var(--surface-2)' }}>Currency</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {filtered.map(({ tx, i }) => {
+                    const isIncome = (tx.amount || 0) >= 0;
+                    return (
+                      <tr
+                        key={i}
+                        style={{
+                          borderBottom: '1px solid var(--border-2)',
+                          background: selectedTx.has(i) ? 'rgba(59,130,246,0.05)' : (i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)'),
+                          transition: 'background 0.1s',
+                        }}
+                      >
+                        <td style={td}><input type="checkbox" checked={selectedTx.has(i)} onChange={() => toggleTx(i)} /></td>
+                        <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-2)' }}>{tx.bookingDate || tx.date || '-'}</td>
+                        <td style={{ ...td, color: 'var(--text-2)' }}>{tx.remittanceInformation || tx.description || '-'}</td>
+                        <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{tx.creditorName || tx.debtorName || '-'}</td>
+                        <td style={{ ...td, textAlign: 'right' }}>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            fontFamily: 'monospace', fontWeight: 700,
+                            color: isIncome ? '#4ade80' : '#f87171',
+                            background: isIncome ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)',
+                            padding: '3px 9px', borderRadius: 6, fontSize: 12.5,
+                          }}>
+                            {isIncome ? <IconArrowUp /> : <IconArrowDown />}
+                            {isIncome ? '+' : ''}{fmt(tx.amount)}
+                          </span>
+                        </td>
+                        <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{tx.currency || 'GEL'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <button onClick={handleImport} disabled={importing || selectedTx.size === 0} style={{ ...primaryBtn, opacity: (importing || selectedTx.size === 0) ? 0.6 : 1 }}>
-            {importing ? 'Importing...' : `Import ${selectedTx.size} Transactions to Accounting`}
+            {importing ? 'Importing...' : `Import ${selectedTx.size} Transaction${selectedTx.size !== 1 ? 's' : ''} to Accounting`}
           </button>
         </>
       )}
 
-      {statements && (!statements.transactions || statements.transactions.length === 0) && (
+      {transactions && transactions.length === 0 && (
         <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-3)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📄</div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)' }}>No transactions found</div>
@@ -648,5 +957,13 @@ const errBox = { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '
 const successBox = { background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 };
 const primaryBtn = { padding: '8px 22px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' };
 const secondaryBtn = { padding: '8px 18px', border: '1px solid var(--border-2)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-2)', cursor: 'pointer', fontSize: 14 };
+const statCard = (accent) => ({
+  flex: '1 1 160px', minWidth: 160, padding: '14px 18px', borderRadius: 12,
+  background: 'var(--surface)', border: '1px solid var(--border-2)',
+  borderLeft: accent ? `3px solid ${accent}` : '1px solid var(--border-2)',
+  boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+});
+const statLabel = { fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 };
+const statValue = { fontSize: 18, fontWeight: 800, fontFamily: 'monospace' };
 
 export default TbcBanking;
