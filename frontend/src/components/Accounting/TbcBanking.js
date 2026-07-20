@@ -23,6 +23,7 @@ function loadTbcStatement() {
     const dateIdx = idx('თარიღი');
     const nameIdx = idx('დამატებითი ინფორმაცია');
     const amountIdx = idx('თანხა');
+    const purposeIdx = headers.findIndex(h => /დანიშნულება|purpose|description/i.test(h));
     if (ibanIdx === -1 && nameIdx === -1) return null;
 
     const transactions = rows.slice(1).map(r => ({
@@ -30,9 +31,10 @@ function loadTbcStatement() {
       date: dateIdx >= 0 ? String(r[dateIdx] || '') : '',
       name: nameIdx >= 0 ? String(r[nameIdx] || '').trim() : '',
       amount: amountIdx >= 0 ? parseStatementAmount(r[amountIdx]) : 0,
+      purpose: purposeIdx >= 0 ? String(r[purposeIdx] || '').trim() : '',
     })).filter(t => t.iban || t.name);
 
-    return { fileName: name, savedAt, transactions, hasAmount: amountIdx >= 0, hasDate: dateIdx >= 0 };
+    return { fileName: name, savedAt, transactions, hasAmount: amountIdx >= 0, hasDate: dateIdx >= 0, hasPurpose: purposeIdx >= 0 };
   } catch { return null; }
 }
 
@@ -50,12 +52,22 @@ function parseTxDate(raw) {
 
 const normalizeName = (s) => String(s || '').toLowerCase().replace(/[^a-zა-ჰ\s]/gi, '').replace(/\s+/g, ' ').trim();
 
+// Requires "ხელფასი"/"salary" in the purpose field when that column exists,
+// so a matching name/IBAN alone (e.g. a refund or invoice payment) doesn't
+// get miscounted as a salary transfer.
+const isSalaryPurpose = (t) => {
+  if (!t.purpose) return true;
+  const p = t.purpose.toLowerCase();
+  return p.includes('ხელფასი') || p.includes('salary');
+};
+
 function matchSalaryToTx(employee, transactions, month) {
   const empIban = String(employee.account_number || '').replace(/\s+/g, '').toUpperCase();
   const empName = normalizeName(`${employee.first_name} ${employee.last_name}`);
   const empNameRev = normalizeName(`${employee.last_name} ${employee.first_name}`);
 
   const candidates = transactions.filter(t => {
+    if (!isSalaryPurpose(t)) return false;
     if (empIban && t.iban && t.iban === empIban) return true;
     if (!empName) return false;
     const tn = normalizeName(t.name);
@@ -439,6 +451,7 @@ function SalaryPayments() {
               <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 12 }}>
                 Matching against <strong>{tbcStatement.fileName}</strong> · {tbcStatement.transactions.length} transactions
                 {!tbcStatement.hasAmount && <span style={{ color: '#f87171' }}> · No "თანხა" column detected — amounts will show as 0</span>}
+                {!tbcStatement.hasPurpose && <span style={{ color: '#fbbf24' }}> · No "დანიშნულება" column detected — matching by name/IBAN only, without confirming it's a salary transfer</span>}
               </div>
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>

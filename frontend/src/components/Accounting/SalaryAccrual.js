@@ -91,12 +91,13 @@ function loadTBCForMonth(month) {
     const headers = rows[0];
     const dateCol = _findCol(headers, ['თარიღი', 'date']);
     const outCol  = _findCol(headers, ['თანხა', 'amount', 'sum', 'გასული', 'debit', 'withdrawal', 'გამოსული', 'დებეტი', 'out']);
+    const purposeCol = _findCol(headers, ['დანიშნულება', 'purpose', 'description']);
     if (dateCol === -1) return null;
     const filtered = rows.slice(1).filter(row => {
       const d = _parseTBCDate(row[dateCol]);
       return d && _dateToMonth(d) === month;
     });
-    return { rows: filtered, outCol };
+    return { rows: filtered, outCol, purposeCol };
   } catch { return null; }
 }
 function getTBCAmount(tbc, emp) {
@@ -104,13 +105,19 @@ function getTBCAmount(tbc, emp) {
   const first = (emp.first_name || '').toLowerCase().trim();
   const last  = (emp.last_name  || '').toLowerCase().trim();
   if (!first && !last) return null;
-  const matched = tbc.rows.filter(row =>
-    row.some((cell, idx) => {
+  const matched = tbc.rows.filter(row => {
+    const nameHit = row.some((cell, idx) => {
       if (idx === tbc.outCol) return false;
       const v = String(cell || '').toLowerCase();
       return (first.length > 1 && v.includes(first)) || (last.length > 1 && v.includes(last));
-    })
-  );
+    });
+    if (!nameHit) return false;
+    // Require "ხელფასი"/"salary" in the purpose column when one exists, so a
+    // name match on a refund or invoice payment doesn't count as salary paid.
+    if (tbc.purposeCol === -1 || tbc.purposeCol === undefined) return true;
+    const purpose = String(row[tbc.purposeCol] || '').toLowerCase();
+    return purpose.includes('ხელფასი') || purpose.includes('salary');
+  });
   if (!matched.length) return null;
   return matched.reduce((s, row) => s + parseStatementAmount(row[tbc.outCol]), 0);
 }
