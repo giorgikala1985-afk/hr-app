@@ -5,6 +5,74 @@ import api from '../../services/api';
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
 
+// ── Bank reconciliation: reads the raw TBC Excel upload saved by the
+// Data Lake → TBC Bank tab (same localStorage key) and matches rows
+// against calculated salaries by IBAN or by name. ──
+const TBC_DL_STORAGE_KEY = 'tbc_excel_data';
+
+function loadTbcStatement() {
+  try {
+    const stored = localStorage.getItem(TBC_DL_STORAGE_KEY);
+    if (!stored) return null;
+    const { rows, name, savedAt } = JSON.parse(stored);
+    if (!rows || rows.length < 2) return null;
+    const headers = rows[0].map(h => String(h).trim());
+    const idx = (target) => headers.findIndex(h => h === target);
+    const ibanIdx = idx('ანგარიშის ნომერი');
+    const dateIdx = idx('თარიღი');
+    const nameIdx = idx('დამატებითი ინფორმაცია');
+    const amountIdx = idx('თანხა');
+    if (ibanIdx === -1 && nameIdx === -1) return null;
+
+    const transactions = rows.slice(1).map(r => ({
+      iban: ibanIdx >= 0 ? String(r[ibanIdx] || '').replace(/\s+/g, '').toUpperCase() : '',
+      date: dateIdx >= 0 ? String(r[dateIdx] || '') : '',
+      name: nameIdx >= 0 ? String(r[nameIdx] || '').trim() : '',
+      amount: amountIdx >= 0 ? parseFloat(String(r[amountIdx]).replace(/[,\s]/g, '')) || 0 : 0,
+    })).filter(t => t.iban || t.name);
+
+    return { fileName: name, savedAt, transactions, hasAmount: amountIdx >= 0, hasDate: dateIdx >= 0 };
+  } catch { return null; }
+}
+
+function parseTxDate(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})/); // DD.MM.YYYY (Georgian convention)
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+  return null;
+}
+
+const normalizeName = (s) => String(s || '').toLowerCase().replace(/[^a-zა-ჰ\s]/gi, '').replace(/\s+/g, ' ').trim();
+
+function matchSalaryToTx(employee, transactions, month) {
+  const empIban = String(employee.account_number || '').replace(/\s+/g, '').toUpperCase();
+  const empName = normalizeName(`${employee.first_name} ${employee.last_name}`);
+  const empNameRev = normalizeName(`${employee.last_name} ${employee.first_name}`);
+
+  const candidates = transactions.filter(t => {
+    if (empIban && t.iban && t.iban === empIban) return true;
+    if (!empName) return false;
+    const tn = normalizeName(t.name);
+    if (!tn) return false;
+    return tn.includes(empName) || tn.includes(empNameRev);
+  });
+  if (candidates.length === 0) return null;
+
+  const inMonth = (t) => { const d = parseTxDate(t.date); return d && d.slice(0, 7) === month; };
+  const withinMonth = candidates.find(inMonth);
+  const chosen = withinMonth || candidates[0];
+  return {
+    tx: chosen,
+    matchedBy: (empIban && chosen.iban === empIban) ? 'iban' : 'name',
+    inMonth: !!withinMonth,
+  };
+}
+
 const SUB_TABS = [
   { key: 'settings', label: 'Settings' },
   { key: 'salary', label: 'Salary Payments' },
@@ -188,6 +256,9 @@ function SalaryPayments() {
   const [success, setSuccess] = useState('');
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [tbcStatement, setTbcStatement] = useState(() => loadTbcStatement());
+
+  const refreshTbcStatement = () => setTbcStatement(loadTbcStatement());
 
   const loadSalaries = useCallback(async () => {
     setLoading(true); setError('');
@@ -228,6 +299,25 @@ function SalaryPayments() {
     if (selected.size === salaries.length) setSelected(new Set());
     else setSelected(new Set(salaries.map(s => s.employee.id)));
   };
+
+  const reconciliation = useMemo(() => {
+    if (!tbcStatement || salaries.length === 0) return null;
+    const rows = salaries.map(s => {
+      const match = matchSalaryToTx(s.employee, tbcStatement.transactions, month);
+      let status = 'notfound';
+      if (match) {
+        const diff = Math.abs(match.tx.amount - s.net_salary);
+        status = diff < 0.01 ? 'paid' : 'mismatch';
+      }
+      return { salary: s, match, status };
+    });
+    const counts = {
+      paid: rows.filter(r => r.status === 'paid').length,
+      mismatch: rows.filter(r => r.status === 'mismatch').length,
+      notfound: rows.filter(r => r.status === 'notfound').length,
+    };
+    return { rows, counts };
+  }, [tbcStatement, salaries, month]);
 
   const handlePaySalaries = async () => {
     const payments = salaries
@@ -327,6 +417,82 @@ function SalaryPayments() {
             </button>
           </div>
         </>
+      )}
+
+      {/* Bank Reconciliation */}
+      {salaries.length > 0 && (
+        <div style={{ marginTop: 32 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Bank Reconciliation</h3>
+            <button onClick={refreshTbcStatement} style={{ ...secondaryBtn, fontSize: 12, padding: '6px 14px' }}>
+              Refresh from Data Lake
+            </button>
+          </div>
+
+          {!tbcStatement ? (
+            <div style={{ background: 'rgba(234,179,8,0.1)', color: '#fbbf24', border: '1px solid rgba(234,179,8,0.25)', borderRadius: 8, padding: '10px 14px', fontSize: 13 }}>
+              No TBC bank statement found. Upload one in <strong>Data Lake → TBC Bank</strong>, then click Refresh above.
+            </div>
+          ) : (
+            <>
+              <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 12 }}>
+                Matching against <strong>{tbcStatement.fileName}</strong> · {tbcStatement.transactions.length} transactions
+                {!tbcStatement.hasAmount && <span style={{ color: '#f87171' }}> · No "თანხა" column detected — amounts will show as 0</span>}
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+                <div style={statCard('#16a34a')}>
+                  <div style={statLabel}>Paid</div>
+                  <div style={{ ...statValue, color: '#4ade80' }}>{reconciliation.counts.paid}</div>
+                </div>
+                <div style={statCard('#f59e0b')}>
+                  <div style={statLabel}>Amount Mismatch</div>
+                  <div style={{ ...statValue, color: '#fbbf24' }}>{reconciliation.counts.mismatch}</div>
+                </div>
+                <div style={statCard('#dc2626')}>
+                  <div style={statLabel}>Not Found</div>
+                  <div style={{ ...statValue, color: '#f87171' }}>{reconciliation.counts.notfound}</div>
+                </div>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
+                      <th style={th}>Employee</th>
+                      <th style={th}>Bank Statement Name</th>
+                      <th style={th}>Date</th>
+                      <th style={{ ...th, textAlign: 'right' }}>Bank Amount</th>
+                      <th style={{ ...th, textAlign: 'right' }}>Expected</th>
+                      <th style={th}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reconciliation.rows.map(({ salary: s, match, status }, i) => (
+                      <tr key={s.employee.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
+                        <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{s.employee.first_name} {s.employee.last_name}</td>
+                        <td style={{ ...td, color: 'var(--text-2)' }}>{match ? match.tx.name : '—'}</td>
+                        <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>
+                          {match ? match.tx.date : '—'}
+                          {match && !match.inMonth && <span style={{ color: '#fbbf24', marginLeft: 6 }} title="Matched transaction is outside the selected month">⚠</span>}
+                        </td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>
+                          {match ? fmt(match.tx.amount) : '—'}
+                        </td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-2)' }}>{fmt(s.net_salary)}</td>
+                        <td style={td}>
+                          {status === 'paid' && <span style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', background: 'rgba(22,163,74,0.12)', padding: '2px 8px', borderRadius: 4 }}>Paid ✓</span>}
+                          {status === 'mismatch' && <span style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', background: 'rgba(234,179,8,0.12)', padding: '2px 8px', borderRadius: 4 }}>Amount Mismatch</span>}
+                          {status === 'notfound' && <span style={{ fontSize: 11, fontWeight: 700, color: '#f87171', background: 'rgba(220,38,38,0.12)', padding: '2px 8px', borderRadius: 4 }}>Not Found</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       {/* Payment History */}
