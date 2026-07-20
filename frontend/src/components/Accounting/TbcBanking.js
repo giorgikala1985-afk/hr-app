@@ -25,7 +25,10 @@ function parseTbcStatementRows(rows, fileName, savedAt) {
     iban: ibanIdx >= 0 ? String(r[ibanIdx] || '').replace(/\s+/g, '').toUpperCase() : '',
     date: dateIdx >= 0 ? String(r[dateIdx] || '') : '',
     name: nameIdx >= 0 ? String(r[nameIdx] || '').trim() : '',
-    amount: amountIdx >= 0 ? parseStatementAmount(r[amountIdx]) : 0,
+    // Salary transfers are outgoing (debit) and export as negative in TBC
+    // statements; take the absolute value since we're only ever comparing
+    // against a positive net_salary figure here.
+    amount: amountIdx >= 0 ? Math.abs(parseStatementAmount(r[amountIdx])) : 0,
     purpose: purposeIdx >= 0 ? String(r[purposeIdx] || '').trim() : '',
   })).filter(t => t.iban || t.name);
 
@@ -50,7 +53,16 @@ function parseTxDate(raw) {
   return null;
 }
 
-const normalizeName = (s) => String(s || '').toLowerCase().replace(/[^a-zა-ჰ\s]/gi, '').replace(/\s+/g, ' ').trim();
+// Canonicalizes Georgian surname spelling variants — bank exports often
+// spell "ძ" (single letter, "dz" sound) as "დზ" (two separate letters), e.g.
+// "სალდაძე" vs "სალდადზე" for the same person. Collapsing both to one form
+// lets substring matching still work regardless of which spelling was used.
+const normalizeName = (s) => String(s || '')
+  .toLowerCase()
+  .replace(/[^a-zა-ჰ\s]/gi, '')
+  .replace(/დზ/g, 'ძ')
+  .replace(/\s+/g, ' ')
+  .trim();
 
 // Requires "ხელფასი"/"salary" in the purpose field when that column exists,
 // so a matching name/IBAN alone (e.g. a refund or invoice payment) doesn't

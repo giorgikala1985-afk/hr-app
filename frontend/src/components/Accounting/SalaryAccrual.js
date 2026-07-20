@@ -101,15 +101,20 @@ async function loadTBCForMonth(month) {
   if (!s) return null;
   return parseTBCRowsForMonth(s.rows, month);
 }
+// Canonicalizes Georgian surname spelling variants — bank exports often
+// spell "ძ" (single letter, "dz" sound) as "დზ" (two separate letters), e.g.
+// "სალდაძე" vs "სალდადზე" for the same person.
+const _canonGe = (s) => String(s || '').toLowerCase().replace(/დზ/g, 'ძ');
+
 function getTBCAmount(tbc, emp) {
   if (!tbc || !tbc.rows.length || tbc.outCol === -1) return null;
-  const first = (emp.first_name || '').toLowerCase().trim();
-  const last  = (emp.last_name  || '').toLowerCase().trim();
+  const first = _canonGe(emp.first_name).trim();
+  const last  = _canonGe(emp.last_name).trim();
   if (!first && !last) return null;
   const matched = tbc.rows.filter(row => {
     const nameHit = row.some((cell, idx) => {
       if (idx === tbc.outCol) return false;
-      const v = String(cell || '').toLowerCase();
+      const v = _canonGe(cell);
       return (first.length > 1 && v.includes(first)) || (last.length > 1 && v.includes(last));
     });
     if (!nameHit) return false;
@@ -120,7 +125,10 @@ function getTBCAmount(tbc, emp) {
     return purpose.includes('ხელფასი') || purpose.includes('salary');
   });
   if (!matched.length) return null;
-  return matched.reduce((s, row) => s + parseStatementAmount(row[tbc.outCol]), 0);
+  // Salary transfers are outgoing (debit) and export as negative in TBC
+  // statements; take the absolute value since this sums against a positive
+  // net_salary figure elsewhere.
+  return matched.reduce((s, row) => s + Math.abs(parseStatementAmount(row[tbc.outCol])), 0);
 }
 const TBC_COL_W = 130;
 // ──────────────────────────────────────────────────────────────────────────
