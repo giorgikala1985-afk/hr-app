@@ -6,6 +6,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { parseStatementAmount } from '../../utils/bankAmount';
+import { fetchTbcRawStatement } from '../../utils/tbcStatement';
 
 const COLUMNS = [
   { key: 'date',        labelKey: 'salAccrual.colAccrualDate', label: 'Accrual Date',  align: 'left',  defaultWidth: 120 },
@@ -62,7 +63,6 @@ function calcGross(netSalary, pensionOn) {
 const HARDCODED_UNIT_NAMES = new Set(['Bonus', 'Team Building', 'Reimbursement', 'Fitpass', 'ფიზკულტურის მასწავლებელი']);
 
 // ── TBC Bank helpers ───────────────────────────────────────────────────────
-const TBC_STORAGE_KEY = 'tbc_excel_data';
 function _parseTBCDate(val) {
   if (val === null || val === undefined || val === '') return null;
   if (typeof val === 'number') return new Date(Math.round((val - 25569) * 86400 * 1000));
@@ -82,23 +82,24 @@ function _findCol(headers, keywords) {
   const kw = keywords.map(k => k.toLowerCase());
   return headers.findIndex(h => kw.some(k => String(h).toLowerCase().includes(k)));
 }
-function loadTBCForMonth(month) {
-  try {
-    const stored = localStorage.getItem(TBC_STORAGE_KEY);
-    if (!stored) return null;
-    const { rows } = JSON.parse(stored);
-    if (!rows || rows.length < 2) return null;
-    const headers = rows[0];
-    const dateCol = _findCol(headers, ['თარიღი', 'date']);
-    const outCol  = _findCol(headers, ['თანხა', 'amount', 'sum', 'გასული', 'debit', 'withdrawal', 'გამოსული', 'დებეტი', 'out']);
-    const purposeCol = _findCol(headers, ['დანიშნულება', 'purpose', 'description']);
-    if (dateCol === -1) return null;
-    const filtered = rows.slice(1).filter(row => {
-      const d = _parseTBCDate(row[dateCol]);
-      return d && _dateToMonth(d) === month;
-    });
-    return { rows: filtered, outCol, purposeCol };
-  } catch { return null; }
+function parseTBCRowsForMonth(rows, month) {
+  if (!rows || rows.length < 2) return null;
+  const headers = rows[0];
+  const dateCol = _findCol(headers, ['თარიღი', 'date']);
+  const outCol  = _findCol(headers, ['თანხა', 'amount', 'sum', 'გასული', 'debit', 'withdrawal', 'გამოსული', 'დებეტი', 'out']);
+  const purposeCol = _findCol(headers, ['დანიშნულება', 'purpose', 'description']);
+  if (dateCol === -1) return null;
+  const filtered = rows.slice(1).filter(row => {
+    const d = _parseTBCDate(row[dateCol]);
+    return d && _dateToMonth(d) === month;
+  });
+  return { rows: filtered, outCol, purposeCol };
+}
+
+async function loadTBCForMonth(month) {
+  const s = await fetchTbcRawStatement();
+  if (!s) return null;
+  return parseTBCRowsForMonth(s.rows, month);
 }
 function getTBCAmount(tbc, emp) {
   if (!tbc || !tbc.rows.length || tbc.outCol === -1) return null;
@@ -178,7 +179,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const [transferDate, setTransferDate] = useState('');
   const [transferRate, setTransferRate] = useState(null);
   const [loadingRate, setLoadingRate] = useState(false);
-  const [tbc, setTbc] = useState(() => loadTBCForMonth(todayMonth()));
+  const [tbc, setTbc] = useState(null);
 
   const [visibleCols, setVisibleCols] = useState(() => {
     try {
@@ -215,9 +216,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
 
   useEffect(() => {
     load(month); setTransferDate(''); setTransferRate(null);
-    setTbc(loadTBCForMonth(month));
+    loadTBCForMonth(month).then(setTbc);
     if (onMonthChange) onMonthChange(month);
-  }, [month]);
+  }, [month]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     try { setAccrualDate(localStorage.getItem(`sal_accrual_date_${month}`) || ''); } catch {}
   }, [month]);

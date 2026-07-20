@@ -135,6 +135,73 @@ router.post('/statements/import', async (req, res) => {
   }
 });
 
+// ── SAVED STATEMENT (raw Excel upload from Data Lake, per-company) ──
+// One saved statement per company (user_id) — upload replaces the previous one.
+router.get('/statement', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('tbc_statements')
+      .select('*')
+      .eq('user_id', req.userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    res.json({ statement: data || null });
+  } catch (err) {
+    console.error('TBC statement fetch error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch statement' });
+  }
+});
+
+router.put('/statement', async (req, res) => {
+  try {
+    const { file_name, rows } = req.body;
+    if (!rows) return res.status(400).json({ error: 'rows is required' });
+
+    const { data: existing } = await supabase
+      .from('tbc_statements')
+      .select('id')
+      .eq('user_id', req.userId)
+      .single();
+
+    let result;
+    if (existing) {
+      result = await supabase
+        .from('tbc_statements')
+        .update({ file_name: file_name || null, rows, saved_at: new Date().toISOString() })
+        .eq('user_id', req.userId)
+        .select()
+        .single();
+    } else {
+      result = await supabase
+        .from('tbc_statements')
+        .insert([{ user_id: req.userId, file_name: file_name || null, rows, saved_at: new Date().toISOString() }])
+        .select()
+        .single();
+    }
+
+    if (result.error) throw result.error;
+    res.json({ statement: result.data });
+  } catch (err) {
+    console.error('TBC statement save error:', err.message);
+    res.status(500).json({ error: 'Failed to save statement' });
+  }
+});
+
+router.delete('/statement', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('tbc_statements')
+      .delete()
+      .eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ success: true });
+  } catch (err) {
+    console.error('TBC statement delete error:', err.message);
+    res.status(500).json({ error: 'Failed to delete statement' });
+  }
+});
+
 // ── SALARY PAYMENTS (Bulk Transfer) ──────────────────
 router.post('/salary-payment', async (req, res) => {
   try {

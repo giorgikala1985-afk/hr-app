@@ -2,40 +2,40 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { parseStatementAmount } from '../../utils/bankAmount';
+import { fetchTbcRawStatement } from '../../utils/tbcStatement';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
 
 // ── Bank reconciliation: reads the raw TBC Excel upload saved by the
-// Data Lake → TBC Bank tab (same localStorage key) and matches rows
+// Data Lake → TBC Bank tab (per-company, via Supabase) and matches rows
 // against calculated salaries by IBAN or by name. ──
-const TBC_DL_STORAGE_KEY = 'tbc_excel_data';
+function parseTbcStatementRows(rows, fileName, savedAt) {
+  if (!rows || rows.length < 2) return null;
+  const headers = rows[0].map(h => String(h).trim());
+  const idx = (target) => headers.findIndex(h => h === target);
+  const ibanIdx = idx('ანგარიშის ნომერი');
+  const dateIdx = idx('თარიღი');
+  const nameIdx = idx('დამატებითი ინფორმაცია');
+  const amountIdx = idx('თანხა');
+  const purposeIdx = headers.findIndex(h => /დანიშნულება|purpose|description/i.test(h));
+  if (ibanIdx === -1 && nameIdx === -1) return null;
 
-function loadTbcStatement() {
-  try {
-    const stored = localStorage.getItem(TBC_DL_STORAGE_KEY);
-    if (!stored) return null;
-    const { rows, name, savedAt } = JSON.parse(stored);
-    if (!rows || rows.length < 2) return null;
-    const headers = rows[0].map(h => String(h).trim());
-    const idx = (target) => headers.findIndex(h => h === target);
-    const ibanIdx = idx('ანგარიშის ნომერი');
-    const dateIdx = idx('თარიღი');
-    const nameIdx = idx('დამატებითი ინფორმაცია');
-    const amountIdx = idx('თანხა');
-    const purposeIdx = headers.findIndex(h => /დანიშნულება|purpose|description/i.test(h));
-    if (ibanIdx === -1 && nameIdx === -1) return null;
+  const transactions = rows.slice(1).map(r => ({
+    iban: ibanIdx >= 0 ? String(r[ibanIdx] || '').replace(/\s+/g, '').toUpperCase() : '',
+    date: dateIdx >= 0 ? String(r[dateIdx] || '') : '',
+    name: nameIdx >= 0 ? String(r[nameIdx] || '').trim() : '',
+    amount: amountIdx >= 0 ? parseStatementAmount(r[amountIdx]) : 0,
+    purpose: purposeIdx >= 0 ? String(r[purposeIdx] || '').trim() : '',
+  })).filter(t => t.iban || t.name);
 
-    const transactions = rows.slice(1).map(r => ({
-      iban: ibanIdx >= 0 ? String(r[ibanIdx] || '').replace(/\s+/g, '').toUpperCase() : '',
-      date: dateIdx >= 0 ? String(r[dateIdx] || '') : '',
-      name: nameIdx >= 0 ? String(r[nameIdx] || '').trim() : '',
-      amount: amountIdx >= 0 ? parseStatementAmount(r[amountIdx]) : 0,
-      purpose: purposeIdx >= 0 ? String(r[purposeIdx] || '').trim() : '',
-    })).filter(t => t.iban || t.name);
+  return { fileName, savedAt, transactions, hasAmount: amountIdx >= 0, hasDate: dateIdx >= 0, hasPurpose: purposeIdx >= 0 };
+}
 
-    return { fileName: name, savedAt, transactions, hasAmount: amountIdx >= 0, hasDate: dateIdx >= 0, hasPurpose: purposeIdx >= 0 };
-  } catch { return null; }
+async function loadTbcStatement() {
+  const s = await fetchTbcRawStatement();
+  if (!s) return null;
+  return parseTbcStatementRows(s.rows, s.fileName, s.savedAt);
 }
 
 function parseTxDate(raw) {
@@ -269,9 +269,10 @@ function SalaryPayments() {
   const [success, setSuccess] = useState('');
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const [tbcStatement, setTbcStatement] = useState(() => loadTbcStatement());
+  const [tbcStatement, setTbcStatement] = useState(null);
 
-  const refreshTbcStatement = () => setTbcStatement(loadTbcStatement());
+  const refreshTbcStatement = useCallback(() => { loadTbcStatement().then(setTbcStatement); }, []);
+  useEffect(() => { refreshTbcStatement(); }, [refreshTbcStatement]);
 
   const loadSalaries = useCallback(async () => {
     setLoading(true); setError('');

@@ -9,11 +9,11 @@ import {
   TextFontIcon, HashIcon, Calendar03Icon, ArrowDown01Icon,
   CheckmarkSquare01Icon, Image01Icon, Mail01Icon,
 } from '@hugeicons/core-free-icons';
+import { fetchTbcRawStatement, saveTbcRawStatement, clearTbcRawStatement } from '../../utils/tbcStatement';
 import './ct-styles.css';
 
 const typeIcon = (icon) => <HugeiconsIcon icon={icon} size={15} color="currentColor" strokeWidth={1.8} />;
 
-const TBC_STORAGE_KEY = 'tbc_excel_data';
 const TABLES_STORAGE_KEY = 'dl_custom_tables';
 
 const CATEGORIES = ['All', 'HR', 'Finance', 'Payroll', 'Insurance', 'Reports'];
@@ -72,20 +72,22 @@ function TBCBank() {
   const [savedAt, setSavedAt] = useState(null);
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [error, setError] = useState('');
   const fileInputRef = useRef(null);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(TBC_STORAGE_KEY);
-      if (stored) {
-        const { rows, name, savedAt: ts } = JSON.parse(stored);
-        setTableData(rows);
-        setFileName(name);
-        setSavedAt(ts);
-      }
-    } catch {}
+    fetchTbcRawStatement()
+      .then(s => {
+        if (s) {
+          setTableData(s.rows);
+          setFileName(s.fileName);
+          setSavedAt(s.savedAt);
+        }
+      })
+      .finally(() => setInitialLoading(false));
   }, []);
 
   const parseExcel = (file) => {
@@ -124,22 +126,36 @@ function TBCBank() {
   const handleDrop = (e) => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]); };
   const handleInput = (e) => { handleFile(e.target.files[0]); e.target.value = ''; };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!tableData) return;
-    const ts = new Date().toISOString();
-    localStorage.setItem(TBC_STORAGE_KEY, JSON.stringify({ rows: tableData, name: fileName, savedAt: ts }));
-    setSavedAt(ts);
-    setSaveMsg('Saved');
-    setTimeout(() => setSaveMsg(''), 2000);
+    setSaving(true); setError('');
+    try {
+      const saved = await saveTbcRawStatement(fileName, tableData);
+      setSavedAt(saved?.saved_at || new Date().toISOString());
+      setSaveMsg('Saved');
+      setTimeout(() => setSaveMsg(''), 2000);
+    } catch {
+      setError('Could not save the statement. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     setTableData(null); setFileName(''); setSavedAt(null); setSaveMsg(''); setError('');
-    localStorage.removeItem(TBC_STORAGE_KEY);
+    try { await clearTbcRawStatement(); } catch {}
   };
 
   const headers = tableData ? tableData[0] : [];
   const rows = tableData ? tableData.slice(1) : [];
+
+  if (initialLoading) {
+    return (
+      <div className="tbc-page">
+        <div className="dl-uploading"><div className="dl-spinner" /><span>Loading statement...</span></div>
+      </div>
+    );
+  }
 
   return (
     <div className="tbc-page">
@@ -165,9 +181,11 @@ function TBCBank() {
               </svg>
               <span>{fileName}</span>
             </div>
-            <button className="tbc-save-btn" onClick={handleSave}>
+            <button className="tbc-save-btn" onClick={handleSave} disabled={saving}>
               {saveMsg ? (
                 <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Saved</>
+              ) : saving ? (
+                'Saving...'
               ) : (
                 <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save</>
               )}
