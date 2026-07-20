@@ -5,6 +5,7 @@ import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { parseStatementAmount } from '../../utils/bankAmount';
 
 const COLUMNS = [
   { key: 'date',        labelKey: 'salAccrual.colAccrualDate', label: 'Accrual Date',  align: 'left',  defaultWidth: 120 },
@@ -89,7 +90,7 @@ function loadTBCForMonth(month) {
     if (!rows || rows.length < 2) return null;
     const headers = rows[0];
     const dateCol = _findCol(headers, ['თარიღი', 'date']);
-    const outCol  = _findCol(headers, ['გასული', 'debit', 'withdrawal', 'გამოსული', 'დებეტი', 'out']);
+    const outCol  = _findCol(headers, ['თანხა', 'amount', 'sum', 'გასული', 'debit', 'withdrawal', 'გამოსული', 'დებეტი', 'out']);
     if (dateCol === -1) return null;
     const filtered = rows.slice(1).filter(row => {
       const d = _parseTBCDate(row[dateCol]);
@@ -111,10 +112,7 @@ function getTBCAmount(tbc, emp) {
     })
   );
   if (!matched.length) return null;
-  return matched.reduce((s, row) => {
-    const raw = String(row[tbc.outCol] || '').replace(/\s/g, '').replace(',', '.');
-    return s + (parseFloat(raw.replace(/[^\d.-]/g, '')) || 0);
-  }, 0);
+  return matched.reduce((s, row) => s + parseStatementAmount(row[tbc.outCol]), 0);
 }
 const TBC_COL_W = 130;
 // ──────────────────────────────────────────────────────────────────────────
