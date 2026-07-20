@@ -5,6 +5,35 @@ import api from '../../services/api';
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
 
+// Parses a bank statement amount cell, handling both "1,500.00" (US) and
+// "1.500,00" / "1500,00" (EU comma-decimal) formats, currency symbols/codes,
+// and parenthesized negatives — e.g. "(1500.00)".
+function parseStatementAmount(raw) {
+  if (raw == null || raw === '') return 0;
+  let s = String(raw).trim().replace(/[₾$€lariGELUSDEUR\s]/gi, '');
+  if (!s) return 0;
+  let neg = false;
+  if (/^\(.*\)$/.test(s)) { neg = true; s = s.slice(1, -1); }
+  if (s.startsWith('-')) { neg = true; s = s.slice(1); }
+
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma > -1 && lastDot > -1) {
+    // Whichever separator appears last is the decimal point
+    s = lastComma > lastDot
+      ? s.replace(/\./g, '').replace(',', '.')
+      : s.replace(/,/g, '');
+  } else if (lastComma > -1) {
+    // Only a comma present — treat as decimal separator if ≤2 digits follow, else thousands grouping
+    const decimals = s.length - lastComma - 1;
+    s = decimals <= 2 ? s.replace(',', '.') : s.replace(/,/g, '');
+  }
+
+  const n = parseFloat(s);
+  if (isNaN(n)) return 0;
+  return neg ? -n : n;
+}
+
 // ── Bank reconciliation: reads the raw TBC Excel upload saved by the
 // Data Lake → TBC Bank tab (same localStorage key) and matches rows
 // against calculated salaries by IBAN or by name. ──
@@ -28,7 +57,7 @@ function loadTbcStatement() {
       iban: ibanIdx >= 0 ? String(r[ibanIdx] || '').replace(/\s+/g, '').toUpperCase() : '',
       date: dateIdx >= 0 ? String(r[dateIdx] || '') : '',
       name: nameIdx >= 0 ? String(r[nameIdx] || '').trim() : '',
-      amount: amountIdx >= 0 ? parseFloat(String(r[amountIdx]).replace(/[,\s]/g, '')) || 0 : 0,
+      amount: amountIdx >= 0 ? parseStatementAmount(r[amountIdx]) : 0,
     })).filter(t => t.iban || t.name);
 
     return { fileName: name, savedAt, transactions, hasAmount: amountIdx >= 0, hasDate: dateIdx >= 0 };
@@ -567,11 +596,7 @@ const excelDateToStr = (value) => {
   if (!isNaN(parsed.getTime())) return parsed.toISOString().slice(0, 10);
   return str;
 };
-const toNum = (v) => {
-  if (v == null || v === '') return 0;
-  const n = parseFloat(String(v).replace(/[,\s]/g, ''));
-  return isNaN(n) ? 0 : n;
-};
+const toNum = parseStatementAmount;
 
 function parseStatementExcel(data) {
   return data.map(row => {
