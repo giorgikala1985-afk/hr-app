@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
+import ProjectInvoices from './ProjectInvoices';
 
 const DEFAULT_WIDTHS = [180, 150, 110, 130, 110, 110, 80];
 
@@ -37,6 +38,7 @@ const STATUS_COLORS = {
 
 function Projects() {
   const { t } = useLanguage();
+  const [mainTab, setMainTab] = useState('projects');
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
@@ -123,6 +125,24 @@ function Projects() {
       <h2>{t('projects.title')}</h2>
       <p className="acc-subtitle">{t('projects.subtitle')}</p>
 
+      <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
+        {[
+          { key: 'projects', label: t('projects.tabProjects') },
+          { key: 'invoices', label: t('projects.tabInvoices') },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setMainTab(tab.key)} style={{
+            padding: '7px 16px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            background: mainTab === tab.key ? 'var(--surface)' : 'transparent',
+            color: mainTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+            boxShadow: mainTab === tab.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+            transition: 'all 0.15s',
+          }}>{tab.label}</button>
+        ))}
+      </div>
+
+      {mainTab === 'invoices' && <ProjectInvoices projects={records} />}
+
+      {mainTab === 'projects' && <>
       <div className="acc-summary">
         <div className="acc-summary-card">
           <span className="acc-summary-label">{t('projects.totalProjects')}</span>
@@ -265,6 +285,7 @@ function Projects() {
         </div>,
         document.body
       )}
+      </>}
     </>
   );
 }

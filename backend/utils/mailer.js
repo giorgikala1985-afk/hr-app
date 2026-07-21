@@ -43,11 +43,17 @@ async function sendSigningInvite({ toEmail, toName, signUrl, companyName }) {
   });
 }
 
-// Send an invoice with a PDF attachment to the client.
-async function sendInvoiceEmail({ toEmail, toName, invoice, pdfBuffer, companyName }) {
+// Send an invoice with a PDF attachment (and an optional extra file) to the client.
+async function sendInvoiceEmail({ toEmail, toName, invoice, pdfBuffer, companyName, extraAttachment }) {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
   const cur = invoice.currency || '';
   const total = Number(invoice.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 });
+  const attachments = [{
+    filename: `${invoice.invoice_number || 'invoice'}.pdf`,
+    content: pdfBuffer,
+    contentType: 'application/pdf',
+  }];
+  if (extraAttachment) attachments.push(extraAttachment);
   await transporter.sendMail({
     from: `"${companyName || 'Finpilot'}" <${from}>`,
     to: toEmail,
@@ -62,11 +68,7 @@ async function sendInvoiceEmail({ toEmail, toName, invoice, pdfBuffer, companyNa
         <p style="font-size:13px;color:#94a3b8;">Thank you for your business.<br/>${companyName || 'Finpilot'}</p>
       </div>
     `,
-    attachments: [{
-      filename: `${invoice.invoice_number || 'invoice'}.pdf`,
-      content: pdfBuffer,
-      contentType: 'application/pdf',
-    }],
+    attachments,
   });
 }
 

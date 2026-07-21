@@ -26,6 +26,39 @@ router.all('/run-invoices', async (req, res) => {
   const results = { processed: 0, sent: 0, errors: [] };
 
   try {
+    // One-time scheduled invoices (e.g. "send on the last working day of the
+    // month" set from a project's Invoices tab) -- generate no new instance,
+    // just send the existing draft and mark it sent.
+    const { data: scheduled, error: schedErr } = await supabase.from('accounting_invoices')
+      .select('*')
+      .neq('status', 'sent')
+      .eq('auto_send', true)
+      .not('scheduled_send_date', 'is', null)
+      .lte('scheduled_send_date', today);
+    if (schedErr) throw schedErr;
+
+    for (const inv of (scheduled || [])) {
+      results.processed++;
+      try {
+        let companyName = 'Finpilot';
+        try {
+          const { data } = await supabase.auth.admin.getUserById(inv.user_id);
+          companyName = data?.user?.user_metadata?.company_name || companyName;
+        } catch {}
+        const pdfBuffer = await generateInvoicePdf(inv, { name: companyName });
+        const extraAttachment = inv.attachment_data
+          ? { filename: inv.attachment_name || 'attachment', content: Buffer.from(inv.attachment_data.split(',').pop(), 'base64') }
+          : null;
+        await sendInvoiceEmail({ toEmail: inv.client_email, toName: inv.client, invoice: inv, pdfBuffer, companyName, extraAttachment });
+        await supabase.from('accounting_invoices')
+          .update({ status: 'sent', last_sent_at: new Date().toISOString() })
+          .eq('id', inv.id);
+        results.sent++;
+      } catch (e) {
+        results.errors.push({ id: inv.id, error: e.message });
+      }
+    }
+
     const { data: due, error } = await supabase.from('accounting_invoices')
       .select('*')
       .neq('recurrence', 'none')

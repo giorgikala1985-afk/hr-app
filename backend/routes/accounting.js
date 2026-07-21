@@ -28,7 +28,10 @@ async function sendOneInvoice(invoice, userId) {
     companyName = data?.user?.user_metadata?.company_name || companyName;
   } catch {}
   const pdfBuffer = await generateInvoicePdf(invoice, { name: companyName });
-  await sendInvoiceEmail({ toEmail: invoice.client_email, toName: invoice.client, invoice, pdfBuffer, companyName });
+  const extraAttachment = invoice.attachment_data
+    ? { filename: invoice.attachment_name || 'attachment', content: Buffer.from(invoice.attachment_data.split(',').pop(), 'base64') }
+    : null;
+  await sendInvoiceEmail({ toEmail: invoice.client_email, toName: invoice.client, invoice, pdfBuffer, companyName, extraAttachment });
   return true;
 }
 
@@ -361,7 +364,9 @@ router.delete('/invoices/uploads/:id', async (req, res) => {
 // ── INVOICES ───────────────────────────────────────────
 router.get('/invoices', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('accounting_invoices').select('*').eq('user_id', req.userId).order('date', { ascending: false });
+    let query = supabase.from('accounting_invoices').select('*').eq('user_id', req.userId).order('date', { ascending: false });
+    if (req.query.project_id) query = query.eq('project_id', req.query.project_id);
+    const { data, error } = await query;
     if (error) throw error;
     res.json({ records: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -369,7 +374,10 @@ router.get('/invoices', async (req, res) => {
 
 router.post('/invoices', async (req, res) => {
   try {
-    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total, recurrence, auto_send } = req.body;
+    const {
+      client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total, recurrence, auto_send,
+      project_id, scheduled_send_date, attachment_name, attachment_data,
+    } = req.body;
     const rec = recurrence || 'none';
     const { data, error } = await supabase.from('accounting_invoices').insert([{
       user_id: req.userId, client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes,
@@ -377,6 +385,10 @@ router.post('/invoices', async (req, res) => {
       recurrence: rec, auto_send: !!auto_send,
       recurring_active: rec !== 'none',
       next_run: rec !== 'none' ? addPeriod(date, rec) : null,
+      project_id: project_id || null,
+      scheduled_send_date: scheduled_send_date || null,
+      attachment_name: attachment_name || null,
+      attachment_data: attachment_data || null,
     }]).select().single();
     if (error) throw error;
     res.status(201).json({ record: data });
@@ -385,13 +397,24 @@ router.post('/invoices', async (req, res) => {
 
 router.put('/invoices/:id', async (req, res) => {
   try {
-    const { client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total, recurrence, auto_send } = req.body;
+    const {
+      client, client_email, invoice_number, date, due_date, currency, status, notes, account_number, items, total, recurrence, auto_send,
+      project_id, scheduled_send_date, attachment_name, attachment_data,
+    } = req.body;
     const rec = recurrence || 'none';
     const update = {
       client, client_email, invoice_number, date, due_date: due_date || null, currency, status, notes,
       account_number: account_number || null, items, total: parseFloat(total),
       recurrence: rec, auto_send: !!auto_send, recurring_active: rec !== 'none',
+      project_id: project_id || null,
+      scheduled_send_date: scheduled_send_date || null,
     };
+    // Only overwrite the attachment if a new one was provided — keeps the
+    // existing file when a user edits other fields without re-uploading.
+    if (attachment_data !== undefined) {
+      update.attachment_name = attachment_name || null;
+      update.attachment_data = attachment_data || null;
+    }
     // Recompute the next scheduled send from the (possibly changed) date/recurrence.
     update.next_run = rec !== 'none' ? addPeriod(date, rec) : null;
     const { data, error } = await supabase.from('accounting_invoices').update(update).eq('id', req.params.id).eq('user_id', req.userId).select().single();
