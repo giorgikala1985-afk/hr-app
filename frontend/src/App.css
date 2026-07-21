@@ -2,19 +2,23 @@
 
 /* ── Transition animations ──────────────────────────────────────────────────── */
 
+/* to: uses transform: none (not translateX(0)/etc.) so the element stops
+   being a containing block for position:fixed descendants once the
+   animation ends -- otherwise modals rendered inside get trapped inside
+   this container's bounds instead of centering in the real viewport. */
 @keyframes fp-page-in {
   from { opacity: 0; transform: translateY(12px) scale(0.995); }
-  to   { opacity: 1; transform: translateY(0)   scale(1);     }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes fp-tab-in {
   from { opacity: 0; transform: translateX(10px); }
-  to   { opacity: 1; transform: translateX(0);    }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes fp-subtab-in {
   from { opacity: 0; transform: translateY(5px); }
-  to   { opacity: 1; transform: translateY(0);   }
+  to   { opacity: 1; transform: none; }
 }
 
 @keyframes fp-spin {
