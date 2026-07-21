@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -349,7 +350,7 @@ function Sales() {
         )}
       </div>
 
-      {showForm && (
+      {showForm && createPortal(
         <div className="acc-modal-overlay">
           <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{editId ? t('sales.editSale') : t('sales.newSale')}</h3>
@@ -439,7 +440,8 @@ function Sales() {
               <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('sales.saving') : t('sales.save')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
