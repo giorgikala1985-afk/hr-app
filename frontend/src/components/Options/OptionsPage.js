@@ -204,7 +204,7 @@ function OptionsPage() {
               A Giorgi Kalandadze &amp; Archil Chogovadze Product
             </p>
             <p style={{ fontSize: 13, color: 'var(--text-4)', margin: 0 }}>© 2026 Finpilot</p>
-            <p style={{ fontSize: 12, color: 'var(--text-4)', margin: 0 }}>Deployed: June 19, 2026</p>
+            <p style={{ fontSize: 12, color: 'var(--text-4)', margin: 0 }}>v1.4.0 &middot; Deployed: July 21, 2026</p>
           </div>
         )}
       </main>
