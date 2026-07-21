@@ -5,7 +5,7 @@ import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResiz
 import { useLanguage } from '../../contexts/LanguageContext';
 import ProjectInvoices from './ProjectInvoices';
 
-const DEFAULT_WIDTHS = [180, 150, 110, 130, 110, 110, 80];
+const DEFAULT_WIDTHS = [170, 130, 130, 110, 120, 105, 105, 80];
 
 function IconEdit() {
   return (
@@ -27,7 +27,7 @@ function IconDelete() {
   );
 }
 
-const EMPTY = { name: '', client: '', status: 'Active', budget: '', currency: 'GEL', start_date: '', end_date: '', description: '' };
+const EMPTY = { name: '', client: '', owner: '', status: 'Active', budget: '', currency: 'GEL', start_date: '', end_date: '', description: '' };
 const STATUSES = ['Active', 'On Hold', 'Completed', 'Cancelled'];
 const STATUS_COLORS = {
   Active:    { bg: 'rgba(22,163,74,0.12)',  color: '#16a34a' },
@@ -42,6 +42,7 @@ function Projects() {
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -50,7 +51,7 @@ function Projects() {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  useEffect(() => { load(); loadAgents(); }, []);
+  useEffect(() => { load(); loadAgents(); loadUsers(); }, []);
 
   const load = async () => {
     setLoading(true);
@@ -68,10 +69,17 @@ function Projects() {
     } catch { /* non-critical */ }
   };
 
+  const loadUsers = async () => {
+    try {
+      const res = await api.get('/users');
+      setUsers(res.data.users || []);
+    } catch { /* non-critical */ }
+  };
+
   const openNew = () => { setForm(EMPTY); setEditId(null); setShowForm(true); setError(''); };
   const openEdit = (r) => {
     setForm({
-      name: r.name, client: r.client || '', status: r.status || 'Active',
+      name: r.name, client: r.client || '', owner: r.owner || '', status: r.status || 'Active',
       budget: r.budget ?? '', currency: r.currency || 'GEL',
       start_date: r.start_date || '', end_date: r.end_date || '', description: r.description || '',
     });
@@ -204,11 +212,12 @@ function Projects() {
               </th>
               <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>{t('projects.colName')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
               <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>{t('projects.colClient')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('projects.colStatus')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('projects.colBudget')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('projects.colStart')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('projects.colEnd')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('projects.colOwner')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('projects.colStatus')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('projects.colBudget')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('projects.colStart')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>{t('projects.colEnd')}<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              <th style={{ position: 'relative', width: colWidths[7], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
             </tr></thead>
             <tbody>
               {records.map((r) => (
@@ -223,6 +232,7 @@ function Projects() {
                   </td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.name}</strong></td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.client || '—'}</td>
+                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.owner || '—'}</td>
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, ...(STATUS_COLORS[r.status] || STATUS_COLORS.Active) }}>
                       {r.status || 'Active'}
@@ -259,6 +269,15 @@ function Projects() {
                   <option value="">{t('projects.selectClient')}</option>
                   {agents.map((a) => (
                     <option key={a.id} value={a.name}>{a.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="acc-form-group">
+                <label>{t('projects.owner')}</label>
+                <select value={form.owner} onChange={(e) => setForm({ ...form, owner: e.target.value })}>
+                  <option value="">{t('projects.selectOwner')}</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.name}>{u.name}</option>
                   ))}
                 </select>
               </div>

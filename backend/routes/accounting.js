@@ -205,10 +205,10 @@ router.get('/projects', async (req, res) => {
 
 router.post('/projects', async (req, res) => {
   try {
-    const { name, client, status, budget, currency, start_date, end_date, description } = req.body;
+    const { name, client, owner, status, budget, currency, start_date, end_date, description } = req.body;
     if (!name) return res.status(400).json({ error: 'Project name is required' });
     const { data, error } = await supabase.from('accounting_projects').insert([{
-      user_id: req.userId, name, client, status: status || 'Active',
+      user_id: req.userId, name, client, owner: owner || null, status: status || 'Active',
       budget: budget ? parseFloat(budget) : null, currency: currency || 'GEL',
       start_date: start_date || null, end_date: end_date || null, description,
     }]).select().single();
@@ -219,9 +219,9 @@ router.post('/projects', async (req, res) => {
 
 router.put('/projects/:id', async (req, res) => {
   try {
-    const { name, client, status, budget, currency, start_date, end_date, description } = req.body;
+    const { name, client, owner, status, budget, currency, start_date, end_date, description } = req.body;
     const { data, error } = await supabase.from('accounting_projects').update({
-      name, client, status, budget: budget ? parseFloat(budget) : null, currency,
+      name, client, owner: owner || null, status, budget: budget ? parseFloat(budget) : null, currency,
       start_date: start_date || null, end_date: end_date || null, description,
     }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
     if (error) throw error;
