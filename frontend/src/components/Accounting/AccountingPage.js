@@ -4,6 +4,7 @@ import { loadSidebarOrder, loadHidden, useSidebarReorder, ACC_SIDEBAR_ORDER_KEY,
 import { useLanguage } from '../../contexts/LanguageContext';
 import Purchases from './Purchases';
 import Sales from './Sales';
+import Projects from './Projects';
 import Invoices from './Invoices';
 import SalariesPage from './SalariesPage';
 import Bookkeeping from './Bookkeeping';
@@ -25,6 +26,7 @@ import {
   ArrowDataTransferHorizontalIcon,
   ChatSpark01Icon,
   ClipboardListIcon,
+  Folder01Icon,
 } from '@hugeicons/core-free-icons';
 import './Accounting.css';
 
@@ -33,6 +35,7 @@ const accIcon = (icon, color) => <HugeiconsIcon icon={icon} size={16} color={col
 const ICONS = {
   purchases:     accIcon(ShoppingCart01Icon, '#f97316'),
   sales:         accIcon(SaleTag01Icon, '#10b981'),
+  projects:      accIcon(Folder01Icon, '#0ea5e9'),
   invoices:      accIcon(Invoice01Icon, '#3b82f6'),
   salaryAccrual: accIcon(MoneyBag01Icon, '#8b5cf6'),
   bookkeeping:   accIcon(Book01Icon, '#6366f1'),
@@ -52,6 +55,7 @@ const TAB_KEYS = [
   { key: 'bookkeeping',    labelKey: 'acc.bookkeeping', icon: ICONS.bookkeeping },
   { key: 'purchases',      labelKey: 'acc.purchases',   icon: ICONS.purchases },
   { key: 'sales',          labelKey: 'acc.sales',       icon: ICONS.sales },
+  { key: 'projects',       labelKey: 'acc.projects',    icon: ICONS.projects },
   { key: 'invoices',       labelKey: 'acc.invoices',    icon: ICONS.invoices },
   { key: 'salary-accrual', labelKey: 'acc.salaries',    icon: ICONS.salaryAccrual },
   { key: 'stock',          labelKey: 'acc.stock',       icon: ICONS.stock },
@@ -140,6 +144,7 @@ function AccountingPage() {
         <div key={activeTab} className="fp-tab-enter">
           {activeTab === 'purchases'      && <Purchases />}
           {activeTab === 'sales'          && <Sales />}
+          {activeTab === 'projects'       && <Projects />}
           {activeTab === 'invoices'       && <Invoices />}
           {activeTab === 'salary-accrual' && <SalariesPage />}
           {activeTab === 'bookkeeping'    && <Bookkeeping />}

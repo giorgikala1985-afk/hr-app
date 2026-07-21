@@ -9,6 +9,7 @@ import {
   ArrowDataTransferHorizontalIcon, BankIcon, SecurityCheckIcon, AiBrain01Icon,
   InformationCircleIcon, Table01Icon, TaxesIcon, Globe02Icon, Menu01Icon,
   AccountSetting01Icon, UserSettings01Icon, PaintBoardIcon, InformationSquareIcon,
+  Folder01Icon,
 } from '@hugeicons/core-free-icons';
 
 const listIcon = (icon) => <HugeiconsIcon icon={icon} size={16} color="currentColor" strokeWidth={1.8} />;
@@ -26,7 +27,7 @@ export const NAV_ORDER_KEY = 'nav_order';
 export const NAV_KEYS_DEFAULT = ['home', 'analytics', 'documents', 'accounting', 'options'];
 
 export const ACC_SIDEBAR_ORDER_KEY = 'acc_sidebar_order';
-export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'orders', 'ai-agent'];
+export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'projects', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'orders', 'ai-agent'];
 
 export const OPT_SIDEBAR_ORDER_KEY = 'opt_sidebar_order';
 export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'hierarchy', 'tools', 'appearance', 'about'];
@@ -94,6 +95,7 @@ const ACC_ICONS = {
   bookkeeping: listIcon(Book01Icon),
   purchases: listIcon(ShoppingCart01Icon),
   sales: listIcon(SaleTag01Icon),
+  projects: listIcon(Folder01Icon),
   invoices: listIcon(Invoice01Icon),
   'salary-accrual': listIcon(MoneyBag01Icon),
   stock: listIcon(Package01Icon),
@@ -264,7 +266,7 @@ function NavOrderSettings() {
   };
   const accLabels = {
     bookkeeping: t('acc.bookkeeping'), purchases: t('acc.purchases'), sales: t('acc.sales'),
-    invoices: t('acc.invoices'), 'salary-accrual': t('acc.salaries'), stock: t('acc.stock'),
+    projects: t('acc.projects'), invoices: t('acc.invoices'), 'salary-accrual': t('acc.salaries'), stock: t('acc.stock'),
     calendar: t('acc.calendar'), transfers: t('acc.transfers'), 'ai-agent': t('docs.finbot'),
   };
   const docsLabels = {

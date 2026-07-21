@@ -191,6 +191,61 @@ router.delete('/sales/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// ── PROJECTS ──
+router.get('/projects', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('accounting_projects').select('*').eq('user_id', req.userId).order('created_at', { ascending: false });
+    if (error) throw error;
+    res.json({ records: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.post('/projects', async (req, res) => {
+  try {
+    const { name, client, status, budget, currency, start_date, end_date, description } = req.body;
+    if (!name) return res.status(400).json({ error: 'Project name is required' });
+    const { data, error } = await supabase.from('accounting_projects').insert([{
+      user_id: req.userId, name, client, status: status || 'Active',
+      budget: budget ? parseFloat(budget) : null, currency: currency || 'GEL',
+      start_date: start_date || null, end_date: end_date || null, description,
+    }]).select().single();
+    if (error) throw error;
+    res.status(201).json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.put('/projects/:id', async (req, res) => {
+  try {
+    const { name, client, status, budget, currency, start_date, end_date, description } = req.body;
+    const { data, error } = await supabase.from('accounting_projects').update({
+      name, client, status, budget: budget ? parseFloat(budget) : null, currency,
+      start_date: start_date || null, end_date: end_date || null, description,
+    }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
+    if (error) throw error;
+    res.json({ record: data });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/projects/bulk', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids array is required and must not be empty' });
+    }
+    const { error } = await supabase.from('accounting_projects').delete().in('id', ids).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: `${ids.length} projects deleted` });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.delete('/projects/:id', async (req, res) => {
+  try {
+    const { error } = await supabase.from('accounting_projects').delete().eq('id', req.params.id).eq('user_id', req.userId);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── INVOICE UPLOADS (shared across devices via Supabase) ──
 router.get('/invoices/uploads', async (req, res) => {
   try {
