@@ -88,12 +88,13 @@ function parseTBCRowsForMonth(rows, month) {
   const dateCol = _findCol(headers, ['თარიღი', 'date']);
   const outCol  = _findCol(headers, ['თანხა', 'amount', 'sum', 'გასული', 'debit', 'withdrawal', 'გამოსული', 'დებეტი', 'out']);
   const purposeCol = _findCol(headers, ['დანიშნულება', 'purpose', 'description']);
+  const nameCol = _findCol(headers, ['დამატებითი ინფორმაცია', 'additional information']);
   if (dateCol === -1) return null;
   const filtered = rows.slice(1).filter(row => {
     const d = _parseTBCDate(row[dateCol]);
     return d && _dateToMonth(d) === month;
   });
-  return { rows: filtered, outCol, purposeCol };
+  return { rows: filtered, outCol, purposeCol, nameCol };
 }
 
 async function loadTBCForMonth(month) {
@@ -110,13 +111,28 @@ function getTBCAmount(tbc, emp) {
   if (!tbc || !tbc.rows.length || tbc.outCol === -1) return null;
   const first = _canonGe(emp.first_name).trim();
   const last  = _canonGe(emp.last_name).trim();
-  if (!first && !last) return null;
+  if (!first || !last) return null; // require both — a lone common first name (e.g. "გიორგი") is too easy to false-match
+  const fullA = `${first} ${last}`;
+  const fullB = `${last} ${first}`;
+
   const matched = tbc.rows.filter(row => {
-    const nameHit = row.some((cell, idx) => {
-      if (idx === tbc.outCol) return false;
-      const v = _canonGe(cell);
-      return (first.length > 1 && v.includes(first)) || (last.length > 1 && v.includes(last));
-    });
+    let nameHit;
+    if (tbc.nameCol !== -1 && tbc.nameCol !== undefined) {
+      // Preferred: match the combined "first last" against the dedicated
+      // additional-info column only — avoids false hits on the account-name
+      // column, which some exports repeat as the company's own name on
+      // every row regardless of who the actual counterparty is.
+      const v = _canonGe(row[tbc.nameCol]).replace(/\s+/g, ' ');
+      nameHit = v.includes(fullA) || v.includes(fullB);
+    } else {
+      // Fallback when no dedicated name column is detected: scan every cell,
+      // but still require BOTH first and last name in the same cell.
+      nameHit = row.some((cell, idx) => {
+        if (idx === tbc.outCol) return false;
+        const v = _canonGe(cell);
+        return v.includes(first) && v.includes(last);
+      });
+    }
     if (!nameHit) return false;
     // Require "ხელფასი"/"salary" in the purpose column when one exists, so a
     // name match on a refund or invoice payment doesn't count as salary paid.
