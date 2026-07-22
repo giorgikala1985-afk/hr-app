@@ -2036,11 +2036,42 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     numMonths: 1,
     startMonth: thisMonth,
     manualSlots: Array.from({ length: 1 }, () => ({ amount: '' })),
+    samePeriodMonth: thisMonth,
+    samePeriodAmount: '',
     immediateEffect: true,
   };
   const [form, setForm] = useState(EMPTY);
+  const [samePeriodSalary, setSamePeriodSalary] = useState(null); // net salary for employee+samePeriodMonth
+  const [samePeriodLoading, setSamePeriodLoading] = useState(false);
 
   const setField = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  // Last 4 selectable pay periods for "Same Period": current month + next 3.
+  const samePeriodOptions = Array.from({ length: 4 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+
+  useEffect(() => {
+    if (form.mode !== 'sameperiod' || !form.employeeId || !form.samePeriodMonth) { setSamePeriodSalary(null); return; }
+    let cancelled = false;
+    setSamePeriodLoading(true);
+    api.get(`/salaries?month=${form.samePeriodMonth}`)
+      .then(res => {
+        if (cancelled) return;
+        const match = (res.data.salaries || []).find(s => String(s.employee.id) === String(form.employeeId));
+        setSamePeriodSalary(match ? match.net_salary : null);
+      })
+      .catch(() => { if (!cancelled) setSamePeriodSalary(null); })
+      .finally(() => { if (!cancelled) setSamePeriodLoading(false); });
+    return () => { cancelled = true; };
+  }, [form.mode, form.employeeId, form.samePeriodMonth]);
+
+  // net_salary from /api/salaries is in USD; convert the entered amount (in
+  // form.currency) to USD before comparing so the remaining balance is accurate.
+  const samePeriodRemaining = (samePeriodSalary != null && form.samePeriodAmount)
+    ? Math.round((parseFloat(samePeriodSalary) - toUSD(form.samePeriodAmount, form.currency)) * 100) / 100
+    : null;
 
   const autoInstallment = (() => {
     const total = parseFloat(form.totalAmount);
@@ -2076,7 +2107,9 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
   const canSave = form.employeeId && (
     form.mode === 'automatic'
       ? parseFloat(form.totalAmount) > 0
-      : form.manualSlots.some(s => parseFloat(s.amount) > 0)
+      : form.mode === 'manual'
+      ? form.manualSlots.some(s => parseFloat(s.amount) > 0)
+      : parseFloat(form.samePeriodAmount) > 0 && !!form.samePeriodMonth
   );
 
   const handleSubmit = async (e) => {
@@ -2085,17 +2118,22 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     setError('');
     const emp = employees.find(x => String(x.id) === String(form.employeeId));
     const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
-    const schedule = Array.from({ length: form.numMonths }, (_, i) => ({
-      month: (() => {
-        const [y, m] = form.startMonth.split('-').map(Number);
-        const d = new Date(y, m - 1 + i, 1);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      })(),
-      amount: form.mode === 'automatic'
-        ? parseFloat(autoInstallment)
-        : parseFloat(form.manualSlots[i]?.amount) || 0,
-    }));
-    const total = form.mode === 'automatic' ? parseFloat(form.totalAmount) : manualTotal;
+
+    const schedule = form.mode === 'sameperiod'
+      ? [{ month: form.samePeriodMonth, amount: parseFloat(form.samePeriodAmount) || 0 }]
+      : Array.from({ length: form.numMonths }, (_, i) => ({
+          month: (() => {
+            const [y, m] = form.startMonth.split('-').map(Number);
+            const d = new Date(y, m - 1 + i, 1);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          })(),
+          amount: form.mode === 'automatic'
+            ? parseFloat(autoInstallment)
+            : parseFloat(form.manualSlots[i]?.amount) || 0,
+        }));
+    const total = form.mode === 'automatic' ? parseFloat(form.totalAmount)
+      : form.mode === 'sameperiod' ? (parseFloat(form.samePeriodAmount) || 0)
+      : manualTotal;
 
     try {
       await Promise.all(schedule.map(({ month, amount }) => {
@@ -2156,8 +2194,12 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                   <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
                   <td style={{ padding: '11px 14px' }}>
-                    <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: o.mode === 'automatic' ? 'rgba(59,130,246,0.12)' : 'rgba(139,92,246,0.12)', color: o.mode === 'automatic' ? '#60a5fa' : '#a78bfa' }}>
-                      {o.mode === 'automatic' ? 'Auto' : 'Manual'}
+                    <span style={{
+                      padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      background: o.mode === 'automatic' ? 'rgba(59,130,246,0.12)' : o.mode === 'sameperiod' ? 'rgba(34,197,94,0.12)' : 'rgba(139,92,246,0.12)',
+                      color: o.mode === 'automatic' ? '#60a5fa' : o.mode === 'sameperiod' ? '#4ade80' : '#a78bfa',
+                    }}>
+                      {o.mode === 'automatic' ? 'Auto' : o.mode === 'sameperiod' ? 'Same Period' : 'Manual'}
                     </span>
                   </td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.schedule?.length || 0}</td>
@@ -2216,10 +2258,10 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
             <div style={{ marginBottom: 18 }}>
               <label style={LABEL}>Schedule Mode</label>
               <div style={{ display: 'flex', background: 'var(--surface-2)', borderRadius: 9, padding: 3, gap: 3 }}>
-                {['automatic', 'manual'].map(m => (
+                {['automatic', 'manual', 'sameperiod'].map(m => (
                   <button key={m} type="button" onClick={() => setField('mode', m)}
                     style={{ flex: 1, padding: '8px 0', borderRadius: 7, border: 'none', fontWeight: 600, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s', background: form.mode === m ? 'var(--surface)' : 'transparent', color: form.mode === m ? 'var(--text)' : 'var(--text-3)', boxShadow: form.mode === m ? '0 1px 4px rgba(0,0,0,0.12)' : 'none' }}>
-                    {m === 'automatic' ? 'Automatic' : 'Manual'}
+                    {m === 'automatic' ? 'Automatic' : m === 'manual' ? 'Manual' : 'Same Period'}
                   </button>
                 ))}
               </div>
@@ -2228,18 +2270,66 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
             {/* Immediate Effect toggle */}
             <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, startMonth: v ? p.startMonth : currentMonthStr() }))} />
 
-            {/* Start month + num months (both modes) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-              <div>
-                <label style={LABEL}>Start Month</label>
-                <input type="month" value={form.startMonth} onChange={e => setField('startMonth', e.target.value)} style={{ ...INPUT, colorScheme: 'dark' }} />
+            {/* Start month + num months (automatic/manual only) */}
+            {form.mode !== 'sameperiod' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                <div>
+                  <label style={LABEL}>Start Month</label>
+                  <input type="month" value={form.startMonth} onChange={e => setField('startMonth', e.target.value)} style={{ ...INPUT, colorScheme: 'dark' }} />
+                </div>
+                <div>
+                  <label style={LABEL}>Number of Months (max 12)</label>
+                  <input type="number" min={1} max={12} value={form.numMonths}
+                    onChange={e => handleNumMonths(e.target.value)} style={INPUT} />
+                </div>
               </div>
-              <div>
-                <label style={LABEL}>Number of Months (max 12)</label>
-                <input type="number" min={1} max={12} value={form.numMonths}
-                  onChange={e => handleNumMonths(e.target.value)} style={INPUT} />
+            )}
+
+            {/* SAME PERIOD mode */}
+            {form.mode === 'sameperiod' && (
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                  <div>
+                    <label style={LABEL}>Total Amount</label>
+                    <input type="number" min={0} step="0.01" value={form.samePeriodAmount}
+                      onChange={e => setField('samePeriodAmount', e.target.value)}
+                      placeholder="e.g. 400" style={INPUT} />
+                  </div>
+                  <div>
+                    <label style={LABEL}>Deduct From Salary</label>
+                    <select value={form.samePeriodMonth} onChange={e => setField('samePeriodMonth', e.target.value)} style={INPUT}>
+                      {samePeriodOptions.map((m, i) => (
+                        <option key={m} value={m}>{getMonthLabel(m, 0)}{i === 0 ? ' (current)' : ''}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {form.employeeId && (
+                  <div style={{ padding: 14, borderRadius: 10, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+                    {samePeriodLoading ? (
+                      <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Loading salary…</div>
+                    ) : samePeriodSalary != null ? (
+                      <>
+                        <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 4 }}>
+                          {getMonthLabel(form.samePeriodMonth, 0)} salary: <strong style={{ color: 'var(--text)' }}>${Number(samePeriodSalary).toFixed(2)}</strong>
+                        </div>
+                        {samePeriodRemaining != null && (
+                          <div style={{ fontSize: 13, marginTop: 6 }}>
+                            Remaining after advance:{' '}
+                            <strong style={{ color: samePeriodRemaining >= 0 ? '#4ade80' : '#f87171' }}>
+                              ${samePeriodRemaining.toFixed(2)}
+                            </strong>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div style={{ fontSize: 12, color: 'var(--text-3)' }}>No salary data found for this employee/month.</div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* AUTOMATIC mode */}
             {form.mode === 'automatic' && (
