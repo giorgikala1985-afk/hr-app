@@ -855,6 +855,7 @@ const en = {
   'orders.businessTrip': 'Business Trip',
   'orders.advancePayment': 'Advance Payment',
   'orders.handover': 'Handover',
+  'orders.bonus': 'Bonus',
   'orders.addNew': 'Add New Order',
   'orders.loading': 'Loading orders…',
   'orders.noOrders': 'No orders for {month}',

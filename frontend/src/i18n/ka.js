@@ -853,6 +853,7 @@ const ka = {
   'orders.businessTrip': 'სამივლინებო',
   'orders.advancePayment': 'ავანსი',
   'orders.handover': 'ჩაბარება-მიბარება',
+  'orders.bonus': 'ბონუსი',
   'orders.addNew': 'ახალი ბრძანება',
   'orders.loading': 'ბრძანებების ჩატვირთვა...',
   'orders.noOrders': '{month}-ის ბრძანებები არ არის',

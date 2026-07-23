@@ -39,6 +39,7 @@ const ORDER_SUBTAB_KEYS = [
   { key: 'business-trip',    labelKey: 'orders.businessTrip'    },
   { key: 'advance-payment',  labelKey: 'orders.advancePayment'  },
   { key: 'handover',         labelKey: 'orders.handover'        },
+  { key: 'bonus',            labelKey: 'orders.bonus'           },
 ];
 
 // ── Shared helpers ───────────────────────────────────────────────────────────
@@ -2560,6 +2561,264 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
   );
 }
 
+// ── Bonus Tab (bulk upload) ─────────────────────────────────────────────────────
+function BonusTab({ employees, gelRate, eurRate }) {
+  const { orders, add, update, remove } = useLocalOrders('hr_bonus_orders');
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
+
+  const toUSD = (amount, currency) => {
+    const val = parseFloat(amount);
+    if (currency === 'GEL' && gelRate) return Math.round((val / gelRate) * 100) / 100;
+    if (currency === 'EUR' && eurRate) return Math.round((val / eurRate) * 100) / 100;
+    return val;
+  };
+
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const EMPTY = { month: thisMonth, currency: 'GEL', selections: {} }; // selections: { [employeeId]: amountString }
+  const [form, setForm] = useState(EMPTY);
+
+  const toggleEmp = (empId) => {
+    setForm(p => {
+      const next = { ...p.selections };
+      if (Object.prototype.hasOwnProperty.call(next, empId)) delete next[empId];
+      else next[empId] = '';
+      return { ...p, selections: next };
+    });
+  };
+
+  const setAmount = (empId, val) => setForm(p => ({ ...p, selections: { ...p.selections, [empId]: val } }));
+
+  const selectedIds = Object.keys(form.selections);
+  const selectedTotal = selectedIds.reduce((s, id) => s + (parseFloat(form.selections[id]) || 0), 0);
+  const canSave = !!form.month && selectedIds.some(id => parseFloat(form.selections[id]) > 0);
+
+  const filteredEmployees = employees.filter(e =>
+    `${e.first_name} ${e.last_name}`.toLowerCase().includes(search.trim().toLowerCase())
+  );
+
+  const openNew = () => { setEditId(null); setForm(EMPTY); setSearch(''); setShowForm(true); setError(''); };
+
+  const openEdit = (o) => {
+    setEditId(o.id);
+    const selections = {};
+    (o.entries || []).forEach(en => { selections[en.employeeId] = String(en.amount); });
+    setForm({ month: o.month, currency: o.currency, selections });
+    setSearch('');
+    setShowForm(true);
+    setError('');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+
+    const [y, m] = form.month.split('-').map(Number);
+    const lastDay = new Date(y, m, 0).getDate();
+    const date = `${form.month}-${String(lastDay).padStart(2, '0')}`;
+    const entries = selectedIds
+      .map(id => ({ id, amount: parseFloat(form.selections[id]) || 0 }))
+      .filter(en => en.amount > 0);
+
+    const createdEntries = [];
+    try {
+      if (editId) {
+        const existing = orders.find(o => o.id === editId);
+        if (existing?.entries?.length) {
+          await Promise.all(existing.entries.map(en =>
+            en.unitId ? api.delete(`/employees/${en.employeeId}/units/${en.unitId}`).catch(() => {}) : Promise.resolve()
+          ));
+        }
+      }
+      await Promise.all(entries.map(async ({ id, amount }) => {
+        const res = await api.post(`/employees/${id}/units`, {
+          type: 'Bonus',
+          amount: toUSD(amount, form.currency),
+          date,
+          currency: 'USD',
+          include_in_salary: true,
+        });
+        const emp = employees.find(x => String(x.id) === String(id));
+        createdEntries.push({
+          employeeId: id,
+          empName: emp ? `${emp.first_name} ${emp.last_name}` : '',
+          amount,
+          unitId: res.data?.unit?.id,
+        });
+      }));
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create bonuses.');
+      setSaving(false);
+      return;
+    }
+
+    const total = createdEntries.reduce((s, en) => s + en.amount, 0);
+    const row = { month: form.month, currency: form.currency, entries: createdEntries, total };
+    if (editId) update(editId, row);
+    else add(row);
+
+    setShowForm(false);
+    setForm(EMPTY);
+    setEditId(null);
+    setSaving(false);
+  };
+
+  const handleRemove = async (o) => {
+    if (!window.confirm('Delete this bonus batch?')) return;
+    if (o.entries?.length) {
+      await Promise.all(o.entries.map(en =>
+        en.unitId ? api.delete(`/employees/${en.employeeId}/units/${en.unitId}`).catch(() => {}) : Promise.resolve()
+      ));
+    }
+    remove(o.id);
+  };
+
+  const CURR_SYMBOLS = { GEL: '₾', USD: '$', EUR: '€' };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        <button onClick={openNew}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          + Add New Order
+        </button>
+      </div>
+
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
+        {orders.length === 0 ? (
+          <EmptyState label="Bonus" onAdd={openNew} />
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--surface-2)' }}>
+                {['Date', 'Month', 'Employees', 'Total', 'Currency', ''].map((h, i) => (
+                  <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.month}</td>
+                  <td style={{ padding: '11px 14px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 320 }}>
+                      {(o.entries || []).map((en, i) => (
+                        <span key={i} style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, background: 'var(--surface-2)', color: 'var(--text-2)', border: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>
+                          {en.empName} · {CURR_SYMBOLS[o.currency]}{Number(en.amount).toFixed(0)}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
+                  <td style={{ padding: '11px 14px' }}>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => openEdit(o)} style={actionBtn} title="Edit"
+                        onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
+                        <EditIcon />
+                      </button>
+                      <button onClick={() => handleRemove(o)}
+                        style={{ ...actionBtn, color: '#f87171' }} title="Delete">
+                        <DeleteIcon />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {showForm && (
+        <SubTabModal title={editId ? 'Edit Bonus Batch' : 'Bonus'} onClose={() => { setShowForm(false); setEditId(null); setError(''); }}>
+          <form onSubmit={handleSubmit}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={LABEL}>Month</label>
+                <input type="month" value={form.month} onChange={e => setForm(p => ({ ...p, month: e.target.value }))} style={{ ...INPUT, colorScheme: 'dark' }} required />
+              </div>
+              <div>
+                <label style={LABEL}>Currency</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {CURRENCIES.map(c => (
+                    <button key={c.code} type="button"
+                      onClick={() => setForm(p => ({ ...p, currency: c.code }))}
+                      style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `2px solid ${form.currency === c.code ? c.color : 'var(--border-2)'}`, background: form.currency === c.code ? `${c.color}22` : 'var(--surface-2)', color: form.currency === c.code ? c.color : 'var(--text-3)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}>
+                      {c.symbol} {c.code}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label style={{ ...LABEL, marginBottom: 0 }}>Employees</label>
+              {selectedIds.length > 0 && (
+                <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                  {selectedIds.length} selected · <strong style={{ color: '#4ade80' }}>{CURR_SYMBOLS[form.currency]}{selectedTotal.toFixed(2)}</strong>
+                </span>
+              )}
+            </div>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search employee…"
+              style={{ ...INPUT, marginBottom: 8 }}
+            />
+            <div style={{ border: '1px solid var(--border-2)', borderRadius: 9, maxHeight: 280, overflowY: 'auto' }}>
+              {filteredEmployees.length === 0 ? (
+                <div style={{ padding: 16, textAlign: 'center', fontSize: 13, color: 'var(--text-4)' }}>No matches</div>
+              ) : filteredEmployees.map((emp, i) => {
+                const checked = Object.prototype.hasOwnProperty.call(form.selections, emp.id);
+                return (
+                  <div key={emp.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
+                    borderBottom: i < filteredEmployees.length - 1 ? '1px solid var(--border-2)' : 'none',
+                    background: checked ? 'rgba(22,163,74,0.06)' : 'transparent',
+                  }}>
+                    <input type="checkbox" checked={checked} onChange={() => toggleEmp(emp.id)} style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
+                    <span
+                      onClick={() => toggleEmp(emp.id)}
+                      style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text)', cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                    >
+                      {emp.first_name} {emp.last_name}
+                    </span>
+                    {checked && (
+                      <div style={{ position: 'relative', width: 130, flexShrink: 0 }}>
+                        <span style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-3)', fontSize: 12 }}>{CURR_SYMBOLS[form.currency]}</span>
+                        <input
+                          type="number" min={0} step="0.01"
+                          value={form.selections[emp.id]}
+                          onChange={e => setAmount(emp.id, e.target.value)}
+                          placeholder="0.00"
+                          onClick={e => e.stopPropagation()}
+                          style={{ ...INPUT, padding: '6px 8px 6px 22px', fontSize: 12, width: '100%' }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {error && <p style={{ color: '#f87171', fontSize: 12, marginTop: 8, marginBottom: 0 }}>{error}</p>}
+            <SubTabActions onCancel={() => { setShowForm(false); setEditId(null); setError(''); }} saving={saving} disabled={!canSave} />
+          </form>
+        </SubTabModal>
+      )}
+    </div>
+  );
+}
+
 // ── Handover Tab ──────────────────────────────────────────────────────────────
 function HandoverTab({ employees }) {
   const { t } = useLanguage();
@@ -3073,6 +3332,7 @@ export default function Orders() {
         {subTab === 'business-trip'    && <BusinessTripTab employees={employees} />}
         {subTab === 'advance-payment'  && <AdvancePaymentTab employees={employees} gelRate={gelRate} eurRate={eurRate} />}
         {subTab === 'handover'         && <HandoverTab employees={employees} />}
+        {subTab === 'bonus'            && <BonusTab employees={employees} gelRate={gelRate} eurRate={eurRate} />}
       </div>
 
       {/* Month picker — adjusting only */}
