@@ -2574,7 +2574,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
 
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const EMPTY = { month: thisMonth, currency: '', selections: {} }; // selections: { [employeeId]: amountString }
+  const EMPTY = { month: thisMonth, currency: '', purpose: '', selections: {} }; // selections: { [employeeId]: amountString }
   const [form, setForm] = useState(EMPTY);
 
   const toggleEmp = (empId) => {
@@ -2602,7 +2602,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     setEditId(o.id);
     const selections = {};
     (o.entries || []).forEach(en => { selections[en.employeeId] = String(en.amount); });
-    setForm({ month: o.month, currency: o.currency, selections });
+    setForm({ month: o.month, currency: o.currency, purpose: o.purpose || '', selections });
     setSearch('');
     setShowForm(true);
     setError('');
@@ -2637,6 +2637,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
           date,
           currency: 'USD',
           include_in_salary: true,
+          note: form.purpose || null,
         });
         const emp = employees.find(x => String(x.id) === String(id));
         createdEntries.push({
@@ -2653,7 +2654,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     }
 
     const total = createdEntries.reduce((s, en) => s + en.amount, 0);
-    const row = { month: form.month, currency: form.currency, entries: createdEntries, total };
+    const row = { month: form.month, currency: form.currency, purpose: form.purpose, entries: createdEntries, total };
     if (editId) update(editId, row);
     else add(row);
 
@@ -2691,7 +2692,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {['Date', 'Month', 'Employees', 'Total', 'Currency', ''].map((h, i) => (
+                {['Date', 'Month', 'Employees', 'დანიშნულება', 'Total', 'Currency', ''].map((h, i) => (
                   <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -2712,6 +2713,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
                       ))}
                     </div>
                   </td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.purpose || '—'}</td>
                   <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
                   <td style={{ padding: '11px 14px' }}>
@@ -2748,6 +2750,17 @@ function BonusTab({ employees, gelRate, eurRate }) {
                   {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={LABEL}>დანიშნულება</label>
+              <input
+                type="text"
+                value={form.purpose}
+                onChange={e => setForm(p => ({ ...p, purpose: e.target.value }))}
+                placeholder="მაგ. Q3 პერფორმანს ბონუსი"
+                style={INPUT}
+              />
             </div>
 
             <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -3445,7 +3458,7 @@ export default function Orders() {
 
                   {/* Type badge */}
                   <td style={{ padding: '12px 16px' }}>
-                    <span style={{
+                    <span title={u.note || undefined} style={{
                       display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
                       background: u.direction === 'addition' ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.1)',
                       color: u.direction === 'addition' ? '#4ade80' : '#f87171',
@@ -3453,6 +3466,11 @@ export default function Orders() {
                     }}>
                       {u.type}
                     </span>
+                    {u.note && (
+                      <div style={{ fontSize: 10, color: 'var(--text-4)', marginTop: 3, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {u.note}
+                      </div>
+                    )}
                   </td>
 
                   {/* Direction */}

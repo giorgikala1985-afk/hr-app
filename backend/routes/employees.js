@@ -989,7 +989,7 @@ router.get('/:id/units', async (req, res) => {
 // POST create unit for employee
 router.post('/:id/units', async (req, res) => {
   try {
-    const { type, amount, date, currency, include_in_salary } = req.body;
+    const { type, amount, date, currency, include_in_salary, note } = req.body;
 
     if (!type || amount === undefined || !date) {
       return res.status(400).json({ error: 'Type, amount, and date are required' });
@@ -1005,6 +1005,7 @@ router.post('/:id/units', async (req, res) => {
         date,
         currency: currency || 'GEL',
         include_in_salary: include_in_salary !== false,
+        note: note || null,
       })
       .select()
       .single();
@@ -1051,13 +1052,14 @@ router.post('/:id/units', async (req, res) => {
 // PUT /api/employees/:id/units/:unitId - update unit
 router.put('/:id/units/:unitId', async (req, res) => {
   try {
-    const { type, amount, date, currency, include_in_salary } = req.body;
+    const { type, amount, date, currency, include_in_salary, note } = req.body;
     const updates = {};
     if (type !== undefined) updates.type = type;
     if (amount !== undefined) updates.amount = parseFloat(amount);
     if (date !== undefined) updates.date = date;
     if (currency !== undefined) updates.currency = currency;
     if (include_in_salary !== undefined) updates.include_in_salary = include_in_salary;
+    if (note !== undefined) updates.note = note;
 
     const { data, error } = await supabase
       .from('employee_units')
