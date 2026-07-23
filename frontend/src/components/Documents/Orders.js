@@ -3569,7 +3569,7 @@ export default function Orders() {
           onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setEditingUnit(null); setForm({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' }); } }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 680, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
 
             {/* Modal header */}
             <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-2)' }}>
@@ -3591,13 +3591,13 @@ export default function Orders() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
 
                 {/* Employee */}
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div>
                   <label style={LABEL}>{t('orders.employee')} *</label>
                   <EmployeeSearchSelect employees={employees} value={form.employeeId} required placeholder={t('orders.selectEmployee')} onChange={e => setForm(p => ({ ...p, employeeId: e.target.value }))} />
                 </div>
 
                 {/* Type */}
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div>
                   <label style={LABEL}>{t('orders.orderType')}</label>
                   <select value={form.type} onChange={e => setForm(p => ({ ...p, type: e.target.value, amount: '', otHours: '' }))} required style={INPUT}>
                     <option value="OT">OT — Overtime (+)</option>
@@ -3611,12 +3611,12 @@ export default function Orders() {
                 </div>
 
                 {/* Immediate Effect toggle */}
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div>
                   <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, date: v ? p.date : monthLastDay }))} />
                 </div>
 
                 {/* Date */}
-                <div style={{ gridColumn: '1 / -1' }}>
+                <div>
                   <label style={LABEL}>Date</label>
                   <input
                     type="date"
