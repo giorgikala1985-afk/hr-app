@@ -147,6 +147,101 @@ function ImmediateEffectToggle({ value, onToggle }) {
   );
 }
 
+// Searchable employee dropdown. Drop-in replacement for a native
+// <select value=... onChange=...> employee picker — calls onChange with a
+// synthetic { target: { value } } event so existing e.target.value handlers
+// (including the `f(key)` helper used across this file) keep working unchanged.
+function EmployeeSearchSelect({ employees, value, onChange, placeholder = 'Select employee…', excludeId, required }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const wrapRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const onDocClick = (e) => { if (wrapRef.current && !wrapRef.current.contains(e.target)) { setOpen(false); setQuery(''); } };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  useEffect(() => { if (open) setTimeout(() => inputRef.current?.focus(), 0); }, [open]);
+
+  const pool = excludeId ? employees.filter(e => String(e.id) !== String(excludeId)) : employees;
+  const selected = pool.find(e => String(e.id) === String(value));
+  const q = query.trim().toLowerCase();
+  const filtered = q
+    ? pool.filter(e => `${e.first_name} ${e.last_name}`.toLowerCase().includes(q))
+    : pool;
+
+  const pick = (id) => {
+    onChange({ target: { value: id } });
+    setOpen(false);
+    setQuery('');
+  };
+
+  return (
+    <div ref={wrapRef} style={{ position: 'relative' }}>
+      {/* Hidden input carries HTML5 required validation without a visible native select */}
+      {required && <input tabIndex={-1} value={value || ''} onChange={() => {}} required style={{ position: 'absolute', opacity: 0, height: 0, width: '100%', pointerEvents: 'none' }} />}
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{ ...INPUT, width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+      >
+        <span style={{ color: selected ? 'var(--text)' : 'var(--text-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {selected ? `${selected.first_name} ${selected.last_name}` : placeholder}
+        </span>
+        <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 8, flexShrink: 0 }}>▾</span>
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, zIndex: 60,
+          background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 9,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.25)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: 280,
+        }}>
+          <div style={{ padding: 8, borderBottom: '1px solid var(--border-2)' }}>
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              placeholder="Search employee…"
+              style={{ ...INPUT, padding: '6px 10px', fontSize: 13 }}
+            />
+          </div>
+          <div style={{ overflowY: 'auto' }}>
+            {value && (
+              <div
+                onClick={() => pick('')}
+                style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 12, color: 'var(--text-3)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+              >
+                — Clear selection —
+              </div>
+            )}
+            {filtered.length === 0 ? (
+              <div style={{ padding: '14px 12px', fontSize: 13, color: 'var(--text-4)', textAlign: 'center' }}>No matches</div>
+            ) : filtered.map(e => {
+              const isSel = String(value) === String(e.id);
+              return (
+                <div
+                  key={e.id}
+                  onClick={() => pick(e.id)}
+                  style={{ padding: '9px 12px', cursor: 'pointer', fontSize: 13, color: 'var(--text)', fontWeight: isSel ? 700 : 500, background: isSel ? 'var(--surface-2)' : 'transparent' }}
+                  onMouseEnter={ev => ev.currentTarget.style.background = 'var(--surface-2)'}
+                  onMouseLeave={ev => ev.currentTarget.style.background = isSel ? 'var(--surface-2)' : 'transparent'}
+                >
+                  {e.first_name} {e.last_name}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EmptyState({ label, onAdd }) {
   const { t } = useLanguage();
   return (
@@ -254,13 +349,10 @@ function PromotionTab({ employees }) {
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gap: 14 }}>
               <div><label style={LABEL}>{t('orders.employee')} *</label>
-                <select value={form.employeeId} onChange={e => {
+                <EmployeeSearchSelect employees={employees} value={form.employeeId} required placeholder={t('orders.selectEmployee')} onChange={e => {
                   const emp = employees.find(x => x.id === e.target.value);
                   setForm(p => ({ ...p, employeeId: e.target.value, oldSalary: emp?.salary ? String(emp.salary) : '' }));
-                }} required style={{ ...INPUT, width: '100%' }}>
-                  <option value="">{t('orders.selectEmployee')}</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                }} />
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div><label style={LABEL}>{t('orders.oldPosition')}</label><input value={form.oldPosition || employees.find(e => e.id === form.employeeId)?.position || ''} readOnly style={{ ...INPUT, width: '100%', opacity: 0.6 }} /></div>
@@ -1283,10 +1375,7 @@ function FiringTab({ employees }) {
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gap: 14 }}>
               <div><label style={LABEL}>{t('orders.employee')} *</label>
-                <select value={form.employeeId} onChange={f('employeeId')} required style={{ ...INPUT, width: '100%' }}>
-                  <option value="">{t('orders.selectEmployee')}</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                <EmployeeSearchSelect employees={employees} value={form.employeeId} required placeholder={t('orders.selectEmployee')} onChange={f('employeeId')} />
               </div>
               <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, terminationDate: v ? p.terminationDate : endOfMonth(currentMonthStr()) }))} />
               <div><label style={LABEL}>{t('orders.terminationDate')} *</label><input type="date" value={form.terminationDate} onChange={f('terminationDate')} required style={{ ...INPUT, width: '100%' }} /></div>
@@ -1811,12 +1900,7 @@ function BusinessTripTab({ employees }) {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     {!form.isGroup ? (
                       <>
-                      <select value={form.employeeId} onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} style={INPUT} required>
-                        <option value="">— Select employee —</option>
-                        {employees.map(emp => (
-                          <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                        ))}
-                      </select>
+                      <EmployeeSearchSelect employees={employees} value={form.employeeId} required onChange={e => setForm(f => ({ ...f, employeeId: e.target.value }))} />
                       </>
                     ) : (
                       <>
@@ -2296,12 +2380,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
             {/* Employee */}
             <div style={{ marginBottom: 14 }}>
               <label style={LABEL}>Employee</label>
-              <select value={form.employeeId} onChange={e => setField('employeeId', e.target.value)} style={INPUT} required>
-                <option value="">Select employee…</option>
-                {employees.map(emp => (
-                  <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                ))}
-              </select>
+              <EmployeeSearchSelect employees={employees} value={form.employeeId} required onChange={e => setField('employeeId', e.target.value)} />
             </div>
 
             {/* Currency */}
@@ -2553,16 +2632,10 @@ function HandoverTab({ employees }) {
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gap: 14 }}>
               <div><label style={LABEL}>{t('orders.fromEmployee')} *</label>
-                <select value={form.fromEmployeeId} onChange={f('fromEmployeeId')} required style={{ ...INPUT, width: '100%' }}>
-                  <option value="">{t('orders.selectEmployee')}</option>
-                  {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                <EmployeeSearchSelect employees={employees} value={form.fromEmployeeId} required placeholder={t('orders.selectEmployee')} onChange={f('fromEmployeeId')} />
               </div>
               <div><label style={LABEL}>{t('orders.toEmployee')} *</label>
-                <select value={form.toEmployeeId} onChange={f('toEmployeeId')} required style={{ ...INPUT, width: '100%' }}>
-                  <option value="">{t('orders.selectEmployee')}</option>
-                  {employees.filter(e => e.id !== form.fromEmployeeId).map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
-                </select>
+                <EmployeeSearchSelect employees={employees} value={form.toEmployeeId} excludeId={form.fromEmployeeId} required placeholder={t('orders.selectEmployee')} onChange={f('toEmployeeId')} />
               </div>
               <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, handoverDate: v ? p.handoverDate : endOfMonth(currentMonthStr()) }))} />
               <div><label style={LABEL}>{t('orders.handoverDate')} *</label><input type="date" value={form.handoverDate} onChange={f('handoverDate')} required style={{ ...INPUT, width: '100%' }} /></div>
@@ -3252,12 +3325,7 @@ export default function Orders() {
                 {/* Employee */}
                 <div style={{ gridColumn: '1 / -1' }}>
                   <label style={LABEL}>{t('orders.employee')} *</label>
-                  <select value={form.employeeId} onChange={e => setForm(p => ({ ...p, employeeId: e.target.value }))} required style={INPUT}>
-                    <option value="">{t('orders.selectEmployee')}</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.first_name} {emp.last_name}</option>
-                    ))}
-                  </select>
+                  <EmployeeSearchSelect employees={employees} value={form.employeeId} required placeholder={t('orders.selectEmployee')} onChange={e => setForm(p => ({ ...p, employeeId: e.target.value }))} />
                 </div>
 
                 {/* Type */}
