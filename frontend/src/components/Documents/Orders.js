@@ -88,11 +88,11 @@ function useLocalOrders(key) {
   return { orders, add, update, remove };
 }
 
-function SubTabModal({ title, onClose, children }) {
+function SubTabModal({ title, onClose, children, maxWidth = 520 }) {
   return (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-2)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-2)' }}>
           <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>{title}</div>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
@@ -2375,22 +2375,22 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       </div>
 
       {showForm && (
-        <SubTabModal title={editId ? 'Edit Advance Payment' : 'Advance Payment'} onClose={() => { setShowForm(false); setEditId(null); setError(''); }}>
+        <SubTabModal title={editId ? 'Edit Advance Payment' : 'Advance Payment'} onClose={() => { setShowForm(false); setEditId(null); setError(''); }} maxWidth={680}>
           <form onSubmit={handleSubmit}>
 
-            {/* Employee */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={LABEL}>Employee</label>
-              <EmployeeSearchSelect employees={employees} value={form.employeeId} required onChange={e => setField('employeeId', e.target.value)} />
-            </div>
-
-            {/* Currency */}
-            <div style={{ marginBottom: 14 }}>
-              <label style={LABEL}>Currency</label>
-              <select value={form.currency} onChange={e => setField('currency', e.target.value)} required style={INPUT}>
-                <option value="">— Select currency —</option>
-                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
-              </select>
+            {/* Employee + Currency */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+              <div>
+                <label style={LABEL}>Employee</label>
+                <EmployeeSearchSelect employees={employees} value={form.employeeId} required onChange={e => setField('employeeId', e.target.value)} />
+              </div>
+              <div>
+                <label style={LABEL}>Currency</label>
+                <select value={form.currency} onChange={e => setField('currency', e.target.value)} required style={INPUT}>
+                  <option value="">— Select currency —</option>
+                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+                </select>
+              </div>
             </div>
 
             {/* Mode toggle */}
