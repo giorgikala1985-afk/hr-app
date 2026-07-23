@@ -2038,6 +2038,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     manualSlots: Array.from({ length: 1 }, () => ({ amount: '' })),
     samePeriodMonth: thisMonth,
     samePeriodAmount: '',
+    includeInSalary: true,
     immediateEffect: true,
   };
   const [form, setForm] = useState(EMPTY);
@@ -2146,7 +2147,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
           amount: toUSD(amount, form.currency),
           date,
           currency: 'USD',
-          include_in_salary: true,
+          include_in_salary: form.includeInSalary,
         });
       }));
     } catch (err) {
@@ -2155,7 +2156,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       return;
     }
 
-    add({ employeeId: form.employeeId, empName, currency: form.currency, mode: form.mode, total, schedule });
+    add({ employeeId: form.employeeId, empName, currency: form.currency, mode: form.mode, total, schedule, includeInSalary: form.includeInSalary });
     setShowForm(false);
     setForm(EMPTY);
     setSaving(false);
@@ -2179,7 +2180,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {['Date', 'Employee', 'Total', 'Currency', 'Mode', 'Months', 'Schedule', ''].map((h, i) => (
+                {['Date', 'Employee', 'Total', 'Currency', 'Mode', 'ჩარიცხულია', 'Months', 'Schedule', ''].map((h, i) => (
                   <th key={i} style={{ padding: '11px 14px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -2200,6 +2201,15 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                       color: o.mode === 'automatic' ? '#60a5fa' : o.mode === 'sameperiod' ? '#4ade80' : '#a78bfa',
                     }}>
                       {o.mode === 'automatic' ? 'Auto' : o.mode === 'sameperiod' ? 'Same Period' : 'Manual'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '11px 14px' }}>
+                    <span style={{
+                      padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
+                      background: o.includeInSalary !== false ? 'rgba(22,163,74,0.12)' : 'rgba(148,163,184,0.15)',
+                      color: o.includeInSalary !== false ? '#4ade80' : 'var(--text-3)',
+                    }}>
+                      {o.includeInSalary !== false ? '✓ ჩარიცხულია' : 'არ არის ჩარიცხული'}
                     </span>
                   </td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.schedule?.length || 0}</td>
@@ -2381,6 +2391,32 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                 )}
               </div>
             )}
+
+            {/* Credited toggle — only deduct from salary once the advance has actually been paid out */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4, marginBottom: 4, padding: '12px 14px', borderRadius: 9, border: '1px solid var(--border-2)', background: 'var(--surface-2)' }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>ჩარიცხულია</div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>
+                  {form.includeInSalary ? 'ავანსი გამოაკლდება ხელფასს' : 'ავანსი ჯერ არ არის ჩარიცხული — ხელფასს არ დააკლდება'}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, includeInSalary: !p.includeInSalary }))}
+                style={{
+                  width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                  background: form.includeInSalary ? '#16a34a' : 'var(--border-2)',
+                  position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+                }}
+              >
+                <span style={{
+                  position: 'absolute', top: 3, left: form.includeInSalary ? 22 : 3,
+                  width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                  transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+                  display: 'block',
+                }} />
+              </button>
+            </div>
 
             {error && <p style={{ color: '#f87171', fontSize: 12, marginTop: 8, marginBottom: 0 }}>{error}</p>}
             <SubTabActions onCancel={() => { setShowForm(false); setError(''); }} saving={saving} disabled={!canSave} />
