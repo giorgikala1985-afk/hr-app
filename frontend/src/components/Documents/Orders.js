@@ -2110,6 +2110,14 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     if (currency === 'EUR' && eurRate) return Math.round((val / eurRate) * 100) / 100;
     return val;
   };
+  // Transfers are tracked in GEL (no per-record currency field) -- convert
+  // via USD as the common intermediate so USD/EUR advances still post a
+  // sensible GEL amount to the transfer queue.
+  const toGEL = (amount, currency) => {
+    if (currency === 'GEL') return parseFloat(amount);
+    const usd = toUSD(amount, currency);
+    return gelRate ? Math.round(usd * gelRate * 100) / 100 : usd;
+  };
 
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -2253,6 +2261,26 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       setError(err.response?.data?.error || 'Failed to create salary deductions.');
       setSaving(false);
       return;
+    }
+
+    // New advances also queue a Transfer so finance sees it needs to be paid
+    // out, and gets notified -- editing an existing advance doesn't re-queue
+    // one, since it may already be approved/paid.
+    if (!editId) {
+      const modeLabel = form.mode === 'automatic' ? 'ავტომატური განაწილება'
+        : form.mode === 'manual' ? 'ხელით განაწილება'
+        : 'იმავე პერიოდში დაქვითვა';
+      try {
+        await api.post('/accounting/transfers', {
+          client_name: empName,
+          amount: toGEL(total, form.currency),
+          due_date: new Date().toISOString().slice(0, 10),
+          description: `ავანსის გადარიცხვა — ${modeLabel}`,
+          iban: emp?.account_number || null,
+        });
+      } catch (transferErr) {
+        console.error('Failed to queue advance transfer:', transferErr);
+      }
     }
 
     const row = { employeeId: form.employeeId, empName, currency: form.currency, mode: form.mode, total, schedule, includeInSalary: form.includeInSalary, unitIds: createdIds };
