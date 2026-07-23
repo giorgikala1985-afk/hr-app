@@ -2116,7 +2116,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
 
   const EMPTY = {
     employeeId: '',
-    currency: 'GEL',
+    currency: '',
     mode: 'automatic',
     totalAmount: '',
     numMonths: 1,
@@ -2191,7 +2191,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     });
   };
 
-  const canSave = form.employeeId && (
+  const canSave = form.employeeId && !!form.currency && (
     form.mode === 'automatic'
       ? parseFloat(form.totalAmount) > 0
       : form.mode === 'manual'
@@ -2387,15 +2387,10 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
             {/* Currency */}
             <div style={{ marginBottom: 14 }}>
               <label style={LABEL}>Currency</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {CURRENCIES.map(c => (
-                  <button key={c.code} type="button"
-                    onClick={() => setField('currency', c.code)}
-                    style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `2px solid ${form.currency === c.code ? c.color : 'var(--border-2)'}`, background: form.currency === c.code ? `${c.color}22` : 'var(--surface-2)', color: form.currency === c.code ? c.color : 'var(--text-3)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}>
-                    {c.symbol} {c.code}
-                  </button>
-                ))}
-              </div>
+              <select value={form.currency} onChange={e => setField('currency', e.target.value)} required style={INPUT}>
+                <option value="">— Select currency —</option>
+                {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+              </select>
             </div>
 
             {/* Mode toggle */}
@@ -2579,7 +2574,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
 
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const EMPTY = { month: thisMonth, currency: 'GEL', selections: {} }; // selections: { [employeeId]: amountString }
+  const EMPTY = { month: thisMonth, currency: '', selections: {} }; // selections: { [employeeId]: amountString }
   const [form, setForm] = useState(EMPTY);
 
   const toggleEmp = (empId) => {
@@ -2595,7 +2590,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
 
   const selectedIds = Object.keys(form.selections);
   const selectedTotal = selectedIds.reduce((s, id) => s + (parseFloat(form.selections[id]) || 0), 0);
-  const canSave = !!form.month && selectedIds.some(id => parseFloat(form.selections[id]) > 0);
+  const canSave = !!form.month && !!form.currency && selectedIds.some(id => parseFloat(form.selections[id]) > 0);
 
   const filteredEmployees = employees.filter(e =>
     `${e.first_name} ${e.last_name}`.toLowerCase().includes(search.trim().toLowerCase())
@@ -2748,15 +2743,10 @@ function BonusTab({ employees, gelRate, eurRate }) {
               </div>
               <div>
                 <label style={LABEL}>Currency</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  {CURRENCIES.map(c => (
-                    <button key={c.code} type="button"
-                      onClick={() => setForm(p => ({ ...p, currency: c.code }))}
-                      style={{ flex: 1, padding: '8px 0', borderRadius: 8, border: `2px solid ${form.currency === c.code ? c.color : 'var(--border-2)'}`, background: form.currency === c.code ? `${c.color}22` : 'var(--surface-2)', color: form.currency === c.code ? c.color : 'var(--text-3)', fontWeight: 700, fontSize: 13, cursor: 'pointer', transition: 'all 0.15s' }}>
-                      {c.symbol} {c.code}
-                    </button>
-                  ))}
-                </div>
+                <select value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))} required style={INPUT}>
+                  <option value="">— Select currency —</option>
+                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+                </select>
               </div>
             </div>
 
@@ -2946,7 +2936,7 @@ export default function Orders() {
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
-  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: 'USD', includeInSalary: true, date: '', immediateEffect: true };
+  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '', immediateEffect: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
 
@@ -3659,19 +3649,10 @@ export default function Orders() {
                       onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
                       required style={{ ...INPUT, flex: 1 }}
                     />
-                    <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-2)' }}>
-                      {CURRENCIES.map(({ code, symbol, color }) => (
-                        <button key={code} type="button"
-                          onClick={() => setForm(p => ({ ...p, currency: code }))}
-                          style={{
-                            padding: '0 12px', height: '100%', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700,
-                            background: form.currency === code ? color : 'var(--surface-2)',
-                            color: form.currency === code ? '#fff' : color,
-                            transition: 'all 0.12s',
-                          }}
-                        >{symbol}</button>
-                      ))}
-                    </div>
+                    <select value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))} required style={{ ...INPUT, width: 110, flexShrink: 0 }}>
+                      <option value="">— Currency —</option>
+                      {CURRENCIES.map(({ code, symbol }) => <option key={code} value={code}>{symbol} {code}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -3708,7 +3689,7 @@ export default function Orders() {
                   style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                   {t('orders.cancel')}
                 </button>
-                <button type="submit" disabled={saving || !form.amount || !form.employeeId}
+                <button type="submit" disabled={saving || !form.amount || !form.employeeId || !form.currency}
                   style={{
                     padding: '9px 24px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 13,
                     background: saving || !form.amount || !form.employeeId ? 'var(--surface-2)' : 'var(--accent, #3b82f6)',
