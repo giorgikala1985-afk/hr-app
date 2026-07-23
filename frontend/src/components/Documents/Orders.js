@@ -2013,8 +2013,9 @@ function BusinessTripTab({ employees }) {
 
 // ── Advance Payment Tab ───────────────────────────────────────────────────────
 function AdvancePaymentTab({ employees, gelRate, eurRate }) {
-  const { orders, add, remove } = useLocalOrders('hr_advance_payment_orders');
+  const { orders, add, update, remove } = useLocalOrders('hr_advance_payment_orders');
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -2136,19 +2137,32 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       : form.mode === 'sameperiod' ? (parseFloat(form.samePeriodAmount) || 0)
       : manualTotal;
 
+    const createdIds = [];
     try {
-      await Promise.all(schedule.map(({ month, amount }) => {
-        if (!amount) return Promise.resolve();
+      // Editing: remove the previously created deduction units before posting
+      // the (possibly changed) new ones, so payroll never double-counts.
+      if (editId) {
+        const existing = orders.find(o => o.id === editId);
+        if (existing?.unitIds?.length) {
+          await Promise.all(existing.unitIds.map(uid =>
+            api.delete(`/employees/${existing.employeeId}/units/${uid}`).catch(() => {})
+          ));
+        }
+      }
+
+      await Promise.all(schedule.map(async ({ month, amount }) => {
+        if (!amount) return;
         const [y, m] = month.split('-').map(Number);
         const lastDay = new Date(y, m, 0).getDate();
         const date = `${month}-${String(lastDay).padStart(2, '0')}`;
-        return api.post(`/employees/${form.employeeId}/units`, {
+        const res = await api.post(`/employees/${form.employeeId}/units`, {
           type: 'Advance',
           amount: toUSD(amount, form.currency),
           date,
           currency: 'USD',
           include_in_salary: form.includeInSalary,
         });
+        if (res.data?.unit?.id) createdIds.push(res.data.unit.id);
       }));
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create salary deductions.');
@@ -2156,10 +2170,44 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       return;
     }
 
-    add({ employeeId: form.employeeId, empName, currency: form.currency, mode: form.mode, total, schedule, includeInSalary: form.includeInSalary });
+    const row = { employeeId: form.employeeId, empName, currency: form.currency, mode: form.mode, total, schedule, includeInSalary: form.includeInSalary, unitIds: createdIds };
+    if (editId) update(editId, row);
+    else add(row);
     setShowForm(false);
     setForm(EMPTY);
+    setEditId(null);
     setSaving(false);
+  };
+
+  const openEdit = (o) => {
+    setEditId(o.id);
+    setForm({
+      employeeId: o.employeeId,
+      currency: o.currency || 'GEL',
+      mode: o.mode || 'automatic',
+      totalAmount: o.mode === 'automatic' ? String(o.total ?? '') : '',
+      numMonths: o.mode !== 'sameperiod' ? (o.schedule?.length || 1) : 1,
+      startMonth: o.mode !== 'sameperiod' ? (o.schedule?.[0]?.month || thisMonth) : thisMonth,
+      manualSlots: o.mode === 'manual' && o.schedule?.length
+        ? o.schedule.map(s => ({ amount: String(s.amount ?? '') }))
+        : [{ amount: '' }],
+      samePeriodMonth: o.mode === 'sameperiod' ? (o.schedule?.[0]?.month || thisMonth) : thisMonth,
+      samePeriodAmount: o.mode === 'sameperiod' ? String(o.schedule?.[0]?.amount ?? '') : '',
+      includeInSalary: o.includeInSalary !== false,
+      immediateEffect: true,
+    });
+    setShowForm(true);
+    setError('');
+  };
+
+  const handleRemove = async (o) => {
+    if (!window.confirm('Delete this advance payment?')) return;
+    if (o.unitIds?.length) {
+      await Promise.all(o.unitIds.map(uid =>
+        api.delete(`/employees/${o.employeeId}/units/${uid}`).catch(() => {})
+      ));
+    }
+    remove(o.id);
   };
 
   const CURR_SYMBOLS = { GEL: '₾', USD: '$', EUR: '€' };
@@ -2167,7 +2215,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={() => { setForm(EMPTY); setShowForm(true); }}
+        <button onClick={() => { setEditId(null); setForm(EMPTY); setShowForm(true); }}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + Add New Order
         </button>
@@ -2175,7 +2223,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {orders.length === 0 ? (
-          <EmptyState label="Advance Payment" onAdd={() => { setForm(EMPTY); setShowForm(true); }} />
+          <EmptyState label="Advance Payment" onAdd={() => { setEditId(null); setForm(EMPTY); setShowForm(true); }} />
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
@@ -2223,10 +2271,16 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                     </div>
                   </td>
                   <td style={{ padding: '11px 14px' }}>
-                    <button onClick={() => { if (window.confirm('Delete this advance payment?')) remove(o.id); }}
-                      style={{ ...actionBtn, color: '#f87171' }} title="Delete">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                    </button>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => openEdit(o)} style={actionBtn} title="Edit"
+                        onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
+                        <EditIcon />
+                      </button>
+                      <button onClick={() => handleRemove(o)}
+                        style={{ ...actionBtn, color: '#f87171' }} title="Delete">
+                        <DeleteIcon />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -2236,7 +2290,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       </div>
 
       {showForm && (
-        <SubTabModal title="Advance Payment" onClose={() => { setShowForm(false); setError(''); }}>
+        <SubTabModal title={editId ? 'Edit Advance Payment' : 'Advance Payment'} onClose={() => { setShowForm(false); setEditId(null); setError(''); }}>
           <form onSubmit={handleSubmit}>
 
             {/* Employee */}
@@ -2419,7 +2473,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
             </div>
 
             {error && <p style={{ color: '#f87171', fontSize: 12, marginTop: 8, marginBottom: 0 }}>{error}</p>}
-            <SubTabActions onCancel={() => { setShowForm(false); setError(''); }} saving={saving} disabled={!canSave} />
+            <SubTabActions onCancel={() => { setShowForm(false); setEditId(null); setError(''); }} saving={saving} disabled={!canSave} />
           </form>
         </SubTabModal>
       )}
