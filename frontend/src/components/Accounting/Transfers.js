@@ -93,6 +93,117 @@ function TransfersList() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
+  // --- Column visibility / order / saved view (status column stays pinned first) ---
+  const CUSTOM_COL_KEYS = ['actions', 'amount', 'dueDate', 'description', 'requester', 'approval', 'approver'];
+  const ALL_COL_DEFS = {
+    status:      { label: t('tr.colStatus'), sticky: 0 },
+    actions:     { label: t('tr.colOptions') || 'Options' },
+    amount:      { label: t('tr.colAmount'), align: 'right' },
+    dueDate:     { label: t('tr.colDueDate') },
+    description: { label: t('tr.colDescription') },
+    requester:   { label: t('tr.colRequester') },
+    approval:    { label: t('tr.colApproval') },
+    approver:    { label: t('tr.colApprover') },
+  };
+  const [colOrder, setColOrder] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('transfers_col_order'));
+      if (Array.isArray(saved) && saved.length) {
+        const filtered = saved.filter(k => CUSTOM_COL_KEYS.includes(k));
+        const missing = CUSTOM_COL_KEYS.filter(k => !filtered.includes(k));
+        return [...filtered, ...missing];
+      }
+    } catch {}
+    return CUSTOM_COL_KEYS;
+  });
+  const [visibleCols, setVisibleCols] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('transfers_col_visible'));
+      if (Array.isArray(saved)) return saved.filter(k => CUSTOM_COL_KEYS.includes(k));
+    } catch {}
+    return CUSTOM_COL_KEYS;
+  });
+  const [showColMenu, setShowColMenu] = useState(false);
+  const dragColIdx = useRef(null);
+  const [dragOverColIdx, setDragOverColIdx] = useState(null);
+
+  useEffect(() => { localStorage.setItem('transfers_col_order', JSON.stringify(colOrder)); }, [colOrder]);
+  useEffect(() => { localStorage.setItem('transfers_col_visible', JSON.stringify(visibleCols)); }, [visibleCols]);
+
+  const toggleColVisible = (key) => {
+    setVisibleCols(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+  const moveCol = (from, to) => {
+    if (from === to) return;
+    setColOrder(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+  const resetCols = () => { setColOrder(CUSTOM_COL_KEYS); setVisibleCols(CUSTOM_COL_KEYS); };
+  const displayCols = ['status', ...colOrder.filter(k => visibleCols.includes(k))];
+
+  const renderCell = (key, tr, bg) => {
+    switch (key) {
+      case 'status':
+        return (
+          <td style={{ ...tdCompact, position: 'sticky', left: 0, zIndex: 1, background: bg, textAlign: 'center' }}>
+            {(() => {
+              const isUrgent = tr.status === 'urgent' || tr.status === 'super_urgent';
+              return <HugeiconsIcon icon={isUrgent ? ZapIcon : Loading01Icon} size={18} color={isUrgent ? '#f87171' : '#4ade80'} strokeWidth={2} />;
+            })()}
+          </td>
+        );
+      case 'actions':
+        return (
+          <td style={tdCompact}>
+            <button
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                if (openDropdownId === tr.id) {
+                  setOpenDropdownId(null); setDropdownPos(null);
+                } else {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+                  setOpenDropdownId(tr.id);
+                }
+              }}
+              style={{ background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, cursor: 'pointer', color: 'var(--text-3)', padding: '5px 7px', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
+            ><HugeiconsIcon icon={Menu01Icon} size={16} color="currentColor" strokeWidth={2} /></button>
+          </td>
+        );
+      case 'amount':
+        return <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>;
+      case 'dueDate':
+        return <td style={{ ...tdCompact, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>;
+      case 'description':
+        return <td style={{ ...td, color: 'var(--text-2)' }}>{tr.description}</td>;
+      case 'requester':
+        return <td style={{ ...tdCompact, color: 'var(--text-2)', fontSize: 12 }}>{tr.requester_name || '—'}</td>;
+      case 'approval':
+        return (
+          <td style={tdCompact}>
+            {(() => { const b = approvalBadge(tr.approval_status || 'pending'); return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: b.bg, color: b.color, border: `1px solid ${b.color}40`, whiteSpace: 'nowrap' }} title={tr.approver_note || ''}>
+                <HugeiconsIcon icon={b.icon} size={12} color={b.color} strokeWidth={2.2} />
+                {b.label}{tr.approval_status === 'partial' && tr.approved_amount != null ? ` (${fmt(tr.approved_amount)})` : ''}
+              </span>
+            ); })()}
+          </td>
+        );
+      case 'approver':
+        return (
+          <td style={{ ...tdCompact, fontSize: 11, color: 'var(--text-3)' }}>
+            {tr.approver_name && tr.approval_status !== 'pending' ? tr.approver_name : '—'}
+          </td>
+        );
+      default:
+        return <td style={tdCompact} />;
+    }
+  };
+
   useEffect(() => { loadTransfers(); loadAgents(); loadPermission(); }, []);
 
   const loadPermission = async () => {
@@ -289,15 +400,73 @@ function TransfersList() {
             }}>{f.label}</button>
           ))}
         </div>
-        <button
-          onClick={openNew}
-          className="btn-add"
-          disabled={!canInitiate}
-          title={canInitiate ? '' : t('tr.noPermission')}
-          style={!canInitiate ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
-        >
-          {t('tr.newTransfer')}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowColMenu(v => !v)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: showColMenu ? 'var(--surface-2)' : 'var(--surface)', color: 'var(--text-2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+              </svg>
+              Columns ({displayCols.length}/{CUSTOM_COL_KEYS.length + 1})
+            </button>
+            {showColMenu && (
+              <>
+                <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowColMenu(false)} />
+                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '8px 0', minWidth: 220 }}>
+                  <div style={{ padding: '6px 14px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-4)', borderBottom: '1px solid var(--border-3)' }}>
+                    Columns (drag to reorder)
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 14px', fontSize: 13, color: 'var(--text-4)' }}>
+                    <input type="checkbox" checked disabled style={{ width: 14, height: 14 }} />
+                    {ALL_COL_DEFS.status.label} <span style={{ fontSize: 11 }}>(pinned)</span>
+                  </div>
+                  {colOrder.map((key, idx) => (
+                    <label
+                      key={key}
+                      draggable
+                      onDragStart={() => { dragColIdx.current = idx; }}
+                      onDragOver={(e) => { e.preventDefault(); setDragOverColIdx(idx); }}
+                      onDragLeave={() => setDragOverColIdx(cur => cur === idx ? null : cur)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragColIdx.current !== null) moveCol(dragColIdx.current, idx);
+                        dragColIdx.current = null;
+                        setDragOverColIdx(null);
+                      }}
+                      onDragEnd={() => { dragColIdx.current = null; setDragOverColIdx(null); }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 9, padding: '7px 14px', cursor: 'grab', fontSize: 13, color: 'var(--text-2)',
+                        background: dragOverColIdx === idx ? 'var(--surface-2)' : 'transparent',
+                        borderTop: dragOverColIdx === idx ? '2px solid #3185FC' : '2px solid transparent',
+                      }}
+                    >
+                      <span style={{ color: 'var(--text-4)', fontSize: 12, lineHeight: 1 }}>⠿</span>
+                      <input type="checkbox" checked={visibleCols.includes(key)} onChange={() => toggleColVisible(key)} style={{ accentColor: '#3185FC', width: 14, height: 14 }} />
+                      {ALL_COL_DEFS[key].label}
+                    </label>
+                  ))}
+                  <div style={{ borderTop: '1px solid var(--border-3)', padding: '6px 14px 2px' }}>
+                    <button onClick={resetCols} style={{ background: 'none', border: 'none', color: '#3185FC', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                      Reset to default
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+          <button
+            onClick={openNew}
+            className="btn-add"
+            disabled={!canInitiate}
+            title={canInitiate ? '' : t('tr.noPermission')}
+            style={!canInitiate ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+          >
+            {t('tr.newTransfer')}
+          </button>
+        </div>
       </div>
 
       {error && <div style={errBox}>{error}</div>}
@@ -314,22 +483,13 @@ function TransfersList() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: 13, tableLayout: 'fixed', width: Object.values(colW).reduce((a, b) => a + b, 0) }}>
             <colgroup>
-              {['status','actions','amount','dueDate','description','requester','approval','approver'].map(k => (
+              {displayCols.map(k => (
                 <col key={k} style={{ width: colW[k] }} />
               ))}
             </colgroup>
             <thead>
               <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                {[
-                  { key: 'status',      label: t('tr.colStatus'), sticky: 0 },
-                  { key: 'actions',     label: t('tr.colOptions') || 'Options' },
-                  { key: 'amount',      label: t('tr.colAmount'), align: 'right' },
-                  { key: 'dueDate',     label: t('tr.colDueDate') },
-                  { key: 'description', label: t('tr.colDescription') },
-                  { key: 'requester',   label: t('tr.colRequester') },
-                  { key: 'approval',    label: t('tr.colApproval') },
-                  { key: 'approver',    label: t('tr.colApprover') },
-                ].map(col => (
+                {displayCols.map(k => ({ key: k, ...ALL_COL_DEFS[k] })).map(col => (
                   <th key={col.key} style={{
                     ...th,
                     position: col.sticky != null ? 'sticky' : 'relative',
@@ -353,46 +513,16 @@ function TransfersList() {
               </tr>
             </thead>
             <tbody>
-              {filteredTransfers.map((tr, i) => (
-                <tr key={tr.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  <td style={{ ...tdCompact, position: 'sticky', left: 0, zIndex: 1, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)', textAlign: 'center' }}>
-                    {(() => {
-                      const isUrgent = tr.status === 'urgent' || tr.status === 'super_urgent';
-                      return <HugeiconsIcon icon={isUrgent ? ZapIcon : Loading01Icon} size={18} color={isUrgent ? '#f87171' : '#4ade80'} strokeWidth={2} />;
-                    })()}
-                  </td>
-                  <td style={tdCompact}>
-                    <button
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        if (openDropdownId === tr.id) {
-                          setOpenDropdownId(null); setDropdownPos(null);
-                        } else {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setDropdownPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
-                          setOpenDropdownId(tr.id);
-                        }
-                      }}
-                      style={{ background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, cursor: 'pointer', color: 'var(--text-3)', padding: '5px 7px', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
-                    ><HugeiconsIcon icon={Menu01Icon} size={16} color="currentColor" strokeWidth={2} /></button>
-                  </td>
-                  <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>
-                  <td style={{ ...tdCompact, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>
-                  <td style={{ ...td, color: 'var(--text-2)' }}>{tr.description}</td>
-                  <td style={{ ...tdCompact, color: 'var(--text-2)', fontSize: 12 }}>{tr.requester_name || '—'}</td>
-                  <td style={tdCompact}>
-                    {(() => { const b = approvalBadge(tr.approval_status || 'pending'); return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: b.bg, color: b.color, border: `1px solid ${b.color}40`, whiteSpace: 'nowrap' }} title={tr.approver_note || ''}>
-                        <HugeiconsIcon icon={b.icon} size={12} color={b.color} strokeWidth={2.2} />
-                        {b.label}{tr.approval_status === 'partial' && tr.approved_amount != null ? ` (${fmt(tr.approved_amount)})` : ''}
-                      </span>
-                    ); })()}
-                  </td>
-                  <td style={{ ...tdCompact, fontSize: 11, color: 'var(--text-3)' }}>
-                    {tr.approver_name && tr.approval_status !== 'pending' ? tr.approver_name : '—'}
-                  </td>
-                </tr>
-              ))}
+              {filteredTransfers.map((tr, i) => {
+                const bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)';
+                return (
+                  <tr key={tr.id} style={{ borderBottom: '1px solid var(--border-2)', background: bg }}>
+                    {displayCols.map(key => (
+                      <React.Fragment key={key}>{renderCell(key, tr, bg)}</React.Fragment>
+                    ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
