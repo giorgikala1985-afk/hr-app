@@ -335,7 +335,7 @@ function PromotionTab({ employees }) {
             <tbody>
               {orders.map((o, idx) => (
                 <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.oldPosition || '—'}</td>
                   <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{o.newPosition}</td>
@@ -508,7 +508,7 @@ function HiringTab() {
             <tbody>
               {orders.map(o => (
                 <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.firstName} {o.lastName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.personalId || '—'}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.position}</td>
@@ -1067,7 +1067,7 @@ function HiringAgreement({ orderId, order }) {
     doc.rect(0, 0, pageW, 14, 'F');
     doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
     doc.text('EMPLOYMENT AGREEMENT', margin, 9.5);
-    doc.text(new Date().toLocaleDateString('en-GB'), pageW - margin, 9.5, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), pageW - margin, 9.5, { align: 'right' });
 
     doc.setTextColor(15, 23, 42); doc.setFontSize(20);
     doc.text(ag.title || 'Employment Agreement', pageW / 2, y + 10, { align: 'center' });
@@ -1104,8 +1104,8 @@ function HiringAgreement({ orderId, order }) {
     y += 3;
 
     section('TERMS & CONDITIONS');
-    row('Start Date', ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB') : '—');
-    row('End Date', ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB') : 'Open-ended');
+    row('Start Date', ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+    row('End Date', ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Open-ended');
     row('Amount', ag.amount ? `${Number(ag.amount).toLocaleString()} ${ag.currency}` : '—');
     y += 3;
 
@@ -1138,7 +1138,7 @@ function HiringAgreement({ orderId, order }) {
 
     doc.setFillColor(37, 99, 235); doc.rect(0, 282, pageW, 15, 'F');
     doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(255, 255, 255);
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-GB')}  |  Agreement ID: ${ag.id}`, pageW / 2, 290, { align: 'center' });
+    doc.text(`Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}  |  Agreement ID: ${ag.id}`, pageW / 2, 290, { align: 'center' });
     doc.save(`${(ag.title || 'agreement').replace(/\s+/g, '-')}.pdf`);
   };
 
@@ -1152,8 +1152,8 @@ function HiringAgreement({ orderId, order }) {
         title: ag.title,
         content: {
           job_title: ag.type,
-          start_date: ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB') : '',
-          end_date: ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB') : '',
+          start_date: ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+          end_date: ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
           salary: ag.amount,
           currency: ag.currency,
           notes: ag.notes,
@@ -1256,8 +1256,8 @@ function HiringAgreement({ orderId, order }) {
                   <div style={{ fontSize: 12, color: 'var(--text-3)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                     {ag.party_name && <span>Party: {ag.party_name}</span>}
                     {ag.amount && <span>Amount: {ag.amount} {ag.currency}</span>}
-                    {ag.start_date && <span>From: {new Date(ag.start_date).toLocaleDateString('en-GB')}</span>}
-                    {ag.end_date && <span>To: {new Date(ag.end_date).toLocaleDateString('en-GB')}</span>}
+                    {ag.start_date && <span>From: {new Date(ag.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
+                    {ag.end_date && <span>To: {new Date(ag.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
                   </div>
                   {ag.notes && <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-4)' }}>{ag.notes}</p>}
                 </div>
@@ -1411,7 +1411,7 @@ function FiringTab({ employees }) {
             <tbody>
               {orders.map(o => (
                 <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.position || '—'}</td>
                   <td style={{ padding: '11px 14px', color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.terminationDate}</td>
@@ -2411,7 +2411,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                 <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
@@ -2841,7 +2841,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
                 <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.month}</td>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, maxWidth: 320 }}>
@@ -3012,7 +3012,7 @@ function HandoverTab({ employees }) {
             <tbody>
               {orders.map(o => (
                 <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.fromName || getName(o.fromEmployeeId)}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: '#3b82f6', whiteSpace: 'nowrap' }}>{o.toName || getName(o.toEmployeeId)}</td>
                   <td style={{ padding: '11px 14px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.handoverDate}</td>

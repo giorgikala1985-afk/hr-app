@@ -557,7 +557,7 @@ function SalaryPayments() {
                         {h.status}
                       </span>
                     </td>
-                    <td style={{ ...td, color: 'var(--text-3)', fontSize: 12 }}>{new Date(h.created_at).toLocaleDateString()}</td>
+                    <td style={{ ...td, color: 'var(--text-3)', fontSize: 12 }}>{new Date(h.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   </tr>
                 ))}
               </tbody>

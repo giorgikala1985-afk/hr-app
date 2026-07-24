@@ -462,8 +462,8 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
               <div className="docs-card-info">
                 <div className="docs-card-title">{doc.title}</div>
                 <div className="docs-card-meta">
-                  <span>{new Date(doc.created_at).toLocaleDateString()}</span>
-                  {doc.signed_at && <span>Signed: {new Date(doc.signed_at).toLocaleDateString()}</span>}
+                  <span>{new Date(doc.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                  {doc.signed_at && <span>Signed: {new Date(doc.signed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
                   {doc.content?.start_date && <span>Start: {doc.content.start_date}</span>}
                 </div>
                 {doc.sign_token && (
@@ -582,7 +582,7 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
                   <span style={{ fontWeight: 700, color: '#479c73', fontSize: 15 }}>{Number(b.amount).toLocaleString()} ₾</span>
                   <span style={{ background: '#f1f5f9', borderRadius: 6, padding: '2px 8px', fontSize: 12, color: '#475569' }}>{b.reason}</span>
                   {b.date && <span style={{ color: '#64748b', fontSize: 12 }}>{b.date}</span>}
-                  <span style={{ color: '#94a3b8', fontSize: 12 }}>{new Date(b.created_at).toLocaleDateString()}</span>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>{new Date(b.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 </div>
                 {b.note && <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{b.note}</div>}
               </div>
@@ -637,7 +637,7 @@ function DocPreview({ doc }) {
         <div className="doc-section">
           <div className="doc-section-title">Signature</div>
           <div className="doc-row"><strong>Signed by:</strong> <span>{doc.signer_name}</span></div>
-          <div className="doc-row"><strong>Date:</strong> <span>{new Date(doc.signed_at).toLocaleDateString()}</span></div>
+          <div className="doc-row"><strong>Date:</strong> <span>{new Date(doc.signed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span></div>
         </div>
       )}
       <div className="doc-signatures">

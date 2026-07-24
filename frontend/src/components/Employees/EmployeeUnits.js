@@ -75,7 +75,7 @@ function EmployeeUnits({ employeeId }) {
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 
   const formatDate = (dateStr) =>
-    new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const getTypeIcon = (type) => {
     switch (type) {

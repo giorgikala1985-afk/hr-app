@@ -502,7 +502,7 @@ function TaxDeclarations() {
                       : d.status === 'submitted' ? <span style={badgeBlue}>Submitted</span>
                       : <span style={badgeYellow}>{d.status}</span>}
                   </td>
-                  <td style={{ ...td, color: 'var(--text-3)', fontSize: 12 }}>{new Date(d.created_at).toLocaleDateString()}</td>
+                  <td style={{ ...td, color: 'var(--text-3)', fontSize: 12 }}>{new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                 </tr>
               ))}
             </tbody>

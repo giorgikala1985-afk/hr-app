@@ -548,7 +548,7 @@ function Analytics() {
             {analytics.upcomingHolidays.map((holiday, i) => (
               <div key={i} className="an-holiday-card">
                 <div className="an-holiday-date">
-                  {new Date(holiday.date).toLocaleDateString()}
+                  {new Date(holiday.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                 </div>
                 <div className="an-holiday-name">{holiday.name}</div>
               </div>

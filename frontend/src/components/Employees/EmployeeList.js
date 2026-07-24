@@ -182,11 +182,7 @@ function EmployeeList() {
   };
 
   const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const updateFilter = (key, value) => {
@@ -231,13 +227,13 @@ function EmployeeList() {
       ...filteredEmployees.map(e => [
         `${e.first_name} ${e.last_name}`,
         e.personal_id,
-        e.birthdate ? new Date(e.birthdate).toLocaleDateString('en-GB') : '',
+        e.birthdate ? new Date(e.birthdate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         e.position,
         e.department,
         e.salary,
         e.account_number,
-        e.start_date ? new Date(e.start_date).toLocaleDateString('en-GB') : '',
-        e.end_date ? new Date(e.end_date).toLocaleDateString('en-GB') : '',
+        e.start_date ? new Date(e.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        e.end_date ? new Date(e.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
         e.pension ? 'Yes' : 'No',
       ]),
     ]);

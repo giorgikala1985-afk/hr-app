@@ -589,7 +589,7 @@ function AgreementTab({ employeeId, employee }) {
     doc.setFontSize(9);
     doc.setTextColor(255, 255, 255);
     doc.text('EMPLOYMENT AGREEMENT', margin, 9.5);
-    doc.text(new Date().toLocaleDateString('en-GB'), pageW - margin, 9.5, { align: 'right' });
+    doc.text(new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }), pageW - margin, 9.5, { align: 'right' });
 
     // Title
     doc.setTextColor(15, 23, 42);
@@ -645,8 +645,8 @@ function AgreementTab({ employeeId, employee }) {
     y += 3;
 
     sectionTitle('TERMS & CONDITIONS');
-    row('Start Date', ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB') : '—');
-    row('End Date', ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB') : 'Open-ended');
+    row('Start Date', ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+    row('End Date', ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Open-ended');
     row('Amount', ag.amount ? `${Number(ag.amount).toLocaleString()} ${ag.currency}` : '—');
     y += 3;
 
@@ -714,7 +714,7 @@ function AgreementTab({ employeeId, employee }) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7.5);
     doc.setTextColor(255, 255, 255);
-    doc.text(`Generated on ${new Date().toLocaleDateString('en-GB')}  |  Agreement ID: ${ag.id}`, pageW / 2, 290, { align: 'center' });
+    doc.text(`Generated on ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}  |  Agreement ID: ${ag.id}`, pageW / 2, 290, { align: 'center' });
 
     doc.save(`${(ag.title || 'agreement').replace(/\s+/g, '-')}.pdf`);
   };
@@ -732,8 +732,8 @@ function AgreementTab({ employeeId, employee }) {
         title: ag.title,
         content: {
           job_title: ag.type,
-          start_date: ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB') : '',
-          end_date: ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB') : '',
+          start_date: ag.start_date ? new Date(ag.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+          end_date: ag.end_date ? new Date(ag.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
           salary: ag.amount,
           currency: ag.currency,
           notes: ag.notes,
@@ -860,8 +860,8 @@ function AgreementTab({ employeeId, employee }) {
                   <div style={{ fontSize: 12, color: 'var(--text-3)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                     {ag.party_name && <span>Party: {ag.party_name}</span>}
                     {ag.amount && <span>Amount: {ag.amount} {ag.currency}</span>}
-                    {ag.start_date && <span>From: {new Date(ag.start_date).toLocaleDateString('en-GB')}</span>}
-                    {ag.end_date && <span>To: {new Date(ag.end_date).toLocaleDateString('en-GB')}</span>}
+                    {ag.start_date && <span>From: {new Date(ag.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
+                    {ag.end_date && <span>To: {new Date(ag.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
                   </div>
                   {ag.notes && <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--text-4)' }}>{ag.notes}</p>}
                 </div>
@@ -970,7 +970,7 @@ function PortalAccessTab({ id, pinStatus, loadPinStatus, pinInput, setPinInput, 
             : pinStatus.has_pin
               ? <>
                   <span style={{ color: '#479c73', fontWeight: 600 }}>✓ PIN active</span>
-                  {pinStatus.updated_at && <span style={{ color: '#94a3b8', marginLeft: 8 }}>Last updated {new Date(pinStatus.updated_at).toLocaleDateString('en-GB')}</span>}
+                  {pinStatus.updated_at && <span style={{ color: '#94a3b8', marginLeft: 8 }}>Last updated {new Date(pinStatus.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
                 </>
               : <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚠ No PIN set — employee cannot log in</span>
           }

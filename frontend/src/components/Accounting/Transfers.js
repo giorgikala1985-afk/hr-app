@@ -952,7 +952,7 @@ function ApprovalRequests() {
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-3)', flexWrap: 'wrap' }}>
                   <span>Requested by: <strong style={{ color: 'var(--text-2)' }}>{r.requester_name}</strong></span>
                   {r.recipient_account && <span>Account: <strong style={{ color: 'var(--text-2)', fontFamily: 'monospace' }}>{r.recipient_account}</strong></span>}
-                  <span>{new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span>{new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 </div>
                 {r.description && <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-2)' }}>{r.description}</div>}
                 {r.approval_status === 'rejected' && r.rejection_reason && (

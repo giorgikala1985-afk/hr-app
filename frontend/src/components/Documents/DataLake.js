@@ -551,7 +551,7 @@ function CustomTables() {
           />
         ) : (
           <span className={val ? 'ct-cell-value' : 'ct-cell-empty'}>
-            {col.type === 'date' && val ? new Date(val).toLocaleDateString() : (val !== undefined && val !== '' ? String(val) : '—')}
+            {col.type === 'date' && val ? new Date(val).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : (val !== undefined && val !== '' ? String(val) : '—')}
           </span>
         )}
       </td>

@@ -117,7 +117,7 @@ export default function Agreements() {
     if (!dateStr) return '—';
     const d = new Date(dateStr);
     if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
   const isExpired = (a) => a.end_date && new Date(a.end_date) < new Date() && a.status === 'active';

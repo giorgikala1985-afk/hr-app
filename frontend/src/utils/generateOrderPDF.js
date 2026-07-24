@@ -20,7 +20,7 @@ export async function generatePromotionPDF({ order, companyName, orderNumber }) 
   ensureGeorgianFont();
 
   const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB') : today;
+  const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : today;
   const orderRef = `PROM-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(orderNumber).padStart(4, '0')}`;
   const FONT = `'Noto Sans Georgian', 'Sylfaen', 'Arial Unicode MS', Arial, sans-serif`;
 

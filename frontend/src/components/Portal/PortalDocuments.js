@@ -114,7 +114,7 @@ export default function PortalDocuments() {
               <div className="portal-doc-info">
                 <div className="portal-doc-name">{doc.name}</div>
                 <div className="portal-doc-meta">
-                  {new Date(doc.created_at).toLocaleDateString('en-GB')}
+                  {new Date(doc.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                   {doc.file_size ? ` · ${formatSize(doc.file_size)}` : ''}
                 </div>
               </div>
