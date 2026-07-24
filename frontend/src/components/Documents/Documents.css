@@ -1734,6 +1734,7 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
+  overflow-y: auto;
 }
 
 .fb-modal-col-right {
