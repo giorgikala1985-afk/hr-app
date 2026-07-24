@@ -895,12 +895,18 @@ function markConfirmed(action) {
 }
 
 function OrderActionCard({ action, botColor }) {
+  const { user } = useAuth();
   const [status, setStatus] = useState(() => isConfirmed(action) ? 'done' : 'pending');
   const [errorMsg, setErrorMsg] = useState('');
 
+  // Namespaced the same way as useLocalOrders in Orders.js -- these write to
+  // the same shared localStorage keys, so they must match its per-tenant
+  // scoping or FinBot-created orders would bleed across organizations that
+  // share a browser.
   function localAdd(key, row) {
-    const existing = (() => { try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; } })();
-    localStorage.setItem(key, JSON.stringify([{ id: Date.now(), createdAt: new Date().toISOString(), ...row }, ...existing]));
+    const nsKey = `${key}_${user?.id || 'anon'}`;
+    const existing = (() => { try { return JSON.parse(localStorage.getItem(nsKey)) || []; } catch { return []; } })();
+    localStorage.setItem(nsKey, JSON.stringify([{ id: Date.now(), createdAt: new Date().toISOString(), ...row }, ...existing]));
   }
 
   const execute = async () => {

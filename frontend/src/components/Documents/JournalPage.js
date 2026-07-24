@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TYPE_META = {
   hiring:        { labelKey: 'journal.typeHiring',       color: '#3b82f6', icon: 'person-add' },
@@ -120,6 +121,7 @@ const ALL_TYPES = Object.keys(TYPE_META);
 
 export default function JournalPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -127,14 +129,19 @@ export default function JournalPage() {
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
+  // Orders' local records are namespaced per-tenant (see useLocalOrders in
+  // Orders.js) so a browser shared across multiple organizations doesn't
+  // bleed one org's hiring/firing/etc. records into another's Journal view.
+  const nsKey = useCallback((key) => `${key}_${user?.id || 'anon'}`, [user?.id]);
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const hiring   = readLocal('hr_hiring_orders').map(r => ({ ...r, _type: 'hiring' }));
-      const firing   = readLocal('hr_firing_orders').map(r => ({ ...r, _type: 'firing' }));
-      const promote  = readLocal('hr_promotion_orders').map(r => ({ ...r, _type: 'promotion' }));
-      const trips    = readLocal('hr_business_trip_orders').map(r => ({ ...r, _type: 'business_trip' }));
-      const advances = readLocal('hr_advance_payment_orders').map(r => ({ ...r, _type: 'advance' }));
+      const hiring   = readLocal(nsKey('hr_hiring_orders')).map(r => ({ ...r, _type: 'hiring' }));
+      const firing   = readLocal(nsKey('hr_firing_orders')).map(r => ({ ...r, _type: 'firing' }));
+      const promote  = readLocal(nsKey('hr_promotion_orders')).map(r => ({ ...r, _type: 'promotion' }));
+      const trips    = readLocal(nsKey('hr_business_trip_orders')).map(r => ({ ...r, _type: 'business_trip' }));
+      const advances = readLocal(nsKey('hr_advance_payment_orders')).map(r => ({ ...r, _type: 'advance' }));
 
       let adjustments = [];
       try {
@@ -149,7 +156,7 @@ export default function JournalPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [nsKey]);
 
   useEffect(() => { load(); }, [load]);
 

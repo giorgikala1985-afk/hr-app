@@ -77,11 +77,29 @@ function useOrdersPermissions() {
   return matrix.find(r => r.role === currentRights) || DEFAULT_ORDERS_MATRIX.find(r => r.role === 'Member') || {};
 }
 
-function useLocalOrders(key) {
+// Local Orders (hiring/firing/promotion/etc.) used to be stored under a
+// plain, un-namespaced localStorage key -- since localStorage is scoped per
+// browser origin, not per logged-in company, any browser used to log into
+// more than one organization would see every org's records bleed together.
+// Namespace by the current tenant's id, and one-time-migrate any of THIS
+// tenant's own records out of the old shared bucket (matched by employee id,
+// via `isOwnedByCurrentTenant`) so switching to a namespaced key doesn't
+// silently drop legitimate history while still excluding other orgs' data.
+function useLocalOrders(key, isOwnedByCurrentTenant) {
+  const { user } = useAuth();
+  const namespacedKey = `${key}_${user?.id || 'anon'}`;
+
   const [orders, setOrders] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(key)) || []; } catch { return []; }
+    try {
+      const existing = localStorage.getItem(namespacedKey);
+      if (existing !== null) return JSON.parse(existing) || [];
+      const legacy = JSON.parse(localStorage.getItem(key)) || [];
+      const owned = isOwnedByCurrentTenant ? legacy.filter(isOwnedByCurrentTenant) : [];
+      localStorage.setItem(namespacedKey, JSON.stringify(owned));
+      return owned;
+    } catch { return []; }
   });
-  const save = (next) => { setOrders(next); localStorage.setItem(key, JSON.stringify(next)); };
+  const save = (next) => { setOrders(next); localStorage.setItem(namespacedKey, JSON.stringify(next)); };
   const add = (row) => save([{ id: Date.now(), createdAt: new Date().toISOString(), ...row }, ...orders]);
   const update = (id, row) => save(orders.map(o => o.id === id ? { ...o, ...row } : o));
   const remove = (id) => save(orders.filter(o => o.id !== id));
@@ -258,7 +276,7 @@ function EmptyState({ label, onAdd }) {
 function PromotionTab({ employees }) {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { orders, add, update, remove } = useLocalOrders('hr_promotion_orders');
+  const { orders, add, update, remove } = useLocalOrders('hr_promotion_orders', o => employees.some(e => e.id === o.employeeId));
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [positions, setPositions] = useState([]);
@@ -1313,7 +1331,7 @@ const btnStyle = (color) => ({
 // ── Firing Tab ────────────────────────────────────────────────────────────────
 function FiringTab({ employees }) {
   const { t } = useLanguage();
-  const { orders: localOrders, add, update, remove } = useLocalOrders('hr_firing_orders');
+  const { orders: localOrders, add, update, remove } = useLocalOrders('hr_firing_orders', o => employees.some(e => e.id === o.employeeId));
 
   // An employee can be terminated directly on the Employees page (setting end_date)
   // without going through this tab's own form — pull those in live so every
@@ -1639,7 +1657,7 @@ function getTripCostsTotal(tripId) {
 }
 
 function BusinessTripTab({ employees }) {
-  const { orders, add, update, remove } = useLocalOrders('hr_business_trip_orders');
+  const { orders, add, update, remove } = useLocalOrders('hr_business_trip_orders', o => employees.some(e => e.id === o.employeeId));
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [modalTab, setModalTab] = useState('details');
@@ -2140,7 +2158,7 @@ function BusinessTripTab({ employees }) {
 
 // ── Advance Payment Tab ───────────────────────────────────────────────────────
 function AdvancePaymentTab({ employees, gelRate, eurRate }) {
-  const { orders, add, update, remove } = useLocalOrders('hr_advance_payment_orders');
+  const { orders, add, update, remove } = useLocalOrders('hr_advance_payment_orders', o => employees.some(e => e.id === o.employeeId));
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -2628,7 +2646,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
 
 // ── Bonus Tab (bulk upload) ─────────────────────────────────────────────────────
 function BonusTab({ employees, gelRate, eurRate }) {
-  const { orders: localOrders, add, update, remove } = useLocalOrders('hr_bonus_orders');
+  const { orders: localOrders, add, update, remove } = useLocalOrders('hr_bonus_orders', o => (o.entries || []).some(en => employees.some(e => e.id === en.employeeId)));
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -2948,7 +2966,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
 // ── Handover Tab ──────────────────────────────────────────────────────────────
 function HandoverTab({ employees }) {
   const { t } = useLanguage();
-  const { orders, add, update, remove } = useLocalOrders('hr_handover_orders');
+  const { orders, add, update, remove } = useLocalOrders('hr_handover_orders', o => employees.some(e => e.id === o.fromEmployeeId) || employees.some(e => e.id === o.toEmployeeId));
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const EMPTY = { fromEmployeeId: '', toEmployeeId: '', handoverDate: '', items: '', notes: '', immediateEffect: true };
