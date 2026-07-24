@@ -594,10 +594,10 @@ function Invoices() {
                                       <td style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{ex.payee || '—'}</td>
                                       <td style={{ fontSize: 13, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{ex.amount ? `${ex.amount} ${ex.currency || ''}` : '—'}</td>
                                       <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_number || '—'}</td>
-                                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{ex.invoice_date || '—'}</td>
+                                      <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{fmtDate(ex.invoice_date)}</td>
                                     </>
                                   )}
-                                  <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{rec.dueDate || '—'}</td>
+                                  <td style={{ fontSize: 13, color: 'var(--text-3)' }}>{fmtDate(rec.dueDate)}</td>
                                   <td style={{ textAlign: 'center' }}>
                                     <button
                                       onClick={() => toggleUrgent(rec.id)}
@@ -752,4 +752,9 @@ function Invoices() {
 
 const editInpStyle = { width: '100%', padding: '6px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box' };
 const today = () => new Date().toISOString().split('T')[0];
+const fmtDate = (d) => {
+  if (!d) return '—';
+  const parsed = new Date(d);
+  return isNaN(parsed) ? '—' : parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
 export default Invoices;
