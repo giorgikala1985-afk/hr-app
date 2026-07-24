@@ -213,7 +213,7 @@ function EmployeeRegistration() {
                     <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{emp.first_name} {emp.last_name}</td>
                     <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{emp.personal_id}</td>
                     <td style={{ ...td, color: 'var(--text-2)' }}>{emp.position || '-'}</td>
-                    <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{emp.start_date}</td>
+                    <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{emp.start_date ? new Date(emp.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td style={td}>
                       {isRegistered
                         ? <span style={badgeGreen}>Registered</span>
@@ -848,7 +848,7 @@ function EInvoices() {
                 <tr key={inv.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{inv.rs_invoice_id || '-'}</td>
                   <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.buyer_name}</td>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{inv.invoice_date}</td>
+                  <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                   <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(inv.total_amount)}</td>
                   <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#fbbf24' }}>{fmt(inv.total_vat)}</td>
                   <td style={td}>

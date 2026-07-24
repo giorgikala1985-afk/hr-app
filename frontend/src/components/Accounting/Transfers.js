@@ -178,7 +178,7 @@ function TransfersList() {
       case 'amount':
         return <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>;
       case 'dueDate':
-        return <td style={{ ...tdCompact, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>;
+        return <td style={{ ...tdCompact, color: 'var(--text-3)', fontSize: 12 }}>{tr.due_date ? new Date(tr.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>;
       case 'description':
         return <td style={{ ...td, color: 'var(--text-2)' }}>{tr.description}</td>;
       case 'requester':

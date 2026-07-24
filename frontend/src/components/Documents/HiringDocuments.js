@@ -464,7 +464,7 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
                 <div className="docs-card-meta">
                   <span>{new Date(doc.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                   {doc.signed_at && <span>Signed: {new Date(doc.signed_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
-                  {doc.content?.start_date && <span>Start: {doc.content.start_date}</span>}
+                  {doc.content?.start_date && <span>Start: {new Date(doc.content.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
                 </div>
                 {doc.sign_token && (
                   <div style={{ marginTop: 6 }}>
