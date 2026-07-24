@@ -653,11 +653,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 const rate = transferRate || gelRate || 1;
                 const rows = active.map(r => {
                   const emp = r.employee;
-                  const grossSal = calcGross(r.net_salary, emp.pension);
-                  const pensionAmt = emp.pension ? grossSal * 0.02 : 0;
                   const ins2 = getInsAmount2(emp?.personal_id, month);
                   const correctedNet = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - ins2;
-                  const amountUSD = Math.round((correctedNet - pensionAmt) * 100) / 100;
+                  const amountUSD = Math.round(correctedNet * 100) / 100;
                   const amountGEL = Math.round(amountUSD * rate * 100) / 100;
 
                   // Build description
