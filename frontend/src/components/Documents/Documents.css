@@ -1730,10 +1730,10 @@
 .fb-modal-col-left {
   flex: 1;
   min-width: 0;
-  padding: 20px 24px;
+  padding: 14px 20px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 11px;
   overflow-y: auto;
 }
 
@@ -1741,10 +1741,10 @@
   width: 280px;
   flex-shrink: 0;
   border-left: 1px solid var(--border);
-  padding: 20px 20px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
   overflow-y: auto;
 }
 
@@ -1752,13 +1752,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 16px;
+  padding: 14px 20px 10px;
   border-bottom: 1px solid var(--border);
 }
 
 .fb-modal-header h3 {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--text);
 }
@@ -1766,15 +1766,15 @@
 .fb-modal-tabs {
   display: flex;
   gap: 4px;
-  padding: 12px 24px 0;
+  padding: 6px 20px 0;
   border-bottom: 1px solid var(--border);
 }
 
 .fb-modal-tab {
   background: none;
   border: none;
-  padding: 8px 4px 12px;
-  margin-right: 20px;
+  padding: 6px 4px 9px;
+  margin-right: 18px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-3);
@@ -1810,14 +1810,14 @@
 .fb-modal-close:hover { background: var(--surface-2); }
 
 .fb-modal-body {
-  padding: 20px 24px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .fb-modal-footer {
-  padding: 16px 24px;
+  padding: 12px 20px;
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: flex-end;
@@ -1827,7 +1827,7 @@
 .fb-field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 
 .fb-field label {
@@ -1837,9 +1837,9 @@
 }
 
 .fb-input {
-  padding: 9px 12px;
+  padding: 7px 10px;
   border: 1.5px solid var(--border);
-  border-radius: 9px;
+  border-radius: 8px;
   font-size: 13px;
   color: var(--text);
   background: var(--surface-2);
@@ -1849,21 +1849,21 @@
 }
 
 .fb-input:focus { border-color: var(--accent); }
-.fb-textarea { resize: vertical; min-height: 70px; }
+.fb-textarea { resize: vertical; min-height: 52px; }
 
 .fb-icon-grid {
   display: grid;
-  grid-template-columns: repeat(6, 44px);
-  gap: 5px;
+  grid-template-columns: repeat(8, 34px);
+  gap: 4px;
 }
 
 .fb-icon-pick {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
   border: 1.5px solid var(--border);
   background: var(--surface-2);
   cursor: pointer;
