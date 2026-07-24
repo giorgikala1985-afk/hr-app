@@ -2586,12 +2586,40 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
 
 // ── Bonus Tab (bulk upload) ─────────────────────────────────────────────────────
 function BonusTab({ employees, gelRate, eurRate }) {
-  const { orders, add, update, remove } = useLocalOrders('hr_bonus_orders');
+  const { orders: localOrders, add, update, remove } = useLocalOrders('hr_bonus_orders');
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+
+  // Any bonus-type unit created elsewhere (e.g. the Adjusting tab, or via a custom
+  // bonus unit type) won't be in this tab's local batch log — pull those in live
+  // so every bonus shows here regardless of how it was created.
+  const [liveUnits, setLiveUnits] = useState([]);
+  const loadLiveUnits = async () => {
+    try {
+      const res = await api.get('/employees/units/all');
+      const units = res.data?.units || [];
+      setLiveUnits(units.filter(u => u.type === 'Bonus' || /ბონუს/i.test(u.type || '')));
+    } catch {}
+  };
+  useEffect(() => { loadLiveUnits(); }, []);
+
+  const localUnitIds = new Set(localOrders.flatMap(o => (o.entries || []).map(en => en.unitId).filter(Boolean)));
+  const liveOnlyRows = liveUnits
+    .filter(u => !localUnitIds.has(u.id))
+    .map(u => ({
+      id: `live-${u.id}`,
+      month: (u.date || '').slice(0, 7),
+      currency: 'USD',
+      purpose: u.note || '',
+      entries: [{ employeeId: u.employee_id, empName: u.employee ? `${u.employee.first_name} ${u.employee.last_name}` : '', amount: u.amount, unitId: u.id }],
+      total: parseFloat(u.amount),
+      createdAt: u.created_at,
+      _live: true,
+    }));
+  const orders = [...localOrders, ...liveOnlyRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
   const toUSD = (amount, currency) => {
     const val = parseFloat(amount);
@@ -2690,6 +2718,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     setForm(EMPTY);
     setEditId(null);
     setSaving(false);
+    loadLiveUnits();
   };
 
   const handleRemove = async (o) => {
@@ -2699,7 +2728,8 @@ function BonusTab({ employees, gelRate, eurRate }) {
         en.unitId ? api.delete(`/employees/${en.employeeId}/units/${en.unitId}`).catch(() => {}) : Promise.resolve()
       ));
     }
-    remove(o.id);
+    if (o._live) loadLiveUnits();
+    else remove(o.id);
   };
 
   const CURR_SYMBOLS = { GEL: '₾', USD: '$', EUR: '€' };
@@ -2746,10 +2776,12 @@ function BonusTab({ employees, gelRate, eurRate }) {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEdit(o)} style={actionBtn} title="Edit"
-                        onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
-                        <EditIcon />
-                      </button>
+                      {!o._live && (
+                        <button onClick={() => openEdit(o)} style={actionBtn} title="Edit"
+                          onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
+                          <EditIcon />
+                        </button>
+                      )}
                       <button onClick={() => handleRemove(o)}
                         style={{ ...actionBtn, color: '#f87171' }} title="Delete">
                         <DeleteIcon />
