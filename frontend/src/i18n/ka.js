@@ -929,6 +929,7 @@ const ka = {
   'orders.selectEmployee': 'აირჩიეთ თანამშრომელი...',
   'orders.selectPosition': 'აირჩიეთ პოზიცია...',
   'orders.selectDepartment': 'აირჩიეთ დეპარტამენტი',
+  'orders.selectCurrency': 'აირჩიეთ ვალუტა',
   'orders.cancel': 'გაუქმება',
   'orders.save': 'შენახვა',
   'orders.saving': 'შენახვა...',

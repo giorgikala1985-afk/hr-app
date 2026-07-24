@@ -413,7 +413,7 @@ function HiringTab() {
   const EMPTY = {
     firstName: '', lastName: '', personalId: '', birthdate: '',
     position: '', department: '', startDate: '', endDate: '',
-    salary: '', salaryCurrency: 'GEL', accountNumber: '', pitRate: '20',
+    salary: '', salaryCurrency: '', accountNumber: '', pitRate: '20',
     pension: false, personalEmail: '', phone: '', address: '', notes: '',
     immediateEffect: true,
   };
@@ -446,7 +446,7 @@ function HiringTab() {
       personalId: o.personalId || '', birthdate: o.birthdate || '',
       position: o.position || '', department: o.department || '',
       startDate: o.startDate || '', endDate: o.endDate || '',
-      salary: o.salary || '', salaryCurrency: o.salaryCurrency || 'GEL', accountNumber: o.accountNumber || '',
+      salary: o.salary || '', salaryCurrency: o.salaryCurrency || '', accountNumber: o.accountNumber || '',
       pitRate: o.pitRate || '20',
       pension: o.pension || false, personalEmail: o.personalEmail || '',
       phone: o.phone || '', address: o.address || '', notes: o.notes || '',
@@ -618,19 +618,19 @@ function HiringTab() {
                             placeholder="e.g. 5000.00" required
                             style={{ flex: 1, border: 'none', outline: 'none', padding: '9px 12px', fontSize: 14, background: 'var(--surface)', color: 'var(--text)', minWidth: 0 }}
                           />
-                          {['GEL', 'USD', 'EUR'].map(cur => (
-                            <button
-                              key={cur} type="button"
-                              onClick={() => setForm(p => ({ ...p, salaryCurrency: cur }))}
-                              style={{
-                                padding: '0 14px', border: 'none', borderLeft: '1px solid var(--border-2)',
-                                cursor: 'pointer', fontSize: 13, fontWeight: 700,
-                                background: form.salaryCurrency === cur ? '#3b82f6' : 'var(--surface-2)',
-                                color: form.salaryCurrency === cur ? '#fff' : 'var(--text-3)',
-                                transition: 'all 0.12s',
-                              }}
-                            >{cur}</button>
-                          ))}
+                          <select
+                            value={form.salaryCurrency}
+                            onChange={fv('salaryCurrency')}
+                            required
+                            style={{
+                              padding: '0 10px', border: 'none', borderLeft: '1px solid var(--border-2)',
+                              cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                              background: 'var(--surface-2)', color: form.salaryCurrency ? 'var(--text)' : 'var(--text-3)',
+                            }}
+                          >
+                            <option value="" disabled>{t('orders.selectCurrency')}</option>
+                            {['GEL', 'USD', 'EUR'].map(cur => <option key={cur} value={cur}>{cur}</option>)}
+                          </select>
                         </div>
                       </div>
                       <div className="form-group" style={{ gridColumn: '1 / -1' }}>
