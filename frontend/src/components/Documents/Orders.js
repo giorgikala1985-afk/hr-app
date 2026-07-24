@@ -2597,12 +2597,24 @@ function BonusTab({ employees, gelRate, eurRate }) {
   // bonus unit type) won't be in this tab's local batch log — pull those in live
   // so every bonus shows here regardless of how it was created.
   const [liveUnits, setLiveUnits] = useState([]);
+  const [liveLoadFailed, setLiveLoadFailed] = useState(false);
   const loadLiveUnits = async () => {
-    try {
-      const res = await api.get('/employees/units/all');
-      const units = res.data?.units || [];
-      setLiveUnits(units.filter(u => u.type === 'Bonus' || /ბონუს/i.test(u.type || '')));
-    } catch {}
+    setLiveLoadFailed(false);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await api.get('/employees/units/all');
+        const units = res.data?.units || [];
+        setLiveUnits(units.filter(u => u.type === 'Bonus' || /ბონუს/i.test(u.type || '')));
+        return;
+      } catch (err) {
+        if (attempt === 2) {
+          console.error('Failed to load bonus units:', err);
+          setLiveLoadFailed(true);
+        } else {
+          await new Promise(r => setTimeout(r, 800 * (attempt + 1)));
+        }
+      }
+    }
   };
   useEffect(() => { loadLiveUnits(); }, []);
 
@@ -2742,6 +2754,15 @@ function BonusTab({ employees, gelRate, eurRate }) {
           + Add New Order
         </button>
       </div>
+
+      {liveLoadFailed && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', marginBottom: 14, borderRadius: 9, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 13 }}>
+          Failed to load some bonus records — the list below may be incomplete.
+          <button onClick={loadLiveUnits} style={{ marginLeft: 'auto', background: 'none', border: '1px solid #ef4444', borderRadius: 7, color: '#ef4444', fontSize: 12, fontWeight: 600, padding: '4px 10px', cursor: 'pointer' }}>
+            Retry
+          </button>
+        </div>
+      )}
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {orders.length === 0 ? (
