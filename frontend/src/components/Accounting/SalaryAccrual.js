@@ -666,10 +666,14 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     `Rate ${rate.toFixed(4)}`,
                   ];
                   const fitpassAmt = parseFloat(r.fitpass_deduction || 0);
-                  if (fitpassAmt > 0) descParts.push(`Inc. $${fitpassAmt.toFixed(2)} Fitpass`);
+                  if (fitpassAmt > 0) descParts.push(`Excl. $${fitpassAmt.toFixed(2)} Fitpass`);
                   (r.deductions || []).forEach(d => {
                     const amt = parseFloat(d.amount || 0);
-                    if (amt > 0 && d.type) descParts.push(`Inc. $${amt.toFixed(2)} ${d.type}`);
+                    if (amt > 0 && d.type) {
+                      const ut = unitTypes.find(t => t.name === d.type);
+                      const label = ut?.direction === 'addition' ? 'Incl.' : 'Excl.';
+                      descParts.push(`${label} $${amt.toFixed(2)} ${d.type}`);
+                    }
                   });
                   const description = descParts.join(' | ');
 
