@@ -287,7 +287,7 @@ export default function Stock() {
 
       {showForm && (
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="acc-modal" onClick={e => e.stopPropagation()}>
+          <div className="acc-modal" style={{ maxWidth: 820 }} onClick={e => e.stopPropagation()}>
             <h3>{editId ? t('stock.editItem') : t('stock.newItem')}</h3>
             {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="acc-form-grid">
