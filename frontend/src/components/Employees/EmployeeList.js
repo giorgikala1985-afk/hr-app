@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { fmtExcelDate } from '../../utils/formatDate';
 import './Employees.css';
 import '../Options/Options.css';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -227,13 +228,13 @@ function EmployeeList() {
       ...filteredEmployees.map(e => [
         `${e.first_name} ${e.last_name}`,
         e.personal_id,
-        e.birthdate ? new Date(e.birthdate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        fmtExcelDate(e.birthdate),
         e.position,
         e.department,
         e.salary,
         e.account_number,
-        e.start_date ? new Date(e.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
-        e.end_date ? new Date(e.end_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '',
+        fmtExcelDate(e.start_date),
+        fmtExcelDate(e.end_date),
         e.pension ? 'Yes' : 'No',
       ]),
     ]);

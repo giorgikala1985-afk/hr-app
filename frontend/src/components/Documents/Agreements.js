@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { fmtExcelDate } from '../../utils/formatDate';
 import '../Employees/Employees.css';
 import '../Options/Options.css';
 
@@ -206,7 +207,7 @@ export default function Agreements() {
     const today = new Date().toISOString().slice(0, 10);
     const ws = XLSX.utils.aoa_to_sheet([
       ['Title', 'Party', 'Type', 'Status', 'Start', 'End', 'Amount', 'Currency', 'Notes'],
-      ...filtered.map(r => [r.title, r.party_name, r.type, r.status, r.start_date, r.end_date, r.amount, r.currency, r.notes]),
+      ...filtered.map(r => [r.title, r.party_name, r.type, r.status, fmtExcelDate(r.start_date), fmtExcelDate(r.end_date), r.amount, r.currency, r.notes]),
     ]);
     ws['!cols'] = [24, 20, 12, 12, 12, 12, 12, 10, 30].map(wch => ({ wch }));
     const wb = XLSX.utils.book_new();

@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { fmtExcelDate } from '../../utils/formatDate';
 
 const DEFAULT_WIDTHS = [110, 160, 150, 110, 220, 70];
 
@@ -219,7 +220,7 @@ function Transactions() {
   const exportToExcel = () => {
     const header = ['Date', 'Client', 'Item Type', 'Amount', 'Note'];
     const rows = filtered.map(r => [
-      r.date,
+      fmtExcelDate(r.date),
       r.client,
       r.item_type,
       parseFloat(r.amount),

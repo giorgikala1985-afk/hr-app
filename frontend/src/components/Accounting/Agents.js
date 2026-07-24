@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { fmtExcelDate } from '../../utils/formatDate';
 import '../Employees/Employees.css';
 import '../Options/Options.css';
 
@@ -189,7 +190,7 @@ function Agents() {
   const exportToExcel = () => {
     const ws = XLSX.utils.aoa_to_sheet([
       ['Name', 'Contact Name', 'Type', 'Date Added', 'Account Number', 'Address', 'Phone'],
-      ...filtered.map(r => [r.name, r.contact_name, r.type, r.add_date, r.account_number, r.address, r.phone]),
+      ...filtered.map(r => [r.name, r.contact_name, r.type, fmtExcelDate(r.add_date), r.account_number, r.address, r.phone]),
     ]);
     ws['!cols'] = [24, 18, 10, 14, 20, 30, 16].map(wch => ({ wch }));
     const wb = XLSX.utils.book_new();

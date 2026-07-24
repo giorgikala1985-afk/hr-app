@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { InboxIcon, AiMagicIcon, Loading03Icon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, FileSpreadsheetIcon } from '@hugeicons/core-free-icons';
+import { fmtExcelDate } from '../../utils/formatDate';
 
 function Invoices() {
   const { t } = useLanguage();
@@ -106,13 +107,13 @@ function Invoices() {
       'თანხა': r.extracted?.amount || '',
       'ვალუტა': r.extracted?.currency || '',
       'ინვოისის №': r.extracted?.invoice_number || '',
-      'ინვოისის თარიღი': r.extracted?.invoice_date || '',
-      'გადახდის ვადა': r.dueDate || r.extracted?.due_date || '',
+      'ინვოისის თარიღი': fmtExcelDate(r.extracted?.invoice_date),
+      'გადახდის ვადა': fmtExcelDate(r.dueDate || r.extracted?.due_date),
       'ბანკი': r.extracted?.bank_name || '',
       'ანგარიში/IBAN': r.extracted?.account_number || '',
       'SWIFT/BIC': r.extracted?.swift_bic || '',
       'აღწერა': r.extracted?.description || '',
-      'ატვირთვის თარიღი': r.uploadDate,
+      'ატვირთვის თარიღი': fmtExcelDate(r.uploadDate),
       'სასწრაფო': r.urgent ? 'დიახ' : 'არა',
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
