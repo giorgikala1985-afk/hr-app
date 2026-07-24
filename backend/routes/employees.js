@@ -1007,6 +1007,30 @@ router.get('/:id/units', async (req, res) => {
   }
 });
 
+// Reserved unit type names the app itself creates via hardcoded flows
+// (Advance Payment order, OT/overtime entries). If a tenant has never
+// explicitly registered these in Unit Types, payroll silently drops them
+// from totals (not addition, not deduction) -- so auto-register them with
+// their known correct direction the first time they're used.
+const RESERVED_UNIT_DIRECTIONS = {
+  'advance': 'deduction',
+  'ot': 'addition',
+  'overtime': 'addition',
+};
+async function ensureUnitTypeRegistered(userId, type) {
+  const direction = RESERVED_UNIT_DIRECTIONS[String(type || '').toLowerCase().trim()];
+  if (!direction) return;
+  const { data: existing } = await supabase
+    .from('unit_types')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('name', type)
+    .maybeSingle();
+  if (!existing) {
+    await supabase.from('unit_types').insert({ user_id: userId, name: type, direction }).catch(() => {});
+  }
+}
+
 // POST create unit for employee
 router.post('/:id/units', async (req, res) => {
   try {
@@ -1015,6 +1039,8 @@ router.post('/:id/units', async (req, res) => {
     if (!type || amount === undefined || !date) {
       return res.status(400).json({ error: 'Type, amount, and date are required' });
     }
+
+    await ensureUnitTypeRegistered(req.userId, type);
 
     const { data, error } = await supabase
       .from('employee_units')
