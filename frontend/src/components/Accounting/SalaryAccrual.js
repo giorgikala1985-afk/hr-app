@@ -506,12 +506,24 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
     }
   };
 
+  // Signed amount for a dynamic unit column: positive for additions, negative
+  // for deductions, so the export itself shows whether it was added or
+  // subtracted — null (truly empty cell, not "0") when the unit isn't present.
+  const signedUnitAmt = (units, ut) => {
+    const raw = unitAmt(units, ut.name);
+    if (!raw) return null;
+    return ut.direction === 'addition' ? raw : -raw;
+  };
+
   const exportToExcel = () => {
-    // Header row
+    // Header row — export every column unconditionally (ignores the on-screen
+    // "Columns" visibility toggle), plus every dynamic unit type, Gross
+    // Salary and Pension.
     const headers = [];
-    visColsMain.forEach(col => headers.push(col.label));
+    TCOLS.forEach(col => headers.push(col.label));
     dynUnitCols.forEach(ut => headers.push(ut.name));
-    if (grossSalaryCol) headers.push(grossSalaryCol.label);
+    headers.push(t('salAccrual.colGrossSalary'));
+    headers.push(t('salAccrual.colPension'));
 
     // Data rows
     const rows = active.map(r => {
@@ -522,54 +534,53 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       const grossSalary = calcGross(r.net_salary, emp.pension);
       const pensionAmt = emp.pension ? grossSalary * 0.02 : 0;
       const rowData = [];
-      visColsMain.forEach(col => {
+      TCOLS.forEach(col => {
         switch (col.key) {
           case 'date':        rowData.push(accrualDate || fmtMonth(month)); break;
-          case 'personalId':  rowData.push(emp.personal_id || ''); break;
-          case 'firstName':   rowData.push(emp.first_name); break;
-          case 'lastName':    rowData.push(emp.last_name); break;
-          case 'netSalary':   rowData.push(parseFloat(r.accrued_salary || 0)); break;
-          case 'ot':          rowData.push(otAmt(r.deductions) || ''); break;
-          case 'adjustment':  rowData.push((r.deductions || []).filter(u => unitTypes.find(t => t.name === u.type)).map(u => { const ut = unitTypes.find(t => t.name === u.type); return `${ut?.direction === 'addition' ? '+' : '-'}${u.type}`; }).join(', ')); break;
-          case 'fitpass':     rowData.push(fitpass || ''); break;
-          case 'insurance':   rowData.push(insurance || ''); break;
+          case 'personalId':  rowData.push(emp.personal_id || null); break;
+          case 'firstName':   rowData.push(emp.first_name || null); break;
+          case 'lastName':    rowData.push(emp.last_name || null); break;
+          case 'netSalary':   rowData.push(parseFloat(r.accrued_salary || 0) || null); break;
+          case 'ot':          rowData.push(otAmt(r.deductions) || null); break;
+          case 'fitpass':     rowData.push(fitpass || null); break;
+          case 'insurance':   rowData.push(insurance || null); break;
           case 'totalSum': {
             const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
-            rowData.push(c); break;
+            rowData.push(c || null); break;
           }
           case 'totalGEL': {
             const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
             const activeRate = transferRate || nbgRate || gelRate;
-            rowData.push(activeRate ? Math.round(c * activeRate * 100) / 100 : ''); break;
+            rowData.push(activeRate ? Math.round(c * activeRate * 100) / 100 || null : null); break;
           }
-          case 'pension':     rowData.push(emp.pension ? pensionAmt : ''); break;
-          default:            rowData.push('');
+          default:            rowData.push(null);
         }
       });
-      dynUnitCols.forEach(ut => rowData.push(unitAmt(r.deductions, ut.name) || ''));
-      if (grossSalaryCol) rowData.push(grossSalary);
+      dynUnitCols.forEach(ut => rowData.push(signedUnitAmt(r.deductions, ut)));
+      rowData.push(grossSalary || null);
+      rowData.push(emp.pension ? pensionAmt || null : null);
       return rowData;
     });
 
     // Totals row
     const totalsRow = [];
-    visColsMain.forEach(col => {
+    TCOLS.forEach(col => {
       switch (col.key) {
         case 'date':        totalsRow.push('TOTALS'); break;
-        case 'personalId':  totalsRow.push(''); break;
-        case 'firstName':   totalsRow.push(''); break;
-        case 'lastName':    totalsRow.push(''); break;
-        case 'netSalary':   totalsRow.push(totNetSalary); break;
-        case 'ot':          totalsRow.push(totOT || ''); break;
-        case 'fitpass':     totalsRow.push(totFitpass); break;
-        case 'insurance':   totalsRow.push(totInsurance); break;
-        case 'totalSum':    totalsRow.push(totSum); break;
-        case 'pension':     totalsRow.push(totPension); break;
-        default:            totalsRow.push('');
+        case 'netSalary':   totalsRow.push(totNetSalary || null); break;
+        case 'ot':          totalsRow.push(totOT || null); break;
+        case 'fitpass':     totalsRow.push(totFitpass || null); break;
+        case 'insurance':   totalsRow.push(totInsurance || null); break;
+        case 'totalSum':    totalsRow.push(totSum || null); break;
+        default:            totalsRow.push(null);
       }
     });
-    dynUnitCols.forEach(ut => totalsRow.push(active.reduce((s, r) => s + unitAmt(r.deductions, ut.name), 0)));
-    if (grossSalaryCol) totalsRow.push(totGross);
+    dynUnitCols.forEach(ut => {
+      const sum = active.reduce((s, r) => s + (signedUnitAmt(r.deductions, ut) || 0), 0);
+      totalsRow.push(sum || null);
+    });
+    totalsRow.push(totGross || null);
+    totalsRow.push(totPension || null);
 
     const wsData = [headers, ...rows, totalsRow];
     const ws = XLSX.utils.aoa_to_sheet(wsData);

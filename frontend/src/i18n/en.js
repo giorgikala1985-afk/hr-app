@@ -787,6 +787,8 @@ const en = {
   'salAccrual.colInsurance': 'Insurance',
   'salAccrual.colTotalSum': 'Total Sum',
   'salAccrual.colTotalGEL': 'Total GEL',
+  'salAccrual.colGrossSalary': 'Gross Salary',
+  'salAccrual.colPension': 'Pension',
   'salAccrual.columns': 'Columns',
   'salAccrual.excel': 'Excel',
   'salAccrual.workingDays': 'working days',

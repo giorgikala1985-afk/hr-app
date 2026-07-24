@@ -359,6 +359,8 @@ const ka = {
   'salAccrual.colInsurance': 'დაზღვევა',
   'salAccrual.colTotalSum': 'სულ თანხა',
   'salAccrual.colTotalGEL': 'სულ GEL',
+  'salAccrual.colGrossSalary': 'უხეში ხელფასი',
+  'salAccrual.colPension': 'საპენსიო',
   'salAccrual.columns': 'სვეტები',
   'salAccrual.excel': 'Excel',
   'salAccrual.workingDays': 'სამუშაო დღე',
