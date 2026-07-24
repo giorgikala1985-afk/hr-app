@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { CheckmarkCircleIcon, AlertCircleIcon, FireIcon, HourglassIcon, CancelCircleIcon, PieChartIcon, ClockIcon, ArchiveIcon, ZapIcon, Loading01Icon } from '@hugeicons/core-free-icons';
+import { CheckmarkCircleIcon, AlertCircleIcon, FireIcon, HourglassIcon, CancelCircleIcon, PieChartIcon, ClockIcon, ArchiveIcon, ZapIcon, Loading01Icon, Menu01Icon } from '@hugeicons/core-free-icons';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '—';
@@ -372,8 +373,8 @@ function TransfersList() {
                           setOpenDropdownId(tr.id);
                         }
                       }}
-                      style={{ background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, cursor: 'pointer', color: 'var(--text-3)', padding: '3px 8px', fontSize: 16, lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
-                    >⋯</button>
+                      style={{ background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, cursor: 'pointer', color: 'var(--text-3)', padding: '5px 7px', lineHeight: 1, display: 'inline-flex', alignItems: 'center' }}
+                    ><HugeiconsIcon icon={Menu01Icon} size={16} color="currentColor" strokeWidth={2} /></button>
                   </td>
                   <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>
                   <td style={{ ...tdCompact, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12 }}>{tr.due_date}</td>
@@ -612,7 +613,7 @@ function TransfersList() {
         const activeRow = transfers.find(t => t.id === openDropdownId);
         if (!activeRow) return null;
         const closeDD = () => { setOpenDropdownId(null); setDropdownPos(null); };
-        return (
+        return createPortal(
           <div ref={dropdownRef} style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', zIndex: 9999, minWidth: 160, overflow: 'hidden' }}>
             {activeRow.approval_status !== 'archived' && canApprove && (<>
               {activeRow.approval_status !== 'approved' && (
@@ -662,7 +663,8 @@ function TransfersList() {
                 {t('tr.delete')}
               </button>
             )}
-          </div>
+          </div>,
+          document.body
         );
       })()}
     </div>
