@@ -3069,6 +3069,12 @@ export default function Orders() {
   const [error, setError] = useState('');
   const [filterEmp, setFilterEmp] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(key); setSortDir('asc'); }
+  };
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
@@ -3250,6 +3256,22 @@ export default function Orders() {
   const totalAdditions = filteredUnits.filter(u => u.direction === 'addition').reduce((s, u) => s + parseFloat(u.amount), 0);
   const totalDeductions = filteredUnits.filter(u => u.direction === 'deduction').reduce((s, u) => s + parseFloat(u.amount), 0);
   const uniqueTypes = [...new Set(allUnits.map(u => u.type))];
+
+  const SORT_ACCESSORS = {
+    employee: u => `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.toLowerCase(),
+    type: u => (u.type || '').toLowerCase(),
+    direction: u => (u.direction || ''),
+    amount: u => parseFloat(u.amount) || 0,
+    date: u => u.date || '',
+    created: u => u.created_at || '',
+    modified: u => u.updated_at || '',
+  };
+  const sortedUnits = sortKey ? [...filteredUnits].sort((a, b) => {
+    const av = SORT_ACCESSORS[sortKey](a);
+    const bv = SORT_ACCESSORS[sortKey](b);
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sortDir === 'asc' ? cmp : -cmp;
+  }) : filteredUnits;
 
   const prevMonth = () => {
     const [y, m] = month.split('-').map(Number);
@@ -3548,15 +3570,42 @@ export default function Orders() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {[[t('orders.employee'), false], [t('orders.type'), false], [t('orders.direction'), false], [t('orders.amount'), true], [t('orders.date'), true], [t('orders.created'), true], [t('orders.modified'), true], ['', true], ['', true]].map(([h, right], i) => (
-                  <th key={i} style={{ padding: '11px 16px', textAlign: right ? 'right' : 'left', fontWeight: 600, fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap' }}>
-                    {h}
+                {[
+                  [t('orders.employee'), false, 'employee'],
+                  [t('orders.type'), false, 'type'],
+                  [t('orders.direction'), false, 'direction'],
+                  [t('orders.amount'), true, 'amount'],
+                  [t('orders.date'), true, 'date'],
+                  [t('orders.created'), true, 'created'],
+                  [t('orders.modified'), true, 'modified'],
+                  ['', true, null],
+                  ['', true, null],
+                ].map(([h, right, key], i) => (
+                  <th
+                    key={i}
+                    onClick={key ? () => toggleSort(key) : undefined}
+                    style={{
+                      padding: '11px 16px', textAlign: right ? 'right' : 'left', fontWeight: 600, fontSize: 11,
+                      color: sortKey === key ? 'var(--text)' : 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em',
+                      borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap',
+                      cursor: key ? 'pointer' : 'default', userSelect: 'none',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: right ? 'row-reverse' : 'row' }}>
+                      {h}
+                      {key && (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ opacity: sortKey === key ? 1 : 0.25, transform: sortKey === key && sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      )}
+                    </span>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filteredUnits.map((u, i) => (
+              {sortedUnits.map((u, i) => (
                 <tr key={`${u.id}-${i}`} style={{ borderBottom: '1px solid var(--border-2)', transition: 'background 0.1s', opacity: u.include_in_salary === false ? 0.6 : 1 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
