@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -530,7 +531,7 @@ function HiringTab() {
       </div>
 
       {/* Full-screen form overlay */}
-      {showForm && (
+      {showForm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg, #0f172a)', zIndex: 1000, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div className="emp-header" style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface)', marginBottom: 0 }}>
@@ -727,7 +728,8 @@ function HiringTab() {
 
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
