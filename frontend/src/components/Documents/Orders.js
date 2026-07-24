@@ -1313,7 +1313,41 @@ const btnStyle = (color) => ({
 // ── Firing Tab ────────────────────────────────────────────────────────────────
 function FiringTab({ employees }) {
   const { t } = useLanguage();
-  const { orders, add, update, remove } = useLocalOrders('hr_firing_orders');
+  const { orders: localOrders, add, update, remove } = useLocalOrders('hr_firing_orders');
+
+  // An employee can be terminated directly on the Employees page (setting end_date)
+  // without going through this tab's own form — pull those in live so every
+  // termination shows here regardless of how it was recorded.
+  const localEmpIds = new Set(localOrders.map(o => o.employeeId));
+  const liveOnlyRows = employees
+    .filter(e => e.end_date && !localEmpIds.has(e.id))
+    .map(e => ({
+      id: `live-${e.id}`,
+      employeeId: e.id,
+      empName: `${e.first_name} ${e.last_name}`,
+      position: e.position || '',
+      terminationDate: e.end_date,
+      reason: '',
+      notes: '',
+      createdAt: e.end_date,
+      _live: true,
+    }));
+  const orders = [...localOrders, ...liveOnlyRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  // Firing orders used to only ever be written to this browser's localStorage,
+  // never to the employee record itself — so they silently vanished on another
+  // device, and never affected payroll. Push any already-logged order's date
+  // onto the real employee record once, so it becomes a real, synced fact.
+  useEffect(() => {
+    localOrders.forEach(o => {
+      const emp = employees.find(e => e.id === o.employeeId);
+      if (emp && emp.end_date !== o.terminationDate) {
+        api.patch(`/employees/${o.employeeId}/end-date`, { end_date: o.terminationDate }).catch(() => {});
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const EMPTY = { employeeId: '', terminationDate: '', reason: '', notes: '', immediateEffect: true };
@@ -1332,7 +1366,13 @@ function FiringTab({ employees }) {
     const emp = employees.find(x => x.id === form.employeeId);
     const row = { ...form, empName: emp ? `${emp.first_name} ${emp.last_name}` : '', position: emp?.position || '' };
     editing ? update(editing, row) : add(row);
+    api.patch(`/employees/${form.employeeId}/end-date`, { end_date: form.terminationDate }).catch(() => {});
     close();
+  };
+
+  const handleRemove = (o) => {
+    if (!o._live) remove(o.id);
+    api.patch(`/employees/${o.employeeId}/end-date`, { end_date: null }).catch(() => {});
   };
 
   return (
@@ -1357,12 +1397,14 @@ function FiringTab({ employees }) {
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.position || '—'}</td>
                   <td style={{ padding: '11px 14px', color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.terminationDate}</td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.reason}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.reason || (o._live ? '—' : '')}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
+                      {!o._live && (
+                        <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
+                      )}
+                      <button onClick={() => handleRemove(o)} style={actionBtn} title={o._live ? 'Clear termination date' : undefined} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
                     </div>
                   </td>
                 </tr>

@@ -925,6 +925,7 @@ function OrderActionCard({ action, botColor }) {
           reason: action.reason,
           notes: action.notes || '',
         });
+        await api.patch(`/employees/${employeeId}/end-date`, { end_date: action.endDate });
       } else if (type === 'advance') {
         const startDate = new Date(action.startMonth + '-01');
         for (let i = 0; i < action.numMonths; i++) {

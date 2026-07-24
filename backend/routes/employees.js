@@ -341,6 +341,27 @@ router.put('/:id', upload.single('photo'), async (req, res) => {
   }
 });
 
+// PATCH /api/employees/:id/end-date - set or clear termination date (used by Firing orders)
+router.patch('/:id/end-date', async (req, res) => {
+  try {
+    const { end_date } = req.body;
+    const { data, error } = await supabase
+      .from('employees')
+      .update({ end_date: end_date || null, updated_at: new Date().toISOString() })
+      .eq('id', req.params.id)
+      .eq('user_id', req.userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Employee not found' });
+
+    res.json({ employee: data });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // DELETE /api/employees/:id - delete
 router.delete('/:id', async (req, res) => {
   try {
