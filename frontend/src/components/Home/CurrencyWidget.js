@@ -4,7 +4,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { ExchangeDollarIcon } from '@hugeicons/core-free-icons';
 
 const CURRENCIES = [
-  { code: 'USD', flag: '🇺🇸', color: '#16a34a' },
+  { code: 'USD', flag: '🇺🇸', color: '#479c73' },
   { code: 'EUR', flag: '🇪🇺', color: '#2563eb' },
   { code: 'GBP', flag: '🇬🇧', color: '#7c3aed' },
 ];
@@ -41,12 +41,12 @@ function CurrencyWidget() {
 
   if (error) return null;
 
-  const iconBg = theme === 'dark' ? 'rgba(255,255,255,0.08)' : '#ecfdf5';
+  const iconBg = theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(71,156,115,0.12)';
 
   return (
     <div className="home-stat-card" style={{ gap: 14 }}>
-      <div className="home-stat-icon" style={{ background: iconBg, color: '#16a34a', flexShrink: 0 }}>
-        <HugeiconsIcon icon={ExchangeDollarIcon} size={22} color="#16a34a" strokeWidth={1.8} />
+      <div className="home-stat-icon" style={{ background: iconBg, color: '#479c73', flexShrink: 0 }}>
+        <HugeiconsIcon icon={ExchangeDollarIcon} size={22} color="#479c73" strokeWidth={1.8} />
       </div>
       <div>
         {rates === null ? (

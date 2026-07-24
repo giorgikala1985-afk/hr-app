@@ -61,7 +61,7 @@ const EMPTY_FORM = {
 const STATUS_COLORS = {
   draft:     { bg: 'rgba(148,163,184,0.15)', color: '#64748b', label: 'Draft' },
   scheduled: { bg: 'rgba(234,179,8,0.12)',   color: '#b45309', label: 'Scheduled' },
-  sent:      { bg: 'rgba(22,163,74,0.12)',   color: '#16a34a', label: 'Sent' },
+  sent:      { bg: 'rgba(71,156,115,0.12)',   color: '#479c73', label: 'Sent' },
 };
 
 function ProjectInvoices({ projects }) {
@@ -213,7 +213,7 @@ function ProjectInvoices({ projects }) {
           </div>
 
           {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
-          {success && <div style={{ background: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, fontWeight: 600 }}>{success}</div>}
+          {success && <div style={{ background: 'rgba(71,156,115,0.1)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, fontWeight: 600 }}>{success}</div>}
 
           <div className="acc-table-wrapper">
             {loading ? <div className="acc-empty"><p>{t('projInv.loading')}</p></div> : invoices.length === 0 ? (
@@ -248,7 +248,7 @@ function ProjectInvoices({ projects }) {
                         <td>
                           <div className="action-btns">
                             {st !== 'sent' && (
-                              <button className="btn-icon" onClick={() => handleSendNow(inv)} disabled={sendingId === inv.id} title={t('projInv.sendNow')} style={{ color: '#16a34a' }}>
+                              <button className="btn-icon" onClick={() => handleSendNow(inv)} disabled={sendingId === inv.id} title={t('projInv.sendNow')} style={{ color: '#479c73' }}>
                                 <IconSend />
                               </button>
                             )}

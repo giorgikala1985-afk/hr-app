@@ -14,7 +14,7 @@ import {
 
 const TYPE_CONFIG = {
   transfer_submitted: { icon: ArrowDataTransferHorizontalIcon, color: '#60a5fa', bg: 'rgba(59,130,246,0.14)' },
-  transfer_approved:  { icon: CheckmarkCircleIcon,             color: '#4ade80', bg: 'rgba(22,163,74,0.14)' },
+  transfer_approved:  { icon: CheckmarkCircleIcon,             color: '#479c73', bg: 'rgba(71,156,115,0.14)' },
   transfer_rejected:  { icon: CancelCircleIcon,                color: '#f87171', bg: 'rgba(220,38,38,0.14)' },
   transfer_partial:   { icon: PieChartIcon,                    color: '#60a5fa', bg: 'rgba(59,130,246,0.14)' },
   transfer_wait:      { icon: ClockIcon,                       color: '#cbd5e1', bg: 'rgba(148,163,184,0.14)' },

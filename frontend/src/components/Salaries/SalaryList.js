@@ -455,7 +455,7 @@ function SalaryList() {
                   <th style={{ position: 'relative', width: colWidths[4], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('sal.daysWorked')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
                   <th style={{ position: 'relative', width: colWidths[5], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('sal.accruedSalary')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
                   {usedUnitTypes.map(ut => (
-                    <th key={`uth-${ut.name}`} style={{ width: 120, overflow: 'hidden', whiteSpace: 'nowrap', color: ut.direction === 'addition' ? '#16a34a' : '#e53e3e', textAlign: 'right' }}>
+                    <th key={`uth-${ut.name}`} style={{ width: 120, overflow: 'hidden', whiteSpace: 'nowrap', color: ut.direction === 'addition' ? '#479c73' : '#e53e3e', textAlign: 'right' }}>
                       {ut.name}
                     </th>
                   ))}
@@ -533,7 +533,7 @@ function SalaryList() {
                         {usedUnitTypes.map(ut => {
                           const total = getUnitTotal(item, ut.name);
                           return (
-                            <td key={`utd-${ut.name}`} className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', textAlign: 'right', color: total === 0 ? '#9ca3af' : ut.direction === 'addition' ? '#16a34a' : '#e53e3e' }}>
+                            <td key={`utd-${ut.name}`} className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', textAlign: 'right', color: total === 0 ? '#9ca3af' : ut.direction === 'addition' ? '#479c73' : '#e53e3e' }}>
                               {total === 0 ? '—' : (ut.direction === 'addition' ? '+' : '-') + formatCurrency(total)}
                             </td>
                           );
@@ -737,7 +737,7 @@ function SalaryList() {
                   {usedUnitTypes.map(ut => {
                     const total = filteredEmployees.reduce((sum, item) => sum + getUnitTotal(item, ut.name), 0);
                     return (
-                      <td key={`uft-${ut.name}`} className="salary sal-footer-total" style={{ textAlign: 'right', color: ut.direction === 'addition' ? '#16a34a' : '#e53e3e' }}>
+                      <td key={`uft-${ut.name}`} className="salary sal-footer-total" style={{ textAlign: 'right', color: ut.direction === 'addition' ? '#479c73' : '#e53e3e' }}>
                         {total === 0 ? '—' : (ut.direction === 'addition' ? '+' : '-') + formatCurrency(total)}
                       </td>
                     );

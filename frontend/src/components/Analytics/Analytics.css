@@ -166,8 +166,8 @@
 
 .an-stat--indigo::before { background: linear-gradient(90deg,#6366f1,#818cf8); }
 .an-stat--indigo::after  { background: #6366f1; }
-.an-stat--emerald::before{ background: linear-gradient(90deg,#10b981,#34d399); }
-.an-stat--emerald::after { background: #10b981; }
+.an-stat--emerald::before{ background: linear-gradient(90deg,#479c73,#479c73); }
+.an-stat--emerald::after { background: #479c73; }
 .an-stat--violet::before { background: linear-gradient(90deg,#8b5cf6,#a78bfa); }
 .an-stat--violet::after  { background: #8b5cf6; }
 .an-stat--cyan::before   { background: linear-gradient(90deg,#06b6d4,#22d3ee); }
@@ -184,7 +184,7 @@
 }
 
 .an-stat--indigo  .an-stat-icon { background: rgba(99,102,241,0.12); color: #6366f1; }
-.an-stat--emerald .an-stat-icon { background: rgba(16,185,129,0.12); color: #10b981; }
+.an-stat--emerald .an-stat-icon { background: rgba(71,156,115,0.12); color: #479c73; }
 .an-stat--violet  .an-stat-icon { background: rgba(139,92,246,0.12); color: #8b5cf6; }
 .an-stat--cyan    .an-stat-icon { background: rgba(6,182,212,0.12);  color: #06b6d4; }
 

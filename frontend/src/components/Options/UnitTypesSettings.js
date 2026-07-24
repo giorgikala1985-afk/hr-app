@@ -61,7 +61,7 @@ function UnitTypesSettings() {
 
   const DirToggle = ({ value, onChange }) => (
     <div style={{ display: 'flex', background: 'var(--surface-3)', borderRadius: 8, padding: 3, gap: 2, flexShrink: 0 }}>
-      {[{ key: 'deduction', label: '− Deduct', color: '#dc2626', bg: '#fef2f2', inactivecolor: 'var(--text-4)' }, { key: 'addition', label: '+ Add', color: '#16a34a', bg: '#f0fdf4', inactiveColor: '#86efac' }].map(opt => (
+      {[{ key: 'deduction', label: '− Deduct', color: '#dc2626', bg: '#fef2f2', inactivecolor: 'var(--text-4)' }, { key: 'addition', label: '+ Add', color: '#479c73', bg: '#f0fdf4', inactiveColor: 'rgba(71,156,115,0.3)' }].map(opt => (
         <button key={opt.key} type="button" onClick={() => onChange(opt.key)} style={{
           padding: '5px 12px', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
           background: value === opt.key ? opt.bg : 'transparent',
@@ -106,7 +106,7 @@ function UnitTypesSettings() {
         <button
           type="submit"
           disabled={saving || !name.trim()}
-          style={{ padding: '9px 18px', background: saving || !name.trim() ? '#e2e8f0' : '#16a34a', color: saving || !name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
+          style={{ padding: '9px 18px', background: saving || !name.trim() ? '#e2e8f0' : '#479c73', color: saving || !name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: saving || !name.trim() ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
         >
           {saving ? t('ut.adding') : `+ ${t('ut.add')}`}
         </button>
@@ -146,11 +146,11 @@ function UnitTypesSettings() {
                 </>
               ) : (
                 <>
-                  <div style={{ width: 28, height: 28, borderRadius: 7, background: ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(22,163,74,0.18)' : '#f0fdf4') : (theme === 'dark' ? 'rgba(220,38,38,0.18)' : '#fef2f2'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 14, color: ut.direction === 'addition' ? (theme === 'dark' ? '#4ade80' : '#16a34a') : (theme === 'dark' ? '#f87171' : '#dc2626') }}>
+                  <div style={{ width: 28, height: 28, borderRadius: 7, background: ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(71,156,115,0.18)' : '#f0fdf4') : (theme === 'dark' ? 'rgba(220,38,38,0.18)' : '#fef2f2'), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontWeight: 800, fontSize: 14, color: ut.direction === 'addition' ? (theme === 'dark' ? '#479c73' : '#479c73') : (theme === 'dark' ? '#f87171' : '#dc2626') }}>
                     {ut.direction === 'addition' ? '+' : '−'}
                   </div>
                   <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--text)' }}>{ut.name}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(22,163,74,0.18)' : '#f0fdf4') : (theme === 'dark' ? 'rgba(220,38,38,0.18)' : '#fef2f2'), color: ut.direction === 'addition' ? (theme === 'dark' ? '#4ade80' : '#16a34a') : (theme === 'dark' ? '#f87171' : '#dc2626'), border: `1px solid ${ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(74,222,128,0.35)' : '#bbf7d0') : (theme === 'dark' ? 'rgba(248,113,113,0.35)' : '#fca5a5')}` }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(71,156,115,0.18)' : '#f0fdf4') : (theme === 'dark' ? 'rgba(220,38,38,0.18)' : '#fef2f2'), color: ut.direction === 'addition' ? (theme === 'dark' ? '#479c73' : '#479c73') : (theme === 'dark' ? '#f87171' : '#dc2626'), border: `1px solid ${ut.direction === 'addition' ? (theme === 'dark' ? 'rgba(71,156,115,0.35)' : '#bbf7d0') : (theme === 'dark' ? 'rgba(248,113,113,0.35)' : '#fca5a5')}` }}>
                     {ut.direction === 'addition' ? 'Addition' : 'Deduction'}
                   </span>
                   <button onClick={() => startEdit(ut)} title={t('ut.edit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--border)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}

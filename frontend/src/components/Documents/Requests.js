@@ -17,13 +17,13 @@ const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
 const STATUS_CONFIG = {
   pending:     { labelKey: 'req.statusPending',     color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
   in_progress: { labelKey: 'req.statusInProgress',  color: '#3b82f6', bg: 'rgba(59,130,246,0.12)' },
-  approved:    { labelKey: 'req.statusApproved',    color: '#10b981', bg: 'rgba(16,185,129,0.12)' },
+  approved:    { labelKey: 'req.statusApproved',    color: '#479c73', bg: 'rgba(71,156,115,0.12)' },
   rejected:    { labelKey: 'req.statusRejected',    color: '#ef4444', bg: 'rgba(239,68,68,0.12)'  },
   closed:      { labelKey: 'req.statusClosed',      color: '#6b7280', bg: 'rgba(107,114,128,0.12)' },
 };
 
 const PRIORITY_CONFIG = {
-  low:    { labelKey: 'req.priorityLow',    color: '#10b981' },
+  low:    { labelKey: 'req.priorityLow',    color: '#479c73' },
   medium: { labelKey: 'req.priorityMedium', color: '#f59e0b' },
   high:   { labelKey: 'req.priorityHigh',   color: '#f97316' },
   urgent: { labelKey: 'req.priorityUrgent', color: '#ef4444' },

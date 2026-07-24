@@ -22,7 +22,7 @@ const fmtTime = (dateStr) => {
 const truncate = (str, n = 8) => str ? `${str.slice(0, n)}…` : '—';
 
 const SUB_STATUS_STYLE = {
-  active:   { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' },
+  active:   { background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0' },
   pending:  { background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' },
   expired:  { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' },
   failed:   { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' },
@@ -118,7 +118,7 @@ function BillingTab({ companyId, subscription, onUpdated }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <input type="number" min={1} value={months} onChange={e => setMonths(e.target.value)} style={{ ...inputStyle, width: 56 }} />
           <span style={{ fontSize: 13, color: 'var(--text-3)' }}>mo</span>
-          <button onClick={() => callSave({ extendMonths: months }, `Activated/extended by ${months} month(s).`)} disabled={saving} style={btn('#16a34a', '#fff')}>Activate / Extend</button>
+          <button onClick={() => callSave({ extendMonths: months }, `Activated/extended by ${months} month(s).`)} disabled={saving} style={btn('#479c73', '#fff')}>Activate / Extend</button>
         </div>
         <button onClick={genLink} disabled={saving} style={btn('#2563eb', '#fff')}>Generate payment link</button>
         {subscription.status === 'active' && (
@@ -126,7 +126,7 @@ function BillingTab({ companyId, subscription, onUpdated }) {
         )}
       </div>
 
-      {msg && <div style={{ fontSize: 13, color: msg.includes('Fail') ? '#dc2626' : '#16a34a' }}>{msg}</div>}
+      {msg && <div style={{ fontSize: 13, color: msg.includes('Fail') ? '#dc2626' : '#479c73' }}>{msg}</div>}
 
       {payLink && (
         <div style={{ padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border-2)' }}>
@@ -342,7 +342,7 @@ function AdminPage() {
       {/* Stats */}
       {stats && (
         <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
-          <StatCard label="Registered Companies" value={stats.total_companies} color="#16a34a" />
+          <StatCard label="Registered Companies" value={stats.total_companies} color="#479c73" />
           <StatCard label="Total Employees" value={stats.total_employees} color="#2563eb" />
           <StatCard label="Total Team Members" value={stats.total_app_users} color="#7c3aed" />
         </div>
@@ -418,7 +418,7 @@ function AdminPage() {
                   <td style={{ padding: '12px 14px' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5,
                       background: c.confirmed ? '#f0fdf4' : '#fff7ed',
-                      color: c.confirmed ? '#16a34a' : '#ea580c',
+                      color: c.confirmed ? '#479c73' : '#ea580c',
                       border: `1px solid ${c.confirmed ? '#bbf7d0' : '#fed7aa'}` }}>
                       {c.confirmed ? 'Active' : 'Unconfirmed'}
                     </span>
@@ -458,7 +458,7 @@ function AdminPage() {
                   <td style={{ padding: '12px 14px' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5,
                       background: c.confirmed ? '#f0fdf4' : '#fff7ed',
-                      color: c.confirmed ? '#16a34a' : '#ea580c',
+                      color: c.confirmed ? '#479c73' : '#ea580c',
                       border: `1px solid ${c.confirmed ? '#bbf7d0' : '#fed7aa'}` }}>
                       {c.confirmed ? 'Active' : 'Unconfirmed'}
                     </span>

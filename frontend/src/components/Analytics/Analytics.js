@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 
 const DL_TABLES_KEY = 'dl_custom_tables';
-const CHART_COLORS = ['#6366f1','#22c55e','#f59e0b','#ec4899','#14b8a6','#f87171','#818cf8','#34d399'];
+const CHART_COLORS = ['#6366f1','#479c73','#f59e0b','#ec4899','#14b8a6','#f87171','#818cf8','#479c73'];
 
 function DataLakeCharts() {
   const [tables, setTables] = useState([]);

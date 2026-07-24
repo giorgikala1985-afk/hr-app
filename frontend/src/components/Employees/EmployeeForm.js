@@ -762,7 +762,7 @@ function AgreementTab({ employeeId, employee }) {
   };
 
   const statusBadge = (s) => {
-    const map = { active: ['#dcfce7','#15803d'], inactive: ['#f1f5f9','#475569'], terminated: ['#fef2f2','#dc2626'] };
+    const map = { active: ['rgba(71,156,115,0.15)','#479c73'], inactive: ['#f1f5f9','#475569'], terminated: ['#fef2f2','#dc2626'] };
     const [bg, color] = map[s] || map.inactive;
     return <span style={{ background: bg, color, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>{s}</span>;
   };
@@ -783,7 +783,7 @@ function AgreementTab({ employeeId, employee }) {
       </div>
 
       {error && <div style={{ padding: '10px 14px', background: 'rgba(220,38,38,0.15)', color: '#f87171', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(220,38,38,0.3)' }}>{error}</div>}
-      {success && <div style={{ padding: '10px 14px', background: 'rgba(22,163,74,0.15)', color: '#4ade80', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(22,163,74,0.3)' }}>{success}</div>}
+      {success && <div style={{ padding: '10px 14px', background: 'rgba(71,156,115,0.15)', color: '#479c73', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(71,156,115,0.3)' }}>{success}</div>}
 
       {showForm && (
         <form onSubmit={handleCreate} style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
@@ -928,8 +928,8 @@ function AgreementTab({ employeeId, employee }) {
 
               {/* Sign URL display after sending */}
               {signUrls[ag.id] && (
-                <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(22,163,74,0.08)', borderRadius: 8, border: '1px solid rgba(22,163,74,0.25)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(71,156,115,0.08)', borderRadius: 8, border: '1px solid rgba(71,156,115,0.25)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                     <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
                   </svg>
                   <span style={{ fontSize: 11, color: 'var(--text-3)', flex: 1, wordBreak: 'break-all' }}>{signUrls[ag.id]}</span>
@@ -969,7 +969,7 @@ function PortalAccessTab({ id, pinStatus, loadPinStatus, pinInput, setPinInput, 
             ? 'Loading...'
             : pinStatus.has_pin
               ? <>
-                  <span style={{ color: '#16a34a', fontWeight: 600 }}>✓ PIN active</span>
+                  <span style={{ color: '#479c73', fontWeight: 600 }}>✓ PIN active</span>
                   {pinStatus.updated_at && <span style={{ color: '#94a3b8', marginLeft: 8 }}>Last updated {new Date(pinStatus.updated_at).toLocaleDateString('en-GB')}</span>}
                 </>
               : <span style={{ color: '#f59e0b', fontWeight: 600 }}>⚠ No PIN set — employee cannot log in</span>
@@ -1004,7 +1004,7 @@ function PortalAccessTab({ id, pinStatus, loadPinStatus, pinInput, setPinInput, 
       </div>
 
       {pinMsg.text && (
-        <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, fontSize: 13, background: pinMsg.type === 'error' ? '#fef2f2' : '#f0fdf4', color: pinMsg.type === 'error' ? '#dc2626' : '#16a34a', border: `1px solid ${pinMsg.type === 'error' ? '#fca5a5' : '#bbf7d0'}` }}>
+        <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 8, fontSize: 13, background: pinMsg.type === 'error' ? '#fef2f2' : '#f0fdf4', color: pinMsg.type === 'error' ? '#dc2626' : '#479c73', border: `1px solid ${pinMsg.type === 'error' ? '#fca5a5' : '#bbf7d0'}` }}>
           {pinMsg.text}
         </div>
       )}

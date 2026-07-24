@@ -30,7 +30,7 @@ const ALL_TABS = [
   },
   {
     key: 'doc-agreements', label: 'Agreements', labelKey: 'docs.agreements', section: 'Documents', route: '/documents?tab=agreements',
-    color: '#10b981', bg: '#ecfdf5', icon: homeIcon(Agreement01Icon),
+    color: '#479c73', bg: 'rgba(71,156,115,0.12)', icon: homeIcon(Agreement01Icon),
   },
   {
     key: 'doc-nbg', label: 'NBG Rates', labelKey: 'docs.nbgRates', section: 'Documents', route: '/documents?tab=nbg-rates',
@@ -64,7 +64,7 @@ const ALL_TABS = [
   },
   {
     key: 'acc-sales', label: 'Sales', labelKey: 'acc.sales', section: 'Accounting', route: '/finances?tab=sales',
-    color: '#10b981', bg: '#ecfdf5', icon: homeIcon(SaleTag01Icon),
+    color: '#479c73', bg: 'rgba(71,156,115,0.12)', icon: homeIcon(SaleTag01Icon),
   },
   {
     key: 'acc-invoices', label: 'Invoices', labelKey: 'acc.invoices', section: 'Accounting', route: '/finances?tab=invoices',
@@ -110,7 +110,7 @@ const ALL_TABS = [
   },
   {
     key: 'opt-tax', label: 'Tax', labelKey: 'options.tax', section: 'Options', route: '/options?tab=tax',
-    color: '#10b981', bg: '#ecfdf5', icon: homeIcon(TaxesIcon),
+    color: '#479c73', bg: 'rgba(71,156,115,0.12)', icon: homeIcon(TaxesIcon),
   },
   {
     key: 'opt-language', label: 'Language', labelKey: 'options.language', section: 'Options', route: '/options?tab=language',
@@ -138,7 +138,7 @@ const ALL_TABS = [
   },
   {
     key: 'opt-icons', label: 'Icons', labelKey: 'options.icons', section: 'Options', route: '/options?tab=icons',
-    color: '#10b981', bg: '#ecfdf5', icon: homeIcon(ColorsIcon),
+    color: '#479c73', bg: 'rgba(71,156,115,0.12)', icon: homeIcon(ColorsIcon),
   },
 
   // Employees
@@ -186,7 +186,7 @@ function HomePage() {
   const sections = [
     { key: 'Documents', label: t('nav.documents'), color: '#3b82f6' },
     { key: 'Accounting', label: t('nav.accounting'), color: '#f97316' },
-    { key: 'Options', label: t('nav.options'), color: '#10b981' },
+    { key: 'Options', label: t('nav.options'), color: '#479c73' },
     { key: 'Employees', label: t('nav.employees'), color: '#3185FC' },
     { key: 'Analytics', label: t('nav.analytics'), color: '#7c3aed' },
   ];

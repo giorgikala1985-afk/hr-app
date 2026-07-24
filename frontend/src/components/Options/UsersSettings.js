@@ -47,7 +47,7 @@ const PERMISSION_COLS = [
 const PERM_OPTIONS = ['Yes', 'No', 'Own only', 'Conditional', 'View only'];
 
 const PERM_COLORS = {
-  'Yes':         { background: '#d1fae5', color: '#065f46' },
+  'Yes':         { background: '#d1fae5', color: '#479c73' },
   'No':          { background: '#fee2e2', color: '#991b1b' },
   'Own only':    { background: '#fef9c3', color: '#854d0e' },
   'Conditional': { background: '#fef9c3', color: '#854d0e' },

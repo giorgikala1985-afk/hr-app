@@ -529,8 +529,8 @@ select.col-filter {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #ecfdf5;
-  color: #059669;
+  background: rgba(71,156,115,0.12);
+  color: #479c73;
   padding: 2px 9px 2px 7px;
   border-radius: 20px;
   font-size: 11.5px;
@@ -544,8 +544,8 @@ select.col-filter {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  background: #479c73;
+  box-shadow: 0 0 0 2px rgba(71,156,115,0.2);
 }
 
 .salary {
@@ -772,8 +772,8 @@ select.col-filter {
 }
 
 .pension-toggle-row:has(input:checked) {
-  border-color: rgba(22, 163, 74, 0.45);
-  background: rgba(22, 163, 74, 0.07);
+  border-color: rgba(71,156,115,0.45);
+  background: rgba(71,156,115,0.07);
 }
 
 .pension-toggle-row .pension-label {
@@ -830,9 +830,9 @@ select.col-filter {
 }
 
 .toggle-switch input:checked + .toggle-track {
-  background: #16a34a;
-  border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22,163,74,0.18);
+  background: #479c73;
+  border-color: #479c73;
+  box-shadow: 0 0 0 3px rgba(71,156,115,0.18);
 }
 
 .toggle-switch input:checked + .toggle-track::after {
@@ -1409,9 +1409,9 @@ select.col-filter {
   border-color: rgba(99, 102, 241, 0.28);
 }
 [data-theme="dark"] .status-active {
-  background: rgba(16, 185, 129, 0.14);
-  color: #34d399;
-  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(71,156,115,0.14);
+  color: #479c73;
+  border-color: rgba(71,156,115,0.28);
 }
 
 /* Icon buttons */

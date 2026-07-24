@@ -188,7 +188,7 @@ function AgentsImport() {
         </div>
 
         {error && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13 }}>{error}</div>}
-        {success && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{success}</div>}
+        {success && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{success}</div>}
 
         {/* ── IMPORT TAB ── */}
         {subTab === 'import' && (
@@ -259,7 +259,7 @@ function AgentsImport() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>Review & Import</div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-                    <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>{validCount} valid</span>
+                    <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#479c73', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>{validCount} valid</span>
                     {invalidCount > 0 && <span style={{ padding: '3px 12px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 12, border: '1px solid #fca5a5' }}>{invalidCount} invalid</span>}
                     <span style={{ padding: '3px 12px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-3)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border-2)' }}>{rows.length} total</span>
                   </div>
@@ -284,7 +284,7 @@ function AgentsImport() {
                             <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.phone || '—'}</td>
                             <td style={{ padding: '7px 10px' }}>
                               {row._valid
-                                ? <span style={{ padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 11, border: '1px solid #bbf7d0' }}>OK</span>
+                                ? <span style={{ padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#479c73', fontWeight: 600, fontSize: 11, border: '1px solid #bbf7d0' }}>OK</span>
                                 : <span title={row._missing?.join(', ')} style={{ padding: '2px 8px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 11, border: '1px solid #fca5a5', cursor: 'help' }}>Missing: {row._missing?.join(', ')}</span>}
                             </td>
                           </tr>

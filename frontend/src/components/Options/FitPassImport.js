@@ -6,7 +6,7 @@ import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResiz
 const FP_DEFAULT_WIDTHS = [130, 130, 130, 110, 110, 150, 80];
 const TEMPLATE_COLUMNS = ['ID', 'Name', 'Last Name', 'Amount', 'Period', 'Note'];
 
-const ACCENT = '#16a34a';
+const ACCENT = '#479c73';
 
 const INPUT_STYLE = {
   width: '100%', boxSizing: 'border-box', padding: '6px 8px',
@@ -236,7 +236,7 @@ function FitPassImport() {
                   onDragLeave={() => setDragOver(false)}
                   onDrop={handleDrop}
                   style={{
-                    border: `2px dashed ${dragOver ? ACCENT : fileName ? '#86efac' : 'var(--border-2)'}`,
+                    border: `2px dashed ${dragOver ? ACCENT : fileName ? 'rgba(71,156,115,0.3)' : 'var(--border-2)'}`,
                     borderRadius: 10, padding: '20px 24px', textAlign: 'center', cursor: 'pointer',
                     background: dragOver ? '#f0fdf4' : fileName ? '#f0fdf4' : 'var(--surface-2)',
                     transition: 'all 0.15s',

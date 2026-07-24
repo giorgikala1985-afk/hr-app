@@ -174,7 +174,7 @@ export default function Stock() {
         </div>
         <div className="acc-summary-card">
           <span className="acc-summary-label">{t('stock.totalInValue')}</span>
-          <span className="acc-summary-value" style={{ color: '#16a34a' }}>${totalInValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="acc-summary-value" style={{ color: '#479c73' }}>${totalInValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
         <div className="acc-summary-card">
           <span className="acc-summary-label">{t('stock.totalOutValue')}</span>
@@ -182,7 +182,7 @@ export default function Stock() {
         </div>
         <div className="acc-summary-card">
           <span className="acc-summary-label">{t('stock.netStockValue')}</span>
-          <span className="acc-summary-value" style={{ color: netValue >= 0 ? '#16a34a' : '#dc2626' }}>${netValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="acc-summary-value" style={{ color: netValue >= 0 ? '#479c73' : '#dc2626' }}>${netValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
         </div>
       </div>
 
@@ -195,10 +195,10 @@ export default function Stock() {
           )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={exportToExcel} disabled={filtered.length === 0} title="Download as Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 7, fontSize: 13, fontWeight: 500, color: '#16a34a', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.5 : 1, fontFamily: 'inherit' }}>
+          <button onClick={exportToExcel} disabled={filtered.length === 0} title="Download as Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 7, fontSize: 13, fontWeight: 500, color: '#479c73', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.5 : 1, fontFamily: 'inherit' }}>
             <IconExcel /> {t('stock.excel')}
           </button>
-          <button className="btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: '#16a34a', borderColor: '#16a34a' }}>
+          <button className="btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: '#479c73', borderColor: '#479c73' }}>
             <IconPlus /> {t('stock.addItem')}
           </button>
         </div>
@@ -311,7 +311,7 @@ export default function Stock() {
               </div>
 
               <div style={{ gridColumn: '1 / -1', borderTop: '1px solid #f1f5f9', paddingTop: 12, marginTop: 4 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#479c73', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   {t('stock.moveIn')}
                 </div>

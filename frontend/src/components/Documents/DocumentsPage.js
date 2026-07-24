@@ -38,7 +38,7 @@ const TAB_KEYS = [
     <HugeiconsIcon icon={Briefcase01Icon} size={16} color="#8b5cf6" strokeWidth={1.8} />
   )},
   { key: 'agreements', labelKey: 'docs.agreements', icon: (
-    <HugeiconsIcon icon={Agreement01Icon} size={16} color="#10b981" strokeWidth={1.8} />
+    <HugeiconsIcon icon={Agreement01Icon} size={16} color="#479c73" strokeWidth={1.8} />
   )},
   { key: 'devices', labelKey: 'docs.devices', icon: (
     <HugeiconsIcon icon={ComputerIcon} size={16} color="#f97316" strokeWidth={1.8} />

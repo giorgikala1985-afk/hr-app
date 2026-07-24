@@ -6,7 +6,7 @@ const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
 const CURRENCIES = [
-  { code: 'USD', symbol: '$', color: '#16a34a' },
+  { code: 'USD', symbol: '$', color: '#479c73' },
   { code: 'GEL', symbol: '₾', color: '#92400e' },
   { code: 'EUR', symbol: '€', color: '#7c3aed' },
 ];
@@ -208,7 +208,7 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
               <button
                 key={ut.id}
                 className="qum-unit-card"
-                style={{ '--ut-color': ut.direction === 'addition' ? '#10b981' : '#ef4444' }}
+                style={{ '--ut-color': ut.direction === 'addition' ? '#479c73' : '#ef4444' }}
                 onClick={() => pickUnit(ut)}
               >
                 <span className="qum-unit-name">{ut.name}</span>
@@ -227,7 +227,7 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
               </div>
             )}
             {success && (
-              <div style={{ padding: '9px 14px', background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
+              <div style={{ padding: '9px 14px', background: 'rgba(71,156,115,0.12)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)', borderRadius: 8, fontSize: 13, marginBottom: 16 }}>
                 ✓ {t('quick.saved')}
               </div>
             )}
@@ -262,7 +262,7 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
                     <option key={ut.id} value={ut.name}>{ut.name} ({ut.direction === 'addition' ? '+' : '−'})</option>
                   ))}
                 </select>
-                <div style={{ fontSize: 11, marginTop: 5, color: direction === 'addition' ? '#4ade80' : '#f87171' }}>
+                <div style={{ fontSize: 11, marginTop: 5, color: direction === 'addition' ? '#479c73' : '#f87171' }}>
                   {direction === 'addition' ? t('orders.addedToNet') : t('orders.deductedFromNet')}
                 </div>
               </div>
@@ -358,7 +358,7 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
                 onClick={() => setForm(p => ({ ...p, includeInSalary: !p.includeInSalary }))}
                 style={{
                   width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-                  background: form.includeInSalary ? '#16a34a' : 'var(--border-2)',
+                  background: form.includeInSalary ? '#479c73' : 'var(--border-2)',
                   position: 'relative', transition: 'background 0.2s', flexShrink: 0,
                 }}
               >

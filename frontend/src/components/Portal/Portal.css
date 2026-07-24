@@ -509,7 +509,7 @@
 }
 
 .portal-amount-positive {
-  color: #16a34a;
+  color: #479c73;
   font-weight: 600;
 }
 
@@ -625,8 +625,8 @@
 }
 
 .portal-badge-img {
-  background: #dcfce7;
-  color: #16a34a;
+  background: rgba(71,156,115,0.15);
+  color: #479c73;
 }
 
 /* ── Desktop override (768px+) ── */

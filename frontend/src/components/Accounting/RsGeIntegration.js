@@ -43,7 +43,7 @@ function RsGeIntegration() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {configured === true && (
             <>
-              <span style={{ fontSize: 12, color: '#4ade80', fontWeight: 600 }}>Credentials configured</span>
+              <span style={{ fontSize: 12, color: '#479c73', fontWeight: 600 }}>Credentials configured</span>
               <button onClick={testConnection} disabled={connectionStatus === 'testing'}
                 style={{ fontSize: 12, padding: '4px 12px', border: '1px solid var(--border-2)', borderRadius: 6, background: 'var(--surface-2)', color: 'var(--text-3)', cursor: 'pointer' }}>
                 {connectionStatus === 'testing' ? 'Testing...' : connectionStatus === 'connected' ? 'Connected' : 'Test Connection'}
@@ -402,7 +402,7 @@ function TaxDeclarations() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
               width: 8, height: 8, borderRadius: '50%',
-              background: portalStatus === 'logged_in' ? '#4ade80' : portalStatus === 'needs_2fa' ? '#fbbf24' : '#6b7280',
+              background: portalStatus === 'logged_in' ? '#479c73' : portalStatus === 'needs_2fa' ? '#fbbf24' : '#6b7280',
             }} />
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>
               RS.ge Portal: {portalStatus === 'logged_in' ? 'Connected' : portalStatus === 'needs_2fa' ? 'Awaiting SMS Code' : 'Not Connected'}
@@ -641,7 +641,7 @@ function Waybills() {
                     <div style={{ display: 'flex', gap: 4 }}>
                       {wb.status === 'saved' && (
                         <>
-                          <button onClick={() => handleAction(wb.id, 'activate')} style={{ ...smallBtn, color: '#4ade80' }}>Activate</button>
+                          <button onClick={() => handleAction(wb.id, 'activate')} style={{ ...smallBtn, color: '#479c73' }}>Activate</button>
                           <button onClick={() => handleAction(wb.id, 'delete')} style={{ ...smallBtn, color: '#f87171' }}>Delete</button>
                         </>
                       )}
@@ -939,7 +939,7 @@ const td = { padding: '9px 14px', verticalAlign: 'middle' };
 const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5 };
 const inpStyle = { width: '100%', padding: '8px 10px', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--surface-2)', color: 'var(--text)' };
 const errBox = { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 };
-const successBox = { background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 };
+const successBox = { background: 'rgba(71,156,115,0.12)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 };
 const primaryBtn = { padding: '8px 22px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' };
 const cancelBtn = { padding: '8px 18px', border: '1px solid var(--border-2)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-2)', cursor: 'pointer', fontSize: 14 };
 const dangerBtn = { padding: '8px 18px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' };
@@ -949,7 +949,7 @@ const modal = { background: 'var(--surface)', borderRadius: 14, padding: 28, wid
 const tableStyle = { width: '100%', borderCollapse: 'collapse', fontSize: 13 };
 const headRow = { background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' };
 const bodyRow = { borderBottom: '1px solid var(--border-2)' };
-const badgeGreen = { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, color: '#4ade80', background: 'rgba(22,163,74,0.12)' };
+const badgeGreen = { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, color: '#479c73', background: 'rgba(71,156,115,0.12)' };
 const badgeYellow = { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, color: '#fbbf24', background: 'rgba(234,179,8,0.12)' };
 const badgeRed = { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, color: '#f87171', background: 'rgba(220,38,38,0.12)' };
 const badgeBlue = { fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, color: '#60a5fa', background: 'rgba(59,130,246,0.12)' };

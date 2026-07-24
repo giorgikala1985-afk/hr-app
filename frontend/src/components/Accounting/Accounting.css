@@ -222,7 +222,7 @@
 
 .acc-summary-label { font-size: 12px; font-weight: 600; color: var(--text-4); text-transform: uppercase; letter-spacing: 0.5px; }
 .acc-summary-value { font-size: 22px; font-weight: 700; font-family: var(--font-mono); color: var(--text); }
-.acc-summary-value.green { color: #16a34a; }
+.acc-summary-value.green { color: #479c73; }
 .acc-summary-value.red { color: #e53e3e; }
 .acc-summary-value.blue { color: #2563eb; }
 
@@ -263,12 +263,12 @@
 .acc-table tbody tr:hover { background: var(--surface-2); }
 
 .acc-amount { font-family: var(--font-mono); font-weight: 600; }
-.acc-amount.income { color: #16a34a; }
+.acc-amount.income { color: #479c73; }
 .acc-amount.expense { color: #e53e3e; }
 
 /* Colored unit cells — override dark-mode !important */
 [data-theme="dark"] .acc-content table td.cell-addition,
-.acc-table td.cell-addition { color: #16a34a !important; }
+.acc-table td.cell-addition { color: #479c73 !important; }
 [data-theme="dark"] .acc-content table td.cell-deduction,
 .acc-table td.cell-deduction { color: #e53e3e !important; }
 [data-theme="dark"] .acc-content table td.cell-muted,
@@ -287,7 +287,7 @@
 .acc-status { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 .acc-status-draft { background: var(--surface-2); color: var(--text-3); }
 .acc-status-sent { background: #fff7ed; color: #ea580c; }
-.acc-status-paid { background: #f0fdf4; color: #16a34a; }
+.acc-status-paid { background: #f0fdf4; color: #479c73; }
 .acc-status-overdue { background: #fff1f2; color: #e53e3e; }
 
 /* Form modal overlay */
@@ -355,7 +355,7 @@
 }
 [data-theme="dark"] .acc-status-draft  { background: var(--surface-3); color: var(--text-3); }
 [data-theme="dark"] .acc-status-sent   { background: rgba(234,88,12,0.15); color: #fb923c; }
-[data-theme="dark"] .acc-status-paid   { background: rgba(22,163,74,0.15); color: #4ade80; }
+[data-theme="dark"] .acc-status-paid   { background: rgba(71,156,115,0.15); color: #479c73; }
 [data-theme="dark"] .acc-status-overdue{ background: rgba(220,38,38,0.15); color: #f87171; }
 
 .acc-empty { padding: 60px; text-align: center; color: var(--text-4); }

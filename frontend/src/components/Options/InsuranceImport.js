@@ -296,7 +296,7 @@ function InsuranceImport() {
 
         {/* Messages */}
         {error && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13 }}>{error}</div>}
-        {success && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{success}</div>}
+        {success && <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>{success}</div>}
 
         {/* ── IMPORT TAB ── */}
         {subTab === 'import' && (
@@ -368,7 +368,7 @@ function InsuranceImport() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', marginBottom: 4 }}>{t('insImport.step3Title')}</div>
                   <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-                    <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>{validCount} valid</span>
+                    <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#479c73', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>{validCount} valid</span>
                     {invalidCount > 0 && <span style={{ padding: '3px 12px', borderRadius: 20, background: '#fef2f2', color: '#dc2626', fontWeight: 600, fontSize: 12, border: '1px solid #fca5a5' }}>{invalidCount} invalid</span>}
                     <span style={{ padding: '3px 12px', borderRadius: 20, background: 'var(--surface-2)', color: 'var(--text-3)', fontWeight: 600, fontSize: 12, border: '1px solid var(--border-2)' }}>{rows.length} total</span>
                   </div>
@@ -423,7 +423,7 @@ function InsuranceImport() {
                               <td style={{ padding: '7px 10px', color: !row.amount1 && row.amount1 !== 0 ? '#dc2626' : 'var(--text)' }}>{row.amount1}</td>
                               <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.amount2 || '—'}</td>
                               <td style={{ padding: '7px 10px', color: !row.date ? '#dc2626' : 'var(--text)' }}>{row.date || '—'}</td>
-                              <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
+                              <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#479c73' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
                             </>)}
                           </tr>
                         ))}
@@ -613,7 +613,7 @@ function InsuranceImport() {
                                         <td style={{ padding: '8px 10px', color: 'var(--text)' }}>{rec.amount1}</td>
                                         <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.amount2 || '—'}</td>
                                         <td style={{ padding: '8px 10px', color: 'var(--text-3)' }}>{rec.date}</td>
-                                        <td style={{ padding: '8px 10px', textAlign: 'center', color: rec.pension ? '#16a34a' : 'var(--text-4)' }}>{rec.pension ? '✔' : '—'}</td>
+                                        <td style={{ padding: '8px 10px', textAlign: 'center', color: rec.pension ? '#479c73' : 'var(--text-4)' }}>{rec.pension ? '✔' : '—'}</td>
                                         <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
                                           <button onClick={() => startEdit(rec)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-4)', padding: 4, borderRadius: 6, transition: 'color 0.12s' }}
                                             onMouseEnter={e => e.currentTarget.style.color = '#0369a1'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}>

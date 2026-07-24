@@ -329,7 +329,7 @@ function Sales() {
                       if (!h) return '—';
                       const node = r.hierarchy_node_id ? h.nodes?.find(n => n.id === r.hierarchy_node_id) : null;
                       return (
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0' }}>
                           {h.name}{node ? ` · ${node.name}` : ''}
                         </span>
                       );

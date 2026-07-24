@@ -5,7 +5,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 const TYPE_META = {
   hiring:        { labelKey: 'journal.typeHiring',       color: '#3b82f6', icon: 'person-add' },
   firing:        { labelKey: 'journal.typeFiring',       color: '#ef4444', icon: 'person-remove' },
-  promotion:     { labelKey: 'journal.typePromotion',    color: '#10b981', icon: 'arrow-up' },
+  promotion:     { labelKey: 'journal.typePromotion',    color: '#479c73', icon: 'arrow-up' },
   business_trip: { labelKey: 'journal.typeBusinessTrip', color: '#f59e0b', icon: 'plane' },
   advance:       { labelKey: 'journal.typeAdvance',      color: '#8b5cf6', icon: 'cash' },
   adjustment:    { labelKey: 'journal.typeAdjustment',   color: '#06b6d4', icon: 'sliders' },

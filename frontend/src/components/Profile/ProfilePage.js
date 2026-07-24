@@ -8,7 +8,7 @@ const fmtDateTime = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2
 const money = (a, c) => (a || a === 0) ? `${Number(a).toLocaleString()} ${c || 'GEL'}` : '—';
 
 const SUB_STYLE = {
-  active:   { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0', label: 'Active' },
+  active:   { bg: '#f0fdf4', color: '#479c73', border: '#bbf7d0', label: 'Active' },
   pending:  { bg: '#fffbeb', color: '#b45309', border: '#fde68a', label: 'Pending' },
   expired:  { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', label: 'Expired' },
   failed:   { bg: '#fef2f2', color: '#dc2626', border: '#fecaca', label: 'Failed' },
@@ -144,7 +144,7 @@ function OwnerProfilePage() {
         {[
           { icon: UserGroupIcon, color: '#7c3aed', label: 'Team Members', value: counts.team_members },
           { icon: Briefcase01Icon, color: '#3b82f6', label: 'Employees', value: counts.employees },
-          { icon: MoneyBag01Icon, color: '#16a34a', label: 'Plan', value: sub ? money(sub.amount, sub.currency) : 'Free' },
+          { icon: MoneyBag01Icon, color: '#479c73', label: 'Plan', value: sub ? money(sub.amount, sub.currency) : 'Free' },
           { icon: Calendar03Icon, color: '#f59e0b', label: 'Registered', value: fmtDate(profile.created_at) },
         ].map(s => (
           <div key={s.label} style={{ ...card, padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -202,7 +202,7 @@ function OwnerProfilePage() {
             <button onClick={save} disabled={saving} style={{ padding: '9px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1, fontFamily: 'inherit' }}>
               {saving ? 'Saving…' : 'Save changes'}
             </button>
-            {msg && <span style={{ fontSize: 13, color: msg.includes('Fail') ? '#dc2626' : '#16a34a' }}>{msg}</span>}
+            {msg && <span style={{ fontSize: 13, color: msg.includes('Fail') ? '#dc2626' : '#479c73' }}>{msg}</span>}
           </div>
         )}
       </div>

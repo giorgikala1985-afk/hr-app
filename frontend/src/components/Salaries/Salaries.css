@@ -644,7 +644,7 @@
 [data-theme="dark"] .sal-unit-date { color: var(--text-4); }
 [data-theme="dark"] .sal-unit-delete { color: var(--text-4); }
 [data-theme="dark"] .sal-unit-deduction { background: rgba(229,62,62,0.12); }
-[data-theme="dark"] .sal-unit-addition { background: rgba(22,163,74,0.1); }
+[data-theme="dark"] .sal-unit-addition { background: rgba(71,156,115,0.1); }
 
 [data-theme="dark"] .sal-add-unit-form {
   background: var(--surface);

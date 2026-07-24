@@ -424,7 +424,7 @@ function SalaryPayments() {
                     </td>
                     <td style={td}>
                       {s.employee.account_number
-                        ? <span style={{ fontSize: 11, color: '#4ade80', background: 'rgba(22,163,74,0.12)', padding: '2px 8px', borderRadius: 4 }}>Ready</span>
+                        ? <span style={{ fontSize: 11, color: '#479c73', background: 'rgba(71,156,115,0.12)', padding: '2px 8px', borderRadius: 4 }}>Ready</span>
                         : <span style={{ fontSize: 11, color: '#f87171', background: 'rgba(220,38,38,0.12)', padding: '2px 8px', borderRadius: 4 }}>Missing IBAN</span>
                       }
                     </td>
@@ -468,9 +468,9 @@ function SalaryPayments() {
               </div>
 
               <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
-                <div style={statCard('#16a34a')}>
+                <div style={statCard('#479c73')}>
                   <div style={statLabel}>Paid</div>
-                  <div style={{ ...statValue, color: '#4ade80' }}>{reconciliation.counts.paid}</div>
+                  <div style={{ ...statValue, color: '#479c73' }}>{reconciliation.counts.paid}</div>
                 </div>
                 <div style={statCard('#f59e0b')}>
                   <div style={statLabel}>Amount Mismatch</div>
@@ -508,7 +508,7 @@ function SalaryPayments() {
                         </td>
                         <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-2)' }}>{fmt(s.net_salary)}</td>
                         <td style={td}>
-                          {status === 'paid' && <span style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', background: 'rgba(22,163,74,0.12)', padding: '2px 8px', borderRadius: 4 }}>Paid ✓</span>}
+                          {status === 'paid' && <span style={{ fontSize: 11, fontWeight: 700, color: '#479c73', background: 'rgba(71,156,115,0.12)', padding: '2px 8px', borderRadius: 4 }}>Paid ✓</span>}
                           {status === 'mismatch' && <span style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', background: 'rgba(234,179,8,0.12)', padding: '2px 8px', borderRadius: 4 }}>Amount Mismatch</span>}
                           {status === 'notfound' && <span style={{ fontSize: 11, fontWeight: 700, color: '#f87171', background: 'rgba(220,38,38,0.12)', padding: '2px 8px', borderRadius: 4 }}>Not Found</span>}
                         </td>
@@ -550,7 +550,7 @@ function SalaryPayments() {
                     <td style={td}>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-                        ...(h.status === 'completed' ? { color: '#4ade80', background: 'rgba(22,163,74,0.12)' }
+                        ...(h.status === 'completed' ? { color: '#479c73', background: 'rgba(71,156,115,0.12)' }
                           : h.status === 'failed' ? { color: '#f87171', background: 'rgba(220,38,38,0.12)' }
                           : { color: '#fbbf24', background: 'rgba(234,179,8,0.12)' }),
                       }}>
@@ -868,7 +868,7 @@ function BankStatements() {
           display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
           padding: '10px 16px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 10,
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14,2 14,8 20,8"/>
           </svg>
           <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', flex: 1 }}>{fileName}</span>
@@ -911,9 +911,9 @@ function BankStatements() {
             </div>
             {stats.map(s => (
               <React.Fragment key={s.ccy}>
-                <div style={statCard('#16a34a')}>
+                <div style={statCard('#479c73')}>
                   <div style={statLabel}>Income {stats.length > 1 ? `(${s.ccy})` : ''}</div>
-                  <div style={{ ...statValue, color: '#4ade80', display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <div style={{ ...statValue, color: '#479c73', display: 'flex', alignItems: 'center', gap: 4 }}>
                     <IconArrowUp />{fmt(s.income)} {s.ccy}
                   </div>
                 </div>
@@ -923,9 +923,9 @@ function BankStatements() {
                     <IconArrowDown />{fmt(s.expense)} {s.ccy}
                   </div>
                 </div>
-                <div style={statCard(s.net >= 0 ? '#16a34a' : '#dc2626')}>
+                <div style={statCard(s.net >= 0 ? '#479c73' : '#dc2626')}>
                   <div style={statLabel}>Net {stats.length > 1 ? `(${s.ccy})` : ''}</div>
-                  <div style={{ ...statValue, color: s.net >= 0 ? '#4ade80' : '#f87171' }}>
+                  <div style={{ ...statValue, color: s.net >= 0 ? '#479c73' : '#f87171' }}>
                     {s.net >= 0 ? '+' : ''}{fmt(s.net)} {s.ccy}
                   </div>
                 </div>
@@ -981,8 +981,8 @@ function BankStatements() {
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             fontFamily: 'monospace', fontWeight: 700,
-                            color: isIncome ? '#4ade80' : '#f87171',
-                            background: isIncome ? 'rgba(22,163,74,0.1)' : 'rgba(220,38,38,0.1)',
+                            color: isIncome ? '#479c73' : '#f87171',
+                            background: isIncome ? 'rgba(71,156,115,0.1)' : 'rgba(220,38,38,0.1)',
                             padding: '3px 9px', borderRadius: 6, fontSize: 12.5,
                           }}>
                             {isIncome ? <IconArrowUp /> : <IconArrowDown />}
@@ -1143,7 +1143,7 @@ const td = { padding: '9px 14px', verticalAlign: 'middle' };
 const lbl = { display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5 };
 const inpStyle = { padding: '8px 10px', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--surface-2)', color: 'var(--text)' };
 const errBox = { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 };
-const successBox = { background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 };
+const successBox = { background: 'rgba(71,156,115,0.12)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)', borderRadius: 8, padding: '10px 14px', marginBottom: 10 };
 const primaryBtn = { padding: '8px 22px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' };
 const secondaryBtn = { padding: '8px 18px', border: '1px solid var(--border-2)', borderRadius: 8, background: 'var(--surface-2)', color: 'var(--text-2)', cursor: 'pointer', fontSize: 14 };
 const statCard = (accent) => ({

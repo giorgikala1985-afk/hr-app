@@ -34,7 +34,7 @@ const CHART_TYPES = [
 
 const DATA_SOURCE_DEFS = [
   { key: 'employees',  labelKey: 'fb.ds.employees', descKey: 'fb.ds.employees.desc', color: '#3b82f6' },
-  { key: 'salaries',   labelKey: 'fb.ds.salaries',  descKey: 'fb.ds.salaries.desc',  color: '#10b981' },
+  { key: 'salaries',   labelKey: 'fb.ds.salaries',  descKey: 'fb.ds.salaries.desc',  color: '#479c73' },
   { key: 'bonuses',    labelKey: 'fb.ds.bonuses',   descKey: 'fb.ds.bonuses.desc',   color: '#f59e0b' },
   { key: 'insurance',  labelKey: 'fb.ds.insurance', descKey: 'fb.ds.insurance.desc', color: '#8b5cf6' },
   { key: 'fitpass',    labelKey: 'fb.ds.fitpass',   descKey: 'fb.ds.fitpass.desc',   color: '#ec4899' },
@@ -193,7 +193,7 @@ function BotModal({ bot, onSave, onClose }) {
     });
   };
 
-  const COLORS = ['#ec4899', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#ef4444'];
+  const COLORS = ['#ec4899', '#3b82f6', '#479c73', '#f59e0b', '#8b5cf6', '#06b6d4', '#f97316', '#ef4444'];
 
   return (
     <div className="fb-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
@@ -501,7 +501,7 @@ function MatrixTable({ chartData }) {
 // ── Chart rendering ──────────────────────────────────────────────────────────
 const CHART_COLORS = [
   { start: '#6366f1', end: '#818cf8', glow: 'rgba(99,102,241,0.3)' }, // Indigo
-  { start: '#10b981', end: '#34d399', glow: 'rgba(16,185,129,0.3)' }, // Emerald
+  { start: '#479c73', end: '#479c73', glow: 'rgba(71,156,115,0.3)' }, // Emerald
   { start: '#8b5cf6', end: '#a78bfa', glow: 'rgba(139,92,246,0.3)' }, // Violet
   { start: '#f59e0b', end: '#fbbf24', glow: 'rgba(245,158,11,0.3)' },  // Amber
   { start: '#ec4899', end: '#f472b6', glow: 'rgba(236,72,153,0.3)' }, // Pink
@@ -1028,7 +1028,7 @@ function OrderActionCard({ action, botColor }) {
           <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)' }}>Creating order...</div>
         )}
         {status === 'done' && (
-          <div style={{ marginTop: 10, fontSize: 12, color: '#10b981', fontWeight: 600 }}>
+          <div style={{ marginTop: 10, fontSize: 12, color: '#479c73', fontWeight: 600 }}>
             ✓ Order created successfully
           </div>
         )}

@@ -19,11 +19,11 @@ const urgencyStyle = (status) =>
     ? { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)' }
     : status === 'urgent'
     ? { background: 'rgba(234,88,12,0.12)', color: '#fb923c', border: '1px solid rgba(234,88,12,0.25)' }
-    : { background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)' };
+    : { background: 'rgba(71,156,115,0.12)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)' };
 
 const approvalStyle = (s) =>
   s === 'approved'
-    ? { background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)' }
+    ? { background: 'rgba(71,156,115,0.12)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)' }
     : s === 'rejected'
     ? { background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)' }
     : { background: 'rgba(234,179,8,0.12)', color: '#facc15', border: '1px solid rgba(234,179,8,0.25)' };
@@ -153,7 +153,7 @@ function TransfersList() {
           <td style={{ ...tdCompact, position: 'sticky', left: 0, zIndex: 1, background: bg, textAlign: 'center' }}>
             {(() => {
               const isUrgent = tr.status === 'urgent' || tr.status === 'super_urgent';
-              return <HugeiconsIcon icon={isUrgent ? ZapIcon : Loading01Icon} size={18} color={isUrgent ? '#f87171' : '#4ade80'} strokeWidth={2} />;
+              return <HugeiconsIcon icon={isUrgent ? ZapIcon : Loading01Icon} size={18} color={isUrgent ? '#f87171' : '#479c73'} strokeWidth={2} />;
             })()}
           </td>
         );
@@ -310,7 +310,7 @@ function TransfersList() {
   const approvalBadge = (s) => {
     const map = {
       pending:  { bg: 'rgba(234,179,8,0.12)',  color: '#facc15', label: t('tr.approvalPending'),  icon: HourglassIcon },
-      approved: { bg: 'rgba(22,163,74,0.12)',  color: '#4ade80', label: t('tr.approvalApproved'), icon: CheckmarkCircleIcon },
+      approved: { bg: 'rgba(71,156,115,0.12)',  color: '#479c73', label: t('tr.approvalApproved'), icon: CheckmarkCircleIcon },
       rejected: { bg: 'rgba(220,38,38,0.12)',  color: '#f87171', label: t('tr.approvalRejected'), icon: CancelCircleIcon },
       partial:  { bg: 'rgba(59,130,246,0.12)', color: '#60a5fa', label: t('tr.approvalPartial'),  icon: PieChartIcon },
       wait:     { bg: 'rgba(148,163,184,0.18)',color: '#cbd5e1', label: t('tr.approvalWait'),     icon: ClockIcon },
@@ -420,7 +420,7 @@ function TransfersList() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             onClick={exportApprovedToExcel}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 8, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: '#16a34a', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 8, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: '#479c73', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -626,16 +626,16 @@ function TransfersList() {
                     ✕ {invoiceReadData._error}
                   </div>
                 ) : (
-                  <div style={{ padding: '14px 16px', background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 10 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>✓ Extracted from invoice</div>
+                  <div style={{ padding: '14px 16px', background: 'rgba(71,156,115,0.08)', border: '1px solid rgba(71,156,115,0.25)', borderRadius: 10 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: '#479c73', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>✓ Extracted from invoice</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
                       {[
                         { label: 'Company', value: invoiceReadData.payee },
                         { label: 'Amount', value: invoiceReadData.amount ? `${invoiceReadData.amount} ${invoiceReadData.currency || ''}`.trim() : null },
                         { label: 'Invoice ID', value: invoiceReadData.invoice_number },
                       ].map(({ label, value }) => (
-                        <div key={label} style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 8, padding: '10px 12px' }}>
-                          <div style={{ fontSize: 10, fontWeight: 700, color: '#4ade80', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
+                        <div key={label} style={{ background: 'rgba(71,156,115,0.08)', border: '1px solid rgba(71,156,115,0.2)', borderRadius: 8, padding: '10px 12px' }}>
+                          <div style={{ fontSize: 10, fontWeight: 700, color: '#479c73', textTransform: 'uppercase', marginBottom: 4 }}>{label}</div>
                           <div style={{ fontSize: 14, fontWeight: 700, color: value ? 'var(--text)' : 'var(--text-4)' }}>{value || '—'}</div>
                         </div>
                       ))}
@@ -661,7 +661,7 @@ function TransfersList() {
               <label style={lbl}>{t('tr.status')}</label>
               <div style={{ display: 'flex', gap: 8 }}>
                 {[
-                  { value: 'normal',       icon: CheckmarkCircleIcon, color: '#4ade80' },
+                  { value: 'normal',       icon: CheckmarkCircleIcon, color: '#479c73' },
                   { value: 'urgent',       icon: AlertCircleIcon,     color: '#fb923c' },
                   { value: 'super_urgent', icon: FireIcon,            color: '#f87171' },
                 ].map(s => {
@@ -723,7 +723,7 @@ function TransfersList() {
                   {invoiceProcessing ? 'Processing...' : invoiceRaw ? 'Replace Invoice' : 'Attach Invoice'}
                 </label>
                 {invoiceProcessing && <span style={{ color: 'var(--text-3)', fontSize: 12 }}>Processing…</span>}
-                {!invoiceProcessing && invoiceRaw && <span style={{ color: '#4ade80', fontSize: 12, fontWeight: 600 }}>✓ Invoice attached</span>}
+                {!invoiceProcessing && invoiceRaw && <span style={{ color: '#479c73', fontSize: 12, fontWeight: 600 }}>✓ Invoice attached</span>}
               </div>
               {invoiceProcessError && <div style={{ color: '#f87171', fontSize: 12, marginTop: 6 }}>{invoiceProcessError}</div>}
             </div>
@@ -775,7 +775,7 @@ function TransfersList() {
             {activeRow.approval_status !== 'archived' && canApprove && (<>
               {activeRow.approval_status !== 'approved' && (
                 <button onClick={() => { handleApprove(activeRow.id); closeDD(); }} style={ddItem}>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   {t('tr.approve')}
                 </button>
               )}
@@ -941,7 +941,7 @@ function ApprovalRequests() {
           {filtered.map(r => (
             <div key={r.id} style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, padding: '16px 20px', display: 'flex', alignItems: 'flex-start', gap: 16 }}>
               {/* Status indicator */}
-              <div style={{ width: 4, borderRadius: 4, alignSelf: 'stretch', flexShrink: 0, background: r.approval_status === 'approved' ? '#22c55e' : r.approval_status === 'rejected' ? '#ef4444' : '#facc15' }} />
+              <div style={{ width: 4, borderRadius: 4, alignSelf: 'stretch', flexShrink: 0, background: r.approval_status === 'approved' ? '#479c73' : r.approval_status === 'rejected' ? '#ef4444' : '#facc15' }} />
 
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
@@ -965,9 +965,9 @@ function ApprovalRequests() {
               <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
                 {r.approval_status === 'pending' && (
                   <>
-                    <button onClick={() => handleApprove(r.id)} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'rgba(22,163,74,0.15)', color: '#4ade80', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(22,163,74,0.3)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(22,163,74,0.15)'}>
+                    <button onClick={() => handleApprove(r.id)} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'rgba(71,156,115,0.15)', color: '#479c73', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(71,156,115,0.3)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(71,156,115,0.15)'}>
                       ✓ Approve
                     </button>
                     <button onClick={() => { setRejectModal(r); setRejectReason(''); }} style={{ padding: '6px 14px', borderRadius: 7, border: 'none', background: 'rgba(220,38,38,0.12)', color: '#f87171', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}
@@ -1096,7 +1096,7 @@ const actionBtnBase = {
   width: 28, height: 28, borderRadius: 8, padding: 0, cursor: 'pointer',
   border: '1px solid transparent', transition: 'transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease',
 };
-const approveBtn = { ...actionBtnBase, background: 'rgba(22,163,74,0.14)',  color: '#4ade80', borderColor: 'rgba(22,163,74,0.35)',  boxShadow: '0 0 0 0 rgba(74,222,128,0)' };
+const approveBtn = { ...actionBtnBase, background: 'rgba(71,156,115,0.14)',  color: '#479c73', borderColor: 'rgba(71,156,115,0.35)',  boxShadow: '0 0 0 0 rgba(71,156,115,0)' };
 const rejectBtn  = { ...actionBtnBase, background: 'rgba(220,38,38,0.14)',  color: '#f87171', borderColor: 'rgba(220,38,38,0.35)' };
 const partialBtn = { ...actionBtnBase, background: 'rgba(59,130,246,0.14)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.35)' };
 const waitBtn    = { ...actionBtnBase, background: 'rgba(148,163,184,0.16)',color: '#cbd5e1', borderColor: 'rgba(148,163,184,0.30)' };

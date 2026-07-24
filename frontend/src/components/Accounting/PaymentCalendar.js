@@ -56,7 +56,7 @@ export default function PaymentCalendar() {
 
   const TYPES = {
     purchase:    { label: t('cal.purchase'),    color: '#dc2626', bg: isDark ? 'rgba(220,38,38,0.12)'   : '#fef2f2', border: isDark ? 'rgba(220,38,38,0.3)'   : '#fca5a5' },
-    sale:        { label: t('cal.sale'),        color: '#16a34a', bg: isDark ? 'rgba(22,163,74,0.1)'    : '#f0fdf4', border: isDark ? 'rgba(22,163,74,0.3)'    : '#86efac' },
+    sale:        { label: t('cal.sale'),        color: '#479c73', bg: isDark ? 'rgba(71,156,115,0.1)'    : '#f0fdf4', border: isDark ? 'rgba(71,156,115,0.3)'    : 'rgba(71,156,115,0.3)' },
     invoice:     { label: t('cal.invoice'),     color: '#2563eb', bg: isDark ? 'rgba(37,99,235,0.12)'   : '#eff6ff', border: isDark ? 'rgba(37,99,235,0.3)'    : '#93c5fd' },
     invoice_due: { label: t('cal.invoiceDue'),  color: '#d97706', bg: isDark ? 'rgba(217,119,6,0.12)'   : '#fffbeb', border: isDark ? 'rgba(217,119,6,0.3)'    : '#fcd34d' },
     transaction: { label: t('cal.transaction'), color: '#7c3aed', bg: isDark ? 'rgba(124,58,237,0.12)'  : '#f5f3ff', border: isDark ? 'rgba(124,58,237,0.3)'   : '#c4b5fd' },

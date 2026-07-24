@@ -30,7 +30,7 @@ function IconDelete() {
 const EMPTY = { name: '', client: '', owner: '', status: 'Active', budget: '', currency: 'GEL', start_date: '', end_date: '', description: '' };
 const STATUSES = ['Active', 'On Hold', 'Completed', 'Cancelled'];
 const STATUS_COLORS = {
-  Active:    { bg: 'rgba(22,163,74,0.12)',  color: '#16a34a' },
+  Active:    { bg: 'rgba(71,156,115,0.12)',  color: '#479c73' },
   'On Hold': { bg: 'rgba(234,179,8,0.12)',  color: '#b45309' },
   Completed: { bg: 'rgba(59,130,246,0.12)', color: '#1d4ed8' },
   Cancelled: { bg: 'rgba(220,38,38,0.12)',  color: '#dc2626' },

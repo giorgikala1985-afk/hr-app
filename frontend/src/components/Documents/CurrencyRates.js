@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP'];
-const CURRENCY_COLORS = { USD: '#16a34a', EUR: '#2563eb', GBP: '#7c3aed' };
+const CURRENCY_COLORS = { USD: '#479c73', EUR: '#2563eb', GBP: '#7c3aed' };
 const CURRENCY_LABELS = { USD: 'US Dollar', EUR: 'Euro', GBP: 'British Pound' };
 const FLAG = { USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧' };
 
@@ -271,7 +271,7 @@ export default function CurrencyRates() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{r.rate?.toFixed(4)}</div>
-                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: r.diff > 0 ? '#16a34a' : r.diff < 0 ? '#f87171' : 'var(--text-3)' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginTop: 2, color: r.diff > 0 ? '#479c73' : r.diff < 0 ? '#f87171' : 'var(--text-3)' }}>
                       {r.diff > 0 ? '▲' : r.diff < 0 ? '▼' : '—'} {Math.abs(r.diff)?.toFixed(4)}
                     </div>
                   </div>
@@ -343,7 +343,7 @@ export default function CurrencyRates() {
                     <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 4 }}>{FLAG[cur]} {cur} / GEL</div>
                     <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>{latest?.[cur]?.toFixed(4) ?? '—'}</div>
                     {change != null && (
-                      <div style={{ fontSize: 11, fontWeight: 600, marginTop: 3, color: change > 0.0001 ? '#16a34a' : change < -0.0001 ? '#f87171' : 'var(--text-3)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 600, marginTop: 3, color: change > 0.0001 ? '#479c73' : change < -0.0001 ? '#f87171' : 'var(--text-3)' }}>
                         {change > 0.0001 ? '▲' : change < -0.0001 ? '▼' : '—'} {Math.abs(change).toFixed(4)}
                         <span style={{ fontWeight: 400, color: 'var(--text-3)', marginLeft: 4 }}>this {period}</span>
                       </div>

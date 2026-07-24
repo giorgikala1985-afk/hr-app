@@ -76,7 +76,7 @@ input, select, textarea, button {
 
 /* Green "Add / Create" action button — used globally */
 .btn-add {
-  background: #16a34a;
+  background: #479c73;
   color: white;
   border: none;
   padding: 8px 18px;
@@ -91,6 +91,6 @@ input, select, textarea, button {
   gap: 6px;
   box-sizing: border-box;
 }
-.btn-add:hover:not(:disabled) { background: #15803d; }
+.btn-add:hover:not(:disabled) { background: #479c73; }
 .btn-add:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-add.btn-sm { padding: 8px 16px; font-size: 13px; }

@@ -13,7 +13,7 @@ const TYPE_STYLE = {
   Asset:     { background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' },
   Liability: { background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5' },
   Equity:    { background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' },
-  Revenue:   { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' },
+  Revenue:   { background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0' },
   Expense:   { background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa' },
 };
 
@@ -435,7 +435,7 @@ function Bookkeeping() {
                 <thead>
                   <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
                     <th style={th}>{t('bk.colDate')}</th>
-                    <th style={{ ...th, color: '#16a34a' }}>{t('bk.colDebit')}</th>
+                    <th style={{ ...th, color: '#479c73' }}>{t('bk.colDebit')}</th>
                     <th style={{ ...th, color: '#dc2626' }}>{t('bk.colCredit')}</th>
                     <th style={th}>{t('bk.colDescription')}</th>
                     <th style={{ ...th, textAlign: 'right' }}>{t('bk.colAmount')}</th>
@@ -451,7 +451,7 @@ function Bookkeeping() {
                     return (
                       <tr key={`${row.txId}-${i}`} style={{ borderBottom: isLastInTx ? '2px solid var(--border-2)' : '1px solid var(--border-3)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                         <td style={{ ...td, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>{row.isFirst ? row.date : ''}</td>
-                        <td style={{ ...td, color: '#15803d', fontWeight: 500 }}>{row.debit?.account || ''}</td>
+                        <td style={{ ...td, color: '#479c73', fontWeight: 500 }}>{row.debit?.account || ''}</td>
                         <td style={{ ...td, color: '#b91c1c', fontWeight: 500 }}>{row.credit?.account || ''}</td>
                         <td style={{ ...td, color: 'var(--text-2)' }}>{row.isFirst ? row.desc : ''}</td>
                         <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>{row.amount > 0 ? fmt(row.amount) : ''}</td>
@@ -509,7 +509,7 @@ function Bookkeeping() {
                 </datalist>
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: 4 }}>
-                    <div style={{ ...lbl, marginBottom: 0, color: '#15803d' }}>{t('bk.debitAccount')}</div>
+                    <div style={{ ...lbl, marginBottom: 0, color: '#479c73' }}>{t('bk.debitAccount')}</div>
                     <div style={{ ...lbl, marginBottom: 0, color: '#b91c1c' }}>{t('bk.creditAccount')}</div>
                     <div style={{ ...lbl, marginBottom: 0, textAlign: 'right' }}>{t('bk.amount')}</div>
                     <div />
@@ -521,7 +521,7 @@ function Bookkeeping() {
                     return (
                       <div key={idx} style={{ marginBottom: 10, padding: drSubs.length || crSubs.length ? '8px 10px' : 0, border: drSubs.length || crSubs.length ? '1px solid var(--border-2)' : 'none', borderRadius: 8, background: drSubs.length || crSubs.length ? 'var(--surface-2)' : 'transparent' }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: drSubs.length || crSubs.length ? 8 : 0 }}>
-                          <input list="bk-accs" value={line.debitAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], debitAccount: e.target.value }; setFormLines(l); const s = [...formLineSubkontos]; s[idx] = { ...s[idx], debit: {} }; setFormLineSubkontos(s); }} placeholder="Debit account…" style={{ ...inpStyle, borderColor: line.debitAccount ? '#bbf7d0' : 'var(--border-2)', color: '#15803d' }} />
+                          <input list="bk-accs" value={line.debitAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], debitAccount: e.target.value }; setFormLines(l); const s = [...formLineSubkontos]; s[idx] = { ...s[idx], debit: {} }; setFormLineSubkontos(s); }} placeholder="Debit account…" style={{ ...inpStyle, borderColor: line.debitAccount ? '#bbf7d0' : 'var(--border-2)', color: '#479c73' }} />
                           <input list="bk-accs" value={line.creditAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], creditAccount: e.target.value }; setFormLines(l); const s = [...formLineSubkontos]; s[idx] = { ...s[idx], credit: {} }; setFormLineSubkontos(s); }} placeholder="Credit account…" style={{ ...inpStyle, borderColor: line.creditAccount ? '#fca5a5' : 'var(--border-2)', color: '#b91c1c' }} />
                           <input type="number" min="0" step="0.01" value={line.amount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], amount: e.target.value }; setFormLines(l); }} placeholder="0.00" style={{ ...inpStyle, textAlign: 'right', fontFamily: 'monospace' }} />
                           {formLines.length > 1 ? (
@@ -531,11 +531,11 @@ function Bookkeeping() {
                         {/* Debit subkontos */}
                         {drSubs.length > 0 && (
                           <div style={{ marginBottom: crSubs.length ? 6 : 0 }}>
-                            <div style={{ fontSize: 10, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>სუბკონტო · {line.debitAccount.split(' - ').pop()} (Dr)</div>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#479c73', textTransform: 'uppercase', marginBottom: 4, letterSpacing: 0.5 }}>სუბკონტო · {line.debitAccount.split(' - ').pop()} (Dr)</div>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                               {drSubs.map(s => (
                                 <div key={s.id} style={{ flex: 1, minWidth: 140 }}>
-                                  <label style={{ ...lbl, marginBottom: 2, color: '#15803d', fontSize: 11 }}>{s.subkonto_type?.name}</label>
+                                  <label style={{ ...lbl, marginBottom: 2, color: '#479c73', fontSize: 11 }}>{s.subkonto_type?.name}</label>
                                   {s.subkonto_type?.value_source === 'agents' ? (
                                     <select value={lineSk.debit?.[s.subkonto_type_id] || ''} onChange={e => { const ns = [...formLineSubkontos]; ns[idx] = { ...ns[idx], debit: { ...ns[idx].debit, [s.subkonto_type_id]: e.target.value } }; setFormLineSubkontos(ns); }} style={{ ...inpStyle, fontSize: 12 }}>
                                       <option value="">— არჩევა —</option>
@@ -575,7 +575,7 @@ function Bookkeeping() {
                       </div>
                     );
                   })}
-                  <button type="button" onClick={() => { setFormLines([...formLines, { ...EMPTY_LINE }]); setFormLineSubkontos([...formLineSubkontos, { debit: {}, credit: {} }]); }} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed #86efac', borderRadius: 7, background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{t('bk.addLine')}</button>
+                  <button type="button" onClick={() => { setFormLines([...formLines, { ...EMPTY_LINE }]); setFormLineSubkontos([...formLineSubkontos, { debit: {}, credit: {} }]); }} style={{ marginTop: 4, padding: '5px 14px', border: '1px dashed rgba(71,156,115,0.3)', borderRadius: 7, background: '#f0fdf4', color: '#479c73', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>{t('bk.addLine')}</button>
                 </div>
                 <div style={{ marginBottom: 20, position: 'relative' }}>
                   <label style={lbl}>{t('bk.projectAgent')}</label>
@@ -622,7 +622,7 @@ function Bookkeeping() {
                 <thead>
                   <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
                     <th style={{ ...th, width: 70 }}>{t('bk.colCode')}</th><th style={th}>{t('bk.colAccount')}</th>
-                    <th style={{ ...th, textAlign: 'right', color: '#16a34a' }}>{t('bk.colDebit')}</th>
+                    <th style={{ ...th, textAlign: 'right', color: '#479c73' }}>{t('bk.colDebit')}</th>
                     <th style={{ ...th, textAlign: 'right', color: '#dc2626' }}>{t('bk.colCredit')}</th>
                     <th style={{ ...th, textAlign: 'right' }}>{t('bk.colBalance')}</th>
                   </tr>
@@ -638,9 +638,9 @@ function Bookkeeping() {
                         <tr onClick={() => toggleAccount(row.account)} style={{ borderBottom: '1px solid var(--border-3)', background: rowBg, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = rowBg}>
                           <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)', fontWeight: 700 }}>{accountCodeMap[row.account] || '—'}</td>
                           <td style={{ ...td, fontWeight: 500, color: 'var(--text)' }}><span style={{ marginRight: 8, color: 'var(--text-4)', fontSize: 10, display: 'inline-block', width: 10 }}>{isExpanded ? '▼' : '▶'}</span>{row.account}</td>
-                          <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#15803d' }}>{row.debit > 0 ? fmt(row.debit) : '—'}</td>
+                          <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#479c73' }}>{row.debit > 0 ? fmt(row.debit) : '—'}</td>
                           <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#b91c1c' }}>{row.credit > 0 ? fmt(row.credit) : '—'}</td>
-                          <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: net > 0 ? '#15803d' : net < 0 ? '#b91c1c' : 'var(--text-3)' }}>{net !== 0 ? `${fmt(Math.abs(net))} ${net > 0 ? 'Dr' : 'Cr'}` : '0.00'}</td>
+                          <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: net > 0 ? '#479c73' : net < 0 ? '#b91c1c' : 'var(--text-3)' }}>{net !== 0 ? `${fmt(Math.abs(net))} ${net > 0 ? 'Dr' : 'Cr'}` : '0.00'}</td>
                         </tr>
                         {isExpanded && accountEntries.slice().sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(e => {
                           const agent = e.agent_id ? agentMap[e.agent_id] : null;
@@ -657,7 +657,7 @@ function Bookkeeping() {
                                   </span>
                                 )}
                               </td>
-                              <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: '#15803d' }}>{e.debit > 0 ? fmt(e.debit) : ''}</td>
+                              <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: '#479c73' }}>{e.debit > 0 ? fmt(e.debit) : ''}</td>
                               <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: '#b91c1c' }}>{e.credit > 0 ? fmt(e.credit) : ''}</td>
                               <td style={td} />
                             </tr>
@@ -670,9 +670,9 @@ function Bookkeeping() {
                 <tfoot>
                   <tr style={{ background: 'var(--surface-2)', borderTop: '2px solid var(--border-2)' }}>
                     <td style={td} /><td style={{ ...td, fontWeight: 700, color: 'var(--text)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>{t('bk.total')}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#15803d' }}>{fmt(tbTotalDebit)}</td>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#479c73' }}>{fmt(tbTotalDebit)}</td>
                     <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#b91c1c' }}>{fmt(tbTotalCredit)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '#16a34a' : '#dc2626' }}>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '#479c73' : '#dc2626' }}>
                       {Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? t('bk.balanced') : `${t('bk.difference')}: ${fmt(Math.abs(tbTotalDebit - tbTotalCredit))}`}
                     </td>
                   </tr>
@@ -845,7 +845,7 @@ function Bookkeeping() {
               </div>
               <div>
                 <label style={lbl}>დებეტი (Dr)</label>
-                <input list="bk-accs-pr" value={prForm.debit_account} onChange={e => setPrForm(f => ({ ...f, debit_account: e.target.value }))} placeholder="ანგარიში..." style={{ ...inpStyle, borderColor: prForm.debit_account ? '#bbf7d0' : 'var(--border-2)', color: '#15803d' }} />
+                <input list="bk-accs-pr" value={prForm.debit_account} onChange={e => setPrForm(f => ({ ...f, debit_account: e.target.value }))} placeholder="ანგარიში..." style={{ ...inpStyle, borderColor: prForm.debit_account ? '#bbf7d0' : 'var(--border-2)', color: '#479c73' }} />
               </div>
               <div>
                 <label style={lbl}>კრედიტი (Cr)</label>
@@ -882,12 +882,12 @@ function Bookkeeping() {
               {postingRules.map(rule => (
                 <div key={rule.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--surface)', border: `1px solid ${rule.is_active ? 'var(--border-2)' : '#e2e8f0'}`, borderRadius: 10, opacity: rule.is_active ? 1 : 0.55 }}>
                   <div style={{ minWidth: 100 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: rule.document_type === 'Bonus' ? '#fef9c3' : rule.document_type === 'Advance' ? '#e0f2fe' : rule.document_type === 'Salary' ? '#f0fdf4' : rule.document_type === 'OT' ? '#fdf4ff' : '#f1f5f9', color: rule.document_type === 'Bonus' ? '#854d0e' : rule.document_type === 'Advance' ? '#0369a1' : rule.document_type === 'Salary' ? '#15803d' : rule.document_type === 'OT' ? '#7e22ce' : '#475569' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, background: rule.document_type === 'Bonus' ? '#fef9c3' : rule.document_type === 'Advance' ? '#e0f2fe' : rule.document_type === 'Salary' ? '#f0fdf4' : rule.document_type === 'OT' ? '#fdf4ff' : '#f1f5f9', color: rule.document_type === 'Bonus' ? '#854d0e' : rule.document_type === 'Advance' ? '#0369a1' : rule.document_type === 'Salary' ? '#479c73' : rule.document_type === 'OT' ? '#7e22ce' : '#475569' }}>
                       {rule.document_type}
                     </span>
                   </div>
                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#15803d' }}>Dr: {rule.debit_account}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#479c73' }}>Dr: {rule.debit_account}</span>
                     <span style={{ color: 'var(--text-4)' }}>→</span>
                     <span style={{ fontSize: 13, fontWeight: 600, color: '#b91c1c' }}>Cr: {rule.credit_account}</span>
                     {rule.description_template && (
@@ -895,7 +895,7 @@ function Bookkeeping() {
                     )}
                   </div>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <button onClick={() => togglePrActive(rule)} title={rule.is_active ? 'Deactivate' : 'Activate'} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid', cursor: 'pointer', fontWeight: 600, background: rule.is_active ? '#f0fdf4' : 'var(--surface-2)', color: rule.is_active ? '#16a34a' : 'var(--text-4)', borderColor: rule.is_active ? '#bbf7d0' : 'var(--border-2)' }}>
+                    <button onClick={() => togglePrActive(rule)} title={rule.is_active ? 'Deactivate' : 'Activate'} style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, border: '1px solid', cursor: 'pointer', fontWeight: 600, background: rule.is_active ? '#f0fdf4' : 'var(--surface-2)', color: rule.is_active ? '#479c73' : 'var(--text-4)', borderColor: rule.is_active ? '#bbf7d0' : 'var(--border-2)' }}>
                       {rule.is_active ? 'აქტიური' : 'გათიშული'}
                     </button>
                     <button onClick={() => openPrEdit(rule)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', padding: 4 }} onMouseEnter={e => e.currentTarget.style.color = '#3b82f6'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>
@@ -1000,8 +1000,8 @@ function Bookkeeping() {
 
                   {/* Debit side */}
                   <div style={{ flex: 1, borderRight: '3px solid var(--text)', borderTop: '3px solid var(--text)', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border-2)', background: 'rgba(22,163,74,0.08)' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: 1 }}>Debit (Dr)</span>
+                    <div style={{ padding: '8px 14px', borderBottom: '1px solid var(--border-2)', background: 'rgba(71,156,115,0.08)' }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#479c73', textTransform: 'uppercase', letterSpacing: 1 }}>Debit (Dr)</span>
                     </div>
 
                     {/* Drop zone */}
@@ -1009,7 +1009,7 @@ function Bookkeeping() {
                       onDragOver={e => { e.preventDefault(); setDragOver('debit'); }}
                       onDragLeave={() => setDragOver(null)}
                       onDrop={() => dropOnSide('debit')}
-                      style={{ flex: 1, padding: 10, minHeight: 120, background: dragOver === 'debit' ? '#dcfce7' : 'transparent', border: dragOver === 'debit' ? '2px dashed #16a34a' : '2px dashed transparent', borderRadius: 6, transition: 'all 0.15s' }}
+                      style={{ flex: 1, padding: 10, minHeight: 120, background: dragOver === 'debit' ? 'rgba(71,156,115,0.15)' : 'transparent', border: dragOver === 'debit' ? '2px dashed #479c73' : '2px dashed transparent', borderRadius: 6, transition: 'all 0.15s' }}
                     >
                       {tDebit.length === 0 && dragOver !== 'debit' && (
                         <div style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginTop: 20 }}>Drop accounts here</div>
@@ -1018,7 +1018,7 @@ function Bookkeeping() {
                         <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, background: 'var(--surface)', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 10px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             {entry.code && <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--text-3)', marginRight: 5 }}>{entry.code}</span>}
-                            <span style={{ fontSize: 12, fontWeight: 600, color: '#15803d' }}>{entry.account}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#479c73' }}>{entry.account}</span>
                           </div>
                           <input
                             type="number" min="0" step="0.01"
@@ -1035,7 +1035,7 @@ function Bookkeeping() {
                     {/* Debit total */}
                     <div style={{ borderTop: '2px solid var(--text)', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', background: 'var(--surface-2)' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>Total Dr</span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#15803d' }}>{tDebitTotal > 0 ? fmt(tDebitTotal) : '0.00'}</span>
+                      <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#479c73' }}>{tDebitTotal > 0 ? fmt(tDebitTotal) : '0.00'}</span>
                     </div>
                   </div>
 
@@ -1085,7 +1085,7 @@ function Bookkeeping() {
                 {(tDebitTotal > 0 || tCreditTotal > 0) && (
                   <div style={{ marginTop: 12, textAlign: 'center' }}>
                     {Math.abs(tDebitTotal - tCreditTotal) < 0.001 ? (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 14px', borderRadius: 20 }}>✓ Balanced</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#479c73', background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '4px 14px', borderRadius: 20 }}>✓ Balanced</span>
                     ) : (
                       <span style={{ fontSize: 12, fontWeight: 700, color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa', padding: '4px 14px', borderRadius: 20 }}>
                         Difference: {fmt(Math.abs(tDebitTotal - tCreditTotal))} ({tDebitTotal > tCreditTotal ? 'Dr' : 'Cr'} side is more)

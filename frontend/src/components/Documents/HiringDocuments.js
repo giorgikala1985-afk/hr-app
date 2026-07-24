@@ -256,11 +256,11 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
       {signResult && (
         <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 10, padding: '18px 22px', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
             </svg>
             <div>
-              <div style={{ fontWeight: 700, color: '#15803d', fontSize: 15 }}>{signResult.empName} added successfully!</div>
+              <div style={{ fontWeight: 700, color: '#479c73', fontSize: 15 }}>{signResult.empName} added successfully!</div>
               <div style={{ fontSize: 13, color: '#166534' }}>Copy the link below and share it with the employee to sign their agreement.</div>
             </div>
           </div>
@@ -278,11 +278,11 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
       {agrSignResult && (
         <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 10, padding: '18px 22px', marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22,4 12,14.01 9,11.01"/>
             </svg>
             <div>
-              <div style={{ fontWeight: 700, color: '#15803d', fontSize: 15 }}>Agreement created for {agrSignResult.empName}</div>
+              <div style={{ fontWeight: 700, color: '#479c73', fontSize: 15 }}>Agreement created for {agrSignResult.empName}</div>
               <div style={{ fontSize: 13, color: '#166534' }}>Copy the link below and share it with the employee to sign.</div>
             </div>
           </div>
@@ -300,7 +300,7 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
       <div style={{ display: 'flex', gap: 10, marginBottom: 28, flexWrap: 'wrap' }}>
         <button
           className="btn-add"
-          style={showForm ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
+          style={showForm ? { boxShadow: '0 0 0 3px rgba(71,156,115,0.2)' } : {}}
           onClick={() => { setShowForm(f => !f); setShowAgrOnly(false); setShowBonus(false); setFormError(''); }}
         >
           + Add Employee &amp; Agreement
@@ -308,7 +308,7 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
         {!addEmployeeOnly && (
           <button
             className={showAgrOnly ? 'btn-add' : 'btn-secondary-outline'}
-            style={showAgrOnly ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
+            style={showAgrOnly ? { boxShadow: '0 0 0 3px rgba(71,156,115,0.2)' } : {}}
             onClick={() => { setShowAgrOnly(f => !f); setShowForm(false); setShowBonus(false); setAgrOnlyError(''); }}
           >
             + Agreement for Existing Employee
@@ -317,7 +317,7 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
         {!addEmployeeOnly && (
           <button
             className={showBonus ? 'btn-add' : 'btn-secondary-outline'}
-            style={showBonus ? { boxShadow: '0 0 0 3px rgba(22,163,74,0.2)' } : {}}
+            style={showBonus ? { boxShadow: '0 0 0 3px rgba(71,156,115,0.2)' } : {}}
             onClick={() => { setShowBonus(f => !f); setShowForm(false); setShowAgrOnly(false); setBonusError(''); setBonusSuccess(''); }}
           >
             + Add Bonus
@@ -519,7 +519,7 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
 
       {/* ── Bonus success ────────────────────────────── */}
       {bonusSuccess && (
-        <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#15803d', fontWeight: 500 }}>
+        <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 14, color: '#479c73', fontWeight: 500 }}>
           {bonusSuccess}
           <button style={{ marginLeft: 12, fontSize: 12, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }} onClick={() => setBonusSuccess('')}>Dismiss</button>
         </div>
@@ -579,7 +579,7 @@ function HiringDocuments({ mode = 'all', autoOpen = false, onClose }) {
               <div className="docs-card-info">
                 <div className="docs-card-title">{b.employee_name}</div>
                 <div className="docs-card-meta">
-                  <span style={{ fontWeight: 700, color: '#15803d', fontSize: 15 }}>{Number(b.amount).toLocaleString()} ₾</span>
+                  <span style={{ fontWeight: 700, color: '#479c73', fontSize: 15 }}>{Number(b.amount).toLocaleString()} ₾</span>
                   <span style={{ background: '#f1f5f9', borderRadius: 6, padding: '2px 8px', fontSize: 12, color: '#475569' }}>{b.reason}</span>
                   {b.date && <span style={{ color: '#64748b', fontSize: 12 }}>{b.date}</span>}
                   <span style={{ color: '#94a3b8', fontSize: 12 }}>{new Date(b.created_at).toLocaleDateString()}</span>

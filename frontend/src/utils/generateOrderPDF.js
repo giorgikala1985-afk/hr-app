@@ -57,7 +57,7 @@ export async function generatePromotionPDF({ order, companyName, orderNumber }) 
   <!-- TITLE -->
   <div style="text-align:center;padding:16px 24px 0;">
     <div style="font-size:15px;font-weight:700;color:#0f3460;letter-spacing:1px;font-family:${FONT};">PROMOTION ORDER</div>
-    <div style="height:2px;width:80px;background:#16a34a;margin:6px auto 0;border-radius:2px;"></div>
+    <div style="height:2px;width:80px;background:#479c73;margin:6px auto 0;border-radius:2px;"></div>
   </div>
 
   <!-- EMPLOYEE CARD -->
@@ -85,7 +85,7 @@ export async function generatePromotionPDF({ order, companyName, orderNumber }) 
   </div>
 
   <!-- SALARY SUMMARY -->
-  <div style="margin:12px 24px 0;background:#16a34a;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+  <div style="margin:12px 24px 0;background:#479c73;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
     <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.85);font-family:${FONT};">NEW SALARY</div>
     <div style="font-size:18px;font-weight:700;color:#ffffff;font-family:${FONT};">${order.newSalary ? fmt(order.newSalary) : '—'}</div>
   </div>
@@ -133,7 +133,7 @@ export async function generateOrderPDF({ employee, type, direction, amount, date
   ensureGeorgianFont();
 
   const isAddition = direction === 'addition';
-  const accentColor = isAddition ? '#16a34a' : '#dc2626';
+  const accentColor = isAddition ? '#479c73' : '#dc2626';
   const accentLight = isAddition ? '#f0fdf4' : '#fef2f2';
 
   const monthLabel = (() => {

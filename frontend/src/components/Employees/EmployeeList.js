@@ -263,7 +263,7 @@ function EmployeeList() {
             onClick={exportToExcel}
             disabled={!filteredEmployees.length}
             title="Download as Excel"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#16a34a', cursor: filteredEmployees.length ? 'pointer' : 'not-allowed', opacity: filteredEmployees.length ? 1 : 0.5, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#479c73', cursor: filteredEmployees.length ? 'pointer' : 'not-allowed', opacity: filteredEmployees.length ? 1 : 0.5, fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel
@@ -413,7 +413,7 @@ function EmployeeList() {
                   {isCol('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
                   {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
                   {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="status-active">{t('emp.active')}</span>}</td>}
-                  {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: 16 }}>✔</span> : '—'}</td>}
+                  {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? <span style={{ color: '#479c73', fontWeight: 700, fontSize: 16 }}>✔</span> : '—'}</td>}
                   <td>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => navigate(`/employees/${emp.id}/edit`)} title={t('action.edit')} style={{ color: '#3b82f6' }}>

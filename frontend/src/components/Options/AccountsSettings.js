@@ -39,7 +39,7 @@ const TYPE_STYLE = {
   Asset:     { background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' },
   Liability: { background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5' },
   Equity:    { background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' },
-  Revenue:   { background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' },
+  Revenue:   { background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0' },
   Expense:   { background: '#fff7ed', color: '#ea580c', border: '1px solid #fed7aa' },
 };
 
@@ -200,7 +200,7 @@ function AccountsSettings() {
         <button onClick={handleRemoveDuplicates} style={{ padding: '8px 16px', background: 'var(--surface-2)', color: '#ea580c', border: '1px solid var(--border-2)', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
           Remove Duplicates
         </button>
-        <button onClick={handleLoadSample} style={{ padding: '8px 16px', background: 'var(--surface-2)', color: '#16a34a', border: '1px solid var(--border-2)', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={handleLoadSample} style={{ padding: '8px 16px', background: 'var(--surface-2)', color: '#479c73', border: '1px solid var(--border-2)', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
           ✦ Load Sample Data
         </button>
         <button onClick={handleDownloadTemplate} style={{ padding: '8px 16px', background: 'var(--surface-2)', color: '#0369a1', border: '1px solid var(--border-2)', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
@@ -221,7 +221,7 @@ function AccountsSettings() {
       ) : accounts.length === 0 ? (
         <div className="ut-empty">
           No accounts yet.{' '}
-          <button onClick={handleLoadSample} style={{ background: 'none', border: 'none', color: '#16a34a', fontWeight: 600, cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit' }}>
+          <button onClick={handleLoadSample} style={{ background: 'none', border: 'none', color: '#479c73', fontWeight: 600, cursor: 'pointer', fontSize: 'inherit', fontFamily: 'inherit' }}>
             Load sample chart of accounts
           </button>
         </div>

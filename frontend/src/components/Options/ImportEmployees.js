@@ -157,7 +157,7 @@ function ImportEmployees() {
       <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
         <div style={{ padding: '20px 24px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ width: 36, height: 36, borderRadius: 9, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
@@ -173,9 +173,9 @@ function ImportEmployees() {
           <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13 }}>{error}</div>
         )}
         {result && (
-          <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>
+          <div style={{ margin: '12px 24px', padding: '10px 14px', background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0', borderRadius: 8, fontSize: 13, fontWeight: 600 }}>
             {t('import.success').replace('{count}', result.imported).replace('{s}', result.imported !== 1 ? 's' : '')}
-            {result.errors?.length > 0 && <span style={{ fontWeight: 400, color: '#15803d' }}> · {result.errors.length} row{result.errors.length !== 1 ? 's' : ''} skipped</span>}
+            {result.errors?.length > 0 && <span style={{ fontWeight: 400, color: '#479c73' }}> · {result.errors.length} row{result.errors.length !== 1 ? 's' : ''} skipped</span>}
           </div>
         )}
 
@@ -212,7 +212,7 @@ function ImportEmployees() {
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
                 style={{
-                  border: `2px dashed ${dragOver ? '#3b82f6' : fileName ? '#86efac' : 'var(--border-2)'}`,
+                  border: `2px dashed ${dragOver ? '#3b82f6' : fileName ? 'rgba(71,156,115,0.3)' : 'var(--border-2)'}`,
                   borderRadius: 10, padding: '20px 24px', textAlign: 'center', cursor: 'pointer',
                   background: dragOver ? '#eff6ff' : fileName ? '#f0fdf4' : 'var(--surface-2)',
                   transition: 'all 0.15s',
@@ -220,11 +220,11 @@ function ImportEmployees() {
               >
                 {fileName ? (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                       <polyline points="14,2 14,8 20,8"/>
                     </svg>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: '#16a34a' }}>{fileName}</span>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: '#479c73' }}>{fileName}</span>
                     <span style={{ fontSize: 12, color: 'var(--text-4)' }}>· click to replace</span>
                   </div>
                 ) : (
@@ -250,7 +250,7 @@ function ImportEmployees() {
 
                 {/* Stats pills */}
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-                  <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#16a34a', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>
+                  <span style={{ padding: '3px 12px', borderRadius: 20, background: '#f0fdf4', color: '#479c73', fontWeight: 600, fontSize: 12, border: '1px solid #bbf7d0' }}>
                     {validCount} valid
                   </span>
                   {invalidCount > 0 && (
@@ -288,7 +288,7 @@ function ImportEmployees() {
                           <td style={{ padding: '7px 10px', color: !row.start_date ? '#dc2626' : 'var(--text)' }}>{row.start_date || '—'}</td>
                           <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.end_date || '—'}</td>
                           <td style={{ padding: '7px 10px', color: 'var(--text-3)' }}>{row.account_number || '—'}</td>
-                          <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#16a34a' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
+                          <td style={{ padding: '7px 10px', textAlign: 'center', color: row.pension ? '#479c73' : 'var(--text-4)' }}>{row.pension ? '✔' : '—'}</td>
                         </tr>
                       ))}
                     </tbody>

@@ -72,7 +72,7 @@ function StockSettings() {
       {/* Header */}
       <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 36, height: 36, borderRadius: 9, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
             <polyline points="3.27,6.96 12,12.01 20.73,6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
           </svg>
@@ -90,17 +90,17 @@ function StockSettings() {
       <form onSubmit={handleAdd} style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-3)', background: 'var(--surface)' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 1fr', gap: 8, marginBottom: 8 }}>
           <input type="text" placeholder="Name *" value={form.name} onChange={f('name')} style={INPUT}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
+            onFocus={e => e.target.style.borderColor = '#479c73'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
           <input type="date" value={form.add_date} onChange={f('add_date')} style={INPUT}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
+            onFocus={e => e.target.style.borderColor = '#479c73'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
           <input type="text" placeholder="Area" value={form.area} onChange={f('area')} style={INPUT}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
+            onFocus={e => e.target.style.borderColor = '#479c73'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input type="text" placeholder="Address" value={form.address} onChange={f('address')} style={{ ...INPUT, flex: 1 }}
-            onFocus={e => e.target.style.borderColor = '#16a34a'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
+            onFocus={e => e.target.style.borderColor = '#479c73'} onBlur={e => e.target.style.borderColor = 'var(--border-2)'} />
           <button type="submit" disabled={saving || !form.name.trim()} style={{
-            padding: '8px 18px', background: saving || !form.name.trim() ? '#e2e8f0' : '#16a34a',
+            padding: '8px 18px', background: saving || !form.name.trim() ? '#e2e8f0' : '#479c73',
             color: saving || !form.name.trim() ? '#94a3b8' : '#fff', border: 'none', borderRadius: 8,
             fontWeight: 600, fontSize: 13, cursor: saving || !form.name.trim() ? 'not-allowed' : 'pointer',
             whiteSpace: 'nowrap', transition: 'all 0.15s', fontFamily: 'inherit',
@@ -136,20 +136,20 @@ function StockSettings() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 1fr', gap: 8, marginBottom: 8 }}>
                     <input type="text" placeholder="Name *" value={editForm.name} onChange={ef('name')}
                       onKeyDown={e => { if (e.key === 'Enter') handleUpdate(loc.id); if (e.key === 'Escape') cancelEdit(); }}
-                      autoFocus style={{ ...INPUT, borderColor: '#16a34a' }} />
-                    <input type="date" value={editForm.add_date} onChange={ef('add_date')} style={{ ...INPUT, borderColor: '#16a34a' }} />
-                    <input type="text" placeholder="Area" value={editForm.area} onChange={ef('area')} style={{ ...INPUT, borderColor: '#16a34a' }} />
+                      autoFocus style={{ ...INPUT, borderColor: '#479c73' }} />
+                    <input type="date" value={editForm.add_date} onChange={ef('add_date')} style={{ ...INPUT, borderColor: '#479c73' }} />
+                    <input type="text" placeholder="Area" value={editForm.area} onChange={ef('area')} style={{ ...INPUT, borderColor: '#479c73' }} />
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    <input type="text" placeholder="Address" value={editForm.address} onChange={ef('address')} style={{ ...INPUT, flex: 1, borderColor: '#16a34a' }} />
-                    <button onClick={() => handleUpdate(loc.id)} style={{ padding: '7px 14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
+                    <input type="text" placeholder="Address" value={editForm.address} onChange={ef('address')} style={{ ...INPUT, flex: 1, borderColor: '#479c73' }} />
+                    <button onClick={() => handleUpdate(loc.id)} style={{ padding: '7px 14px', background: '#479c73', color: '#fff', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Save</button>
                     <button onClick={cancelEdit} style={{ padding: '7px 12px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, color: 'var(--text-3)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
                   </div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 28, height: 28, borderRadius: 7, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
                     </svg>
                   </div>

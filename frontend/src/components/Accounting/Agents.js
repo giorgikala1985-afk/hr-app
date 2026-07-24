@@ -16,7 +16,7 @@ const today = () => new Date().toISOString().split('T')[0];
 
 const TYPE_COLORS = {
   LLC:   { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
-  IS:    { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
+  IS:    { bg: '#f0fdf4', color: '#479c73', border: '#bbf7d0' },
   JSC:   { bg: '#fdf4ff', color: '#7e22ce', border: '#e9d5ff' },
   Other: { bg: '#f9fafb', color: '#374151', border: '#e5e7eb' },
 };
@@ -213,7 +213,7 @@ function Agents() {
             onClick={exportToExcel}
             disabled={!filtered.length}
             title="Download as Excel"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#16a34a', cursor: filtered.length ? 'pointer' : 'not-allowed', opacity: filtered.length ? 1 : 0.5, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#479c73', cursor: filtered.length ? 'pointer' : 'not-allowed', opacity: filtered.length ? 1 : 0.5, fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             {t('agents.excel')}

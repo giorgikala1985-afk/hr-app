@@ -434,7 +434,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const footerVal = (key) => {
     switch (key) {
       case 'netSalary':   return { val: moneyTotal(totNetSalary), style: TD_BOLD };
-      case 'ot':          return { val: totOT > 0 ? moneyTotal(totOT) : '—', style: { ...TD_BOLD, color: '#4ade80', fontWeight: 800 } };
+      case 'ot':          return { val: totOT > 0 ? moneyTotal(totOT) : '—', style: { ...TD_BOLD, color: '#479c73', fontWeight: 800 } };
       case 'adjustment':  return { val: '', style: TD_NUM };
       case 'fitpass':     return { val: moneyTotalSign(totFitpass,   'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
       case 'insurance':   return { val: moneyTotalSign(totInsurance, 'deduction'), cls: 'cell-deduction', style: { ...TD_NUM, fontWeight: 700 } };
@@ -457,7 +457,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
       case 'firstName':   return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.first_name}</td>;
       case 'lastName':    return <td key={key} style={{ fontWeight: 600, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{emp.last_name}</td>;
       case 'netSalary':   return <td key={key} style={{ ...TD_BOLD, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{moneyTotal(r.accrued_salary)}</td>;
-      case 'ot': { const ot = otAmt(r.deductions); return <td key={key} style={{ ...TD_NUM, color: ot > 0 ? '#4ade80' : 'var(--text-4)', fontWeight: 800, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{ot > 0 ? moneyTotal(ot) : '—'}</td>; }
+      case 'ot': { const ot = otAmt(r.deductions); return <td key={key} style={{ ...TD_NUM, color: ot > 0 ? '#479c73' : 'var(--text-4)', fontWeight: 800, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{ot > 0 ? moneyTotal(ot) : '—'}</td>; }
       case 'adjustment': {
         const units = (r.deductions || []).filter(u => {
           const ut = unitTypes.find(t => t.name === u.type);
@@ -475,9 +475,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   <span key={i} title={`${u.type}: ${isAdd ? '+' : '-'}${sym}${parseFloat(u.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 3,
                     padding: '2px 7px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                    background: isAdd ? 'rgba(74,222,128,0.12)' : 'rgba(248,113,113,0.12)',
-                    color: isAdd ? '#4ade80' : '#f87171',
-                    border: `1px solid ${isAdd ? 'rgba(74,222,128,0.25)' : 'rgba(248,113,113,0.25)'}`,
+                    background: isAdd ? 'rgba(71,156,115,0.12)' : 'rgba(248,113,113,0.12)',
+                    color: isAdd ? '#479c73' : '#f87171',
+                    border: `1px solid ${isAdd ? 'rgba(71,156,115,0.25)' : 'rgba(248,113,113,0.25)'}`,
                     whiteSpace: 'nowrap', cursor: 'default',
                   }}>
                     {isAdd ? '+' : '-'}{sym}{parseFloat(u.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
@@ -717,7 +717,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '6px 14px', background: 'var(--surface)',
             border: '1.5px solid var(--border-2)', borderRadius: 7,
-            fontSize: 13, fontWeight: 500, color: '#16a34a',
+            fontSize: 13, fontWeight: 500, color: '#479c73',
             cursor: (!data || active.length === 0) ? 'not-allowed' : 'pointer',
             opacity: (!data || active.length === 0) ? 0.5 : 1,
             fontFamily: 'inherit',
@@ -842,7 +842,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   <th key={`dyn-th-${ut.name}`} style={{
                     width: dynColW, overflow: 'hidden', whiteSpace: 'nowrap',
                     textAlign: 'right', padding: '12px 14px',
-                    color: ut.direction === 'addition' ? '#16a34a' : '#e53e3e',
+                    color: ut.direction === 'addition' ? '#479c73' : '#e53e3e',
                   }}>
                     {ut.name}
                   </th>
@@ -861,7 +861,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     </th>
                   );
                 })}
-                <th style={{ width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#22c55e' }}>
+                <th style={{ width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#479c73' }}>
                   Transferred
                 </th>
               </tr>
@@ -922,14 +922,14 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                             if (col.key === 'totalGEL') {
                               const gel = gelAmt;
                               return (
-                                <td key="totalGEL" style={{ ...TD_BOLD, fontSize: 14, color: match ? '#22c55e' : '#f59e0b', fontWeight: match ? 800 : 700, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                                <td key="totalGEL" style={{ ...TD_BOLD, fontSize: 14, color: match ? '#479c73' : '#f59e0b', fontWeight: match ? 800 : 700, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                                   {gel != null ? `₾${gel.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
                                 </td>
                               );
                             }
                             return rowVal(col.key, r, emp, bonus, teamBuild, reimburse, fitpass, insurance, grossSalary, pensionAmt);
                           })}
-                          <td style={{ ...TD_NUM, fontWeight: match ? 800 : 700, color: '#22c55e', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          <td style={{ ...TD_NUM, fontWeight: match ? 800 : 700, color: '#479c73', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                             {tbcAmt != null ? `₾${tbcAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : tbc ? '—' : ''}
                           </td>
                         </>
@@ -973,7 +973,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     return s + (a || 0);
                   }, 0) : 0;
                   return (
-                    <td style={{ ...TD_NUM, fontWeight: 700, color: '#22c55e', borderTop: '2px solid var(--border-2)', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                    <td style={{ ...TD_NUM, fontWeight: 700, color: '#479c73', borderTop: '2px solid var(--border-2)', overflow: 'hidden', whiteSpace: 'nowrap' }}>
                       {tbc && totalTBC > 0 ? `₾${totalTBC.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : ''}
                     </td>
                   );

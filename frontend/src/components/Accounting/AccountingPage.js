@@ -34,7 +34,7 @@ const accIcon = (icon, color) => <HugeiconsIcon icon={icon} size={16} color={col
 
 const ICONS = {
   purchases:     accIcon(ShoppingCart01Icon, '#f97316'),
-  sales:         accIcon(SaleTag01Icon, '#10b981'),
+  sales:         accIcon(SaleTag01Icon, '#479c73'),
   projects:      accIcon(Folder01Icon, '#0ea5e9'),
   invoices:      accIcon(Invoice01Icon, '#3b82f6'),
   salaryAccrual: accIcon(MoneyBag01Icon, '#8b5cf6'),

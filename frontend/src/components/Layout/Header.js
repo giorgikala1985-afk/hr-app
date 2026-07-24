@@ -29,7 +29,7 @@ const NAV_CONFIG = {
   },
   analytics: {
     path: '/analytics', end: false, labelKey: 'nav.analytics',
-    icon: navIcon(Analytics01Icon, '#10b981'),
+    icon: navIcon(Analytics01Icon, '#479c73'),
   },
   documents: {
     path: '/documents', end: false, labelKey: 'nav.documents',
@@ -108,8 +108,8 @@ function Header() {
             );
           })}
           {isAdmin(user?.email) && (
-            <NavLink to="/admin" end={false} style={({ isActive }) => ({ color: isActive ? '#16a34a' : undefined })}>
-              <HugeiconsIcon icon={Shield01Icon} size={17} color="#16a34a" strokeWidth={1.8} />
+            <NavLink to="/admin" end={false} style={({ isActive }) => ({ color: isActive ? '#479c73' : undefined })}>
+              <HugeiconsIcon icon={Shield01Icon} size={17} color="#479c73" strokeWidth={1.8} />
               Admin
             </NavLink>
           )}

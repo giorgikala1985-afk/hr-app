@@ -23,11 +23,11 @@ const FORMAT_OPTIONS = [
     key: 'excel',
     label: 'Excel Spreadsheet',
     ext: '.xlsx',
-    color: '#4ade80',
-    bg: 'rgba(22,163,74,0.12)',
-    border: 'rgba(22,163,74,0.4)',
+    color: '#479c73',
+    bg: 'rgba(71,156,115,0.12)',
+    border: 'rgba(71,156,115,0.4)',
     icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
         <polyline points="14,2 14,8 20,8"/>
         <line x1="8" y1="13" x2="16" y2="13"/>
@@ -132,7 +132,7 @@ function PdfParsingTool() {
           <div style={{ padding: '10px 14px', background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, fontSize: 13 }}>{error}</div>
         )}
         {success && (
-          <div style={{ padding: '10px 14px', background: 'rgba(22,163,74,0.12)', color: '#4ade80', border: '1px solid rgba(22,163,74,0.25)', borderRadius: 8, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ padding: '10px 14px', background: 'rgba(71,156,115,0.12)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)', borderRadius: 8, fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="20,6 9,17 4,12"/>
             </svg>

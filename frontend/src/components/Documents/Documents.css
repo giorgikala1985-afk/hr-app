@@ -252,10 +252,10 @@
 
 .docs-status-draft  { background: var(--surface-2); color: var(--text-3); }
 .docs-status-sent   { background: #fff7ed; color: #ea580c; }
-.docs-status-signed { background: #f0fdf4; color: #16a34a; }
+.docs-status-signed { background: #f0fdf4; color: #479c73; }
 
 [data-theme="dark"] .docs-status-sent   { background: rgba(234,88,12,0.15); color: #fb923c; }
-[data-theme="dark"] .docs-status-signed { background: rgba(22,163,74,0.15); color: #4ade80; }
+[data-theme="dark"] .docs-status-signed { background: rgba(71,156,115,0.15); color: #479c73; }
 
 /* Form panel */
 .docs-form-panel {
@@ -344,7 +344,7 @@
 /* Send link box */
 .docs-link-box {
   background: #f0fdf4;
-  border: 1.5px solid #86efac;
+  border: 1.5px solid rgba(71,156,115,0.3);
   border-radius: 8px;
   padding: 14px 16px;
   margin-top: 16px;
@@ -361,7 +361,7 @@
 .docs-link-box label {
   font-size: 12px;
   font-weight: 600;
-  color: #16a34a;
+  color: #479c73;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -378,18 +378,18 @@
   border-radius: 6px;
   font-size: 13px;
   background: var(--surface);
-  color: #065f46;
+  color: #479c73;
   font-family: var(--font-mono);
 }
 
 [data-theme="dark"] .docs-link-input {
   border-color: #166534;
-  color: #4ade80;
+  color: #479c73;
 }
 
 .btn-copy {
   padding: 8px 14px;
-  background: #16a34a;
+  background: #479c73;
   color: white;
   border: none;
   border-radius: 6px;
@@ -399,7 +399,7 @@
   white-space: nowrap;
 }
 
-.btn-copy:hover { background: #15803d; }
+.btn-copy:hover { background: #479c73; }
 
 /* Preview / Print */
 .docs-preview-wrapper {
@@ -563,7 +563,7 @@
   padding: 40px;
   background: #f0fdf4;
   border-radius: 12px;
-  border: 1.5px solid #86efac;
+  border: 1.5px solid rgba(71,156,115,0.3);
 }
 
 [data-theme="dark"] .sign-done {
@@ -571,7 +571,7 @@
   border-color: #166534;
 }
 
-.sign-done h2 { color: #16a34a; margin-bottom: 8px; }
+.sign-done h2 { color: #479c73; margin-bottom: 8px; }
 .sign-done p { color: var(--text-2); }
 
 /* Split pane layout */
@@ -932,7 +932,7 @@
 
 .dl-file-cat--hr        { background: rgba(59,130,246,0.1); color: #3b82f6; }
 .dl-file-cat--finance   { background: rgba(245,158,11,0.1); color: #d97706; }
-.dl-file-cat--payroll   { background: rgba(34,197,94,0.1);  color: #16a34a; }
+.dl-file-cat--payroll   { background: rgba(71,156,115,0.1);  color: #479c73; }
 .dl-file-cat--insurance { background: rgba(139,92,246,0.1); color: #7c3aed; }
 .dl-file-cat--reports   { background: rgba(236,72,153,0.1); color: #db2777; }
 
@@ -1097,8 +1097,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: rgba(34,197,94,0.08);
-  border: 1px solid rgba(34,197,94,0.25);
+  background: rgba(71,156,115,0.08);
+  border: 1px solid rgba(71,156,115,0.25);
   border-radius: 8px;
   padding: 6px 12px;
   font-size: 13px;

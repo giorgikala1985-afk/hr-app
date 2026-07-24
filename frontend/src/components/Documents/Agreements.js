@@ -11,7 +11,7 @@ const CURRENCIES = ['GEL', 'USD', 'EUR'];
 const STATUSES = ['active', 'pending', 'expired', 'terminated'];
 
 const STATUS_COLORS = {
-  active:     { bg: '#dcfce7', color: '#16a34a', border: '#bbf7d0' },
+  active:     { bg: 'rgba(71,156,115,0.15)', color: '#479c73', border: '#bbf7d0' },
   pending:    { bg: '#fef9c3', color: '#b45309', border: '#fde68a' },
   expired:    { bg: '#f1f5f9', color: '#64748b', border: '#e2e8f0' },
   terminated: { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' },
@@ -230,7 +230,7 @@ export default function Agreements() {
             onClick={exportToExcel}
             disabled={!filtered.length}
             title="Download as Excel"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#16a34a', cursor: filtered.length ? 'pointer' : 'not-allowed', opacity: filtered.length ? 1 : 0.5, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#479c73', cursor: filtered.length ? 'pointer' : 'not-allowed', opacity: filtered.length ? 1 : 0.5, fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel

@@ -77,7 +77,7 @@ function SalariesFile({ data, onClear }) {
         <button onClick={exportToExcel} disabled={rows.length === 0} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
           background: 'var(--surface)', border: '1.5px solid var(--border-2)', borderRadius: 7,
-          fontSize: 13, fontWeight: 500, color: '#16a34a',
+          fontSize: 13, fontWeight: 500, color: '#479c73',
           cursor: rows.length === 0 ? 'not-allowed' : 'pointer',
           opacity: rows.length === 0 ? 0.5 : 1, fontFamily: 'inherit',
         }}>

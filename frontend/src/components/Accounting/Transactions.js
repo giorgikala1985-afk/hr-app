@@ -281,7 +281,7 @@ function Transactions() {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '6px 14px', background: 'white',
               border: '1.5px solid #e5e7eb', borderRadius: 7,
-              fontSize: 13, fontWeight: 500, color: '#16a34a',
+              fontSize: 13, fontWeight: 500, color: '#479c73',
               cursor: filtered.length === 0 ? 'not-allowed' : 'pointer',
               opacity: filtered.length === 0 ? 0.5 : 1,
               fontFamily: 'inherit',

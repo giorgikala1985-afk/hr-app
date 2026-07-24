@@ -93,7 +93,7 @@ export default function PortalDocuments() {
           </>
         )}
         {error && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 8 }}>{error}</p>}
-        {success && <p style={{ color: '#16a34a', fontSize: 13, marginTop: 8 }}>{success}</p>}
+        {success && <p style={{ color: '#479c73', fontSize: 13, marginTop: 8 }}>{success}</p>}
       </div>
 
       {/* List */}

@@ -481,7 +481,7 @@ function Invoices() {
                 )}
                 <button
                   onClick={handleExportExcel}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', marginLeft: 'auto' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#479c73', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer', marginLeft: 'auto' }}
                 >
                   <HugeiconsIcon icon={FileSpreadsheetIcon} size={14} color="#fff" strokeWidth={2} />
                   ყველას ექსპორტი
@@ -525,7 +525,7 @@ function Invoices() {
                       <button
                         onClick={e => { e.stopPropagation(); exportRecordsToExcel(dayRecords, date); }}
                         title="ამ დღის Excel-ში გატანა"
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#16a34a', cursor: 'pointer' }}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#479c73', cursor: 'pointer' }}
                       >
                         <HugeiconsIcon icon={FileSpreadsheetIcon} size={14} color="currentColor" strokeWidth={2} />
                         Excel
@@ -654,9 +654,9 @@ function Invoices() {
                 <span style={{ fontSize: 13, color: 'var(--text-3)' }}>წყარო: <strong style={{ color: 'var(--text)' }}>{editSourceLabel}</strong> · {editRecords.length} ჩანაწერი</span>
                 <button
                   onClick={handleExportEditRecordsToExcel}
-                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: 'var(--surface)', color: '#16a34a', border: '1.5px solid var(--border-2)', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: 'var(--surface)', color: '#479c73', border: '1.5px solid var(--border-2)', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
                 >
-                  <HugeiconsIcon icon={FileSpreadsheetIcon} size={14} color="#16a34a" strokeWidth={2} />
+                  <HugeiconsIcon icon={FileSpreadsheetIcon} size={14} color="#479c73" strokeWidth={2} />
                   Excel-ში შენახვა
                 </button>
                 <button
@@ -698,8 +698,8 @@ function Invoices() {
                         </td>
                         <td>
                           {rec.sent ? (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
-                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#16a34a" strokeWidth={2.5} />
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: 'rgba(71,156,115,0.15)', border: '1px solid rgba(71,156,115,0.3)', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#479c73' }}>
+                              <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#479c73" strokeWidth={2.5} />
                               გაგზავნილია
                             </span>
                           ) : (

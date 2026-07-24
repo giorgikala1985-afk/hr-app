@@ -143,7 +143,7 @@ export default function PortalScan() {
           </div>
 
           {error && <p style={{ color: '#dc2626', fontSize: 13, marginTop: 10 }}>{error}</p>}
-          {success && <p style={{ color: '#16a34a', fontSize: 13, marginTop: 10 }}>{success}</p>}
+          {success && <p style={{ color: '#479c73', fontSize: 13, marginTop: 10 }}>{success}</p>}
         </div>
       )}
     </div>

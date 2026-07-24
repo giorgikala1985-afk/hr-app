@@ -67,8 +67,8 @@ function AiAgentTool() {
 
       {/* Header */}
       <div style={{ padding: '20px 24px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-2)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(22,163,74,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(71,156,115,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z"/>
             <path d="M12 8v4l3 3"/>
           </svg>
@@ -117,17 +117,17 @@ function AiAgentTool() {
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               style={{
-                border: `2px dashed ${dragOver ? '#16a34a' : 'var(--border-2)'}`,
+                border: `2px dashed ${dragOver ? '#479c73' : 'var(--border-2)'}`,
                 borderRadius: 10, padding: '12px 8px', textAlign: 'center', cursor: 'pointer',
-                background: dragOver ? 'rgba(22,163,74,0.1)' : 'var(--surface)', transition: 'all 0.15s',
+                background: dragOver ? 'rgba(71,156,115,0.1)' : 'var(--surface)', transition: 'all 0.15s',
               }}
               onMouseEnter={e => { if (!dragOver) e.currentTarget.style.borderColor = 'var(--text-3)'; }}
               onMouseLeave={e => { if (!dragOver) e.currentTarget.style.borderColor = 'var(--border-2)'; }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={dragOver ? '#16a34a' : 'var(--text-3)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={dragOver ? '#479c73' : 'var(--text-3)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 4 }}>
                 <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
-              <div style={{ fontSize: 11, fontWeight: 600, color: dragOver ? '#16a34a' : 'var(--text-2)' }}>Add PDFs</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: dragOver ? '#479c73' : 'var(--text-2)' }}>Add PDFs</div>
               <div style={{ fontSize: 10, color: 'var(--text-3)', marginTop: 2 }}>click or drop</div>
             </div>
           </div>

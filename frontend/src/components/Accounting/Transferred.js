@@ -189,7 +189,7 @@ function Transferred({ month: initialMonth }) {
         <button className="sa-arrow" onClick={() => setMonth(nextMonth(month))}>›</button>
         <input type="month" value={month} onChange={e => setMonth(e.target.value)} className="sa-month-input" />
         {tbc && !tbc.missing && (
-          <span style={{ fontSize: 12, color: '#22c55e', marginLeft: 10 }}>
+          <span style={{ fontSize: 12, color: '#479c73', marginLeft: 10 }}>
             ✓ TBC: {tbc.rows.length} row{tbc.rows.length !== 1 ? 's' : ''} matched to period
             {tbc.outCol !== -1 && tbc.headers?.[tbc.outCol] &&
               <span style={{ color: 'var(--text-4)' }}> · amount col: "{tbc.headers[tbc.outCol]}"</span>}
@@ -238,10 +238,10 @@ function Transferred({ month: initialMonth }) {
                       <td style={{ padding: '10px 16px', color: 'var(--text-4)', fontFamily: FONT_MONO, fontSize: 12 }}>{i + 1}</td>
                       <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text)' }}>{emp.first_name}</td>
                       <td style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text)' }}>{emp.last_name}</td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: match ? '#22c55e' : '#f59e0b' }}>
+                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: match ? '#479c73' : '#f59e0b' }}>
                         {gel != null ? fmtGEL(gel) : '—'}
                       </td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: match ? '#22c55e' : tbcAmount != null ? '#22c55e' : 'var(--text-4)' }}>
+                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: match ? '#479c73' : tbcAmount != null ? '#479c73' : 'var(--text-4)' }}>
                         {tbcAmount != null ? fmtGEL(tbcAmount) : hasTBC ? '—' : ''}
                       </td>
                     </tr>
@@ -252,10 +252,10 @@ function Transferred({ month: initialMonth }) {
                   return (
                     <tr style={{ background: 'var(--surface-2)' }}>
                       <td colSpan={3} style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--text)', fontSize: 13 }}>Total</td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: totalMatch ? '#22c55e' : '#f59e0b', fontSize: 14 }}>
+                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: totalMatch ? '#479c73' : '#f59e0b', fontSize: 14 }}>
                         {fmtGEL(totalGEL)}
                       </td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: '#22c55e', fontSize: 14 }}>
+                      <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: FONT_MONO, fontWeight: 700, color: '#479c73', fontSize: 14 }}>
                         {hasTBC && totalTBC > 0 ? fmtGEL(totalTBC) : ''}
                       </td>
                     </tr>

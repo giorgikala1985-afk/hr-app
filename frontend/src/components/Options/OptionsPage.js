@@ -83,13 +83,13 @@ function OptionsPage() {
     { key: 'holidays', label: t('options.holidays'), icon: optIcon(Calendar03Icon, '#f43f5e') },
     { key: 'info', label: t('options.info'), icon: optIcon(InformationCircleIcon, '#8b5cf6') },
     { key: 'pagination', label: t('options.pagination'), icon: optIcon(Table01Icon, '#f97316') },
-    { key: 'tax', label: t('options.tax'), icon: optIcon(TaxesIcon, '#10b981') },
+    { key: 'tax', label: t('options.tax'), icon: optIcon(TaxesIcon, '#479c73') },
     { key: 'language', label: t('options.language'), icon: optIcon(Globe02Icon, '#06b6d4') },
     { key: 'navorder', label: t('options.navOrder'), icon: optIcon(Menu01Icon, '#6366f1') },
     { key: 'accounts', label: t('options.accounts'), icon: optIcon(AccountSetting01Icon, '#0369a1') },
     ...(isSuperAdmin ? [{ key: 'users', label: t('options.users'), icon: optIcon(UserSettings01Icon, '#7c3aed') }] : []),
     { key: 'hierarchy', label: t('options.hierarchy'), icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="4"  r="2.2"/><line x1="12" y1="6.2" x2="12" y2="9.5"/>
         <line x1="12" y1="9.5" x2="5.5" y2="13"/><line x1="12" y1="9.5" x2="18.5" y2="13"/>
         <circle cx="5.5" cy="15.2" r="2.2"/><circle cx="18.5" cy="15.2" r="2.2"/>

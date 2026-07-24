@@ -10,7 +10,7 @@ const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
 const CURRENCIES = [
-  { code: 'USD', symbol: '$', color: '#16a34a' },
+  { code: 'USD', symbol: '$', color: '#479c73' },
   { code: 'GEL', symbol: '₾', color: '#92400e' },
   { code: 'EUR', symbol: '€', color: '#7c3aed' },
 ];
@@ -249,7 +249,7 @@ function EmptyState({ label, onAdd }) {
     <div style={{ textAlign: 'center', padding: '64px 24px' }}>
       <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>{t('orders.noOrders', { month: label })}</div>
       <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>{t('orders.noOrdersHint')}</div>
-      {onAdd && <button onClick={onAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
+      {onAdd && <button onClick={onAdd} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#479c73', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
     </div>
   );
 }
@@ -302,7 +302,7 @@ function PromotionTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
+        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {orders.length === 0 ? <EmptyState label={t('orders.promotion')} onAdd={canCreate ? openAdd : undefined} /> : (
@@ -320,9 +320,9 @@ function PromotionTab({ employees }) {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.oldPosition || '—'}</td>
-                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{o.newPosition}</td>
+                  <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{o.newPosition}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.oldSalary || '—'}</td>
-                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{o.newSalary}</td>
+                  <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{o.newSalary}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.effectiveDate}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -474,7 +474,7 @@ function HiringTab() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
+        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
@@ -496,7 +496,7 @@ function HiringTab() {
                   <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.position}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.department || '—'}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.startDate}</td>
-                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{o.salary}</td>
+                  <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{o.salary}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
@@ -932,7 +932,7 @@ function HiringDocuments({ orderId }) {
             </div>
             <div className="form-group" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => fileRef.current?.click()}
-                style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: docFile ? '#4ade80' : 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
+                style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: docFile ? '#479c73' : 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, whiteSpace: 'nowrap' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                 </svg>
@@ -1157,7 +1157,7 @@ function HiringAgreement({ orderId, order }) {
   };
 
   const statusBadge = (s) => {
-    const map = { active: ['#dcfce7','#15803d'], inactive: ['#f1f5f9','#475569'], terminated: ['#fef2f2','#dc2626'] };
+    const map = { active: ['rgba(71,156,115,0.15)','#479c73'], inactive: ['#f1f5f9','#475569'], terminated: ['#fef2f2','#dc2626'] };
     const [bg, color] = map[s] || map.inactive;
     return <span style={{ background: bg, color, padding: '2px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'capitalize' }}>{s}</span>;
   };
@@ -1181,7 +1181,7 @@ function HiringAgreement({ orderId, order }) {
       </div>
 
       {error   && <div style={{ padding: '10px 14px', background: 'rgba(220,38,38,0.15)', color: '#f87171', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(220,38,38,0.3)' }}>{error}</div>}
-      {success && <div style={{ padding: '10px 14px', background: 'rgba(22,163,74,0.15)', color: '#4ade80', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(22,163,74,0.3)' }}>{success}</div>}
+      {success && <div style={{ padding: '10px 14px', background: 'rgba(71,156,115,0.15)', color: '#479c73', borderRadius: 8, fontSize: 13, marginBottom: 14, border: '1px solid rgba(71,156,115,0.3)' }}>{success}</div>}
 
       {showForm && (
         <form onSubmit={handleCreate} style={{ background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 12, padding: 20, marginBottom: 24 }}>
@@ -1284,8 +1284,8 @@ function HiringAgreement({ orderId, order }) {
 
               {/* Sign URL */}
               {signUrls[ag.id] && (
-                <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(22,163,74,0.08)', borderRadius: 8, border: '1px solid rgba(22,163,74,0.25)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <div style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(71,156,115,0.08)', borderRadius: 8, border: '1px solid rgba(71,156,115,0.25)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                     <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/>
                   </svg>
                   <span style={{ fontSize: 11, color: 'var(--text-3)', flex: 1, wordBreak: 'break-all' }}>{signUrls[ag.id]}</span>
@@ -1378,7 +1378,7 @@ function FiringTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
+        {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {orders.length === 0 ? <EmptyState label={t('orders.firing')} onAdd={canCreate ? openAdd : undefined} /> : (
@@ -1572,7 +1572,7 @@ function TripCosts({ tripId }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" hidden onChange={e => setCostFile(e.target.files[0] || null)} />
           <button type="button" onClick={() => fileRef.current?.click()}
-            style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: costFile ? '#4ade80' : 'var(--text-3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+            style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: costFile ? '#479c73' : 'var(--text-3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             {costFile ? costFile.name.slice(0, 22) + (costFile.name.length > 22 ? '…' : '') : 'Attach PDF / Image'}
           </button>
@@ -1611,7 +1611,7 @@ function TripCosts({ tripId }) {
                       : <span style={{ color: 'var(--text-4)' }}>—</span>
                     }
                   </td>
-                  <td style={{ padding: '9px 12px', fontWeight: 700, color: '#4ade80', textAlign: 'right', whiteSpace: 'nowrap' }}>{c.amount ? `$${c.amount}` : '—'}</td>
+                  <td style={{ padding: '9px 12px', fontWeight: 700, color: '#479c73', textAlign: 'right', whiteSpace: 'nowrap' }}>{c.amount ? `$${c.amount}` : '—'}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
                     <button onClick={() => saveCosts(costs.filter(x => x.id !== c.id))}
                       style={{ width: 26, height: 26, borderRadius: 5, border: '1px solid var(--border-2)', background: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
@@ -1621,9 +1621,9 @@ function TripCosts({ tripId }) {
               ))}
             </tbody>
           </table>
-          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(74,222,128,0.08)', borderRadius: 8, border: '1px solid rgba(74,222,128,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(71,156,115,0.08)', borderRadius: 8, border: '1px solid rgba(71,156,115,0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'var(--text-3)', fontWeight: 600 }}>Total Costs</span>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#4ade80' }}>${totalCosts.toFixed(2)}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color: '#479c73' }}>${totalCosts.toFixed(2)}</span>
           </div>
         </>
       )}
@@ -1823,7 +1823,7 @@ function BusinessTripTab({ employees }) {
                           {o.countryName}{o.cityName ? `, ${o.cityName}` : ''}
                         </td>
                         <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.perDiem ? `$${o.perDiem}` : '—'}</td>
-                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#4ade80' }}>${totalAmount.toFixed(2)}</td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#479c73' }}>${totalAmount.toFixed(2)}</td>
                         <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                           {totalCosts > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${totalCosts.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>}
                         </td>
@@ -1845,7 +1845,7 @@ function BusinessTripTab({ employees }) {
                             <td style={{ padding: '9px 14px', fontWeight: 600, color: '#0ea5e9', fontSize: 12 }}>{m.days}d</td>
                             <td style={{ padding: '9px 14px', color: 'var(--text-3)', fontSize: 12 }}>{m.countryName}{m.cityName ? `, ${m.cityName}` : ''}</td>
                             <td style={{ padding: '9px 14px', color: 'var(--text-3)', fontSize: 12 }}>{m.perDiem ? `$${m.perDiem}` : '—'}</td>
-                            <td style={{ padding: '9px 14px', fontWeight: 600, color: '#4ade80', fontSize: 12 }}>{m.amount ? `$${m.amount}` : '—'}</td>
+                            <td style={{ padding: '9px 14px', fontWeight: 600, color: '#479c73', fontSize: 12 }}>{m.amount ? `$${m.amount}` : '—'}</td>
                             <td style={{ padding: '9px 14px', fontSize: 12 }}>
                               {(() => { const t = getTripCostsTotal(m.id); return t > 0 ? <span style={{ fontWeight: 600, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
                             </td>
@@ -1875,7 +1875,7 @@ function BusinessTripTab({ employees }) {
                           {o.countryName}{o.cityName ? `, ${o.cityName}` : ''}
                         </td>
                         <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.perDiem ? `$${o.perDiem}` : '—'}</td>
-                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#4ade80' }}>{o.amount ? `$${o.amount}` : '—'}</td>
+                        <td style={{ padding: '11px 14px', fontWeight: 700, color: '#479c73' }}>{o.amount ? `$${o.amount}` : '—'}</td>
                         <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                           {(() => { const t = getTripCostsTotal(o.id); return t > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
                         </td>
@@ -2371,7 +2371,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button onClick={() => { setEditId(null); setForm(EMPTY); setShowForm(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + Add New Order
         </button>
       </div>
@@ -2395,13 +2395,13 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB')}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
-                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
+                  <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
                   <td style={{ padding: '11px 14px' }}>
                     <span style={{
                       padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                      background: o.mode === 'automatic' ? 'rgba(59,130,246,0.12)' : o.mode === 'sameperiod' ? 'rgba(34,197,94,0.12)' : 'rgba(139,92,246,0.12)',
-                      color: o.mode === 'automatic' ? '#60a5fa' : o.mode === 'sameperiod' ? '#4ade80' : '#a78bfa',
+                      background: o.mode === 'automatic' ? 'rgba(59,130,246,0.12)' : o.mode === 'sameperiod' ? 'rgba(71,156,115,0.12)' : 'rgba(139,92,246,0.12)',
+                      color: o.mode === 'automatic' ? '#60a5fa' : o.mode === 'sameperiod' ? '#479c73' : '#a78bfa',
                     }}>
                       {o.mode === 'automatic' ? 'Auto' : o.mode === 'sameperiod' ? 'Same Period' : 'Manual'}
                     </span>
@@ -2409,8 +2409,8 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                   <td style={{ padding: '11px 14px' }}>
                     <span style={{
                       padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600,
-                      background: o.includeInSalary !== false ? 'rgba(22,163,74,0.12)' : 'rgba(148,163,184,0.15)',
-                      color: o.includeInSalary !== false ? '#4ade80' : 'var(--text-3)',
+                      background: o.includeInSalary !== false ? 'rgba(71,156,115,0.12)' : 'rgba(148,163,184,0.15)',
+                      color: o.includeInSalary !== false ? '#479c73' : 'var(--text-3)',
                     }}>
                       {o.includeInSalary !== false ? '✓ ჩარიცხულია' : 'არ არის ჩარიცხული'}
                     </span>
@@ -2526,7 +2526,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                         {samePeriodRemaining != null && (
                           <div style={{ fontSize: 13, marginTop: 6 }}>
                             Remaining after advance:{' '}
-                            <strong style={{ color: samePeriodRemaining >= 0 ? '#4ade80' : '#f87171' }}>
+                            <strong style={{ color: samePeriodRemaining >= 0 ? '#479c73' : '#f87171' }}>
                               ${samePeriodRemaining.toFixed(2)}
                             </strong>
                           </div>
@@ -2558,7 +2558,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                       ))}
                     </div>
                     <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)' }}>
-                      Total: <strong style={{ color: '#4ade80' }}>{CURR_SYMBOLS[form.currency]}{parseFloat(form.totalAmount).toFixed(2)}</strong>
+                      Total: <strong style={{ color: '#479c73' }}>{CURR_SYMBOLS[form.currency]}{parseFloat(form.totalAmount).toFixed(2)}</strong>
                     </div>
                   </div>
                 )}
@@ -2585,7 +2585,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                 </div>
                 {manualTotal > 0 && (
                   <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)', textAlign: 'right' }}>
-                    Total: <strong style={{ color: '#4ade80' }}>{CURR_SYMBOLS[form.currency]}{manualTotal.toFixed(2)}</strong>
+                    Total: <strong style={{ color: '#479c73' }}>{CURR_SYMBOLS[form.currency]}{manualTotal.toFixed(2)}</strong>
                   </div>
                 )}
               </div>
@@ -2604,7 +2604,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                 onClick={() => setForm(p => ({ ...p, includeInSalary: !p.includeInSalary }))}
                 style={{
                   width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-                  background: form.includeInSalary ? '#16a34a' : 'var(--border-2)',
+                  background: form.includeInSalary ? '#479c73' : 'var(--border-2)',
                   position: 'relative', transition: 'background 0.2s', flexShrink: 0,
                 }}
               >
@@ -2792,7 +2792,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
         <button onClick={openNew}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + Add New Order
         </button>
       </div>
@@ -2835,7 +2835,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
                     </div>
                   </td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.purpose || '—'}</td>
-                  <td style={{ padding: '11px 14px', color: '#4ade80', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
+                  <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{CURR_SYMBOLS[o.currency]}{Number(o.total).toFixed(2)}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
@@ -2890,7 +2890,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
               <label style={{ ...LABEL, marginBottom: 0 }}>Employees</label>
               {selectedIds.length > 0 && (
                 <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                  {selectedIds.length} selected · <strong style={{ color: '#4ade80' }}>{CURR_SYMBOLS[form.currency]}{selectedTotal.toFixed(2)}</strong>
+                  {selectedIds.length} selected · <strong style={{ color: '#479c73' }}>{CURR_SYMBOLS[form.currency]}{selectedTotal.toFixed(2)}</strong>
                 </span>
               )}
             </div>
@@ -2909,7 +2909,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
                   <div key={emp.id} style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px',
                     borderBottom: i < filteredEmployees.length - 1 ? '1px solid var(--border-2)' : 'none',
-                    background: checked ? 'rgba(22,163,74,0.06)' : 'transparent',
+                    background: checked ? 'rgba(71,156,115,0.06)' : 'transparent',
                   }}>
                     <input type="checkbox" checked={checked} onChange={() => toggleEmp(emp.id)} style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
                     <span
@@ -2977,7 +2977,7 @@ function HandoverTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+        <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + {t('orders.addNew')}
         </button>
       </div>
@@ -3431,9 +3431,9 @@ export default function Orders() {
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '9px 20px', borderRadius: 9, border: 'none',
-            background: '#16a34a', color: '#fff',
+            background: '#479c73', color: '#fff',
             fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(22,163,74,0.3)', transition: 'all 0.15s',
+            boxShadow: '0 2px 8px rgba(71,156,115,0.3)', transition: 'all 0.15s',
           }}
           onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
           onMouseLeave={e => e.currentTarget.style.opacity = '1'}
@@ -3498,7 +3498,7 @@ export default function Orders() {
             <strong style={{ color: 'var(--text)' }}>{allUnits.length}</strong> {t('orders.orders')}
           </div>
           {totalAdditions > 0 && (
-            <div style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(22,163,74,0.1)', border: '1px solid rgba(22,163,74,0.25)', fontSize: 13, color: '#4ade80' }}>
+            <div style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(71,156,115,0.1)', border: '1px solid rgba(71,156,115,0.25)', fontSize: 13, color: '#479c73' }}>
               +{fmt(totalAdditions)} {t('orders.additions')}
             </div>
           )}
@@ -3561,7 +3561,7 @@ export default function Orders() {
             <div style={{ fontSize: 13, color: 'var(--text-3)', marginBottom: 20 }}>{t('orders.noOrdersHint')}</div>
             <button
               onClick={() => { setForm(f => ({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' })); setShowForm(true); setError(''); }}
-              style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
+              style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#479c73', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}
             >
               + {t('orders.addNew')}
             </button>
@@ -3632,9 +3632,9 @@ export default function Orders() {
                   <td style={{ padding: '12px 16px' }}>
                     <span title={u.note || undefined} style={{
                       display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                      background: u.direction === 'addition' ? 'rgba(22,163,74,0.12)' : 'rgba(220,38,38,0.1)',
-                      color: u.direction === 'addition' ? '#4ade80' : '#f87171',
-                      border: `1px solid ${u.direction === 'addition' ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.2)'}`,
+                      background: u.direction === 'addition' ? 'rgba(71,156,115,0.12)' : 'rgba(220,38,38,0.1)',
+                      color: u.direction === 'addition' ? '#479c73' : '#f87171',
+                      border: `1px solid ${u.direction === 'addition' ? 'rgba(71,156,115,0.25)' : 'rgba(220,38,38,0.2)'}`,
                     }}>
                       {u.type}
                     </span>
@@ -3646,12 +3646,12 @@ export default function Orders() {
                   </td>
 
                   {/* Direction */}
-                  <td style={{ padding: '12px 16px', color: u.direction === 'addition' ? '#4ade80' : '#f87171', fontSize: 12, fontWeight: 500 }}>
+                  <td style={{ padding: '12px 16px', color: u.direction === 'addition' ? '#479c73' : '#f87171', fontSize: 12, fontWeight: 500 }}>
                     {u.direction === 'addition' ? t('orders.addition') : t('orders.deduction')}
                   </td>
 
                   {/* Amount */}
-                  <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: u.direction === 'addition' ? '#4ade80' : '#f87171' }}>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: u.direction === 'addition' ? '#479c73' : '#f87171' }}>
                     {u.direction === 'addition' ? '+' : '−'}{fmt(u.amount)}
                   </td>
 
@@ -3777,7 +3777,7 @@ export default function Orders() {
                       <option key={ut.id} value={ut.name}>{ut.name} ({ut.direction === 'addition' ? '+' : '−'})</option>
                     ))}
                   </select>
-                  <div style={{ fontSize: 11, marginTop: 5, color: getDirection(form.type) === 'addition' ? '#4ade80' : '#f87171' }}>
+                  <div style={{ fontSize: 11, marginTop: 5, color: getDirection(form.type) === 'addition' ? '#479c73' : '#f87171' }}>
                     {getDirection(form.type) === 'addition' ? t('orders.addedToNet') : t('orders.deductedFromNet')}
                   </div>
                 </div>
@@ -3860,7 +3860,7 @@ export default function Orders() {
                   onClick={() => setForm(p => ({ ...p, includeInSalary: !p.includeInSalary }))}
                   style={{
                     width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-                    background: form.includeInSalary ? '#16a34a' : 'var(--border-2)',
+                    background: form.includeInSalary ? '#479c73' : 'var(--border-2)',
                     position: 'relative', transition: 'background 0.2s', flexShrink: 0,
                   }}
                 >
