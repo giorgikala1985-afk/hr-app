@@ -219,6 +219,21 @@ function Invoices() {
     }
   };
 
+  const handleExportEditRecordsToExcel = () => {
+    const headersKa = ['მიმღების ანგარიში', 'მიმღების სახელი და გვარი', 'თანხა', 'დანიშნულება'];
+    const headersEn = ['Account Number', "Employee's Name", 'Amount', 'Description'];
+    const wsData = [
+      headersKa,
+      headersEn,
+      ...editRecords.map(r => [r.iban || '', r.payee || '', parseFloat(r.amount || 0), r.description || '']),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 14 }, { wch: 40 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+    XLSX.writeFile(wb, `transactions_${editSourceLabel || today()}.xlsx`);
+  };
+
   const handleUploadDelete = async (id) => {
     if (!window.confirm('ჩანაწერი წაიშლება. გაგრძელება?')) return;
     try {
@@ -638,9 +653,16 @@ function Invoices() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, color: 'var(--text-3)' }}>წყარო: <strong style={{ color: 'var(--text)' }}>{editSourceLabel}</strong> · {editRecords.length} ჩანაწერი</span>
                 <button
+                  onClick={handleExportEditRecordsToExcel}
+                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: 'var(--surface)', color: '#16a34a', border: '1.5px solid var(--border-2)', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                >
+                  <HugeiconsIcon icon={FileSpreadsheetIcon} size={14} color="#16a34a" strokeWidth={2} />
+                  Excel-ში შენახვა
+                </button>
+                <button
                   onClick={handleSendAllToTransfers}
                   disabled={sendingAll || editRecords.every(r => r.sent)}
-                  style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: sendingAll ? 'not-allowed' : 'pointer', opacity: sendingAll || editRecords.every(r => r.sent) ? 0.6 : 1 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: sendingAll ? 'not-allowed' : 'pointer', opacity: sendingAll || editRecords.every(r => r.sent) ? 0.6 : 1 }}
                 >
                   <HugeiconsIcon icon={SentIcon} size={14} color="#fff" strokeWidth={2} />
                   {sendingAll ? 'იგზავნება...' : 'ყველას გაგზავნა Transfers-ში'}
