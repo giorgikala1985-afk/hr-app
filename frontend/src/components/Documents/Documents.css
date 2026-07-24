@@ -1763,6 +1763,33 @@
   color: var(--text);
 }
 
+.fb-modal-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 12px 24px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.fb-modal-tab {
+  background: none;
+  border: none;
+  padding: 8px 4px 12px;
+  margin-right: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.fb-modal-tab:hover { color: var(--text-2); }
+
+.fb-modal-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent, #3b82f6);
+}
+
 .fb-modal-close {
   background: none;
   border: none;

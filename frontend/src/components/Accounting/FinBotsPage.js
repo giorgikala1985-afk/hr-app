@@ -170,6 +170,7 @@ function BotModal({ bot, onSave, onClose }) {
   const [floating, setFloatingState] = useState(() => isFloating(bot?.id));
   const [dlTables] = useState(() => readDLTables());
   const [preferredChart, setPreferredChart] = useState(bot?.preferredChart || 'bar');
+  const [modalTab, setModalTab] = useState('settings');
 
   const toggleSource = (key) => {
     setSources(prev => prev.includes(key) ? prev.filter(s => s !== key) : [...prev, key]);
@@ -203,6 +204,24 @@ function BotModal({ bot, onSave, onClose }) {
           <button className="fb-modal-close" onClick={onClose}>×</button>
         </div>
 
+        <div className="fb-modal-tabs">
+          <button
+            type="button"
+            className={`fb-modal-tab${modalTab === 'settings' ? ' active' : ''}`}
+            onClick={() => setModalTab('settings')}
+          >
+            {t('fb.botSettings')}
+          </button>
+          <button
+            type="button"
+            className={`fb-modal-tab${modalTab === 'visuals' ? ' active' : ''}`}
+            onClick={() => setModalTab('visuals')}
+          >
+            {t('fb.visuals')}
+          </button>
+        </div>
+
+        {modalTab === 'settings' ? (
         <div className="fb-modal-body-cols">
           {/* Left column */}
           <div className="fb-modal-col-left">
@@ -313,23 +332,6 @@ function BotModal({ bot, onSave, onClose }) {
             </div>
           </div>
 
-          {/* Chart type picker */}
-          <div className="fb-field" style={{ gridColumn: '1 / -1' }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8, display: 'block' }}>Default Chart Type</label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-              {CHART_TYPES.map(ct => {
-                const active = preferredChart === ct.key;
-                return (
-                  <button key={ct.key} type="button" onClick={() => setPreferredChart(ct.key)}
-                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '8px 4px', borderRadius: 10, border: `1.5px solid ${active ? color : 'var(--border-2)'}`, background: active ? color + '18' : 'var(--surface-2)', cursor: 'pointer', transition: 'all 0.15s' }}>
-                    {ct.icon(active ? color : 'var(--text-4)')}
-                    <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? color : 'var(--text-3)', letterSpacing: '0.02em' }}>{ct.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Right column — Data sources */}
           <div className="fb-modal-col-right">
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-2)', marginBottom: 4 }}>{t('fb.dataSources')}</div>
@@ -388,6 +390,26 @@ function BotModal({ bot, onSave, onClose }) {
             )}
           </div>
         </div>
+        ) : (
+        <div className="fb-modal-body">
+          {/* Chart type picker */}
+          <div className="fb-field">
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8, display: 'block' }}>{t('fb.defaultChartType')}</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+              {CHART_TYPES.map(ct => {
+                const active = preferredChart === ct.key;
+                return (
+                  <button key={ct.key} type="button" onClick={() => setPreferredChart(ct.key)}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '10px 4px', borderRadius: 10, border: `1.5px solid ${active ? color : 'var(--border-2)'}`, background: active ? color + '18' : 'var(--surface-2)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                    {ct.icon(active ? color : 'var(--text-4)')}
+                    <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? color : 'var(--text-3)', letterSpacing: '0.02em' }}>{ct.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        )}
 
         <div className="fb-modal-footer">
           <button className="fb-btn fb-btn-ghost" onClick={onClose}>{t('fb.cancel')}</button>
