@@ -19,13 +19,15 @@ function SalariesFile({ data, onClear }) {
   };
 
   const exportToExcel = () => {
-    const headers = [t('salFile.colName'), t('salFile.colLastName'), t('salFile.colIban'), t('salFile.colAmount'), t('salFile.colDescription')];
+    const headersKa = ['მიმღების ანგარიში', 'მიმღების სახელი და გვარი', 'თანხა', 'დანიშნულება'];
+    const headersEn = ['Account Number', "Employee's Name", 'Amount', 'Description'];
     const wsData = [
-      headers,
-      ...rows.map(r => [r.first_name, r.last_name, r.iban, parseFloat(r.amount || 0), r.description]),
+      headersKa,
+      headersEn,
+      ...rows.map(r => [r.iban, `${r.first_name || ''} ${r.last_name || ''}`.trim(), parseFloat(r.amount || 0), r.description]),
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 28 }, { wch: 14 }, { wch: 30 }];
+    ws['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 14 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Salary File');
     XLSX.writeFile(wb, data?.month ? `salary-file-${data.month}.xlsx` : 'salary-file.xlsx');
