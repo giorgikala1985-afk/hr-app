@@ -10,6 +10,9 @@ const en = {
   'table.columns': 'Columns',
   'table.columnsDragToReorder': 'Columns (drag to reorder)',
   'table.resetToDefault': 'Reset to default',
+  'table.rowsPerPage': 'Rows:',
+  'table.all': 'All',
+  'table.showingRows': '{from}–{to} of {total}',
 
   // ===== Header / Nav =====
   'nav.logo': 'Finpilot',

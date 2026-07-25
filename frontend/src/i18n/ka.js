@@ -10,6 +10,9 @@ const ka = {
   'table.columns': 'სვეტები',
   'table.columnsDragToReorder': 'სვეტები (გადაათრიეთ დასალაგებლად)',
   'table.resetToDefault': 'ნაგულისხმევის აღდგენა',
+  'table.rowsPerPage': 'რიგები:',
+  'table.all': 'ყველა',
+  'table.showingRows': '{from}–{to} / {total}',
 
   // ===== Header / Nav =====
   'nav.logo': 'Finpilot',

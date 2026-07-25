@@ -34,8 +34,16 @@ function loadVisible(storageKey, allKeys, defaultVisible) {
   } catch {}
   return defaultVisible || allKeys;
 }
+const PAGE_SIZE_OPTIONS = [50, 100, 200];
+function loadPageSize(storageKey, defaultPageSize) {
+  try {
+    const saved = JSON.parse(localStorage.getItem(`${storageKey}_page_size`));
+    if (saved === 'all' || PAGE_SIZE_OPTIONS.includes(saved)) return saved;
+  } catch {}
+  return defaultPageSize || PAGE_SIZE_OPTIONS[0];
+}
 
-export function useExcelTable({ storageKey, columns, rows, defaultVisible }) {
+export function useExcelTable({ storageKey, columns, rows, defaultVisible, defaultPageSize }) {
   const allKeys = columns.map(c => c.key);
   const colByKey = Object.fromEntries(columns.map(c => [c.key, c]));
 
@@ -61,9 +69,18 @@ export function useExcelTable({ storageKey, columns, rows, defaultVisible }) {
   const resetCols = () => { setColOrder(allKeys); setVisibleCols(defaultVisible || allKeys); };
   const displayCols = colOrder.filter(k => visibleCols.includes(k));
 
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSizeState] = useState(() => loadPageSize(storageKey, defaultPageSize));
+  const setPageSize = (size) => {
+    setPageSizeState(size);
+    setPage(1);
+    try { localStorage.setItem(`${storageKey}_page_size`, JSON.stringify(size)); } catch {}
+  };
+
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
   const toggleSort = (key) => {
+    setPage(1);
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortKey(key); setSortDir('asc'); }
   };
@@ -111,6 +128,7 @@ export function useExcelTable({ storageKey, columns, rows, defaultVisible }) {
   };
   // values/checked covers both a single checkbox toggle and "select all [visible]"
   const setColumnFilterValues = (key, allOptions, values, checked) => {
+    setPage(1);
     setColumnFilters(prev => {
       const current = prev[key] ?? new Set(allOptions);
       const next = new Set(current);
@@ -118,8 +136,8 @@ export function useExcelTable({ storageKey, columns, rows, defaultVisible }) {
       return { ...prev, [key]: next.size === allOptions.length ? null : next };
     });
   };
-  const clearColumnFilter = (key) => setColumnFilters(prev => ({ ...prev, [key]: null }));
-  const clearAllColumnFilters = () => setColumnFilters(emptyFilters());
+  const clearColumnFilter = (key) => { setPage(1); setColumnFilters(prev => ({ ...prev, [key]: null })); };
+  const clearAllColumnFilters = () => { setPage(1); setColumnFilters(emptyFilters()); };
   const openColumnFilterDropdown = (e, key) => {
     e.stopPropagation();
     if (openFilterCol === key) { setOpenFilterCol(null); setFilterDropdownPos(null); return; }
@@ -145,6 +163,10 @@ export function useExcelTable({ storageKey, columns, rows, defaultVisible }) {
 
   const hasActiveFilters = allKeys.some(k => columnFilters[k] !== null);
 
+  const totalPages = pageSize === 'all' ? 1 : Math.max(1, Math.ceil(sortedRows.length / pageSize));
+  const safePage = Math.min(page, totalPages);
+  const pagedRows = pageSize === 'all' ? sortedRows : sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize);
+
   return {
     columns, colByKey, allKeys,
     colOrder, visibleCols, displayCols, showColMenu, setShowColMenu, toggleColVisible, moveCol, resetCols,
@@ -153,6 +175,7 @@ export function useExcelTable({ storageKey, columns, rows, defaultVisible }) {
     columnFilters, openFilterCol, filterDropdownPos, filterSearch, filterDropdownRef, setFilterSearch,
     getColumnFilterOptions, setColumnFilterValues, clearColumnFilter, clearAllColumnFilters, openColumnFilterDropdown,
     filteredRows, sortedRows, hasActiveFilters,
+    page: safePage, setPage, pageSize, setPageSize, pageSizeOptions: PAGE_SIZE_OPTIONS, totalPages, pagedRows,
   };
 }
 
@@ -284,6 +307,61 @@ export function TableHeaderRow({ table, t, extraCols = [], trStyle }) {
         </th>
       ))}
     </tr>
+  );
+}
+
+// Page-size picker (50/100/200/All) + prev/next page navigation. Renders
+// nothing when there's only one page's worth of rows and size is default.
+export function PaginationBar({ table, t }) {
+  const { page, setPage, pageSize, setPageSize, pageSizeOptions, totalPages, sortedRows } = table;
+  if (sortedRows.length === 0) return null;
+
+  const pageBtnStyle = (active, disabled) => ({
+    minWidth: 28, height: 28, padding: '0 6px', borderRadius: 6,
+    border: '1px solid var(--border-2)', cursor: disabled ? 'default' : 'pointer',
+    background: active ? '#479c73' : 'var(--surface)',
+    color: active ? '#fff' : disabled ? 'var(--text-4)' : 'var(--text-2)',
+    fontWeight: 600, fontSize: 12, opacity: disabled ? 0.5 : 1,
+  });
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1)
+    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+    .reduce((acc, p, i, arr) => {
+      if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
+      acc.push(p);
+      return acc;
+    }, []);
+
+  const from = sortedRows.length === 0 ? 0 : (page - 1) * (pageSize === 'all' ? sortedRows.length : pageSize) + 1;
+  const to = pageSize === 'all' ? sortedRows.length : Math.min(page * pageSize, sortedRows.length);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, padding: '10px 4px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text-3)' }}>
+        <span>{t('table.rowsPerPage')}</span>
+        {pageSizeOptions.map(size => (
+          <button key={size} onClick={() => setPageSize(size)} style={pageBtnStyle(pageSize === size)}>{size}</button>
+        ))}
+        <button onClick={() => setPageSize('all')} style={pageBtnStyle(pageSize === 'all')}>{t('table.all')}</button>
+      </div>
+
+      <span style={{ fontSize: 12, color: 'var(--text-4)' }}>
+        {t('table.showingRows', { from, to, total: sortedRows.length })}
+      </span>
+
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button disabled={page <= 1} onClick={() => setPage(1)} style={pageBtnStyle(false, page <= 1)}>&laquo;</button>
+          <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={pageBtnStyle(false, page <= 1)}>&lsaquo;</button>
+          {pageNumbers.map((p, i) => p === '...' ? (
+            <span key={`dot-${i}`} style={{ fontSize: 12, color: 'var(--text-4)', padding: '0 4px' }}>...</span>
+          ) : (
+            <button key={p} onClick={() => setPage(p)} style={pageBtnStyle(p === page)}>{p}</button>
+          ))}
+          <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))} style={pageBtnStyle(false, page >= totalPages)}>&rsaquo;</button>
+          <button disabled={page >= totalPages} onClick={() => setPage(totalPages)} style={pageBtnStyle(false, page >= totalPages)}>&raquo;</button>
+        </div>
+      )}
+    </div>
   );
 }
 

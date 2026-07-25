@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -6,7 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { fmtExcelDate } from '../../utils/formatDate';
 import '../Employees/Employees.css';
 import '../Options/Options.css';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 // Proportional default widths per column key (table-layout:fixed stretches to fill).
 const DEFAULT_COL_WIDTHS = {
@@ -64,29 +64,7 @@ function Agents() {
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [paginationSettings, setPaginationSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pagination_settings');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return { enabled: false, pageSize: 50 };
-  });
-
-  const onPaginationChange = useCallback(() => {
-    try {
-      const saved = localStorage.getItem('pagination_settings');
-      if (saved) setPaginationSettings(JSON.parse(saved));
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener('pagination-changed', onPaginationChange);
-    return () => window.removeEventListener('pagination-changed', onPaginationChange);
-  }, [onPaginationChange]);
-
   useEffect(() => { load(); }, []);
-  useEffect(() => { setCurrentPage(1); }, [search, paginationSettings]);
 
   const load = async () => {
     setLoading(true);
@@ -106,15 +84,6 @@ function Agents() {
   }, [records, search]);
 
   const table = useExcelTable({ storageKey: 'agents_list', columns: AGENT_COLUMNS, rows: filtered });
-  useEffect(() => { setCurrentPage(1); }, [table.columnFilters]);
-
-  const usePagination = paginationSettings.enabled && paginationSettings.pageSize !== 'all';
-  const pageSize = usePagination ? paginationSettings.pageSize : table.sortedRows.length;
-  const totalPages = usePagination ? Math.max(1, Math.ceil(table.sortedRows.length / pageSize)) : 1;
-  const safePage = Math.min(currentPage, totalPages);
-  const paginated = usePagination
-    ? table.sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
-    : table.sortedRows;
 
   const toggleSelect = (id) => {
     setSelected((prev) => {
@@ -351,7 +320,7 @@ function Agents() {
                   </td>
                 </tr>
               )}
-              {paginated.map((r) => {
+              {table.pagedRows.map((r) => {
                 const s = TYPE_COLORS[r.type] || TYPE_COLORS.Other;
                 return (
                   <tr key={r.id} className={selected.has(r.id) ? 'row-selected' : ''}>
@@ -394,29 +363,7 @@ function Agents() {
               })}
             </tbody>
           </table>
-          {usePagination && totalPages > 1 && (
-            <div className="pagination-controls">
-              <button className="pagination-btn" disabled={safePage <= 1} onClick={() => setCurrentPage(1)}>&laquo;</button>
-              <button className="pagination-btn" disabled={safePage <= 1} onClick={() => setCurrentPage((p) => p - 1)}>&lsaquo;</button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePage) <= 2)
-                .reduce((acc, p, i, arr) => {
-                  if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
-                  acc.push(p);
-                  return acc;
-                }, [])
-                .map((p, i) =>
-                  p === '...' ? (
-                    <span key={`dot-${i}`} className="pagination-info">...</span>
-                  ) : (
-                    <button key={p} className={`pagination-btn ${p === safePage ? 'active' : ''}`} onClick={() => setCurrentPage(p)}>{p}</button>
-                  )
-                )}
-              <button className="pagination-btn" disabled={safePage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>&rsaquo;</button>
-              <button className="pagination-btn" disabled={safePage >= totalPages} onClick={() => setCurrentPage(totalPages)}>&raquo;</button>
-              <span className="pagination-info">{t('emp.total', { count: table.sortedRows.length })}</span>
-            </div>
-          )}
+          <PaginationBar table={table} t={t} />
         </div>
       )}
 

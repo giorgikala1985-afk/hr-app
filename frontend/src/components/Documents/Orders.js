@@ -8,7 +8,7 @@ import { generateOrderPDF, generatePromotionPDF } from '../../utils/generateOrde
 import { HugeiconsIcon } from '@hugeicons/react';
 import { UserIcon, Exchange01Icon, File01Icon, Agreement01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import '../Employees/Employees.css';
-import { useExcelTable, TableHeaderRow, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, TableHeaderRow, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -3686,7 +3686,7 @@ export default function Orders() {
               <TableHeaderRow table={adjustTable} t={t} extraCols={[{ label: '', right: true }, { label: '', right: true }]} />
             </thead>
             <tbody>
-              {sortedUnits.map((u, i) => (
+              {adjustTable.pagedRows.map((u, i) => (
                 <tr key={`${u.id}-${i}`} style={{ borderBottom: '1px solid var(--border-2)', transition: 'background 0.1s', opacity: u.include_in_salary === false ? 0.6 : 1 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -3758,6 +3758,7 @@ export default function Orders() {
             </tbody>
           </table>
         )}
+        {sortedUnits.length > 0 && <PaginationBar table={adjustTable} t={t} />}
       </div>
 
       {/* ── MODAL FORM OVERLAY ── */}
