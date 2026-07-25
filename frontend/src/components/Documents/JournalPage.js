@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const TYPE_META = {
   hiring:        { labelKey: 'journal.typeHiring',       color: '#3b82f6', icon: 'person-add' },
@@ -127,8 +127,6 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 20;
 
   // Orders' local records are namespaced per-tenant (see useLocalOrders in
   // Orders.js) so a browser shared across multiple organizations doesn't
@@ -177,9 +175,6 @@ export default function JournalPage() {
   ];
   const table = useExcelTable({ storageKey: 'journal_list', columns: JOURNAL_COLUMNS, rows: filtered });
 
-  const totalPages = Math.max(1, Math.ceil(table.sortedRows.length / PAGE_SIZE));
-  const pageRows = table.sortedRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
   const counts = {};
   ALL_TYPES.forEach(typeKey => { counts[typeKey] = rows.filter(r => r._type === typeKey).length; });
 
@@ -196,7 +191,7 @@ export default function JournalPage() {
         {ALL_TYPES.map(typeKey => (
           <button
             key={typeKey}
-            onClick={() => { setFilterType(filterType === typeKey ? 'all' : typeKey); setPage(1); }}
+            onClick={() => { setFilterType(filterType === typeKey ? 'all' : typeKey); table.setPage(1); }}
             style={{
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '7px 13px', borderRadius: 10,
@@ -227,7 +222,7 @@ export default function JournalPage() {
           <input
             placeholder={t('journal.search')}
             value={search}
-            onChange={e => { setSearch(e.target.value); setPage(1); }}
+            onChange={e => { setSearch(e.target.value); table.setPage(1); }}
             style={{
               width: '100%', padding: '8px 12px 8px 34px', borderRadius: 9,
               border: '1px solid var(--border-2)', background: 'var(--surface)',
@@ -248,7 +243,7 @@ export default function JournalPage() {
           {t('journal.refresh')}
         </button>
         {filterType !== 'all' && (
-          <button onClick={() => { setFilterType('all'); setPage(1); }} style={{
+          <button onClick={() => { setFilterType('all'); table.setPage(1); }} style={{
             padding: '8px 14px', borderRadius: 9, border: '1px solid var(--border-2)',
             background: 'var(--surface)', color: 'var(--text-3)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>
@@ -361,7 +356,7 @@ export default function JournalPage() {
                   </td>
                 </tr>
               )}
-              {pageRows.map((row, i) => {
+              {table.pagedRows.map((row, i) => {
                 const meta = TYPE_META[row._type] || { color: '#64748b' };
                 return (
                   <tr
@@ -395,26 +390,7 @@ export default function JournalPage() {
               })}
             </tbody>
           </table>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '12px 16px', borderTop: '1px solid var(--border-2)',
-            }}>
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: page === 1 ? 'default' : 'pointer', opacity: page === 1 ? 0.4 : 1, fontSize: 12, fontWeight: 600 }}>
-                {t('journal.prev')}
-              </button>
-              <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                {t('journal.pageOf').replace('{page}', page).replace('{total}', totalPages)}
-              </span>
-              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', cursor: page === totalPages ? 'default' : 'pointer', opacity: page === totalPages ? 0.4 : 1, fontSize: 12, fontWeight: 600 }}>
-                {t('journal.next')}
-              </button>
-            </div>
-          )}
+          <PaginationBar table={table} t={t} />
         </div>
       )}
     </div>

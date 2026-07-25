@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const REQUEST_TYPES = [
   'Leave / Time Off',
@@ -219,6 +219,7 @@ function Requests() {
             <p>{requests.length === 0 ? t('req.emptyNoRequests') : t('req.emptyNoFilter')}</p>
           </div>
         ) : (
+          <>
           <table className="acc-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
               {table.displayCols.map((key) => <col key={key} style={{ width: key === 'title' ? '22%' : key === 'requester' ? '20%' : key === 'type' ? 150 : key === 'date' ? 110 : 100 }} />)}
@@ -291,7 +292,7 @@ function Requests() {
                   </td>
                 </tr>
               )}
-              {table.sortedRows.map(r => (
+              {table.pagedRows.map(r => (
                 <tr key={r.id}>
                   {table.displayCols.includes('date') && <td style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{formatDate(r.created_at)}</td>}
                   {table.displayCols.includes('title') && <td style={{ fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} title={r.title}>{r.title}</td>}
@@ -313,6 +314,8 @@ function Requests() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={table} t={t} />
+          </>
         )}
       </div>
 
