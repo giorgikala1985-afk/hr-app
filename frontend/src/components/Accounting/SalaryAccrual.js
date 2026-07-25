@@ -377,6 +377,17 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const salaries = data?.salaries || [];
   const active = salaries.filter(r => r.accrued_salary > 0 || r.net_salary > 0 || r.total_additions > 0);
 
+  // Click-to-sort only (not full Excel-filter treatment): this table's dynamic
+  // unit columns, sticky-column offsets, and tfoot totals are too interlinked
+  // to safely retrofit column reorder/filter dropdowns onto — sorting the row
+  // order alone doesn't touch any of that.
+  const [sortKey, setSortKey] = useState(null);
+  const [sortDir, setSortDir] = useState('asc');
+  const toggleSort = (key) => {
+    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
   const totNetSalary = active.reduce((s, r) => s + parseFloat(r.accrued_salary || 0), 0);
   const totOT        = active.reduce((s, r) => s + otAmt(r.deductions), 0);
   const totFitpass   = active.reduce((s, r) => s + parseFloat(r.fitpass_deduction || 0), 0);
@@ -399,6 +410,29 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
     const configured = unitTypes.find(ut => ut.name === name);
     return configured || { name, direction: 'deduction' };
   });
+
+  const SORT_ACCESSORS = {
+    personalId: r => r.employee.personal_id || '',
+    firstName: r => r.employee.first_name || '',
+    lastName: r => r.employee.last_name || '',
+    netSalary: r => parseFloat(r.accrued_salary || 0),
+    ot: r => otAmt(r.deductions),
+    fitpass: r => parseFloat(r.fitpass_deduction || 0),
+    insurance: r => getInsAmount2(r.employee?.personal_id, month),
+    totalSum: r => parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - getInsAmount2(r.employee?.personal_id, month),
+    totalGEL: r => {
+      const corrected = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - getInsAmount2(r.employee?.personal_id, month);
+      const rate = transferRate || nbgRate || gelRate;
+      return rate ? corrected * rate : 0;
+    },
+    grossSalary: r => calcGross(r.net_salary, r.employee.pension),
+    pension: r => r.employee.pension ? calcGross(r.net_salary, true) * 0.02 : 0,
+  };
+  const sortedActive = sortKey && SORT_ACCESSORS[sortKey] ? [...active].sort((a, b) => {
+    const av = SORT_ACCESSORS[sortKey](a); const bv = SORT_ACCESSORS[sortKey](b);
+    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
+    return sortDir === 'asc' ? cmp : -cmp;
+  }) : active;
 
   const dr = selectedRow;
   const drEmp = dr?.employee;
@@ -828,7 +862,15 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                       overflow: 'hidden', whiteSpace: 'nowrap',
                       textAlign: col.align === 'right' ? 'right' : undefined,
                     }}>
-                      {col.label}
+                      {SORT_ACCESSORS[col.key] ? (
+                        <span onClick={() => toggleSort(col.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                          {col.label}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: sortKey === col.key ? 1 : 0.25, transform: sortKey === col.key && sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </span>
+                      ) : col.label}
                       <div
                         onMouseDown={e => onResizeMouseDown(e, idx)}
                         style={RESIZE_HANDLE_STYLE}
@@ -854,7 +896,15 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                       position: 'relative', width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right',
                     }}>
-                      {col.label}
+                      {SORT_ACCESSORS[col.key] ? (
+                        <span onClick={() => toggleSort(col.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                          {col.label}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: sortKey === col.key ? 1 : 0.25, transform: sortKey === col.key && sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </span>
+                      ) : col.label}
                       <div onMouseDown={e => onResizeMouseDown(e, idx)} style={RESIZE_HANDLE_STYLE}
                         onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
@@ -867,7 +917,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               </tr>
             </thead>
             <tbody>
-              {active.map((r) => {
+              {sortedActive.map((r) => {
                 const emp         = r.employee;
                 const bonus       = unitAmt(r.deductions, 'Bonus');
                 const teamBuild   = unitAmt(r.deductions, 'Team Building');

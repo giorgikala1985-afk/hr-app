@@ -7,6 +7,7 @@ import './Salaries.css';
 import '../Options/Options.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useExcelTable, ExcelFilterDropdown } from '../common/ExcelTable';
 
 const SAL_DEFAULT_WIDTHS = [60, 160, 140, 130, 110, 130, 130]; // Photo, Name, Position, Salary, Days, Accrued, Net
 
@@ -23,7 +24,6 @@ function SalaryList() {
   const [workingDays, setWorkingDays] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState({ name: '', position: '', salary: '', days: '', accrued: '', deductions: '', net: '' });
   const [gelRate, setGelRate] = useState(null);
   const [eurRate, setEurRate] = useState(null);
   const [deletedUnits, setDeletedUnits] = useState([]);
@@ -55,7 +55,7 @@ function SalaryList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, month, paginationSettings]);
+  }, [month, paginationSettings]);
 
   useEffect(() => {
     loadSalaries(month);
@@ -260,29 +260,22 @@ function SalaryList() {
     setExpandedId((prev) => (prev === empId ? null : empId));
   };
 
-  const updateFilter = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const clearFilters = () => {
-    setFilters({ name: '', position: '', salary: '', days: '', accrued: '', deductions: '', net: '' });
-  };
-
-  const hasFilters = Object.values(filters).some((v) => v !== '');
-
   const activeEmployees = salaries.filter((s) => s.days_worked > 0);
 
-  const filteredEmployees = activeEmployees.filter((item) => {
-    const fullName = `${item.employee.first_name} ${item.employee.last_name}`.toLowerCase();
-    if (filters.name && !fullName.includes(filters.name.toLowerCase())) return false;
-    if (filters.position && !item.employee.position.toLowerCase().includes(filters.position.toLowerCase())) return false;
-    if (filters.salary && !String(item.employee.salary).includes(filters.salary)) return false;
-    if (filters.days && !String(item.days_worked).includes(filters.days)) return false;
-    if (filters.accrued && !String(item.accrued_salary).includes(filters.accrued)) return false;
-    if (filters.deductions && !String(item.total_deductions || 0).includes(filters.deductions)) return false;
-    if (filters.net && !String(item.net_salary ?? item.accrued_salary).includes(filters.net)) return false;
-    return true;
-  });
+  // Sort + Excel-style filters on the static columns only — the unit-type columns
+  // are dynamic (change per month based on data) and aren't part of this system.
+  const SAL_COLUMNS = [
+    { key: 'name', label: t('sal.employee'), getValue: item => `${item.employee.first_name} ${item.employee.last_name}`.trim() || '—' },
+    { key: 'position', label: 'Position', getValue: item => item.employee.position || '—' },
+    { key: 'salary', label: t('sal.monthlySalary'), getValue: item => formatCurrency(item.employee.salary), getSortValue: item => parseFloat(item.employee.salary) || 0 },
+    { key: 'days', label: t('sal.daysWorked'), getValue: item => `${item.days_worked} / ${item.total_days}`, getSortValue: item => item.days_worked || 0 },
+    { key: 'accrued', label: t('sal.accruedSalary'), getValue: item => formatCurrency(item.accrued_salary), getSortValue: item => item.accrued_salary || 0 },
+    { key: 'net', label: t('sal.netSalary'), getValue: item => formatCurrency(item.net_salary ?? item.accrued_salary), getSortValue: item => item.net_salary ?? item.accrued_salary ?? 0 },
+  ];
+  const table = useExcelTable({ storageKey: 'sal_list', columns: SAL_COLUMNS, rows: activeEmployees });
+  const filteredEmployees = table.sortedRows;
+  const hasFilters = table.hasActiveFilters;
+  const clearFilters = table.clearAllColumnFilters;
 
   const totalAccrued = filteredEmployees.reduce((sum, s) => sum + s.accrued_salary, 0);
   const totalDeductions = filteredEmployees.reduce((sum, s) => sum + (s.total_deductions || 0), 0);
@@ -449,30 +442,126 @@ function SalaryList() {
               <thead>
                 <tr>
                   <th style={{ position: 'relative', width: colWidths[0], overflow: 'hidden', whiteSpace: 'nowrap' }}>Photo<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-                  <th style={{ position: 'relative', width: colWidths[1], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('sal.employee')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-                  <th style={{ position: 'relative', width: colWidths[2], overflow: 'hidden', whiteSpace: 'nowrap' }}>Position<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-                  <th style={{ position: 'relative', width: colWidths[3], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('sal.monthlySalary')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-                  <th style={{ position: 'relative', width: colWidths[4], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('sal.daysWorked')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-                  <th style={{ position: 'relative', width: colWidths[5], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('sal.accruedSalary')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+                  {[
+                    ['name', 1], ['position', 2], ['salary', 3], ['days', 4], ['accrued', 5],
+                  ].map(([key, widthIdx]) => {
+                    const col = table.colByKey[key];
+                    return (
+                      <th key={key} style={{ position: 'relative', width: colWidths[widthIdx], overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <span onClick={() => table.toggleSort(key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                          {col.label}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </span>
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                            background: table.openFilterCol === key ? '#f3f4f6' : 'transparent',
+                            color: table.columnFilters[key] ? '#479c73' : '#9ca3af',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                        {table.openFilterCol === key && table.filterDropdownPos && (
+                          <ExcelFilterDropdown
+                            dropdownRef={table.filterDropdownRef}
+                            pos={table.filterDropdownPos}
+                            options={table.getColumnFilterOptions(key)}
+                            selected={table.columnFilters[key]}
+                            search={table.filterSearch}
+                            onSearchChange={table.setFilterSearch}
+                            onToggleValue={(value) => {
+                              const opts = table.getColumnFilterOptions(key);
+                              const activeSet = table.columnFilters[key] ?? new Set(opts);
+                              table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                            }}
+                            onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                            onClear={() => table.clearColumnFilter(key)}
+                            t={t}
+                          />
+                        )}
+                        <div onMouseDown={e => onResizeMouseDown(e, widthIdx)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} />
+                      </th>
+                    );
+                  })}
                   {usedUnitTypes.map(ut => (
                     <th key={`uth-${ut.name}`} style={{ width: 120, overflow: 'hidden', whiteSpace: 'nowrap', color: ut.direction === 'addition' ? '#479c73' : '#e53e3e', textAlign: 'right' }}>
                       {ut.name}
                     </th>
                   ))}
-                  <th style={{ position: 'relative', width: colWidths[6], overflow: 'hidden', whiteSpace: 'nowrap' }}>{t('sal.netSalary')}<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-                </tr>
-                <tr className="filter-row">
-                  <th></th>
-                  <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.name} onChange={(e) => updateFilter('name', e.target.value)} /></th>
-                  <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.position} onChange={(e) => updateFilter('position', e.target.value)} /></th>
-                  <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.salary} onChange={(e) => updateFilter('salary', e.target.value)} /></th>
-                  <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.days} onChange={(e) => updateFilter('days', e.target.value)} /></th>
-                  <th><input type="text" className="col-filter" placeholder="Filter..." value={filters.accrued} onChange={(e) => updateFilter('accrued', e.target.value)} /></th>
-                  {usedUnitTypes.map(ut => <th key={`uf-${ut.name}`}></th>)}
-                  <th>{hasFilters && <button className="btn-clear-filters" onClick={clearFilters} title="Clear filters">&times;</button>}</th>
+                  {(() => {
+                    const col = table.colByKey.net;
+                    const key = 'net';
+                    return (
+                      <th style={{ position: 'relative', width: colWidths[6], overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                        <span onClick={() => table.toggleSort(key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                          {col.label}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </span>
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                            background: table.openFilterCol === key ? '#f3f4f6' : 'transparent',
+                            color: table.columnFilters[key] ? '#479c73' : '#9ca3af',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                        {table.openFilterCol === key && table.filterDropdownPos && (
+                          <ExcelFilterDropdown
+                            dropdownRef={table.filterDropdownRef}
+                            pos={table.filterDropdownPos}
+                            options={table.getColumnFilterOptions(key)}
+                            selected={table.columnFilters[key]}
+                            search={table.filterSearch}
+                            onSearchChange={table.setFilterSearch}
+                            onToggleValue={(value) => {
+                              const opts = table.getColumnFilterOptions(key);
+                              const activeSet = table.columnFilters[key] ?? new Set(opts);
+                              table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                            }}
+                            onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                            onClear={() => table.clearColumnFilter(key)}
+                            t={t}
+                          />
+                        )}
+                        <div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} />
+                      </th>
+                    );
+                  })()}
                 </tr>
               </thead>
               <tbody>
+                {hasFilters && filteredEmployees.length === 0 && (
+                  <tr>
+                    <td colSpan={7 + usedUnitTypes.length} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b', fontSize: 13 }}>
+                      {t('table.noFilterMatches')}
+                      <div>
+                        <button
+                          onClick={clearFilters}
+                          style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          {t('table.clear')}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
                 {paginatedEmployees.map((item) => {
                   const isExpanded = expandedId === item.employee.id;
                   const deductions = (item.deductions || []).filter((d) => getUnitDirection(d.type) === 'deduction');
