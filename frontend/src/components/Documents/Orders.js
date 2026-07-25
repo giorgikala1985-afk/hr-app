@@ -537,7 +537,7 @@ function HiringTab() {
           onClick={e => { if (e.target === e.currentTarget) close(); }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
-        <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 960, maxHeight: '90vh', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 1180, maxHeight: '90vh', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div className="emp-header" style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', marginBottom: 0 }}>
             <div>
