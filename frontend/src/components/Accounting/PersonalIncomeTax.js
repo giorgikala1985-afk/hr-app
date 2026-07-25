@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -205,7 +205,7 @@ export default function PersonalIncomeTax() {
                 </td></tr>
               ) : rows.length === 0 ? (
                 <tr><td colSpan={table.displayCols.length} style={{ padding: 32, textAlign: 'center', color: 'var(--text-3)' }}>{t('pit.noData')}</td></tr>
-              ) : table.sortedRows.map((r, i) => {
+              ) : table.pagedRows.map((r, i) => {
                 const { trip, ins2, tripPct, ins2Pct, rowPit } = rowStats(r);
                 const empRate = r.employee?.pit_rate ?? 20;
                 return (
@@ -267,6 +267,7 @@ export default function PersonalIncomeTax() {
               );
             })()}
           </table>
+          <PaginationBar table={table} t={t} />
         </div>
       )}
     </div>

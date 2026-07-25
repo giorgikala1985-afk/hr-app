@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
@@ -290,7 +290,7 @@ function EmployeeRegistration() {
               {empTable.hasActiveFilters && empTable.sortedRows.length === 0 && (
                 <NoFilterMatchesRow table={empTable} t={t} colSpan={empTable.displayCols.length + 2} />
               )}
-              {empTable.sortedRows.map((emp, i) => {
+              {empTable.pagedRows.map((emp, i) => {
                 const isRegistered = registeredIds.has(emp.id);
                 return (
                   <tr key={emp.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
@@ -320,6 +320,7 @@ function EmployeeRegistration() {
               })}
             </tbody>
           </table>
+          <PaginationBar table={empTable} t={t} />
         </div>
       )}
 
@@ -340,7 +341,7 @@ function EmployeeRegistration() {
               {histTable.hasActiveFilters && histTable.sortedRows.length === 0 && (
                 <NoFilterMatchesRow table={histTable} t={t} colSpan={histTable.displayCols.length} />
               )}
-              {histTable.sortedRows.map((h, i) => (
+              {histTable.pagedRows.map((h, i) => (
                 <tr key={h.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   {histTable.displayCols.includes('employee') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{h.personal_id}</td>}
                   {histTable.displayCols.includes('action') && <td style={td}>{h.action === 'register' ? 'Register' : 'Deregister'}</td>}
@@ -356,6 +357,7 @@ function EmployeeRegistration() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={histTable} t={t} />
         </div>
       )}
 
@@ -598,7 +600,7 @@ function TaxDeclarations() {
               {declTable.hasActiveFilters && declTable.sortedRows.length === 0 && (
                 <NoFilterMatchesRow table={declTable} t={t} colSpan={declTable.displayCols.length} />
               )}
-              {declTable.sortedRows.map((d, i) => (
+              {declTable.pagedRows.map((d, i) => (
                 <tr key={d.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   {declTable.displayCols.includes('period') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{d.period}</td>}
                   {declTable.displayCols.includes('employees') && <td style={td}>{d.employee_count}</td>}
@@ -618,6 +620,7 @@ function TaxDeclarations() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={declTable} t={t} />
         </div>
       )}
     </div>
@@ -751,7 +754,7 @@ function Waybills() {
               {wbTable.hasActiveFilters && wbTable.sortedRows.length === 0 && (
                 <NoFilterMatchesRow table={wbTable} t={t} colSpan={wbTable.displayCols.length + 1} />
               )}
-              {wbTable.sortedRows.map((wb, i) => (
+              {wbTable.pagedRows.map((wb, i) => (
                 <tr key={wb.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   {wbTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{wb.rs_waybill_id || '-'}</td>}
                   {wbTable.displayCols.includes('buyer') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{wb.buyer_name}</td>}
@@ -783,6 +786,7 @@ function Waybills() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={wbTable} t={t} />
         </div>
       )}
 
@@ -988,7 +992,7 @@ function EInvoices() {
               {einvTable.hasActiveFilters && einvTable.sortedRows.length === 0 && (
                 <NoFilterMatchesRow table={einvTable} t={t} colSpan={einvTable.displayCols.length + 1} />
               )}
-              {einvTable.sortedRows.map((inv, i) => (
+              {einvTable.pagedRows.map((inv, i) => (
                 <tr key={inv.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   {einvTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{inv.rs_invoice_id || '-'}</td>}
                   {einvTable.displayCols.includes('buyer') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.buyer_name}</td>}
@@ -1009,6 +1013,7 @@ function EInvoices() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={einvTable} t={t} />
         </div>
       )}
 
