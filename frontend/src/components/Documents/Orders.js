@@ -535,34 +535,39 @@ function HiringTab() {
       {showForm && createPortal(
         <div style={{ position: 'fixed', inset: 0, background: 'var(--bg, #0f172a)', zIndex: 1000, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
-          <div className="emp-header" style={{ padding: '24px 32px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface)', marginBottom: 0 }}>
+          <div className="emp-header" style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface)', marginBottom: 0 }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text)' }}>{editing ? t('orders.editHiringOrder') : t('orders.newHiringOrder')}</h1>
-              <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-3)' }}>{t('orders.enterDetails')}</p>
+              <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{editing ? t('orders.editHiringOrder') : t('orders.newHiringOrder')}</h1>
+              <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-3)' }}>{t('orders.enterDetails')}</p>
             </div>
-            <button onClick={close} style={{ padding: '8px 20px', borderRadius: 9, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            <button onClick={close} style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               {t('orders.backToList')}
             </button>
           </div>
 
-          {/* Body: sidebar + content */}
-          <div className="emp-edit-layout" style={{ flex: 1, padding: '32px' }}>
-            {/* Sidebar */}
-            <div className="emp-sidebar">
-              {TABS.map(tab => (
-                <button
-                  key={tab.key}
-                  className={`emp-tab-btn ${activeTab === tab.key ? 'active' : ''}`}
-                  onClick={() => setActiveTab(tab.key)}
-                >
-                  <span className="tab-icon">{tab.icon}</span>
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          {/* Horizontal tab bar */}
+          <div style={{ display: 'flex', gap: 4, padding: '0 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface)' }}>
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '10px 4px', marginRight: 18, fontSize: 13, fontWeight: 600,
+                  color: activeTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+                  borderBottom: activeTab === tab.key ? '2px solid var(--accent, #3b82f6)' : '2px solid transparent',
+                  transition: 'color 0.12s, border-color 0.12s',
+                }}
+              >
+                <span className="tab-icon" style={{ width: 18, height: 18, fontSize: 11 }}>{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-            {/* Content */}
-            <div className="emp-tab-content">
+          {/* Content */}
+          <div style={{ flex: 1, padding: '20px 24px' }}>
               {activeTab === 'info' && (
                 <div className="form-card">
                   <form onSubmit={handleSubmit}>
@@ -727,7 +732,6 @@ function HiringTab() {
                 <HiringTabPlaceholder icon="🔑" title={t('orders.portalAccess')} text="Link this hiring order to a system employee to configure portal access." />
               )}
 
-            </div>
           </div>
         </div>,
         document.body
