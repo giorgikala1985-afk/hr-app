@@ -1213,7 +1213,7 @@ const ka = {
   'projects.totalProjects': 'სულ პროექტები',
   'projects.activeProjects': 'აქტიური',
   'projects.totalBudget': 'ჯამური ბიუჯეტი',
-  'projects.addProject': '+ პროექტის დამატება',
+  'projects.addProject': 'პროექტის დამატება',
   'projects.selectedCount': 'არჩეულია {count} პროექტი',
   'projects.deleteSelected': 'არჩეულის წაშლა',
   'projects.clear': 'გასუფთავება',

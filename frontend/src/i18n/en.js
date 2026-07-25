@@ -1215,7 +1215,7 @@ const en = {
   'projects.totalProjects': 'Total Projects',
   'projects.activeProjects': 'Active',
   'projects.totalBudget': 'Total Budget',
-  'projects.addProject': '+ Add Project',
+  'projects.addProject': 'Add Project',
   'projects.selectedCount': '{count} project(s) selected',
   'projects.deleteSelected': 'Delete Selected',
   'projects.clear': 'Clear',

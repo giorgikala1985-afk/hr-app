@@ -142,32 +142,32 @@ function Projects() {
       <h2>{t('projects.title')}</h2>
       <p className="acc-subtitle">{t('projects.subtitle')}</p>
 
-      <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[
-          { key: 'projects', label: t('projects.tabProjects') },
-          { key: 'invoices', label: t('projects.tabInvoices') },
-        ].map(tab => (
-          <button key={tab.key} onClick={() => setMainTab(tab.key)} style={{
-            padding: '7px 16px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-            background: mainTab === tab.key ? 'var(--surface)' : 'transparent',
-            color: mainTab === tab.key ? 'var(--text)' : 'var(--text-3)',
-            boxShadow: mainTab === tab.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
-            transition: 'all 0.15s',
-          }}>{tab.label}</button>
-        ))}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+          {[
+            { key: 'projects', label: t('projects.tabProjects') },
+            { key: 'invoices', label: t('projects.tabInvoices') },
+          ].map(tab => (
+            <button key={tab.key} onClick={() => setMainTab(tab.key)} style={{
+              padding: '7px 16px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+              background: mainTab === tab.key ? 'var(--surface)' : 'transparent',
+              color: mainTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+              boxShadow: mainTab === tab.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+              transition: 'all 0.15s',
+            }}>{tab.label}</button>
+          ))}
+        </div>
+        {mainTab === 'projects' && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
+            <button className="btn-add" onClick={openNew}>{t('projects.addProject')}</button>
+          </div>
+        )}
       </div>
 
       {mainTab === 'invoices' && <ProjectInvoices projects={records} />}
 
       {mainTab === 'projects' && <>
-      <div className="acc-header-row">
-        <div />
-        <div style={{ display: 'flex', gap: 8 }}>
-          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
-          <button className="btn-add" onClick={openNew}>{t('projects.addProject')}</button>
-        </div>
-      </div>
-
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
 
       {selectedIds.size > 0 && (
