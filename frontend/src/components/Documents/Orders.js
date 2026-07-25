@@ -3106,6 +3106,131 @@ export default function Orders() {
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
+  // Adjust table: draggable, hideable column order (Actions/Delete stay pinned last)
+  const ADJUST_CUSTOM_COL_KEYS = ['employee', 'type', 'direction', 'amount', 'date', 'created', 'modified'];
+  const ADJUST_COL_DEFS = {
+    employee: { label: t('orders.employee'), right: false, filterType: 'text' },
+    type:     { label: t('orders.type'),     right: false, filterType: 'text' },
+    direction:{ label: t('orders.direction'),right: false, filterType: 'text' },
+    amount:   { label: t('orders.amount'),   right: true,  filterType: 'text' },
+    date:     { label: t('orders.date'),     right: true,  filterType: 'date' },
+    created:  { label: t('orders.created'),  right: true,  filterType: 'date' },
+    modified: { label: t('orders.modified'), right: true,  filterType: 'date' },
+  };
+  const [adjustColOrder, setAdjustColOrder] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('orders_adjust_col_order'));
+      if (Array.isArray(saved) && saved.length) {
+        const filtered = saved.filter(k => ADJUST_CUSTOM_COL_KEYS.includes(k));
+        const missing = ADJUST_CUSTOM_COL_KEYS.filter(k => !filtered.includes(k));
+        return [...filtered, ...missing];
+      }
+    } catch {}
+    return ADJUST_CUSTOM_COL_KEYS;
+  });
+  const [adjustVisibleCols, setAdjustVisibleCols] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('orders_adjust_col_visible'));
+      if (Array.isArray(saved)) return saved.filter(k => ADJUST_CUSTOM_COL_KEYS.includes(k));
+    } catch {}
+    return ADJUST_CUSTOM_COL_KEYS;
+  });
+  const [showAdjustColMenu, setShowAdjustColMenu] = useState(false);
+  const adjustDragColIdx = useRef(null);
+  const [adjustDragOverColIdx, setAdjustDragOverColIdx] = useState(null);
+
+  useEffect(() => { localStorage.setItem('orders_adjust_col_order', JSON.stringify(adjustColOrder)); }, [adjustColOrder]);
+  useEffect(() => { localStorage.setItem('orders_adjust_col_visible', JSON.stringify(adjustVisibleCols)); }, [adjustVisibleCols]);
+
+  const toggleAdjustColVisible = (key) => {
+    setAdjustVisibleCols(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+  const moveAdjustCol = (from, to) => {
+    if (from === to) return;
+    setAdjustColOrder(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  };
+  const resetAdjustCols = () => { setAdjustColOrder(ADJUST_CUSTOM_COL_KEYS); setAdjustVisibleCols(ADJUST_CUSTOM_COL_KEYS); };
+  const adjustDisplayCols = adjustColOrder.filter(k => adjustVisibleCols.includes(k));
+
+  const renderAdjustCell = (key, u) => {
+    switch (key) {
+      case 'employee':
+        return (
+          <td style={{ padding: '12px 16px' }}>
+            <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>
+              {u.employee?.first_name} {u.employee?.last_name}
+            </div>
+            {u.employee?.position && (
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{u.employee.position}</div>
+            )}
+            {u.include_in_salary === false && (
+              <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700, marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                {t('orders.notInSalary')}
+              </div>
+            )}
+          </td>
+        );
+      case 'type':
+        return (
+          <td style={{ padding: '12px 16px' }}>
+            <span title={u.note || undefined} style={{
+              display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
+              background: u.direction === 'addition' ? 'rgba(71,156,115,0.12)' : 'rgba(220,38,38,0.1)',
+              color: u.direction === 'addition' ? '#479c73' : '#f87171',
+              border: `1px solid ${u.direction === 'addition' ? 'rgba(71,156,115,0.25)' : 'rgba(220,38,38,0.2)'}`,
+            }}>
+              {u.type}
+            </span>
+            {u.note && (
+              <div style={{ fontSize: 10, color: 'var(--text-4)', marginTop: 3, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {u.note}
+              </div>
+            )}
+          </td>
+        );
+      case 'direction':
+        return (
+          <td style={{ padding: '12px 16px', color: u.direction === 'addition' ? '#479c73' : '#f87171', fontSize: 12, fontWeight: 500 }}>
+            {u.direction === 'addition' ? t('orders.addition') : t('orders.deduction')}
+          </td>
+        );
+      case 'amount':
+        return (
+          <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: u.direction === 'addition' ? '#479c73' : '#f87171' }}>
+            {u.direction === 'addition' ? '+' : '−'}{fmt(u.amount)}
+          </td>
+        );
+      case 'date':
+        return (
+          <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-3)', fontSize: 12 }}>
+            {u.date}
+          </td>
+        );
+      case 'created':
+        return (
+          <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-4)', fontSize: 11 }}>
+            {u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+          </td>
+        );
+      case 'modified':
+        return (
+          <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-4)', fontSize: 11 }}>
+            {u.updated_at && u.updated_at !== u.created_at ? new Date(u.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+          </td>
+        );
+      default:
+        return <td style={{ padding: '12px 16px' }} />;
+    }
+  };
+
   const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '', immediateEffect: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
@@ -3555,6 +3680,58 @@ export default function Orders() {
             {t('orders.clear')}
           </button>
         )}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowAdjustColMenu(v => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: showAdjustColMenu ? 'var(--surface-2)' : 'var(--surface)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            {t('orders.columns')} ({adjustDisplayCols.length}/{ADJUST_CUSTOM_COL_KEYS.length})
+          </button>
+          {showAdjustColMenu && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowAdjustColMenu(false)} />
+              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '8px 0', minWidth: 220 }}>
+                <div style={{ padding: '6px 14px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-4)', borderBottom: '1px solid var(--border-3)' }}>
+                  {t('orders.columnsDragToReorder')}
+                </div>
+                {adjustColOrder.map((key, idx) => (
+                  <label
+                    key={key}
+                    draggable
+                    onDragStart={() => { adjustDragColIdx.current = idx; }}
+                    onDragOver={(e) => { e.preventDefault(); setAdjustDragOverColIdx(idx); }}
+                    onDragLeave={() => setAdjustDragOverColIdx(cur => cur === idx ? null : cur)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (adjustDragColIdx.current !== null) moveAdjustCol(adjustDragColIdx.current, idx);
+                      adjustDragColIdx.current = null;
+                      setAdjustDragOverColIdx(null);
+                    }}
+                    onDragEnd={() => { adjustDragColIdx.current = null; setAdjustDragOverColIdx(null); }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 9, padding: '7px 14px', cursor: 'grab', fontSize: 13, color: 'var(--text-2)',
+                      background: adjustDragOverColIdx === idx ? 'var(--surface-2)' : 'transparent',
+                      borderTop: adjustDragOverColIdx === idx ? '2px solid #3185FC' : '2px solid transparent',
+                    }}
+                  >
+                    <span style={{ color: 'var(--text-4)', fontSize: 12, lineHeight: 1 }}>⠿</span>
+                    <input type="checkbox" checked={adjustVisibleCols.includes(key)} onChange={() => toggleAdjustColVisible(key)} style={{ accentColor: '#3185FC', width: 14, height: 14 }} />
+                    {ADJUST_COL_DEFS[key].label}
+                  </label>
+                ))}
+                <div style={{ borderTop: '1px solid var(--border-3)', padding: '6px 14px 2px' }}>
+                  <button onClick={resetAdjustCols} style={{ background: 'none', border: 'none', color: '#3185FC', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+                    {t('orders.resetToDefault')}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Orders list */}
@@ -3601,13 +3778,7 @@ export default function Orders() {
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
                 {[
-                  [t('orders.employee'), false, 'employee', 'text'],
-                  [t('orders.type'), false, 'type', 'text'],
-                  [t('orders.direction'), false, 'direction', 'text'],
-                  [t('orders.amount'), true, 'amount', 'text'],
-                  [t('orders.date'), true, 'date', 'date'],
-                  [t('orders.created'), true, 'created', 'date'],
-                  [t('orders.modified'), true, 'modified', 'date'],
+                  ...adjustDisplayCols.map(key => [ADJUST_COL_DEFS[key].label, ADJUST_COL_DEFS[key].right, key, ADJUST_COL_DEFS[key].filterType]),
                   ['', true, null, null],
                   ['', true, null, null],
                 ].map(([h, right, key, filterType], i) => (
@@ -3657,65 +3828,9 @@ export default function Orders() {
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  {/* Employee */}
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 13 }}>
-                      {u.employee?.first_name} {u.employee?.last_name}
-                    </div>
-                    {u.employee?.position && (
-                      <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{u.employee.position}</div>
-                    )}
-                    {u.include_in_salary === false && (
-                      <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 700, marginTop: 3, display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
-                        {t('orders.notInSalary')}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Type badge */}
-                  <td style={{ padding: '12px 16px' }}>
-                    <span title={u.note || undefined} style={{
-                      display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700,
-                      background: u.direction === 'addition' ? 'rgba(71,156,115,0.12)' : 'rgba(220,38,38,0.1)',
-                      color: u.direction === 'addition' ? '#479c73' : '#f87171',
-                      border: `1px solid ${u.direction === 'addition' ? 'rgba(71,156,115,0.25)' : 'rgba(220,38,38,0.2)'}`,
-                    }}>
-                      {u.type}
-                    </span>
-                    {u.note && (
-                      <div style={{ fontSize: 10, color: 'var(--text-4)', marginTop: 3, maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {u.note}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Direction */}
-                  <td style={{ padding: '12px 16px', color: u.direction === 'addition' ? '#479c73' : '#f87171', fontSize: 12, fontWeight: 500 }}>
-                    {u.direction === 'addition' ? t('orders.addition') : t('orders.deduction')}
-                  </td>
-
-                  {/* Amount */}
-                  <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontSize: 14, color: u.direction === 'addition' ? '#479c73' : '#f87171' }}>
-                    {u.direction === 'addition' ? '+' : '−'}{fmt(u.amount)}
-                  </td>
-
-                  {/* Date */}
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-3)', fontSize: 12 }}>
-                    {u.date}
-                  </td>
-
-                  {/* Created */}
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-4)', fontSize: 11 }}>
-                    {u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                  </td>
-
-                  {/* Modified */}
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-4)', fontSize: 11 }}>
-                    {u.updated_at && u.updated_at !== u.created_at ? new Date(u.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
-                  </td>
+                  {adjustDisplayCols.map(key => (
+                    <React.Fragment key={key}>{renderAdjustCell(key, u)}</React.Fragment>
+                  ))}
 
                   {/* Actions */}
                   <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
