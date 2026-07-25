@@ -4,7 +4,7 @@ import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
 import ProjectInvoices from './ProjectInvoices';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const DEFAULT_COL_WIDTHS = { name: 170, client: 130, owner: 130, status: 110, budget: 120, start_date: 105, end_date: 105 };
 
@@ -210,6 +210,7 @@ function Projects() {
         {loading ? <div className="acc-empty"><p>{t('projects.loading')}</p></div> : records.length === 0 ? (
           <div className="acc-empty"><div className="acc-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg></div><p>{t('projects.noProjects')}</p></div>
         ) : (
+          <>
           <table className="acc-table">
             <colgroup>
               <col style={{ width: 40 }} />
@@ -291,7 +292,7 @@ function Projects() {
                   </td>
                 </tr>
               )}
-              {table.sortedRows.map((r) => (
+              {table.pagedRows.map((r) => (
                 <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                     <input
@@ -328,6 +329,8 @@ function Projects() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={table} t={t} />
+          </>
         )}
       </div>
 

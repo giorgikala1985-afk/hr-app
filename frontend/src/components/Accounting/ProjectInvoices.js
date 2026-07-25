@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 function IconEdit() {
   return (
@@ -232,6 +232,7 @@ function ProjectInvoices({ projects }) {
             {loading ? <div className="acc-empty"><p>{t('projInv.loading')}</p></div> : invoices.length === 0 ? (
               <div className="acc-empty"><p>{t('projInv.noInvoices')}</p></div>
             ) : (
+              <>
               <table className="acc-table">
                 <thead><tr>
                   {table.displayCols.map((key) => {
@@ -299,7 +300,7 @@ function ProjectInvoices({ projects }) {
                       </td>
                     </tr>
                   )}
-                  {table.sortedRows.map((inv, i) => {
+                  {table.pagedRows.map((inv, i) => {
                     const st = statusOf(inv);
                     const sc = STATUS_COLORS[st];
                     return (
@@ -332,6 +333,8 @@ function ProjectInvoices({ projects }) {
                   })}
                 </tbody>
               </table>
+              <PaginationBar table={table} t={t} />
+              </>
             )}
           </div>
         </>
