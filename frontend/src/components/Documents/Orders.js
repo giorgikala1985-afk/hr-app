@@ -3101,6 +3101,8 @@ export default function Orders() {
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortKey(key); setSortDir('asc'); }
   };
+  const [columnFilters, setColumnFilters] = useState({ employee: '', type: '', direction: '', amount: '', date: '', created: '', modified: '' });
+  const setColFilter = (key, val) => setColumnFilters(prev => ({ ...prev, [key]: val }));
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
@@ -3290,12 +3292,23 @@ export default function Orders() {
     created: u => u.created_at || '',
     modified: u => u.updated_at || '',
   };
-  const sortedUnits = sortKey ? [...filteredUnits].sort((a, b) => {
+  const columnFilteredUnits = filteredUnits.filter(u => {
+    const empName = `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.toLowerCase();
+    if (columnFilters.employee && !empName.includes(columnFilters.employee.toLowerCase())) return false;
+    if (columnFilters.type && !(u.type || '').toLowerCase().includes(columnFilters.type.toLowerCase())) return false;
+    if (columnFilters.direction && !(u.direction || '').toLowerCase().includes(columnFilters.direction.toLowerCase())) return false;
+    if (columnFilters.amount && !String(u.amount ?? '').includes(columnFilters.amount)) return false;
+    if (columnFilters.date && !(u.date || '').includes(columnFilters.date)) return false;
+    if (columnFilters.created && !(u.created_at || '').includes(columnFilters.created)) return false;
+    if (columnFilters.modified && !(u.updated_at || '').includes(columnFilters.modified)) return false;
+    return true;
+  });
+  const sortedUnits = sortKey ? [...columnFilteredUnits].sort((a, b) => {
     const av = SORT_ACCESSORS[sortKey](a);
     const bv = SORT_ACCESSORS[sortKey](b);
     const cmp = av < bv ? -1 : av > bv ? 1 : 0;
     return sortDir === 'asc' ? cmp : -cmp;
-  }) : filteredUnits;
+  }) : columnFilteredUnits;
 
   const prevMonth = () => {
     const [y, m] = month.split('-').map(Number);
@@ -3548,6 +3561,18 @@ export default function Orders() {
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
           <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '56px 0', fontSize: 13 }}>{t('orders.loading')}</div>
+        ) : filteredUnits.length > 0 && columnFilteredUnits.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-3)', fontSize: 13 }}>
+            {t('orders.noFilterMatches')}
+            <div>
+              <button
+                onClick={() => setColumnFilters({ employee: '', type: '', direction: '', amount: '', date: '', created: '', modified: '' })}
+                style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+              >
+                {t('orders.clear')}
+              </button>
+            </div>
+          </div>
         ) : filteredUnits.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '64px 24px' }}>
             <div style={{ marginBottom: 16 }}>
@@ -3576,27 +3601,28 @@ export default function Orders() {
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
                 {[
-                  [t('orders.employee'), false, 'employee'],
-                  [t('orders.type'), false, 'type'],
-                  [t('orders.direction'), false, 'direction'],
-                  [t('orders.amount'), true, 'amount'],
-                  [t('orders.date'), true, 'date'],
-                  [t('orders.created'), true, 'created'],
-                  [t('orders.modified'), true, 'modified'],
-                  ['', true, null],
-                  ['', true, null],
-                ].map(([h, right, key], i) => (
+                  [t('orders.employee'), false, 'employee', 'text'],
+                  [t('orders.type'), false, 'type', 'text'],
+                  [t('orders.direction'), false, 'direction', 'text'],
+                  [t('orders.amount'), true, 'amount', 'text'],
+                  [t('orders.date'), true, 'date', 'date'],
+                  [t('orders.created'), true, 'created', 'date'],
+                  [t('orders.modified'), true, 'modified', 'date'],
+                  ['', true, null, null],
+                  ['', true, null, null],
+                ].map(([h, right, key, filterType], i) => (
                   <th
                     key={i}
-                    onClick={key ? () => toggleSort(key) : undefined}
                     style={{
-                      padding: '11px 16px', textAlign: right ? 'right' : 'left', fontWeight: 600, fontSize: 11,
+                      padding: '9px 16px 8px', textAlign: right ? 'right' : 'left', fontWeight: 600, fontSize: 11,
                       color: sortKey === key ? 'var(--text)' : 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em',
-                      borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap',
-                      cursor: key ? 'pointer' : 'default', userSelect: 'none',
+                      borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap', verticalAlign: 'top',
                     }}
                   >
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: right ? 'row-reverse' : 'row' }}>
+                    <span
+                      onClick={key ? () => toggleSort(key) : undefined}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: right ? 'row-reverse' : 'row', cursor: key ? 'pointer' : 'default', userSelect: 'none' }}
+                    >
                       {h}
                       {key && (
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
@@ -3605,6 +3631,21 @@ export default function Orders() {
                         </svg>
                       )}
                     </span>
+                    {key && (
+                      <input
+                        type={filterType}
+                        value={columnFilters[key]}
+                        onChange={e => setColFilter(key, e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        placeholder={t('orders.filterPlaceholder')}
+                        style={{
+                          display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 5,
+                          padding: '3px 6px', fontSize: 11, fontWeight: 400, textTransform: 'none', letterSpacing: 'normal',
+                          border: '1px solid var(--border-2)', borderRadius: 5,
+                          background: 'var(--surface)', color: 'var(--text-2)', outline: 'none',
+                        }}
+                      />
+                    )}
                   </th>
                 ))}
               </tr>

@@ -930,6 +930,8 @@ const ka = {
   'orders.selectPosition': 'აირჩიეთ პოზიცია...',
   'orders.selectDepartment': 'აირჩიეთ დეპარტამენტი',
   'orders.selectCurrency': 'აირჩიეთ ვალუტა',
+  'orders.filterPlaceholder': 'ფილტრი…',
+  'orders.noFilterMatches': 'ფილტრებს არცერთი ჩანაწერი არ ემთხვევა.',
   'orders.currency': 'ვალუტა',
   'orders.cancel': 'გაუქმება',
   'orders.save': 'შენახვა',

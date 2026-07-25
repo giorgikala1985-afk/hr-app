@@ -932,6 +932,8 @@ const en = {
   'orders.selectPosition': 'Select position…',
   'orders.selectDepartment': 'Select department',
   'orders.selectCurrency': 'Select currency',
+  'orders.filterPlaceholder': 'Filter…',
+  'orders.noFilterMatches': 'No rows match the column filters.',
   'orders.currency': 'Currency',
   'orders.cancel': 'Cancel',
   'orders.save': 'Save',
