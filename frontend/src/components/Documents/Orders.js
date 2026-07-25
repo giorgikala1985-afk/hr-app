@@ -578,7 +578,7 @@ function HiringTab() {
                         {submitError}
                       </div>
                     )}
-                    <div className="form-grid-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                    <div className="form-grid-4">
                       <div className="form-group">
                         <label>{t('orders.firstName')} *</label>
                         <input value={form.firstName} onChange={fv('firstName')} placeholder="John" required />
