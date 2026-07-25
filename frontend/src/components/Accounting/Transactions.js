@@ -262,7 +262,7 @@ function Transactions() {
           >
             <IconExcel /> {t('tx.excel')}
           </button>
-          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <ColumnVisibilityMenu table={table} t={t} />
           <button className="btn-add" onClick={openNew}>
             <IconPlus /> {t('tx.addPurchase')}
           </button>

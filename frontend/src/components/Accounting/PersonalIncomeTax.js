@@ -137,7 +137,7 @@ export default function PersonalIncomeTax() {
         <span style={{ fontWeight: 600, fontSize: 15, color: 'var(--text)', minWidth: 160, textAlign: 'center' }}>{fmtMonth(month)}</span>
         <button onClick={() => setMonth(nextMonth(month))} style={{ border: '1px solid var(--border)', background: 'var(--surface)', borderRadius: 7, padding: '5px 12px', cursor: 'pointer', fontSize: 15, color: 'var(--text-2)' }}>›</button>
         <span style={{ marginLeft: 8, padding: '4px 12px', background: 'var(--accent)', color: '#fff', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>{t('pit.badge')}</span>
-        <div style={{ marginLeft: 'auto' }}><ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} /></div>
+        <div style={{ marginLeft: 'auto' }}><ColumnVisibilityMenu table={table} t={t} /></div>
       </div>
 
       {loading ? (

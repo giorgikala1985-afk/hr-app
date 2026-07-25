@@ -166,7 +166,7 @@ function Projects() {
         </div>
         {mainTab === 'projects' && (
           <div style={{ display: 'flex', gap: 8 }}>
-            <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ height: 36, padding: '0 14px', fontSize: 13.5, boxSizing: 'border-box' }} />
+            <ColumnVisibilityMenu table={table} t={t} />
             <button className="btn-add" onClick={openNew}>{t('projects.addProject')}</button>
           </div>
         )}

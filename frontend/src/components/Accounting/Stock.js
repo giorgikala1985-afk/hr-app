@@ -169,7 +169,7 @@ export default function Stock() {
           <button onClick={exportToExcel} disabled={filtered.length === 0} title="Download as Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 7, fontSize: 13, fontWeight: 500, color: '#479c73', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.5 : 1, fontFamily: 'inherit' }}>
             <IconExcel /> {t('stock.excel')}
           </button>
-          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <ColumnVisibilityMenu table={table} t={t} />
           <button className="btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: '#479c73', borderColor: '#479c73' }}>
             <IconPlus /> {t('stock.addItem')}
           </button>

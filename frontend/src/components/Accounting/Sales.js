@@ -285,7 +285,7 @@ function Sales() {
       <div className="acc-header-row">
         <div />
         <div style={{ display: 'flex', gap: 8 }}>
-          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <ColumnVisibilityMenu table={table} t={t} />
           <button className="btn-add" onClick={openNew}>{t('sales.addSale')}</button>
         </div>
       </div>

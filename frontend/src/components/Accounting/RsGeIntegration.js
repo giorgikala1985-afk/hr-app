@@ -258,7 +258,7 @@ function EmployeeRegistration() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Employees</h3>
         <div style={{ display: 'flex', gap: 8 }}>
-          <ColumnVisibilityMenu table={empTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <ColumnVisibilityMenu table={empTable} t={t} />
           <button onClick={handleBulkRegister} disabled={processing || selected.size === 0}
             style={{ ...primaryBtn, opacity: (processing || selected.size === 0) ? 0.6 : 1 }}>
             {processing ? 'Registering...' : `Register ${selected.size} with RS.ge`}
@@ -327,7 +327,7 @@ function EmployeeRegistration() {
       {/* Registration History */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Registration History</h3>
-        <ColumnVisibilityMenu table={histTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+        <ColumnVisibilityMenu table={histTable} t={t} />
       </div>
       {histLoading ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading...</div> : history.length === 0 ? (
         <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No registration history yet.</div>
@@ -586,7 +586,7 @@ function TaxDeclarations() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Declaration History</h3>
-        <ColumnVisibilityMenu table={declTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+        <ColumnVisibilityMenu table={declTable} t={t} />
       </div>
       {histLoading ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading...</div> : history.length === 0 ? (
         <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No declarations submitted yet.</div>
@@ -730,7 +730,7 @@ function Waybills() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Waybills (ზედნადები)</h3>
         <div style={{ display: 'flex', gap: 8 }}>
-          <ColumnVisibilityMenu table={wbTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <ColumnVisibilityMenu table={wbTable} t={t} />
           <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-add">+ New Waybill</button>
         </div>
       </div>
@@ -968,7 +968,7 @@ function EInvoices() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>E-Invoices (ანგარიშ-ფაქტურა)</h3>
         <div style={{ display: 'flex', gap: 8 }}>
-          <ColumnVisibilityMenu table={einvTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <ColumnVisibilityMenu table={einvTable} t={t} />
           <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-add">+ New E-Invoice</button>
         </div>
       </div>

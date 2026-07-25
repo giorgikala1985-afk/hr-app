@@ -230,7 +230,7 @@ export default function JournalPage() {
             {t('journal.clearFilter')}
           </button>
         )}
-        <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '8px 14px' }} />
+        <ColumnVisibilityMenu table={table} t={t} />
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-4)', whiteSpace: 'nowrap' }}>
           {table.sortedRows.length} {table.sortedRows.length !== 1 ? t('journal.records') : t('journal.record')}
         </span>

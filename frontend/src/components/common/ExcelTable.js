@@ -371,7 +371,7 @@ export function ColumnVisibilityMenu({ table, t, buttonStyle }) {
     <div style={{ position: 'relative' }}>
       <button
         onClick={() => table.setShowColMenu(v => !v)}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: table.showColMenu ? 'var(--surface-2)' : 'var(--surface)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', ...buttonStyle }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px', boxSizing: 'border-box', borderRadius: 8, border: '1px solid var(--border-2)', background: table.showColMenu ? 'var(--surface-2)' : 'var(--surface)', color: 'var(--text-2)', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', ...buttonStyle }}
       >
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
