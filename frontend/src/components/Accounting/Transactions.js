@@ -1,16 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
-import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { fmtExcelDate } from '../../utils/formatDate';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
-const DEFAULT_WIDTHS = [110, 160, 150, 110, 220, 70];
+const DEFAULT_COL_WIDTHS = { date: 110, client: 160, item_type: 150, amount: 110, note: 220 };
 
 const TX_EMPTY = { date: '', client: '', item_type: '', amount: '', note: '' };
-
-const EMPTY_FILTERS = { date: '', client: '', item_type: '', amount: '', note: '' };
 
 /* ── SVG icon components ── */
 function IconEdit() {
@@ -50,14 +49,6 @@ function IconPlus() {
   );
 }
 
-function IconFilter() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/>
-    </svg>
-  );
-}
-
 function IconClear() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -79,9 +70,16 @@ function Transactions() {
   const [error, setError] = useState('');
   const [suggestion, setSuggestion] = useState([]);
   const [suggestionDismissed, setSuggestionDismissed] = useState(false);
-  const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
+  const { widths: colWidths, onResizeMouseDown } = useKeyedColumnWidths('tx_col_widths', DEFAULT_COL_WIDTHS);
+
+  const TX_COLUMNS = [
+    { key: 'date', label: t('tx.colDate'), getValue: r => r.date ? new Date(r.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: r => r.date || '' },
+    { key: 'client', label: t('tx.colClient'), getValue: r => r.client || '—' },
+    { key: 'item_type', label: t('tx.colItemType'), getValue: r => r.item_type || '—' },
+    { key: 'amount', label: t('tx.colAmount'), getValue: r => `$${parseFloat(r.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, getSortValue: r => parseFloat(r.amount) || 0 },
+    { key: 'note', label: t('tx.colNote'), getValue: r => r.note || '—' },
+  ];
 
   useEffect(() => { load(); loadAgents(); }, []);
 
@@ -126,21 +124,10 @@ function Transactions() {
   const clientOptions = [...new Set(records.map(r => r.client).filter(Boolean))];
   const itemTypeOptions = [...new Set(records.map(r => r.item_type).filter(Boolean))];
 
-  /* ── Filtering ── */
-  const filtered = useMemo(() => {
-    return records.filter(r => {
-      if (filters.date && !r.date.includes(filters.date)) return false;
-      if (filters.client && !r.client.toLowerCase().includes(filters.client.toLowerCase())) return false;
-      if (filters.item_type && !r.item_type.toLowerCase().includes(filters.item_type.toLowerCase())) return false;
-      if (filters.amount && !String(r.amount).includes(filters.amount)) return false;
-      if (filters.note && !(r.note || '').toLowerCase().includes(filters.note.toLowerCase())) return false;
-      return true;
-    });
-  }, [records, filters]);
-
-  const hasFilters = Object.values(filters).some(v => v !== '');
-  const setFilter = (col, val) => setFilters(prev => ({ ...prev, [col]: val }));
-  const clearFilters = () => setFilters(EMPTY_FILTERS);
+  const table = useExcelTable({ storageKey: 'tx_list', columns: TX_COLUMNS, rows: records });
+  const filtered = table.sortedRows;
+  const hasFilters = table.hasActiveFilters;
+  const clearFilters = table.clearAllColumnFilters;
 
   /* ── Selection ── */
   const toggleSelect = (id) => {
@@ -236,21 +223,6 @@ function Transactions() {
 
   const total = filtered.reduce((s, r) => s + parseFloat(r.amount || 0), 0);
 
-  /* ── Filter input style ── */
-  const filterInputStyle = {
-    width: '100%',
-    boxSizing: 'border-box',
-    fontSize: 11,
-    padding: '3px 6px',
-    border: '1px solid #d1d5db',
-    borderRadius: 5,
-    background: '#f9fafb',
-    color: '#374151',
-    outline: 'none',
-    marginTop: 4,
-    fontFamily: 'inherit',
-  };
-
   return (
     <div>
       <h2>{t('tx.title')}</h2>
@@ -290,6 +262,7 @@ function Transactions() {
           >
             <IconExcel /> {t('tx.excel')}
           </button>
+          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
           <button className="btn-add" onClick={openNew}>
             <IconPlus /> {t('tx.addPurchase')}
           </button>
@@ -335,7 +308,8 @@ function Transactions() {
           <table className="acc-table">
             <colgroup>
               <col style={{ width: 40 }} />
-              {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+              {table.displayCols.map((key) => <col key={key} style={{ width: colWidths[key] }} />)}
+              <col style={{ width: 70 }} />
             </colgroup>
             <thead>
               <tr>
@@ -348,41 +322,82 @@ function Transactions() {
                     style={{ width: 15, height: 15, cursor: 'pointer' }}
                   />
                 </th>
-                {[
-                  { label: t('tx.colDate'), key: 'date', type: 'date' },
-                  { label: t('tx.colClient'), key: 'client', type: 'text' },
-                  { label: t('tx.colItemType'), key: 'item_type', type: 'text' },
-                  { label: t('tx.colAmount'), key: 'amount', type: 'text' },
-                  { label: t('tx.colNote'), key: 'note', type: 'text' },
-                  { label: '', key: null },
-                ].map((col, i) => (
-                  <th key={i} style={{ position: 'relative', width: colWidths[i], verticalAlign: 'top', paddingBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                      {col.label}
-                      {col.key && filters[col.key] && (
-                        <span style={{ color: '#f59e0b', display: 'flex' }}><IconFilter /></span>
+                {table.displayCols.map((key) => {
+                  const col = table.colByKey[key];
+                  return (
+                    <th key={key} style={{ position: 'relative', width: colWidths[key], verticalAlign: 'top', paddingBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                        <span
+                          onClick={() => table.toggleSort(key)}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
+                        >
+                          {col.label}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </span>
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            border: 'none', borderRadius: 4, cursor: 'pointer',
+                            background: table.openFilterCol === key ? '#f3f4f6' : 'transparent',
+                            color: table.columnFilters[key] ? '#479c73' : '#9ca3af',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                      </div>
+                      {table.openFilterCol === key && table.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={table.filterDropdownRef}
+                          pos={table.filterDropdownPos}
+                          options={table.getColumnFilterOptions(key)}
+                          selected={table.columnFilters[key]}
+                          search={table.filterSearch}
+                          onSearchChange={table.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = table.getColumnFilterOptions(key);
+                            const activeSet = table.columnFilters[key] ?? new Set(opts);
+                            table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                          onClear={() => table.clearColumnFilter(key)}
+                          t={t}
+                        />
                       )}
-                    </div>
-                    {col.key && (
-                      <input
-                        type={col.type}
-                        value={filters[col.key]}
-                        onChange={e => setFilter(col.key, e.target.value)}
-                        placeholder={col.type === 'date' ? t('tx.filterDate') : t('agents.filterPlaceholder')}
-                        style={filterInputStyle}
+                      <div
+                        onMouseDown={(e) => onResizeMouseDown(e, key)}
+                        style={RESIZE_HANDLE_STYLE}
+                        onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       />
-                    )}
-                    <div
-                      onMouseDown={(e) => onResizeMouseDown(e, i)}
-                      style={RESIZE_HANDLE_STYLE}
-                      onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    />
-                  </th>
-                ))}
+                    </th>
+                  );
+                })}
+                <th></th>
               </tr>
             </thead>
             <tbody>
+              {table.hasActiveFilters && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length + 2} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={clearFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {filtered.map((r) => (
                 <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
@@ -393,11 +408,11 @@ function Transactions() {
                       style={{ width: 15, height: 15, cursor: 'pointer' }}
                     />
                   </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date ? new Date(r.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-category-badge">{r.item_type}</span></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount expense">${parseFloat(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.note || '—'}</td>
+                  {table.displayCols.includes('date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date ? new Date(r.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>}
+                  {table.displayCols.includes('client') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>}
+                  {table.displayCols.includes('item_type') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-category-badge">{r.item_type}</span></td>}
+                  {table.displayCols.includes('amount') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount expense">${parseFloat(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>}
+                  {table.displayCols.includes('note') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.note || '—'}</td>}
                   <td>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}>

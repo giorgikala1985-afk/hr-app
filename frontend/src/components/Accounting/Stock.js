@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
-import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -12,13 +13,10 @@ const EMPTY = {
   move_out_date: '', move_out_qty: '', move_out_price: '',
 };
 
-const EMPTY_FILTERS = {
-  sku: '', name: '', stock_name: '',
-  move_in_date: '', move_in_qty: '', move_in_price: '',
-  move_out_date: '', move_out_qty: '', move_out_price: '',
+const DEFAULT_COL_WIDTHS = {
+  sku: 110, name: 150, stock_name: 130, move_in_date: 110, move_in_qty: 90,
+  move_in_price: 100, move_out_date: 110, move_out_qty: 90, move_out_price: 100,
 };
-
-const DEFAULT_WIDTHS = [110, 150, 130, 110, 90, 100, 110, 90, 100, 70];
 
 /* ── Icons ── */
 function IconEdit() {
@@ -32,9 +30,6 @@ function IconExcel() {
 }
 function IconPlus() {
   return <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-}
-function IconFilter() {
-  return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46 22,3"/></svg>;
 }
 function IconClear() {
   return <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
@@ -52,8 +47,7 @@ export default function Stock() {
   const [editId, setEditId]           = useState(null);
   const [saving, setSaving]           = useState(false);
   const [error, setError]             = useState('');
-  const [filters, setFilters]         = useState(EMPTY_FILTERS);
-  const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
+  const { widths: colWidths, onResizeMouseDown } = useKeyedColumnWidths('stock_col_widths', DEFAULT_COL_WIDTHS);
 
   useEffect(() => { load(); loadLocations(); }, []);
 
@@ -73,25 +67,22 @@ export default function Stock() {
     finally { setLoading(false); }
   };
 
-  /* ── Filtering ── */
-  const filtered = useMemo(() => records.filter(r => {
-    const chk = (field, val) => !val || String(r[field] ?? '').toLowerCase().includes(val.toLowerCase());
-    return (
-      chk('sku', filters.sku) &&
-      chk('name', filters.name) &&
-      chk('stock_name', filters.stock_name) &&
-      chk('move_in_date', filters.move_in_date) &&
-      chk('move_in_qty', filters.move_in_qty) &&
-      chk('move_in_price', filters.move_in_price) &&
-      chk('move_out_date', filters.move_out_date) &&
-      chk('move_out_qty', filters.move_out_qty) &&
-      chk('move_out_price', filters.move_out_price)
-    );
-  }), [records, filters]);
-
-  const hasFilters = Object.values(filters).some(v => v !== '');
-  const setFilter  = (col, val) => setFilters(prev => ({ ...prev, [col]: val }));
-  const clearFilters = () => setFilters(EMPTY_FILTERS);
+  /* ── Sort / filter ── */
+  const STOCK_COLUMNS = [
+    { key: 'sku', label: t('stock.colSku'), getValue: r => r.sku || '—' },
+    { key: 'name', label: t('stock.colName'), getValue: r => r.name || '—' },
+    { key: 'stock_name', label: t('stock.colStockName'), getValue: r => r.stock_name || '—' },
+    { key: 'move_in_date', label: t('stock.colMoveInDate'), getValue: r => r.move_in_date || '—' },
+    { key: 'move_in_qty', label: t('stock.colMoveInQty'), getValue: r => fmtNum(r.move_in_qty, 0), getSortValue: r => parseFloat(r.move_in_qty) || 0 },
+    { key: 'move_in_price', label: t('stock.colMoveInPrice'), getValue: r => r.move_in_price != null ? `$${fmtNum(r.move_in_price)}` : '—', getSortValue: r => parseFloat(r.move_in_price) || 0 },
+    { key: 'move_out_date', label: t('stock.colMoveOutDate'), getValue: r => r.move_out_date || '—' },
+    { key: 'move_out_qty', label: t('stock.colMoveOutQty'), getValue: r => fmtNum(r.move_out_qty, 0), getSortValue: r => parseFloat(r.move_out_qty) || 0 },
+    { key: 'move_out_price', label: t('stock.colMoveOutPrice'), getValue: r => r.move_out_price != null ? `$${fmtNum(r.move_out_price)}` : '—', getSortValue: r => parseFloat(r.move_out_price) || 0 },
+  ];
+  const table = useExcelTable({ storageKey: 'stock_list', columns: STOCK_COLUMNS, rows: records });
+  const filtered = table.sortedRows;
+  const hasFilters = table.hasActiveFilters;
+  const clearFilters = table.clearAllColumnFilters;
 
   /* ── Summary stats ── */
   const totalInValue  = filtered.reduce((s, r) => s + (parseFloat(r.move_in_qty  || 0) * parseFloat(r.move_in_price  || 0)), 0);
@@ -142,26 +133,6 @@ export default function Stock() {
     XLSX.writeFile(wb, `stock-${today()}.xlsx`);
   };
 
-  const filterInputStyle = {
-    width: '100%', boxSizing: 'border-box', fontSize: 11,
-    padding: '3px 6px', border: '1px solid #d1d5db', borderRadius: 5,
-    background: '#f9fafb', color: '#374151', outline: 'none',
-    marginTop: 4, fontFamily: 'inherit',
-  };
-
-  const COLS = [
-    { label: t('stock.colSku'),          key: 'sku',             type: 'text' },
-    { label: t('stock.colName'),         key: 'name',            type: 'text' },
-    { label: t('stock.colStockName'),    key: 'stock_name',      type: 'text' },
-    { label: t('stock.colMoveInDate'),   key: 'move_in_date',    type: 'date' },
-    { label: t('stock.colMoveInQty'),    key: 'move_in_qty',     type: 'text' },
-    { label: t('stock.colMoveInPrice'),  key: 'move_in_price',   type: 'text' },
-    { label: t('stock.colMoveOutDate'),  key: 'move_out_date',   type: 'date' },
-    { label: t('stock.colMoveOutQty'),   key: 'move_out_qty',    type: 'text' },
-    { label: t('stock.colMoveOutPrice'), key: 'move_out_price',  type: 'text' },
-    { label: '',                         key: null },
-  ];
-
   return (
     <div>
       <h2>{t('stock.title')}</h2>
@@ -198,6 +169,7 @@ export default function Stock() {
           <button onClick={exportToExcel} disabled={filtered.length === 0} title="Download as Excel" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 7, fontSize: 13, fontWeight: 500, color: '#479c73', cursor: filtered.length === 0 ? 'not-allowed' : 'pointer', opacity: filtered.length === 0 ? 0.5 : 1, fontFamily: 'inherit' }}>
             <IconExcel /> {t('stock.excel')}
           </button>
+          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
           <button className="btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: '#479c73', borderColor: '#479c73' }}>
             <IconPlus /> {t('stock.addItem')}
           </button>
@@ -224,54 +196,110 @@ export default function Stock() {
             <p>{t('stock.noResults')}</p>
           </div>
         ) : (
-          <table className="acc-table" style={{ tableLayout: 'fixed', width: colWidths.reduce((a, b) => a + b, 0) }}>
+          <table className="acc-table" style={{ tableLayout: 'fixed', width: table.displayCols.reduce((a, k) => a + colWidths[k], 70) }}>
             <colgroup>
-              {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+              {table.displayCols.map((key) => <col key={key} style={{ width: colWidths[key] }} />)}
+              <col style={{ width: 70 }} />
             </colgroup>
             <thead>
               <tr>
-                {COLS.map((col, i) => (
-                  <th key={i} style={{ position: 'relative', width: colWidths[i], overflow: 'hidden', verticalAlign: 'top', paddingBottom: 6 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                      {col.label}
-                      {col.key && filters[col.key] && <span style={{ color: '#f59e0b', display: 'flex' }}><IconFilter /></span>}
-                    </div>
-                    {col.key && (
-                      <input
-                        type={col.type}
-                        value={filters[col.key]}
-                        onChange={e => setFilter(col.key, e.target.value)}
-                        placeholder={col.type === 'date' ? t('tx.filterDate') : t('agents.filterPlaceholder')}
-                        style={filterInputStyle}
-                      />
-                    )}
-                    <div onMouseDown={e => onResizeMouseDown(e, i)} style={RESIZE_HANDLE_STYLE}
-                      onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
-                  </th>
-                ))}
+                {table.displayCols.map((key) => {
+                  const col = table.colByKey[key];
+                  return (
+                    <th key={key} style={{ position: 'relative', width: colWidths[key], overflow: 'hidden', verticalAlign: 'top', paddingBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                        <span onClick={() => table.toggleSort(key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                          {col.label}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </span>
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            border: 'none', borderRadius: 4, cursor: 'pointer',
+                            background: table.openFilterCol === key ? '#f3f4f6' : 'transparent',
+                            color: table.columnFilters[key] ? '#479c73' : '#9ca3af',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                      </div>
+                      {table.openFilterCol === key && table.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={table.filterDropdownRef}
+                          pos={table.filterDropdownPos}
+                          options={table.getColumnFilterOptions(key)}
+                          selected={table.columnFilters[key]}
+                          search={table.filterSearch}
+                          onSearchChange={table.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = table.getColumnFilterOptions(key);
+                            const activeSet = table.columnFilters[key] ?? new Set(opts);
+                            table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                          onClear={() => table.clearColumnFilter(key)}
+                          t={t}
+                        />
+                      )}
+                      <div onMouseDown={e => onResizeMouseDown(e, key)} style={RESIZE_HANDLE_STYLE}
+                        onMouseEnter={e => e.currentTarget.style.background = '#cbd5e1'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'} />
+                    </th>
+                  );
+                })}
+                <th></th>
               </tr>
             </thead>
             <tbody>
+              {table.hasActiveFilters && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length + 1} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={clearFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {filtered.map(r => (
                 <tr key={r.id}>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {r.sku ? <span style={{ fontFamily: 'monospace', fontSize: 12, background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, color: '#475569' }}>{r.sku}</span> : '—'}
-                  </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.name}</strong></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {r.stock_name ? <span className="acc-category-badge">{r.stock_name}</span> : '—'}
-                  </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_in_date || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtNum(r.move_in_qty, 0)}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {r.move_in_price != null ? <span className="acc-amount income">${fmtNum(r.move_in_price)}</span> : '—'}
-                  </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_out_date || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtNum(r.move_out_qty, 0)}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {r.move_out_price != null ? <span className="acc-amount expense">${fmtNum(r.move_out_price)}</span> : '—'}
-                  </td>
+                  {table.displayCols.includes('sku') && (
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {r.sku ? <span style={{ fontFamily: 'monospace', fontSize: 12, background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, color: '#475569' }}>{r.sku}</span> : '—'}
+                    </td>
+                  )}
+                  {table.displayCols.includes('name') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.name}</strong></td>}
+                  {table.displayCols.includes('stock_name') && (
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {r.stock_name ? <span className="acc-category-badge">{r.stock_name}</span> : '—'}
+                    </td>
+                  )}
+                  {table.displayCols.includes('move_in_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_in_date || '—'}</td>}
+                  {table.displayCols.includes('move_in_qty') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtNum(r.move_in_qty, 0)}</td>}
+                  {table.displayCols.includes('move_in_price') && (
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {r.move_in_price != null ? <span className="acc-amount income">${fmtNum(r.move_in_price)}</span> : '—'}
+                    </td>
+                  )}
+                  {table.displayCols.includes('move_out_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_out_date || '—'}</td>}
+                  {table.displayCols.includes('move_out_qty') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtNum(r.move_out_qty, 0)}</td>}
+                  {table.displayCols.includes('move_out_price') && (
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {r.move_out_price != null ? <span className="acc-amount expense">${fmtNum(r.move_out_price)}</span> : '—'}
+                    </td>
+                  )}
                   <td>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}><IconEdit /></button>
