@@ -137,9 +137,6 @@ function Projects() {
     } catch { setError(t('projects.failedDeleteSelected')); }
   };
 
-  const activeCount = records.filter(r => r.status === 'Active').length;
-  const totalBudget = records.reduce((s, r) => s + (parseFloat(r.budget) || 0), 0);
-
   return (
     <>
       <h2>{t('projects.title')}</h2>
@@ -163,21 +160,6 @@ function Projects() {
       {mainTab === 'invoices' && <ProjectInvoices projects={records} />}
 
       {mainTab === 'projects' && <>
-      <div className="acc-summary">
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">{t('projects.totalProjects')}</span>
-          <span className="acc-summary-value">{records.length}</span>
-        </div>
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">{t('projects.activeProjects')}</span>
-          <span className="acc-summary-value green">{activeCount}</span>
-        </div>
-        <div className="acc-summary-card">
-          <span className="acc-summary-label">{t('projects.totalBudget')}</span>
-          <span className="acc-summary-value">{totalBudget.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-        </div>
-      </div>
-
       <div className="acc-header-row">
         <div />
         <div style={{ display: 'flex', gap: 8 }}>
