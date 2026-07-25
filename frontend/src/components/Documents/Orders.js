@@ -3077,6 +3077,63 @@ function DeleteIcon() {
   );
 }
 
+// Excel-style AutoFilter dropdown: search + "select all" + checkbox list of unique values,
+// portaled to <body> so it isn't clipped by the table's overflow:hidden wrapper.
+function ExcelFilterDropdown({ dropdownRef, pos, options, selected, search, onSearchChange, onToggleValue, onToggleAll, onClear, t }) {
+  const activeSet = selected ?? new Set(options);
+  const visibleOptions = search ? options.filter(o => o.toLowerCase().includes(search.toLowerCase())) : options;
+  const allVisibleChecked = visibleOptions.length > 0 && visibleOptions.every(o => activeSet.has(o));
+
+  return createPortal(
+    <div
+      ref={dropdownRef}
+      style={{
+        position: 'fixed', top: pos.top, left: pos.left, zIndex: 200,
+        width: 230, maxHeight: 320, display: 'flex', flexDirection: 'column',
+        background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10,
+        boxShadow: '0 10px 30px rgba(0,0,0,0.18)', overflow: 'hidden',
+        fontWeight: 400, textTransform: 'none', letterSpacing: 'normal',
+      }}
+    >
+      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-3)' }}>
+        <input
+          autoFocus
+          value={search}
+          onChange={e => onSearchChange(e.target.value)}
+          onClick={e => e.stopPropagation()}
+          placeholder={t('orders.filterSearchPlaceholder')}
+          style={{
+            width: '100%', boxSizing: 'border-box', padding: '6px 8px', fontSize: 12, borderRadius: 6,
+            border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', outline: 'none',
+          }}
+        />
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer', borderBottom: '1px solid var(--border-3)' }}>
+        <input type="checkbox" checked={allVisibleChecked} onChange={e => onToggleAll(visibleOptions, e.target.checked)} style={{ accentColor: '#479c73', width: 13, height: 13 }} />
+        {t('orders.selectAll')}
+      </label>
+      <div style={{ overflowY: 'auto', flex: 1, padding: '4px 0' }}>
+        {visibleOptions.length === 0 ? (
+          <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--text-4)' }}>{t('orders.noFilterOptions')}</div>
+        ) : visibleOptions.map(opt => (
+          <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer' }}>
+            <input type="checkbox" checked={activeSet.has(opt)} onChange={() => onToggleValue(opt)} style={{ accentColor: '#479c73', width: 13, height: 13, flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt}</span>
+          </label>
+        ))}
+      </div>
+      {selected !== null && (
+        <div style={{ borderTop: '1px solid var(--border-3)', padding: '6px 10px' }}>
+          <button onClick={onClear} style={{ background: 'none', border: 'none', color: '#3185FC', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
+            {t('orders.clearFilter')}
+          </button>
+        </div>
+      )}
+    </div>,
+    document.body
+  );
+}
+
 export default function Orders() {
   const { t } = useLanguage();
   const ORDER_SUBTABS = ORDER_SUBTAB_KEYS.map(s => ({ ...s, label: t(s.labelKey) }));
@@ -3101,21 +3158,35 @@ export default function Orders() {
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortKey(key); setSortDir('asc'); }
   };
-  const [columnFilters, setColumnFilters] = useState({ employee: '', type: '', direction: '', amount: '', date: '', created: '', modified: '' });
-  const setColFilter = (key, val) => setColumnFilters(prev => ({ ...prev, [key]: val }));
+  // Excel-style column filters: null = no filter (all values); Set = only these values pass
+  const [columnFilters, setColumnFilters] = useState({ employee: null, type: null, direction: null, amount: null, date: null, created: null, modified: null });
+  const [openFilterCol, setOpenFilterCol] = useState(null);
+  const [filterDropdownPos, setFilterDropdownPos] = useState(null);
+  const [filterSearch, setFilterSearch] = useState('');
+  const filterDropdownRef = useRef(null);
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
   // Adjust table: draggable, hideable column order (Actions/Delete stay pinned last)
   const ADJUST_CUSTOM_COL_KEYS = ['employee', 'type', 'direction', 'amount', 'date', 'created', 'modified'];
   const ADJUST_COL_DEFS = {
-    employee: { label: t('orders.employee'), right: false, filterType: 'text' },
-    type:     { label: t('orders.type'),     right: false, filterType: 'text' },
-    direction:{ label: t('orders.direction'),right: false, filterType: 'text' },
-    amount:   { label: t('orders.amount'),   right: true,  filterType: 'text' },
-    date:     { label: t('orders.date'),     right: true,  filterType: 'date' },
-    created:  { label: t('orders.created'),  right: true,  filterType: 'date' },
-    modified: { label: t('orders.modified'), right: true,  filterType: 'date' },
+    employee: { label: t('orders.employee'), right: false },
+    type:     { label: t('orders.type'),     right: false },
+    direction:{ label: t('orders.direction'),right: false },
+    amount:   { label: t('orders.amount'),   right: true  },
+    date:     { label: t('orders.date'),     right: true  },
+    created:  { label: t('orders.created'),  right: true  },
+    modified: { label: t('orders.modified'), right: true  },
+  };
+  // Excel-style filter dropdowns filter/group by the same text the table cell shows
+  const ADJUST_VALUE_GETTERS = {
+    employee: u => `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.trim() || '—',
+    type: u => u.type || '—',
+    direction: u => (u.direction === 'addition' ? t('orders.addition') : t('orders.deduction')),
+    amount: u => `${u.direction === 'addition' ? '+' : '−'}${fmt(u.amount)}`,
+    date: u => u.date || '—',
+    created: u => u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+    modified: u => (u.updated_at && u.updated_at !== u.created_at) ? new Date(u.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
   };
   const [adjustColOrder, setAdjustColOrder] = useState(() => {
     try {
@@ -3279,6 +3350,30 @@ export default function Orders() {
   }, []);
 
   useEffect(() => { loadStatic(); loadRates(); }, [loadStatic, loadRates]);
+
+  // Close the Excel-style filter dropdown on outside click, Escape, or scroll
+  useEffect(() => {
+    if (!openFilterCol) return;
+    const close = () => { setOpenFilterCol(null); setFilterDropdownPos(null); };
+    const onDocClick = (e) => {
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) close();
+    };
+    const onKeyDown = (e) => { if (e.key === 'Escape') close(); };
+    const onScroll = (e) => {
+      if (filterDropdownRef.current && filterDropdownRef.current.contains(e.target)) return;
+      close();
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKeyDown);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [openFilterCol]);
   useEffect(() => { loadSalaries(month); }, [month, loadSalaries]);
 
   // ── Demo seed (giorgi@powerbi.ge only, runs once) ────────────
@@ -3417,17 +3512,43 @@ export default function Orders() {
     created: u => u.created_at || '',
     modified: u => u.updated_at || '',
   };
-  const columnFilteredUnits = filteredUnits.filter(u => {
-    const empName = `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.toLowerCase();
-    if (columnFilters.employee && !empName.includes(columnFilters.employee.toLowerCase())) return false;
-    if (columnFilters.type && !(u.type || '').toLowerCase().includes(columnFilters.type.toLowerCase())) return false;
-    if (columnFilters.direction && !(u.direction || '').toLowerCase().includes(columnFilters.direction.toLowerCase())) return false;
-    if (columnFilters.amount && !String(u.amount ?? '').includes(columnFilters.amount)) return false;
-    if (columnFilters.date && !(u.date || '').includes(columnFilters.date)) return false;
-    if (columnFilters.created && !(u.created_at || '').includes(columnFilters.created)) return false;
-    if (columnFilters.modified && !(u.updated_at || '').includes(columnFilters.modified)) return false;
-    return true;
-  });
+  // Excel-style: a column with a Set only lets through units whose value is in that Set;
+  // `except` skips one column's own filter so its dropdown can offer cascading options.
+  const applyColumnFilters = (units, except) => units.filter(u => (
+    ADJUST_CUSTOM_COL_KEYS.every(k => {
+      if (k === except) return true;
+      const sel = columnFilters[k];
+      return !sel || sel.has(ADJUST_VALUE_GETTERS[k](u));
+    })
+  ));
+  const columnFilteredUnits = applyColumnFilters(filteredUnits, null);
+  const getColumnFilterOptions = (key) => {
+    const values = applyColumnFilters(filteredUnits, key).map(ADJUST_VALUE_GETTERS[key]);
+    return [...new Set(values)].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  };
+  // values/checked lets one call cover both a single checkbox toggle and "select all [visible]"
+  const setColumnFilterValues = (key, allOptions, values, checked) => {
+    setColumnFilters(prev => {
+      const current = prev[key] ?? new Set(allOptions);
+      const next = new Set(current);
+      values.forEach(v => (checked ? next.add(v) : next.delete(v)));
+      return { ...prev, [key]: next.size === allOptions.length ? null : next };
+    });
+  };
+  const clearColumnFilter = (key) => setColumnFilters(prev => ({ ...prev, [key]: null }));
+  const clearAllColumnFilters = () => setColumnFilters({ employee: null, type: null, direction: null, amount: null, date: null, created: null, modified: null });
+  const openColumnFilterDropdown = (e, key) => {
+    e.stopPropagation();
+    if (openFilterCol === key) { setOpenFilterCol(null); setFilterDropdownPos(null); return; }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const DROPDOWN_WIDTH = 230;
+    setFilterDropdownPos({
+      top: rect.bottom + 6,
+      left: Math.min(rect.left - 100, window.innerWidth - DROPDOWN_WIDTH - 16),
+    });
+    setFilterSearch('');
+    setOpenFilterCol(key);
+  };
   const sortedUnits = sortKey ? [...columnFilteredUnits].sort((a, b) => {
     const av = SORT_ACCESSORS[sortKey](a);
     const bv = SORT_ACCESSORS[sortKey](b);
@@ -3743,7 +3864,7 @@ export default function Orders() {
             {t('orders.noFilterMatches')}
             <div>
               <button
-                onClick={() => setColumnFilters({ employee: '', type: '', direction: '', amount: '', date: '', created: '', modified: '' })}
+                onClick={clearAllColumnFilters}
                 style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
                 {t('orders.clear')}
@@ -3778,10 +3899,10 @@ export default function Orders() {
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
                 {[
-                  ...adjustDisplayCols.map(key => [ADJUST_COL_DEFS[key].label, ADJUST_COL_DEFS[key].right, key, ADJUST_COL_DEFS[key].filterType]),
-                  ['', true, null, null],
-                  ['', true, null, null],
-                ].map(([h, right, key, filterType], i) => (
+                  ...adjustDisplayCols.map(key => [ADJUST_COL_DEFS[key].label, ADJUST_COL_DEFS[key].right, key]),
+                  ['', true, null],
+                  ['', true, null],
+                ].map(([h, right, key], i) => (
                   <th
                     key={i}
                     style={{
@@ -3791,31 +3912,46 @@ export default function Orders() {
                     }}
                   >
                     <span
-                      onClick={key ? () => toggleSort(key) : undefined}
-                      style={{ display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center', gap: 4, justifyContent: right ? 'flex-end' : 'flex-start', flexDirection: right ? 'row-reverse' : 'row', cursor: key ? 'pointer' : 'default', userSelect: 'none' }}
+                      style={{ display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center', gap: 3, justifyContent: right ? 'flex-end' : 'flex-start', flexDirection: right ? 'row-reverse' : 'row', userSelect: 'none' }}
                     >
-                      {h}
+                      <span onClick={key ? () => toggleSort(key) : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: key ? 'pointer' : 'default' }}>
+                        {h}
+                        {key && (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: sortKey === key ? 1 : 0.25, transform: sortKey === key && sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        )}
+                      </span>
                       {key && (
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                          style={{ opacity: sortKey === key ? 1 : 0.25, transform: sortKey === key && sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
-                          <polyline points="6 9 12 15 18 9"/>
-                        </svg>
+                        <button
+                          onClick={e => openColumnFilterDropdown(e, key)}
+                          title={t('orders.filterPlaceholder')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, padding: 0,
+                            border: 'none', borderRadius: 4, cursor: 'pointer',
+                            background: openFilterCol === key ? 'var(--surface-3, rgba(0,0,0,0.08))' : 'transparent',
+                            color: columnFilters[key] ? '#479c73' : 'var(--text-4)',
+                          }}
+                        >
+                          <svg width="11" height="11" viewBox="0 0 24 24" fill={columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
                       )}
                     </span>
-                    {key && (
-                      <input
-                        type={filterType}
-                        value={columnFilters[key]}
-                        onChange={e => setColFilter(key, e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        placeholder={t('orders.filterPlaceholder')}
-                        style={{
-                          display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 5,
-                          padding: '3px 6px', fontSize: 11, fontWeight: 400, textTransform: 'none', letterSpacing: 'normal',
-                          textAlign: right ? 'right' : 'left',
-                          border: '1px solid var(--border-2)', borderRadius: 5,
-                          background: 'var(--surface)', color: 'var(--text-2)', outline: 'none',
-                        }}
+                    {key && openFilterCol === key && filterDropdownPos && (
+                      <ExcelFilterDropdown
+                        dropdownRef={filterDropdownRef}
+                        pos={filterDropdownPos}
+                        options={getColumnFilterOptions(key)}
+                        selected={columnFilters[key]}
+                        search={filterSearch}
+                        onSearchChange={setFilterSearch}
+                        onToggleValue={(value) => setColumnFilterValues(key, getColumnFilterOptions(key), [value], !(columnFilters[key] ?? new Set(getColumnFilterOptions(key))).has(value))}
+                        onToggleAll={(visible, checked) => setColumnFilterValues(key, getColumnFilterOptions(key), visible, checked)}
+                        onClear={() => clearColumnFilter(key)}
+                        t={t}
                       />
                     )}
                   </th>
