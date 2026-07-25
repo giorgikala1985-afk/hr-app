@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 const REQUEST_TYPES = [
   'Leave / Time Off',
@@ -146,6 +147,16 @@ function Requests() {
 
   const formatDate = (d) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
+  const REQUEST_COLUMNS = [
+    { key: 'date', label: t('req.colDate'), getValue: r => formatDate(r.created_at), getSortValue: r => r.created_at || '' },
+    { key: 'title', label: t('req.colTitle'), getValue: r => r.title || '—' },
+    { key: 'type', label: t('req.colType'), getValue: r => r.type || '—' },
+    { key: 'requester', label: t('req.colRequester'), getValue: r => r.requester_email || '—' },
+    { key: 'priority', label: t('req.colPriority'), getValue: r => t(PRIORITY_CONFIG[r.priority]?.labelKey || PRIORITY_CONFIG.medium.labelKey) },
+    { key: 'status', label: t('req.colStatus'), getValue: r => t(STATUS_CONFIG[r.status]?.labelKey || STATUS_CONFIG.pending.labelKey) },
+  ];
+  const table = useExcelTable({ storageKey: 'requests_list', columns: REQUEST_COLUMNS, rows: filtered });
+
   return (
     <div>
       <h2 style={{ margin: '0 0 4px', fontSize: '1.35rem', fontWeight: 700, color: 'var(--text)' }}>{t('docs.requests')}</h2>
@@ -188,6 +199,7 @@ function Requests() {
             outline: 'none', width: 260,
           }}
         />
+        <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '8px 14px' }} />
         <button className="btn-add" onClick={openNew}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -209,34 +221,84 @@ function Requests() {
         ) : (
           <table className="acc-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
-              <col style={{ width: 110 }} />
-              <col style={{ width: '22%' }} />
-              <col style={{ width: 150 }} />
-              <col style={{ width: '20%' }} />
-              <col style={{ width: 90 }} />
-              <col style={{ width: 110 }} />
+              {table.displayCols.map((key) => <col key={key} style={{ width: key === 'title' ? '22%' : key === 'requester' ? '20%' : key === 'type' ? 150 : key === 'date' ? 110 : 100 }} />)}
               <col style={{ width: 72 }} />
             </colgroup>
             <thead>
               <tr>
-                <th>{t('req.colDate')}</th>
-                <th>{t('req.colTitle')}</th>
-                <th>{t('req.colType')}</th>
-                <th>{t('req.colRequester')}</th>
-                <th>{t('req.colPriority')}</th>
-                <th>{t('req.colStatus')}</th>
+                {table.displayCols.map((key) => {
+                  const col = table.colByKey[key];
+                  return (
+                    <th key={key} style={{ position: 'relative' }}>
+                      <span onClick={() => table.toggleSort(key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                        {col.label}
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </span>
+                      <button
+                        onClick={e => table.openColumnFilterDropdown(e, key)}
+                        title={t('table.filterTooltip')}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                          marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                          background: table.openFilterCol === key ? 'var(--surface-2)' : 'transparent',
+                          color: table.columnFilters[key] ? '#479c73' : 'var(--text-4)',
+                        }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                        </svg>
+                      </button>
+                      {table.openFilterCol === key && table.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={table.filterDropdownRef}
+                          pos={table.filterDropdownPos}
+                          options={table.getColumnFilterOptions(key)}
+                          selected={table.columnFilters[key]}
+                          search={table.filterSearch}
+                          onSearchChange={table.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = table.getColumnFilterOptions(key);
+                            const activeSet = table.columnFilters[key] ?? new Set(opts);
+                            table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                          onClear={() => table.clearColumnFilter(key)}
+                          t={t}
+                        />
+                      )}
+                    </th>
+                  );
+                })}
                 <th></th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(r => (
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length + 1} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {table.sortedRows.map(r => (
                 <tr key={r.id}>
-                  <td style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{formatDate(r.created_at)}</td>
-                  <td style={{ fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} title={r.title}>{r.title}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 13, color: 'var(--text-2)' }}>{r.type}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 12, color: 'var(--text-3)' }} title={r.requester_email}>{r.requester_email || '—'}</td>
-                  <td><PriorityDot priority={r.priority} /></td>
-                  <td><StatusBadge status={r.status} /></td>
+                  {table.displayCols.includes('date') && <td style={{ fontSize: 12, color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{formatDate(r.created_at)}</td>}
+                  {table.displayCols.includes('title') && <td style={{ fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }} title={r.title}>{r.title}</td>}
+                  {table.displayCols.includes('type') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 13, color: 'var(--text-2)' }}>{r.type}</td>}
+                  {table.displayCols.includes('requester') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontSize: 12, color: 'var(--text-3)' }} title={r.requester_email}>{r.requester_email || '—'}</td>}
+                  {table.displayCols.includes('priority') && <td><PriorityDot priority={r.priority} /></td>}
+                  {table.displayCols.includes('status') && <td><StatusBadge status={r.status} /></td>}
                   <td>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}>

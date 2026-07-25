@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 const TYPE_META = {
   hiring:        { labelKey: 'journal.typeHiring',       color: '#3b82f6', icon: 'person-add' },
@@ -168,18 +169,19 @@ export default function JournalPage() {
     return text.includes(q);
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const pageRows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const JOURNAL_COLUMNS = [
+    { key: 'date', label: t('journal.colDate'), getValue: r => formatDate(r.createdAt), getSortValue: r => r.createdAt || '' },
+    { key: 'type', label: t('journal.colType'), getValue: r => t(TYPE_META[r._type]?.labelKey || r._type) },
+    { key: 'summary', label: t('journal.colSummary'), sortable: false, filterable: false, getValue: () => '' },
+    { key: 'notes', label: t('journal.colNotes'), getValue: r => r.notes || r.reason || '—' },
+  ];
+  const table = useExcelTable({ storageKey: 'journal_list', columns: JOURNAL_COLUMNS, rows: filtered });
+
+  const totalPages = Math.max(1, Math.ceil(table.sortedRows.length / PAGE_SIZE));
+  const pageRows = table.sortedRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const counts = {};
   ALL_TYPES.forEach(typeKey => { counts[typeKey] = rows.filter(r => r._type === typeKey).length; });
-
-  const COLS = [
-    t('journal.colDate'),
-    t('journal.colType'),
-    t('journal.colSummary'),
-    t('journal.colNotes'),
-  ];
 
   return (
     <div style={{ padding: '28px 28px 40px', maxWidth: 1100 }}>
@@ -253,8 +255,9 @@ export default function JournalPage() {
             {t('journal.clearFilter')}
           </button>
         )}
+        <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '8px 14px' }} />
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-4)', whiteSpace: 'nowrap' }}>
-          {filtered.length} {filtered.length !== 1 ? t('journal.records') : t('journal.record')}
+          {table.sortedRows.length} {table.sortedRows.length !== 1 ? t('journal.records') : t('journal.record')}
         </span>
       </div>
 
@@ -279,17 +282,85 @@ export default function JournalPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
-                {COLS.map(h => (
-                  <th key={h} style={{
-                    padding: '10px 16px', textAlign: 'left', fontWeight: 700,
-                    fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase',
-                    letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)',
-                    whiteSpace: 'nowrap',
-                  }}>{h}</th>
-                ))}
+                {table.displayCols.map((key) => {
+                  const col = table.colByKey[key];
+                  const sortable = col.sortable !== false;
+                  const filterable = col.filterable !== false;
+                  return (
+                    <th key={key} style={{
+                      padding: '10px 16px', textAlign: 'left', fontWeight: 700,
+                      fontSize: 11, color: 'var(--text-3)', textTransform: 'uppercase',
+                      letterSpacing: '0.05em', borderBottom: '1px solid var(--border-2)',
+                      whiteSpace: 'nowrap', position: 'relative',
+                    }}>
+                      <span
+                        onClick={sortable ? () => table.toggleSort(key) : undefined}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: sortable ? 'pointer' : 'default' }}
+                      >
+                        {col.label}
+                        {sortable && (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        )}
+                      </span>
+                      {filterable && (
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                            background: table.openFilterCol === key ? 'var(--surface)' : 'transparent',
+                            color: table.columnFilters[key] ? '#479c73' : 'var(--text-4)',
+                            textTransform: 'none',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                      )}
+                      {filterable && table.openFilterCol === key && table.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={table.filterDropdownRef}
+                          pos={table.filterDropdownPos}
+                          options={table.getColumnFilterOptions(key)}
+                          selected={table.columnFilters[key]}
+                          search={table.filterSearch}
+                          onSearchChange={table.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = table.getColumnFilterOptions(key);
+                            const activeSet = table.columnFilters[key] ?? new Set(opts);
+                            table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                          onClear={() => table.clearColumnFilter(key)}
+                          t={t}
+                        />
+                      )}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {pageRows.map((row, i) => {
                 const meta = TYPE_META[row._type] || { color: '#64748b' };
                 return (
@@ -299,18 +370,26 @@ export default function JournalPage() {
                     onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
-                    <td style={{ padding: '12px 16px', color: 'var(--text-3)', whiteSpace: 'nowrap', fontSize: 12 }}>
-                      {formatDate(row.createdAt)}
-                    </td>
-                    <td style={{ padding: '12px 16px' }}>
-                      <Badge color={meta.color} typeKey={row._type} />
-                    </td>
-                    <td style={{ padding: '12px 16px', color: 'var(--text)', lineHeight: 1.5 }}>
-                      <SummaryText type={row._type} row={row} />
-                    </td>
-                    <td style={{ padding: '12px 16px', color: 'var(--text-3)', fontSize: 12, maxWidth: 200 }}>
-                      {row.notes || row.reason || ''}
-                    </td>
+                    {table.displayCols.includes('date') && (
+                      <td style={{ padding: '12px 16px', color: 'var(--text-3)', whiteSpace: 'nowrap', fontSize: 12 }}>
+                        {formatDate(row.createdAt)}
+                      </td>
+                    )}
+                    {table.displayCols.includes('type') && (
+                      <td style={{ padding: '12px 16px' }}>
+                        <Badge color={meta.color} typeKey={row._type} />
+                      </td>
+                    )}
+                    {table.displayCols.includes('summary') && (
+                      <td style={{ padding: '12px 16px', color: 'var(--text)', lineHeight: 1.5 }}>
+                        <SummaryText type={row._type} row={row} />
+                      </td>
+                    )}
+                    {table.displayCols.includes('notes') && (
+                      <td style={{ padding: '12px 16px', color: 'var(--text-3)', fontSize: 12, maxWidth: 200 }}>
+                        {row.notes || row.reason || ''}
+                      </td>
+                    )}
                   </tr>
                 );
               })}
