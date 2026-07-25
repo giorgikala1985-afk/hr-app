@@ -1,4 +1,29 @@
 const supabase = require('../config/supabase');
+const crypto = require('crypto');
+
+// Reserved unit type names the app itself creates via hardcoded flows
+// (Advance Payment order, OT/overtime entries). If a tenant has never
+// explicitly registered these in Unit Types, payroll silently drops them
+// from totals (not addition, not deduction) -- so auto-register them with
+// their known correct direction the first time they're used.
+const RESERVED_UNIT_DIRECTIONS = {
+  'advance': 'deduction',
+  'ot': 'addition',
+  'overtime': 'addition',
+};
+async function ensureUnitTypeRegistered(userId, type) {
+  const direction = RESERVED_UNIT_DIRECTIONS[String(type || '').toLowerCase().trim()];
+  if (!direction) return;
+  const { data: existing } = await supabase
+    .from('unit_types')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('name', type)
+    .maybeSingle();
+  if (!existing) {
+    await supabase.from('unit_types').insert({ user_id: userId, name: type, direction }).catch(() => {});
+  }
+}
 
 // Shared by the POST /api/employees route (browser, with photo upload) and
 // the Telegram bot's "hire" action (no photo) — keeps the DB insert +
@@ -91,4 +116,124 @@ async function setEmployeeEndDate(userId, employeeId, endDate) {
   return data;
 }
 
-module.exports = { createEmployeeRecord, setEmployeeEndDate };
+// Shared by POST /api/employees/:id/units and the Telegram bot's
+// "adjusting"/"advance" actions — inserts the unit row and auto-posts to
+// bookkeeping if a matching posting rule exists.
+async function createEmployeeUnit(userId, employeeId, fields) {
+  const { type, amount, date, currency, include_in_salary, note } = fields;
+  if (!type || amount === undefined || !date) {
+    throw new Error('Type, amount, and date are required');
+  }
+
+  await ensureUnitTypeRegistered(userId, type);
+
+  const { data, error } = await supabase
+    .from('employee_units')
+    .insert({
+      user_id: userId,
+      employee_id: employeeId,
+      type,
+      amount: parseFloat(amount),
+      date,
+      currency: currency || 'GEL',
+      include_in_salary: include_in_salary !== false,
+      note: note || null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  try {
+    const { data: rule } = await supabase
+      .from('posting_rules')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('document_type', type)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (rule) {
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('first_name, last_name')
+        .eq('id', employeeId)
+        .single();
+      const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
+      const rawTemplate = rule.description_template || `${type} - {{employee}}`;
+      const description = rawTemplate.replace(/\{\{employee\}\}/g, empName);
+      const txId = crypto.randomUUID();
+      const amt = parseFloat(amount);
+      await supabase.from('bookkeeping_entries').insert([
+        { user_id: userId, transaction_id: txId, date, description, account: rule.debit_account, debit: amt, credit: 0 },
+        { user_id: userId, transaction_id: txId, date, description, account: rule.credit_account, debit: 0, credit: amt },
+      ]);
+    }
+  } catch (autoPostErr) {
+    console.error('Auto-post error:', autoPostErr.message);
+  }
+
+  return data;
+}
+
+// Shared by POST /api/employees/:id/salary-changes and the Telegram bot's
+// "promotion" action — logs the change and updates the employee's live salary.
+async function recordSalaryChange(userId, employeeId, fields) {
+  const { salary, overtime_rate, effective_date, note } = fields;
+  if (!salary || !effective_date) {
+    throw new Error('Salary and effective date are required');
+  }
+
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('id, salary, overtime_rate')
+    .eq('id', employeeId)
+    .eq('user_id', userId)
+    .single();
+  if (!emp) throw new Error('Employee not found');
+
+  const { data, error } = await supabase
+    .from('salary_changes')
+    .insert({
+      employee_id: employeeId,
+      old_salary: emp.salary,
+      new_salary: parseFloat(salary),
+      old_overtime_rate: emp.overtime_rate,
+      new_overtime_rate: overtime_rate ? parseFloat(overtime_rate) : emp.overtime_rate,
+      effective_date,
+      note: note ? note.trim() : null,
+    })
+    .select()
+    .single();
+  if (error) throw error;
+
+  await supabase
+    .from('employees')
+    .update({
+      salary: parseFloat(salary),
+      overtime_rate: overtime_rate ? parseFloat(overtime_rate) : emp.overtime_rate,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', employeeId)
+    .eq('user_id', userId);
+
+  return data;
+}
+
+// Telegram bot's "promotion" action also updates the employee's position —
+// there's no dedicated HTTP route for this alone (the browser's Edit Employee
+// form does a full PUT), so this is Telegram-only for now.
+async function updateEmployeePosition(userId, employeeId, position) {
+  if (!position) return;
+  const { error } = await supabase
+    .from('employees')
+    .update({ position: String(position).trim(), updated_at: new Date().toISOString() })
+    .eq('id', employeeId)
+    .eq('user_id', userId);
+  if (error) throw error;
+}
+
+module.exports = {
+  createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit,
+  recordSalaryChange, updateEmployeePosition,
+};

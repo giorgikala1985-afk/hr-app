@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const bcrypt = require('bcrypt');
-const crypto = require('crypto');
 const supabase = require('../config/supabase');
-const { createEmployeeRecord, setEmployeeEndDate } = require('../services/employeeService');
+const { createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit, recordSalaryChange } = require('../services/employeeService');
 // Multer with memory storage for Supabase upload
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -356,59 +355,12 @@ router.get('/:id/salary-changes', async (req, res) => {
 // POST /api/employees/:id/salary-changes
 router.post('/:id/salary-changes', async (req, res) => {
   try {
-    const { salary, overtime_rate, effective_date, note } = req.body;
-
-    if (!salary || !effective_date) {
-      return res.status(400).json({ error: 'Salary and effective date are required' });
-    }
-
-    // Verify employee belongs to user
-    const { data: emp } = await supabase
-      .from('employees')
-      .select('id, salary, overtime_rate')
-      .eq('id', req.params.id)
-      .eq('user_id', req.userId)
-      .single();
-
-    if (!emp) {
-      return res.status(404).json({ error: 'Employee not found' });
-    }
-
-    // Insert salary change record
-    const { data, error } = await supabase
-      .from('salary_changes')
-      .insert({
-        employee_id: req.params.id,
-        old_salary: emp.salary,
-        new_salary: parseFloat(salary),
-        old_overtime_rate: emp.overtime_rate,
-        new_overtime_rate: overtime_rate ? parseFloat(overtime_rate) : emp.overtime_rate,
-        effective_date,
-        note: note ? note.trim() : null
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error creating salary change:', error);
-      return res.status(500).json({ error: 'Failed to create salary change' });
-    }
-
-    // Update the employee's current salary
-    await supabase
-      .from('employees')
-      .update({
-        salary: parseFloat(salary),
-        overtime_rate: overtime_rate ? parseFloat(overtime_rate) : emp.overtime_rate,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', req.params.id)
-      .eq('user_id', req.userId);
-
+    const data = await recordSalaryChange(req.userId, req.params.id, req.body);
     res.status(201).json({ message: 'Salary change recorded', salary_change: data });
   } catch (error) {
     console.error('Create salary change error:', error);
-    res.status(500).json({ error: 'An error occurred' });
+    const status = error.message === 'Employee not found' ? 404 : /required/i.test(error.message) ? 400 : 500;
+    res.status(status).json({ error: error.message || 'An error occurred' });
   }
 });
 
@@ -912,91 +864,14 @@ router.get('/:id/units', async (req, res) => {
   }
 });
 
-// Reserved unit type names the app itself creates via hardcoded flows
-// (Advance Payment order, OT/overtime entries). If a tenant has never
-// explicitly registered these in Unit Types, payroll silently drops them
-// from totals (not addition, not deduction) -- so auto-register them with
-// their known correct direction the first time they're used.
-const RESERVED_UNIT_DIRECTIONS = {
-  'advance': 'deduction',
-  'ot': 'addition',
-  'overtime': 'addition',
-};
-async function ensureUnitTypeRegistered(userId, type) {
-  const direction = RESERVED_UNIT_DIRECTIONS[String(type || '').toLowerCase().trim()];
-  if (!direction) return;
-  const { data: existing } = await supabase
-    .from('unit_types')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('name', type)
-    .maybeSingle();
-  if (!existing) {
-    await supabase.from('unit_types').insert({ user_id: userId, name: type, direction }).catch(() => {});
-  }
-}
-
 // POST create unit for employee
 router.post('/:id/units', async (req, res) => {
   try {
-    const { type, amount, date, currency, include_in_salary, note } = req.body;
-
-    if (!type || amount === undefined || !date) {
-      return res.status(400).json({ error: 'Type, amount, and date are required' });
-    }
-
-    await ensureUnitTypeRegistered(req.userId, type);
-
-    const { data, error } = await supabase
-      .from('employee_units')
-      .insert({
-        user_id: req.userId,
-        employee_id: req.params.id,
-        type,
-        amount: parseFloat(amount),
-        date,
-        currency: currency || 'GEL',
-        include_in_salary: include_in_salary !== false,
-        note: note || null,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    // Auto-post to bookkeeping if a matching rule exists
-    try {
-      const { data: rule } = await supabase
-        .from('posting_rules')
-        .select('*')
-        .eq('user_id', req.userId)
-        .eq('document_type', type)
-        .eq('is_active', true)
-        .maybeSingle();
-
-      if (rule) {
-        const { data: emp } = await supabase
-          .from('employees')
-          .select('first_name, last_name')
-          .eq('id', req.params.id)
-          .single();
-        const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
-        const rawTemplate = rule.description_template || `${type} - {{employee}}`;
-        const description = rawTemplate.replace(/\{\{employee\}\}/g, empName);
-        const txId = crypto.randomUUID();
-        const amt = parseFloat(amount);
-        await supabase.from('bookkeeping_entries').insert([
-          { user_id: req.userId, transaction_id: txId, date, description, account: rule.debit_account, debit: amt, credit: 0 },
-          { user_id: req.userId, transaction_id: txId, date, description, account: rule.credit_account, debit: 0, credit: amt },
-        ]);
-      }
-    } catch (autoPostErr) {
-      console.error('Auto-post error:', autoPostErr.message);
-    }
-
+    const data = await createEmployeeUnit(req.userId, req.params.id, req.body);
     res.status(201).json({ unit: data });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const status = /required/i.test(err.message) ? 400 : 500;
+    res.status(status).json({ error: err.message });
   }
 });
 

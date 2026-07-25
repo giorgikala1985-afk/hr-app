@@ -4,7 +4,7 @@ const axios = require('axios');
 const supabase = require('../config/supabase');
 const { authenticateUser } = require('../middleware/auth');
 const { runFinBotChat } = require('../services/finbotChat');
-const { createEmployeeRecord, setEmployeeEndDate } = require('../services/employeeService');
+const { createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit, recordSalaryChange, updateEmployeePosition } = require('../services/employeeService');
 const { createTransferRecord } = require('../services/transferService');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -12,9 +12,9 @@ const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 // Action types the Telegram channel knows how to actually execute after
 // confirmation. The shared system prompt (services/finbotChat.js) also lets
-// the model suggest "promotion"/"advance"/"adjusting" for the web FinBots UI —
-// those aren't wired up here yet, so we tell the user to use the app instead.
-const EXECUTABLE_TYPES = new Set(['hire', 'firing', 'transfer']);
+// the model suggest "advance" for the web FinBots UI — that one isn't wired
+// up here yet, so we tell the user to use the app instead.
+const EXECUTABLE_TYPES = new Set(['hire', 'firing', 'transfer', 'promotion', 'adjusting']);
 
 async function sendMessage(chatId, text) {
   if (!BOT_TOKEN) { console.error('[telegram] TELEGRAM_BOT_TOKEN not configured'); return; }
@@ -65,6 +65,21 @@ async function executeAction(userId, action, chatId) {
         description: action.description, iban: action.iban,
       });
       await sendMessage(chatId, `✅ Transfer of ${action.amount} GEL to ${action.clientName} submitted for approval.`);
+    } else if (action.type === 'promotion') {
+      if (action.newPosition) await updateEmployeePosition(userId, action.employeeId, action.newPosition);
+      if (action.newSalary != null) {
+        await recordSalaryChange(userId, action.employeeId, {
+          salary: action.newSalary, effective_date: action.effectiveDate, note: action.notes,
+        });
+      }
+      await sendMessage(chatId, `✅ ${action.employeeName || 'Employee'} promoted${action.newPosition ? ` to ${action.newPosition}` : ''}${action.newSalary != null ? `, salary now ${action.newSalary}` : ''}.`);
+    } else if (action.type === 'adjusting') {
+      await createEmployeeUnit(userId, action.employeeId, {
+        type: action.unitType, amount: action.amount,
+        date: new Date().toISOString().slice(0, 10),
+        currency: action.currency || 'GEL', include_in_salary: true,
+      });
+      await sendMessage(chatId, `✅ ${action.unitType || 'Adjustment'} of ${action.amount} ${action.currency || 'GEL'} recorded for ${action.employeeName || 'employee'}.`);
     }
   } catch (err) {
     console.error('[telegram] executeAction error:', err.message);
