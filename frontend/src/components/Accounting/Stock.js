@@ -72,10 +72,10 @@ export default function Stock() {
     { key: 'sku', label: t('stock.colSku'), getValue: r => r.sku || '—' },
     { key: 'name', label: t('stock.colName'), getValue: r => r.name || '—' },
     { key: 'stock_name', label: t('stock.colStockName'), getValue: r => r.stock_name || '—' },
-    { key: 'move_in_date', label: t('stock.colMoveInDate'), getValue: r => r.move_in_date || '—' },
+    { key: 'move_in_date', label: t('stock.colMoveInDate'), getValue: r => r.move_in_date ? new Date(r.move_in_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: r => r.move_in_date || '' },
     { key: 'move_in_qty', label: t('stock.colMoveInQty'), getValue: r => fmtNum(r.move_in_qty, 0), getSortValue: r => parseFloat(r.move_in_qty) || 0 },
     { key: 'move_in_price', label: t('stock.colMoveInPrice'), getValue: r => r.move_in_price != null ? `$${fmtNum(r.move_in_price)}` : '—', getSortValue: r => parseFloat(r.move_in_price) || 0 },
-    { key: 'move_out_date', label: t('stock.colMoveOutDate'), getValue: r => r.move_out_date || '—' },
+    { key: 'move_out_date', label: t('stock.colMoveOutDate'), getValue: r => r.move_out_date ? new Date(r.move_out_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: r => r.move_out_date || '' },
     { key: 'move_out_qty', label: t('stock.colMoveOutQty'), getValue: r => fmtNum(r.move_out_qty, 0), getSortValue: r => parseFloat(r.move_out_qty) || 0 },
     { key: 'move_out_price', label: t('stock.colMoveOutPrice'), getValue: r => r.move_out_price != null ? `$${fmtNum(r.move_out_price)}` : '—', getSortValue: r => parseFloat(r.move_out_price) || 0 },
   ];
@@ -287,14 +287,14 @@ export default function Stock() {
                       {r.stock_name ? <span className="acc-category-badge">{r.stock_name}</span> : '—'}
                     </td>
                   )}
-                  {table.displayCols.includes('move_in_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_in_date || '—'}</td>}
+                  {table.displayCols.includes('move_in_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_in_date ? new Date(r.move_in_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>}
                   {table.displayCols.includes('move_in_qty') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtNum(r.move_in_qty, 0)}</td>}
                   {table.displayCols.includes('move_in_price') && (
                     <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                       {r.move_in_price != null ? <span className="acc-amount income">${fmtNum(r.move_in_price)}</span> : '—'}
                     </td>
                   )}
-                  {table.displayCols.includes('move_out_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_out_date || '—'}</td>}
+                  {table.displayCols.includes('move_out_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.move_out_date ? new Date(r.move_out_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>}
                   {table.displayCols.includes('move_out_qty') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{fmtNum(r.move_out_qty, 0)}</td>}
                   {table.displayCols.includes('move_out_price') && (
                     <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>

@@ -512,7 +512,7 @@ function SalaryPayments() {
                         <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{s.employee.first_name} {s.employee.last_name}</td>
                         <td style={{ ...td, color: 'var(--text-2)' }}>{match ? match.tx.name : '—'}</td>
                         <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>
-                          {match ? match.tx.date : '—'}
+                          {match ? new Date(match.tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                           {match && !match.inMonth && <span style={{ color: '#fbbf24', marginLeft: 6 }} title="Matched transaction is outside the selected month">⚠</span>}
                         </td>
                         <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>
@@ -1141,7 +1141,7 @@ function InvoicePayment() {
     { key: 'client', label: 'Client', getValue: inv => inv.client || '—' },
     { key: 'account_number', label: 'Account/IBAN', getValue: inv => inv.account_number || 'No account' },
     { key: 'total', label: 'Amount', right: true, getValue: inv => `${fmt(inv.total)} ${inv.currency || 'GEL'}`, getSortValue: inv => parseFloat(inv.total) || 0 },
-    { key: 'due_date', label: 'Due Date', getValue: inv => inv.due_date || '-' },
+    { key: 'due_date', label: 'Due Date', getValue: inv => inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-', getSortValue: inv => inv.due_date || '' },
     { key: 'status', label: 'Status', getValue: inv => inv.status || 'pending' },
   ];
   const table = useExcelTable({ storageKey: 'tbc_invoice_payment', columns: INVOICE_COLUMNS, rows: invoices });
@@ -1239,7 +1239,7 @@ function InvoicePayment() {
                   <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>
                     {fmt(inv.total)} {inv.currency || 'GEL'}
                   </td>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{inv.due_date || '-'}</td>
+                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
                   <td style={td}>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4,

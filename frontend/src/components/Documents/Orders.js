@@ -346,7 +346,7 @@ function PromotionTab({ employees }) {
                   <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{o.newPosition}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.oldSalary || '—'}</td>
                   <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{o.newSalary}</td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.effectiveDate}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.effectiveDate ? new Date(o.effectiveDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
@@ -518,7 +518,7 @@ function HiringTab() {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.personalId || '—'}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.position}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.department || '—'}</td>
-                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.startDate}</td>
+                  <td style={{ padding: '11px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{o.startDate ? new Date(o.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                   <td style={{ padding: '11px 14px', color: '#479c73', fontWeight: 600 }}>{o.salary}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -1423,7 +1423,7 @@ function FiringTab({ employees }) {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.position || '—'}</td>
-                  <td style={{ padding: '11px 14px', color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.terminationDate}</td>
+                  <td style={{ padding: '11px 14px', color: '#f87171', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.terminationDate ? new Date(o.terminationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text)' }}>{o.reason || (o._live ? '—' : '')}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -3024,7 +3024,7 @@ function HandoverTab({ employees }) {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.fromName || getName(o.fromEmployeeId)}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: '#3b82f6', whiteSpace: 'nowrap' }}>{o.toName || getName(o.toEmployeeId)}</td>
-                  <td style={{ padding: '11px 14px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.handoverDate}</td>
+                  <td style={{ padding: '11px 14px', color: '#f59e0b', fontWeight: 600, whiteSpace: 'nowrap' }}>{o.handoverDate ? new Date(o.handoverDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-2)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.items || '—'}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -3122,7 +3122,7 @@ export default function Orders() {
     },
     {
       key: 'date', label: t('orders.date'), right: true,
-      getValue: u => u.date || '—',
+      getValue: u => u.date ? new Date(u.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
       getSortValue: u => u.date || '',
     },
     {
@@ -3191,7 +3191,7 @@ export default function Orders() {
       case 'date':
         return (
           <td style={{ padding: '12px 16px', textAlign: 'right', color: 'var(--text-3)', fontSize: 12 }}>
-            {u.date}
+            {u.date ? new Date(u.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
           </td>
         );
       case 'created':

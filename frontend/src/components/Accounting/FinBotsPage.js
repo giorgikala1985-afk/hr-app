@@ -945,8 +945,8 @@ function OrderActionCard({ action, botColor }) {
   if (action.newPosition) details.push(['New Position', action.newPosition]);
   if (action.oldSalary != null && action.newSalary != null)
     details.push(['Salary Change', `${action.oldSalary} → ${action.newSalary}`]);
-  if (action.effectiveDate) details.push(['Effective Date', action.effectiveDate]);
-  if (action.endDate) details.push(['End Date', action.endDate]);
+  if (action.effectiveDate) details.push(['Effective Date', new Date(action.effectiveDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
+  if (action.endDate) details.push(['End Date', new Date(action.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
   if (action.reason) details.push(['Reason', action.reason]);
   if (action.totalAmount != null) details.push(['Total Amount', `${action.totalAmount} ${action.currency || 'GEL'}`]);
   if (action.numMonths) details.push(['Months', action.numMonths]);

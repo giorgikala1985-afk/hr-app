@@ -73,7 +73,7 @@ function SignDocument() {
           <div className="doc-section-title">Position & Terms</div>
           <div className="doc-row"><strong>Job Title:</strong> <span>{c.job_title}</span></div>
           {c.department && <div className="doc-row"><strong>Department:</strong> <span>{c.department}</span></div>}
-          <div className="doc-row"><strong>Start Date:</strong> <span>{c.start_date}</span></div>
+          <div className="doc-row"><strong>Start Date:</strong> <span>{c.start_date ? new Date(c.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</span></div>
           <div className="doc-row"><strong>Weekly Hours:</strong> <span>{c.work_hours} hours</span></div>
           {c.probation_months > 0 && <div className="doc-row"><strong>Probation Period:</strong> <span>{c.probation_months} months</span></div>}
         </div>

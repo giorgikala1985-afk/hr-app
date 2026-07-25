@@ -450,7 +450,7 @@ function Bookkeeping() {
                     const isLastInTx = i === filteredRows.length - 1 || filteredRows[i + 1]?.txId !== row.txId;
                     return (
                       <tr key={`${row.txId}-${i}`} style={{ borderBottom: isLastInTx ? '2px solid var(--border-2)' : '1px solid var(--border-3)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                        <td style={{ ...td, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>{row.isFirst ? row.date : ''}</td>
+                        <td style={{ ...td, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>{row.isFirst && row.date ? new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</td>
                         <td style={{ ...td, color: '#479c73', fontWeight: 500 }}>{row.debit?.account || ''}</td>
                         <td style={{ ...td, color: '#b91c1c', fontWeight: 500 }}>{row.credit?.account || ''}</td>
                         <td style={{ ...td, color: 'var(--text-2)' }}>{row.isFirst ? row.desc : ''}</td>
@@ -648,7 +648,7 @@ function Bookkeeping() {
                             <tr key={e.id} style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)' }}>
                               <td style={td} />
                               <td style={{ ...td, paddingLeft: 30, fontSize: 12, color: 'var(--text-3)' }}>
-                                <span style={{ fontFamily: 'monospace', marginRight: 12, color: 'var(--text-4)' }}>{e.date}</span>
+                                <span style={{ fontFamily: 'monospace', marginRight: 12, color: 'var(--text-4)' }}>{e.date ? new Date(e.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</span>
                                 {e.description}
                                 {agent && (
                                   <span style={{ marginLeft: 8, color: 'var(--text-4)' }}>

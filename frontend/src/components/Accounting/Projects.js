@@ -52,14 +52,21 @@ function Projects() {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const PROJECT_COLUMNS = [
     { key: 'name', label: t('projects.colName'), getValue: r => r.name || '—' },
     { key: 'client', label: t('projects.colClient'), getValue: r => r.client || '—' },
     { key: 'owner', label: t('projects.colOwner'), getValue: r => r.owner || '—' },
     { key: 'status', label: t('projects.colStatus'), getValue: r => r.status || 'Active' },
     { key: 'budget', label: t('projects.colBudget'), getValue: r => r.budget != null ? `${r.currency || 'GEL'} ${parseFloat(r.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—', getSortValue: r => parseFloat(r.budget) || 0 },
-    { key: 'start_date', label: t('projects.colStart'), getValue: r => r.start_date || '—' },
-    { key: 'end_date', label: t('projects.colEnd'), getValue: r => r.end_date || '—' },
+    { key: 'start_date', label: t('projects.colStart'), getValue: r => formatDate(r.start_date), getSortValue: r => r.start_date || '' },
+    { key: 'end_date', label: t('projects.colEnd'), getValue: r => formatDate(r.end_date), getSortValue: r => r.end_date || '' },
   ];
   const table = useExcelTable({ storageKey: 'projects_list', columns: PROJECT_COLUMNS, rows: records });
 
@@ -299,8 +306,8 @@ function Projects() {
                       {r.budget != null ? `${r.currency || 'GEL'} ${parseFloat(r.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
                     </td>
                   )}
-                  {table.displayCols.includes('start_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.start_date || '—'}</td>}
-                  {table.displayCols.includes('end_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.end_date || '—'}</td>}
+                  {table.displayCols.includes('start_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatDate(r.start_date)}</td>}
+                  {table.displayCols.includes('end_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatDate(r.end_date)}</td>}
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}><IconEdit /></button>

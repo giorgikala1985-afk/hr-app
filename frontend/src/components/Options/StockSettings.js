@@ -156,7 +156,7 @@ function StockSettings() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>{loc.name}</div>
                     <div style={{ display: 'flex', gap: 12, marginTop: 2, flexWrap: 'wrap' }}>
-                      {loc.add_date && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{loc.add_date}</span>}
+                      {loc.add_date && <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{new Date(loc.add_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>}
                       {loc.area    && <span style={{ fontSize: 11, color: 'var(--text-3)', background: 'var(--surface-3)', borderRadius: 4, padding: '1px 6px' }}>{loc.area}</span>}
                       {loc.address && <span style={{ fontSize: 11, color: 'var(--text-4)' }}>{loc.address}</span>}
                     </div>

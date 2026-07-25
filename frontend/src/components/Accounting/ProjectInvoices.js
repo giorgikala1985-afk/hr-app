@@ -188,11 +188,18 @@ function ProjectInvoices({ projects }) {
 
   const statusOf = (inv) => inv.status === 'sent' ? 'sent' : (inv.scheduled_send_date ? 'scheduled' : 'draft');
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const INVOICE_COLUMNS = [
     { key: 'invoice_number', label: t('projInv.colNumber'), getValue: inv => inv.invoice_number || '—' },
     { key: 'client', label: t('projInv.colClient'), getValue: inv => inv.client || '—' },
     { key: 'total', label: t('projInv.colAmount'), right: true, getValue: inv => `${parseFloat(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${inv.currency}`, getSortValue: inv => parseFloat(inv.total) || 0 },
-    { key: 'scheduled_send_date', label: t('projInv.colScheduled'), getValue: inv => inv.scheduled_send_date || '—' },
+    { key: 'scheduled_send_date', label: t('projInv.colScheduled'), getValue: inv => formatDate(inv.scheduled_send_date), getSortValue: inv => inv.scheduled_send_date || '' },
     { key: 'status', label: t('projInv.colStatus'), getValue: inv => t(`projInv.status${STATUS_COLORS[statusOf(inv)].label}`) },
   ];
   const table = useExcelTable({ storageKey: 'proj_invoices_list', columns: INVOICE_COLUMNS, rows: invoices });
@@ -308,7 +315,7 @@ function ProjectInvoices({ projects }) {
                         {table.displayCols.includes('invoice_number') && <td style={{ fontWeight: 600, color: 'var(--text)' }}>{inv.invoice_number}</td>}
                         {table.displayCols.includes('client') && <td>{inv.client}</td>}
                         {table.displayCols.includes('total') && <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{parseFloat(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>}
-                        {table.displayCols.includes('scheduled_send_date') && <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{inv.scheduled_send_date || '—'}</td>}
+                        {table.displayCols.includes('scheduled_send_date') && <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{formatDate(inv.scheduled_send_date)}</td>}
                         {table.displayCols.includes('status') && (
                           <td>
                             <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: sc.bg, color: sc.color }}>
@@ -382,7 +389,7 @@ function ProjectInvoices({ projects }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <input type="month" value={form.schedule_month} onChange={e => setForm({ ...form, schedule_month: e.target.value })} style={{ padding: '8px 12px', border: '1.5px solid var(--border-2)', borderRadius: 7, background: 'var(--surface-2)', color: 'var(--text)' }} />
                     <span style={{ fontSize: 13, color: 'var(--text-3)' }}>
-                      {holidaysLoading ? t('projInv.computing') : (computedDate ? `${t('projInv.willSendOn')} ${computedDate}` : '—')}
+                      {holidaysLoading ? t('projInv.computing') : (computedDate ? `${t('projInv.willSendOn')} ${formatDate(computedDate)}` : '—')}
                     </span>
                   </div>
                 ) : (
