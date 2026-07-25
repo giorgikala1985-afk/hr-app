@@ -1,8 +1,73 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
+
+// Shared sortable/filterable <th> for this file's plain tables (uses the
+// module-level `th` style object defined near the bottom of this file).
+function SortFilterTh({ table, t, colKey, right }) {
+  const col = table.colByKey[colKey];
+  return (
+    <th style={{ ...th, textAlign: right ? 'right' : 'left', position: 'relative' }}>
+      <span onClick={() => table.toggleSort(colKey)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+        {col.label}
+        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{ opacity: table.sortKey === colKey ? 1 : 0.25, transform: table.sortKey === colKey && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </span>
+      <button
+        onClick={e => table.openColumnFilterDropdown(e, colKey)}
+        title={t('table.filterTooltip')}
+        style={{
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+          marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+          background: table.openFilterCol === colKey ? 'var(--surface-2)' : 'transparent',
+          color: table.columnFilters[colKey] ? '#479c73' : 'var(--text-4)',
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[colKey] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+        </svg>
+      </button>
+      {table.openFilterCol === colKey && table.filterDropdownPos && (
+        <ExcelFilterDropdown
+          dropdownRef={table.filterDropdownRef}
+          pos={table.filterDropdownPos}
+          options={table.getColumnFilterOptions(colKey)}
+          selected={table.columnFilters[colKey]}
+          search={table.filterSearch}
+          onSearchChange={table.setFilterSearch}
+          onToggleValue={(value) => {
+            const opts = table.getColumnFilterOptions(colKey);
+            const activeSet = table.columnFilters[colKey] ?? new Set(opts);
+            table.setColumnFilterValues(colKey, opts, [value], !activeSet.has(value));
+          }}
+          onToggleAll={(visible, checked) => table.setColumnFilterValues(colKey, table.getColumnFilterOptions(colKey), visible, checked)}
+          onClear={() => table.clearColumnFilter(colKey)}
+          t={t}
+        />
+      )}
+    </th>
+  );
+}
+function NoFilterMatchesRow({ table, t, colSpan }) {
+  return (
+    <tr>
+      <td colSpan={colSpan} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+        {t('table.noFilterMatches')}
+        <div>
+          <button onClick={table.clearAllColumnFilters} style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            {t('table.clear')}
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 const SUB_TABS = [
   { key: 'employees', label: 'Employee Registration' },
@@ -86,6 +151,7 @@ function RsGeIntegration() {
 // EMPLOYEE REGISTRATION
 // ══════════════════════════════════════════════════════
 function EmployeeRegistration() {
+  const { t } = useLanguage();
   const [employees, setEmployees] = useState([]);
   const [selected, setSelected] = useState(new Set());
   const [loading, setLoading] = useState(true);
@@ -167,6 +233,23 @@ function EmployeeRegistration() {
   // Check which employees are already registered
   const registeredIds = new Set(history.filter(h => h.action === 'register' && h.status === 'registered').map(h => h.employee_id));
 
+  const EMP_COLUMNS = [
+    { key: 'employee', label: 'Employee', getValue: e => `${e.first_name} ${e.last_name}`.trim() || '—' },
+    { key: 'personalId', label: 'Personal ID (TIN)', getValue: e => e.personal_id || '—' },
+    { key: 'position', label: 'Position', getValue: e => e.position || '-' },
+    { key: 'startDate', label: 'Start Date', getValue: e => e.start_date ? new Date(e.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: e => e.start_date || '' },
+    { key: 'status', label: 'RS.ge Status', getValue: e => registeredIds.has(e.id) ? 'Registered' : 'Not registered' },
+  ];
+  const empTable = useExcelTable({ storageKey: 'rsge_employees', columns: EMP_COLUMNS, rows: employees });
+
+  const HIST_COLUMNS = [
+    { key: 'employee', label: 'Employee', getValue: h => h.personal_id || '—' },
+    { key: 'action', label: 'Action', getValue: h => h.action === 'register' ? 'Register' : 'Deregister' },
+    { key: 'date', label: 'Date', getValue: h => h.action_date || '—' },
+    { key: 'status', label: 'Status', getValue: h => h.status || '—' },
+  ];
+  const histTable = useExcelTable({ storageKey: 'rsge_emp_history', columns: HIST_COLUMNS, rows: history });
+
   return (
     <div>
       {error && <div style={errBox}>{error}</div>}
@@ -174,10 +257,13 @@ function EmployeeRegistration() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Employees</h3>
-        <button onClick={handleBulkRegister} disabled={processing || selected.size === 0}
-          style={{ ...primaryBtn, opacity: (processing || selected.size === 0) ? 0.6 : 1 }}>
-          {processing ? 'Registering...' : `Register ${selected.size} with RS.ge`}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ColumnVisibilityMenu table={empTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <button onClick={handleBulkRegister} disabled={processing || selected.size === 0}
+            style={{ ...primaryBtn, opacity: (processing || selected.size === 0) ? 0.6 : 1 }}>
+            {processing ? 'Registering...' : `Register ${selected.size} with RS.ge`}
+          </button>
+        </div>
       </div>
 
       {loading ? <div style={{ color: 'var(--text-3)' }}>Loading...</div> : employees.length === 0 ? (
@@ -196,30 +282,31 @@ function EmployeeRegistration() {
                     }}
                   />
                 </th>
-                <th style={th}>Employee</th>
-                <th style={th}>Personal ID (TIN)</th>
-                <th style={th}>Position</th>
-                <th style={th}>Start Date</th>
-                <th style={th}>RS.ge Status</th>
+                {empTable.displayCols.map(key => <SortFilterTh key={key} table={empTable} t={t} colKey={key} />)}
                 <th style={{ ...th, width: 100 }}></th>
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp, i) => {
+              {empTable.hasActiveFilters && empTable.sortedRows.length === 0 && (
+                <NoFilterMatchesRow table={empTable} t={t} colSpan={empTable.displayCols.length + 2} />
+              )}
+              {empTable.sortedRows.map((emp, i) => {
                 const isRegistered = registeredIds.has(emp.id);
                 return (
                   <tr key={emp.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                     <td style={td}><input type="checkbox" checked={selected.has(emp.id)} onChange={() => toggleSelect(emp.id)} /></td>
-                    <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{emp.first_name} {emp.last_name}</td>
-                    <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{emp.personal_id}</td>
-                    <td style={{ ...td, color: 'var(--text-2)' }}>{emp.position || '-'}</td>
-                    <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{emp.start_date ? new Date(emp.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                    <td style={td}>
-                      {isRegistered
-                        ? <span style={badgeGreen}>Registered</span>
-                        : <span style={badgeYellow}>Not registered</span>
-                      }
-                    </td>
+                    {empTable.displayCols.includes('employee') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{emp.first_name} {emp.last_name}</td>}
+                    {empTable.displayCols.includes('personalId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{emp.personal_id}</td>}
+                    {empTable.displayCols.includes('position') && <td style={{ ...td, color: 'var(--text-2)' }}>{emp.position || '-'}</td>}
+                    {empTable.displayCols.includes('startDate') && <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{emp.start_date ? new Date(emp.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>}
+                    {empTable.displayCols.includes('status') && (
+                      <td style={td}>
+                        {isRegistered
+                          ? <span style={badgeGreen}>Registered</span>
+                          : <span style={badgeYellow}>Not registered</span>
+                        }
+                      </td>
+                    )}
                     <td style={td}>
                       {isRegistered && (
                         <button onClick={() => { setDeregEmp(emp); setDeregDate(emp.end_date || ''); setDeregReason(''); }}
@@ -237,26 +324,34 @@ function EmployeeRegistration() {
       )}
 
       {/* Registration History */}
-      <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 12px' }}>Registration History</h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Registration History</h3>
+        <ColumnVisibilityMenu table={histTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+      </div>
       {histLoading ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading...</div> : history.length === 0 ? (
         <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No registration history yet.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={tableStyle}>
             <thead><tr style={headRow}>
-              <th style={th}>Employee</th><th style={th}>Action</th><th style={th}>Date</th><th style={th}>Status</th>
+              {histTable.displayCols.map(key => <SortFilterTh key={key} table={histTable} t={t} colKey={key} />)}
             </tr></thead>
             <tbody>
-              {history.map((h, i) => (
+              {histTable.hasActiveFilters && histTable.sortedRows.length === 0 && (
+                <NoFilterMatchesRow table={histTable} t={t} colSpan={histTable.displayCols.length} />
+              )}
+              {histTable.sortedRows.map((h, i) => (
                 <tr key={h.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{h.personal_id}</td>
-                  <td style={td}>{h.action === 'register' ? 'Register' : 'Deregister'}</td>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{h.action_date}</td>
-                  <td style={td}>
-                    {h.status === 'registered' ? <span style={badgeGreen}>Registered</span>
-                      : h.status === 'deregistered' ? <span style={badgeRed}>Deregistered</span>
-                      : <span style={badgeYellow}>{h.status}</span>}
-                  </td>
+                  {histTable.displayCols.includes('employee') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{h.personal_id}</td>}
+                  {histTable.displayCols.includes('action') && <td style={td}>{h.action === 'register' ? 'Register' : 'Deregister'}</td>}
+                  {histTable.displayCols.includes('date') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{h.action_date}</td>}
+                  {histTable.displayCols.includes('status') && (
+                    <td style={td}>
+                      {h.status === 'registered' ? <span style={badgeGreen}>Registered</span>
+                        : h.status === 'deregistered' ? <span style={badgeRed}>Deregistered</span>
+                        : <span style={badgeYellow}>{h.status}</span>}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -296,6 +391,7 @@ function EmployeeRegistration() {
 // TAX DECLARATIONS
 // ══════════════════════════════════════════════════════
 function TaxDeclarations() {
+  const { t } = useLanguage();
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -375,6 +471,17 @@ function TaxDeclarations() {
       setError(err.response?.data?.error || 'Failed to save declaration');
     } finally { setSubmitting(false); }
   };
+
+  const DECL_COLUMNS = [
+    { key: 'period', label: 'Period', getValue: d => d.period || '—' },
+    { key: 'employees', label: 'Employees', getValue: d => String(d.employee_count ?? '—'), getSortValue: d => d.employee_count || 0 },
+    { key: 'totalGross', label: 'Total Gross', right: true, getValue: d => fmt(d.total_gross), getSortValue: d => parseFloat(d.total_gross) || 0 },
+    { key: 'tax', label: 'Tax (20%)', right: true, getValue: d => fmt(d.total_tax), getSortValue: d => parseFloat(d.total_tax) || 0 },
+    { key: 'pension', label: 'Pension (2%)', right: true, getValue: d => fmt(d.total_pension), getSortValue: d => parseFloat(d.total_pension) || 0 },
+    { key: 'status', label: 'Status', getValue: d => d.status || '—' },
+    { key: 'date', label: 'Date', getValue: d => d.created_at ? new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: d => d.created_at || '' },
+  ];
+  const declTable = useExcelTable({ storageKey: 'rsge_declarations', columns: DECL_COLUMNS, rows: history });
 
   // Submit declaration via portal automation
   const handlePortalSubmit = async () => {
@@ -475,34 +582,38 @@ function TaxDeclarations() {
         </div>
       </div>
 
-      <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 12px' }}>Declaration History</h3>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 12px' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Declaration History</h3>
+        <ColumnVisibilityMenu table={declTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+      </div>
       {histLoading ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading...</div> : history.length === 0 ? (
         <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No declarations submitted yet.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
           <table style={tableStyle}>
             <thead><tr style={headRow}>
-              <th style={th}>Period</th><th style={th}>Employees</th>
-              <th style={{ ...th, textAlign: 'right' }}>Total Gross</th>
-              <th style={{ ...th, textAlign: 'right' }}>Tax (20%)</th>
-              <th style={{ ...th, textAlign: 'right' }}>Pension (2%)</th>
-              <th style={th}>Status</th><th style={th}>Date</th>
+              {declTable.displayCols.map(key => <SortFilterTh key={key} table={declTable} t={t} colKey={key} right={declTable.colByKey[key].right} />)}
             </tr></thead>
             <tbody>
-              {history.map((d, i) => (
+              {declTable.hasActiveFilters && declTable.sortedRows.length === 0 && (
+                <NoFilterMatchesRow table={declTable} t={t} colSpan={declTable.displayCols.length} />
+              )}
+              {declTable.sortedRows.map((d, i) => (
                 <tr key={d.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{d.period}</td>
-                  <td style={td}>{d.employee_count}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(d.total_gross)}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#f87171' }}>{fmt(d.total_tax)}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#fbbf24' }}>{fmt(d.total_pension)}</td>
-                  <td style={td}>
-                    {d.status === 'accepted' ? <span style={badgeGreen}>Accepted</span>
-                      : d.status === 'rejected' ? <span style={badgeRed}>Rejected</span>
-                      : d.status === 'submitted' ? <span style={badgeBlue}>Submitted</span>
-                      : <span style={badgeYellow}>{d.status}</span>}
-                  </td>
-                  <td style={{ ...td, color: 'var(--text-3)', fontSize: 12 }}>{new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  {declTable.displayCols.includes('period') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{d.period}</td>}
+                  {declTable.displayCols.includes('employees') && <td style={td}>{d.employee_count}</td>}
+                  {declTable.displayCols.includes('totalGross') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(d.total_gross)}</td>}
+                  {declTable.displayCols.includes('tax') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#f87171' }}>{fmt(d.total_tax)}</td>}
+                  {declTable.displayCols.includes('pension') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#fbbf24' }}>{fmt(d.total_pension)}</td>}
+                  {declTable.displayCols.includes('status') && (
+                    <td style={td}>
+                      {d.status === 'accepted' ? <span style={badgeGreen}>Accepted</span>
+                        : d.status === 'rejected' ? <span style={badgeRed}>Rejected</span>
+                        : d.status === 'submitted' ? <span style={badgeBlue}>Submitted</span>
+                        : <span style={badgeYellow}>{d.status}</span>}
+                    </td>
+                  )}
+                  {declTable.displayCols.includes('date') && <td style={{ ...td, color: 'var(--text-3)', fontSize: 12 }}>{new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>}
                 </tr>
               ))}
             </tbody>
@@ -517,6 +628,7 @@ function TaxDeclarations() {
 // WAYBILLS
 // ══════════════════════════════════════════════════════
 function Waybills() {
+  const { t } = useLanguage();
   const [waybills, setWaybills] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -582,6 +694,16 @@ function Waybills() {
     } finally { setSaving(false); }
   };
 
+  const WB_COLUMNS = [
+    { key: 'rsId', label: 'RS ID', getValue: wb => wb.rs_waybill_id || '-' },
+    { key: 'buyer', label: 'Buyer', getValue: wb => wb.buyer_name || '—' },
+    { key: 'route', label: 'Route', getValue: wb => `${wb.start_address || ''} → ${wb.end_address || ''}` },
+    { key: 'amount', label: 'Amount', right: true, getValue: wb => fmt(wb.total_amount), getSortValue: wb => parseFloat(wb.total_amount) || 0 },
+    { key: 'items', label: 'Items', right: false, getValue: wb => String(wb.item_count ?? '—'), getSortValue: wb => wb.item_count || 0 },
+    { key: 'status', label: 'Status', getValue: wb => wb.status || '—' },
+  ];
+  const wbTable = useExcelTable({ storageKey: 'rsge_waybills', columns: WB_COLUMNS, rows: waybills });
+
   const handleAction = async (id, action) => {
     const labels = { activate: 'Activate', close: 'Close', delete: 'Delete' };
     if (!window.confirm(`${labels[action]} this waybill?`)) return;
@@ -604,7 +726,10 @@ function Waybills() {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>Waybills (ზედნადები)</h3>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-add">+ New Waybill</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ColumnVisibilityMenu table={wbTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-add">+ New Waybill</button>
+        </div>
       </div>
 
       {error && <div style={errBox}>{error}</div>}
@@ -619,24 +744,28 @@ function Waybills() {
         <div style={{ overflowX: 'auto' }}>
           <table style={tableStyle}>
             <thead><tr style={headRow}>
-              <th style={th}>RS ID</th><th style={th}>Buyer</th><th style={th}>Route</th>
-              <th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={th}>Items</th>
-              <th style={th}>Status</th><th style={{ ...th, width: 160 }}></th>
+              {wbTable.displayCols.map(key => <SortFilterTh key={key} table={wbTable} t={t} colKey={key} right={wbTable.colByKey[key].right} />)}
+              <th style={{ ...th, width: 160 }}></th>
             </tr></thead>
             <tbody>
-              {waybills.map((wb, i) => (
+              {wbTable.hasActiveFilters && wbTable.sortedRows.length === 0 && (
+                <NoFilterMatchesRow table={wbTable} t={t} colSpan={wbTable.displayCols.length + 1} />
+              )}
+              {wbTable.sortedRows.map((wb, i) => (
                 <tr key={wb.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{wb.rs_waybill_id || '-'}</td>
-                  <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{wb.buyer_name}</td>
-                  <td style={{ ...td, fontSize: 12, color: 'var(--text-2)' }}>{wb.start_address} → {wb.end_address}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(wb.total_amount)}</td>
-                  <td style={td}>{wb.item_count}</td>
-                  <td style={td}>
-                    {wb.status === 'active' ? <span style={badgeGreen}>Active</span>
-                      : wb.status === 'closed' ? <span style={badgeBlue}>Closed</span>
-                      : wb.status === 'deleted' ? <span style={badgeRed}>Deleted</span>
-                      : <span style={badgeYellow}>Saved</span>}
-                  </td>
+                  {wbTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{wb.rs_waybill_id || '-'}</td>}
+                  {wbTable.displayCols.includes('buyer') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{wb.buyer_name}</td>}
+                  {wbTable.displayCols.includes('route') && <td style={{ ...td, fontSize: 12, color: 'var(--text-2)' }}>{wb.start_address} → {wb.end_address}</td>}
+                  {wbTable.displayCols.includes('amount') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(wb.total_amount)}</td>}
+                  {wbTable.displayCols.includes('items') && <td style={td}>{wb.item_count}</td>}
+                  {wbTable.displayCols.includes('status') && (
+                    <td style={td}>
+                      {wb.status === 'active' ? <span style={badgeGreen}>Active</span>
+                        : wb.status === 'closed' ? <span style={badgeBlue}>Closed</span>
+                        : wb.status === 'deleted' ? <span style={badgeRed}>Deleted</span>
+                        : <span style={badgeYellow}>Saved</span>}
+                    </td>
+                  )}
                   <td style={td}>
                     <div style={{ display: 'flex', gap: 4 }}>
                       {wb.status === 'saved' && (
@@ -740,6 +869,7 @@ function Waybills() {
 // E-INVOICES
 // ══════════════════════════════════════════════════════
 function EInvoices() {
+  const { t } = useLanguage();
   const [einvoices, setEinvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -819,11 +949,24 @@ function EInvoices() {
     return { amount: s.amount + amt, vat: s.vat + vat };
   }, { amount: 0, vat: 0 });
 
+  const EINV_COLUMNS = [
+    { key: 'rsId', label: 'RS ID', getValue: inv => inv.rs_invoice_id || '-' },
+    { key: 'buyer', label: 'Buyer', getValue: inv => inv.buyer_name || '—' },
+    { key: 'date', label: 'Date', getValue: inv => inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: inv => inv.invoice_date || '' },
+    { key: 'amount', label: 'Amount', right: true, getValue: inv => fmt(inv.total_amount), getSortValue: inv => parseFloat(inv.total_amount) || 0 },
+    { key: 'vat', label: 'VAT', right: true, getValue: inv => fmt(inv.total_vat), getSortValue: inv => parseFloat(inv.total_vat) || 0 },
+    { key: 'status', label: 'Status', getValue: inv => inv.status || '—' },
+  ];
+  const einvTable = useExcelTable({ storageKey: 'rsge_einvoices', columns: EINV_COLUMNS, rows: einvoices });
+
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>E-Invoices (ანგარიშ-ფაქტურა)</h3>
-        <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-add">+ New E-Invoice</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ColumnVisibilityMenu table={einvTable} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-add">+ New E-Invoice</button>
+        </div>
       </div>
 
       {error && <div style={errBox}>{error}</div>}
@@ -838,24 +981,27 @@ function EInvoices() {
         <div style={{ overflowX: 'auto' }}>
           <table style={tableStyle}>
             <thead><tr style={headRow}>
-              <th style={th}>RS ID</th><th style={th}>Buyer</th><th style={th}>Date</th>
-              <th style={{ ...th, textAlign: 'right' }}>Amount</th>
-              <th style={{ ...th, textAlign: 'right' }}>VAT</th>
-              <th style={th}>Status</th><th style={{ ...th, width: 60 }}></th>
+              {einvTable.displayCols.map(key => <SortFilterTh key={key} table={einvTable} t={t} colKey={key} right={einvTable.colByKey[key].right} />)}
+              <th style={{ ...th, width: 60 }}></th>
             </tr></thead>
             <tbody>
-              {einvoices.map((inv, i) => (
+              {einvTable.hasActiveFilters && einvTable.sortedRows.length === 0 && (
+                <NoFilterMatchesRow table={einvTable} t={t} colSpan={einvTable.displayCols.length + 1} />
+              )}
+              {einvTable.sortedRows.map((inv, i) => (
                 <tr key={inv.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{inv.rs_invoice_id || '-'}</td>
-                  <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.buyer_name}</td>
-                  <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(inv.total_amount)}</td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#fbbf24' }}>{fmt(inv.total_vat)}</td>
-                  <td style={td}>
-                    {inv.status === 'confirmed' ? <span style={badgeGreen}>Confirmed</span>
-                      : inv.status === 'sent' ? <span style={badgeBlue}>Sent</span>
-                      : <span style={badgeYellow}>{inv.status}</span>}
-                  </td>
+                  {einvTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{inv.rs_invoice_id || '-'}</td>}
+                  {einvTable.displayCols.includes('buyer') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.buyer_name}</td>}
+                  {einvTable.displayCols.includes('date') && <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>}
+                  {einvTable.displayCols.includes('amount') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(inv.total_amount)}</td>}
+                  {einvTable.displayCols.includes('vat') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#fbbf24' }}>{fmt(inv.total_vat)}</td>}
+                  {einvTable.displayCols.includes('status') && (
+                    <td style={td}>
+                      {inv.status === 'confirmed' ? <span style={badgeGreen}>Confirmed</span>
+                        : inv.status === 'sent' ? <span style={badgeBlue}>Sent</span>
+                        : <span style={badgeYellow}>{inv.status}</span>}
+                    </td>
+                  )}
                   <td style={td}>
                     <button onClick={() => handleDelete(inv.id)} style={{ ...smallBtn, color: '#f87171' }}>Delete</button>
                   </td>
