@@ -9,7 +9,8 @@ import {
 } from 'recharts';
 
 const DL_TABLES_KEY = 'dl_custom_tables';
-const CHART_COLORS = ['#6366f1','#479c73','#f59e0b','#ec4899','#14b8a6','#f87171','#818cf8','#479c73'];
+// Pastel theme (picked from Admin > Chart Designs); see ChartDesignsGallery.js.
+const CHART_COLORS = ['#5c96e0','#f9916b','#6ac79c','#d59b41','#f68ab2','#4d9a48','#625db2','#f17972'];
 
 function DataLakeCharts() {
   const [tables, setTables] = useState([]);

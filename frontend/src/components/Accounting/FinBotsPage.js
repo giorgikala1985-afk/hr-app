@@ -493,15 +493,17 @@ function MatrixTable({ chartData }) {
 }
 
 // ── Chart rendering ──────────────────────────────────────────────────────────
+// Pastel theme (picked from Admin > Chart Designs) -- validated categorical
+// hues, lightened toward the pastel band; see ChartDesignsGallery.js.
 const CHART_COLORS = [
-  { start: '#6366f1', end: '#818cf8', glow: 'rgba(99,102,241,0.3)' }, // Indigo
-  { start: '#479c73', end: '#479c73', glow: 'rgba(71,156,115,0.3)' }, // Emerald
-  { start: '#8b5cf6', end: '#a78bfa', glow: 'rgba(139,92,246,0.3)' }, // Violet
-  { start: '#f59e0b', end: '#fbbf24', glow: 'rgba(245,158,11,0.3)' },  // Amber
-  { start: '#ec4899', end: '#f472b6', glow: 'rgba(236,72,153,0.3)' }, // Pink
-  { start: '#06b6d4', end: '#22d3ee', glow: 'rgba(6,182,212,0.3)' },  // Cyan
-  { start: '#f97316', end: '#fb923c', glow: 'rgba(249,115,22,0.3)' },  // Orange
-  { start: '#ef4444', end: '#f87171', glow: 'rgba(239,68,68,0.3)' },   // Red
+  { start: '#5c96e0', end: '#81b3f3', glow: 'rgba(92,150,224,0.3)' },  // Blue
+  { start: '#f9916b', end: '#ffb393', glow: 'rgba(249,145,107,0.3)' }, // Orange
+  { start: '#6ac79c', end: '#94e1bb', glow: 'rgba(106,199,156,0.3)' }, // Aqua
+  { start: '#d59b41', end: '#ecba72', glow: 'rgba(213,155,65,0.3)' },  // Yellow
+  { start: '#f68ab2', end: '#ffadcf', glow: 'rgba(246,138,178,0.3)' }, // Magenta
+  { start: '#4d9a48', end: '#73b46e', glow: 'rgba(77,154,72,0.3)' },   // Green
+  { start: '#625db2', end: '#7c7bc5', glow: 'rgba(98,93,178,0.3)' },   // Violet
+  { start: '#f17972', end: '#ff9d95', glow: 'rgba(241,121,114,0.3)' }, // Red
 ];
 
 function ChartBlock({ chartData }) {

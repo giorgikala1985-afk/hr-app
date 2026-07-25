@@ -91,6 +91,11 @@ function ThemeSection({ theme }) {
             <span key={i} style={{ width: 14, height: 14, borderRadius: 4, background: hex, border: '1px solid rgba(0,0,0,0.08)' }} />
           ))}
         </div>
+        {theme.key === 'pastel' && (
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#4d9a48', background: 'rgba(77,154,72,0.12)', border: '1px solid rgba(77,154,72,0.3)', borderRadius: 20, padding: '2px 9px' }}>
+            Active
+          </span>
+        )}
       </div>
       <p style={{ margin: '0 0 14px', fontSize: 12.5, color: 'var(--text-3)' }}>{theme.blurb}</p>
 
