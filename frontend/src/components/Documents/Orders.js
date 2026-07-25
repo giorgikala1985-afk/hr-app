@@ -3273,8 +3273,6 @@ export default function Orders() {
     return true;
   });
 
-  const totalAdditions = filteredUnits.filter(u => u.direction === 'addition').reduce((s, u) => s + parseFloat(u.amount), 0);
-  const totalDeductions = filteredUnits.filter(u => u.direction === 'deduction').reduce((s, u) => s + parseFloat(u.amount), 0);
   const uniqueTypes = [...new Set(allUnits.map(u => u.type))];
 
   const SORT_ACCESSORS = {
@@ -3511,25 +3509,6 @@ export default function Orders() {
       </div>}
 
       {subTab === 'adjusting' && <>
-      {/* Summary pills */}
-      {allUnits.length > 0 && (
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-          <div style={{ padding: '8px 16px', borderRadius: 20, background: 'var(--surface)', border: '1px solid var(--border-2)', fontSize: 13, color: 'var(--text-2)' }}>
-            <strong style={{ color: 'var(--text)' }}>{allUnits.length}</strong> {t('orders.orders')}
-          </div>
-          {totalAdditions > 0 && (
-            <div style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(71,156,115,0.1)', border: '1px solid rgba(71,156,115,0.25)', fontSize: 13, color: '#479c73' }}>
-              +{fmt(totalAdditions)} {t('orders.additions')}
-            </div>
-          )}
-          {totalDeductions > 0 && (
-            <div style={{ padding: '8px 16px', borderRadius: 20, background: 'rgba(220,38,38,0.1)', border: '1px solid rgba(220,38,38,0.25)', fontSize: 13, color: '#f87171' }}>
-              -{fmt(totalDeductions)} {t('orders.deductions')}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Search/filter bar */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
         <div style={{ position: 'relative', flex: 1 }}>
