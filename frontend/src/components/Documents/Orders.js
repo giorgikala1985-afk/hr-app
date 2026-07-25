@@ -108,7 +108,7 @@ function useLocalOrders(key, isOwnedByCurrentTenant) {
 }
 
 function SubTabModal({ title, onClose, children, maxWidth = 520 }) {
-  return (
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth, boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden' }}>
@@ -118,7 +118,8 @@ function SubTabModal({ title, onClose, children, maxWidth = 520 }) {
         </div>
         <div style={{ padding: 24 }}>{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -3735,7 +3736,7 @@ export default function Orders() {
       </div>
 
       {/* ── MODAL FORM OVERLAY ── */}
-      {showForm && (
+      {showForm && createPortal(
         <div
           onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setEditingUnit(null); setForm({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' }); } }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
@@ -3901,7 +3902,8 @@ export default function Orders() {
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
