@@ -5,6 +5,8 @@ import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { generateOrderPDF, generatePromotionPDF } from '../../utils/generateOrderPDF';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { UserIcon, Exchange01Icon, File01Icon, Agreement01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import '../Employees/Employees.css';
 
 const now = new Date();
@@ -429,11 +431,11 @@ function HiringTab() {
   }, []);
 
   const TABS = [
-    { key: 'info',      label: t('orders.employeeInfo'),  icon: 'i'  },
-    { key: 'account',   label: t('orders.accountChanges'), icon: '#'  },
-    { key: 'documents', label: t('orders.documents'),      icon: 'D'  },
-    { key: 'agreement', label: t('orders.agreement'),      icon: '📄' },
-    { key: 'portal',    label: t('orders.portalAccess'),   icon: '🔑' },
+    { key: 'info',      label: t('orders.employeeInfo'),   icon: UserIcon },
+    { key: 'account',   label: t('orders.accountChanges'), icon: Exchange01Icon },
+    { key: 'documents', label: t('orders.documents'),      icon: File01Icon },
+    { key: 'agreement', label: t('orders.agreement'),      icon: Agreement01Icon },
+    { key: 'portal',    label: t('orders.portalAccess'),   icon: Key01Icon },
   ];
 
   const perms = useOrdersPermissions();
@@ -562,7 +564,7 @@ function HiringTab() {
                   transition: 'color 0.12s, border-color 0.12s',
                 }}
               >
-                <span className="tab-icon" style={{ width: 18, height: 18, fontSize: 11 }}>{tab.icon}</span>
+                <HugeiconsIcon icon={tab.icon} size={16} color={activeTab === tab.key ? 'var(--accent, #3b82f6)' : 'currentColor'} strokeWidth={2} />
                 {tab.label}
               </button>
             ))}
