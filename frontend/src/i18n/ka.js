@@ -1,4 +1,16 @@
 const ka = {
+  // ===== Shared Excel-style table controls (sort/filter/columns) =====
+  'table.filterTooltip': 'ფილტრი',
+  'table.filterSearchPlaceholder': 'ძებნა…',
+  'table.selectAll': 'ყველას მონიშვნა',
+  'table.noFilterOptions': 'დამთხვევა არ არის',
+  'table.clearFilter': 'ფილტრის მოხსნა',
+  'table.noFilterMatches': 'ფილტრებს არცერთი ჩანაწერი არ ემთხვევა.',
+  'table.clear': 'გასუფთავება',
+  'table.columns': 'სვეტები',
+  'table.columnsDragToReorder': 'სვეტები (გადაათრიეთ დასალაგებლად)',
+  'table.resetToDefault': 'ნაგულისხმევის აღდგენა',
+
   // ===== Header / Nav =====
   'nav.logo': 'Finpilot',
   'nav.home': 'მთავარი',

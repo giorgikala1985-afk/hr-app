@@ -8,6 +8,7 @@ import { generateOrderPDF, generatePromotionPDF } from '../../utils/generateOrde
 import { HugeiconsIcon } from '@hugeicons/react';
 import { UserIcon, Exchange01Icon, File01Icon, Agreement01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import '../Employees/Employees.css';
+import { useExcelTable, TableHeaderRow, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -3077,63 +3078,6 @@ function DeleteIcon() {
   );
 }
 
-// Excel-style AutoFilter dropdown: search + "select all" + checkbox list of unique values,
-// portaled to <body> so it isn't clipped by the table's overflow:hidden wrapper.
-function ExcelFilterDropdown({ dropdownRef, pos, options, selected, search, onSearchChange, onToggleValue, onToggleAll, onClear, t }) {
-  const activeSet = selected ?? new Set(options);
-  const visibleOptions = search ? options.filter(o => o.toLowerCase().includes(search.toLowerCase())) : options;
-  const allVisibleChecked = visibleOptions.length > 0 && visibleOptions.every(o => activeSet.has(o));
-
-  return createPortal(
-    <div
-      ref={dropdownRef}
-      style={{
-        position: 'fixed', top: pos.top, left: pos.left, zIndex: 200,
-        width: 230, maxHeight: 320, display: 'flex', flexDirection: 'column',
-        background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.18)', overflow: 'hidden',
-        fontWeight: 400, textTransform: 'none', letterSpacing: 'normal',
-      }}
-    >
-      <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-3)' }}>
-        <input
-          autoFocus
-          value={search}
-          onChange={e => onSearchChange(e.target.value)}
-          onClick={e => e.stopPropagation()}
-          placeholder={t('orders.filterSearchPlaceholder')}
-          style={{
-            width: '100%', boxSizing: 'border-box', padding: '6px 8px', fontSize: 12, borderRadius: 6,
-            border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', outline: 'none',
-          }}
-        />
-      </div>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer', borderBottom: '1px solid var(--border-3)' }}>
-        <input type="checkbox" checked={allVisibleChecked} onChange={e => onToggleAll(visibleOptions, e.target.checked)} style={{ accentColor: '#479c73', width: 13, height: 13 }} />
-        {t('orders.selectAll')}
-      </label>
-      <div style={{ overflowY: 'auto', flex: 1, padding: '4px 0' }}>
-        {visibleOptions.length === 0 ? (
-          <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--text-4)' }}>{t('orders.noFilterOptions')}</div>
-        ) : visibleOptions.map(opt => (
-          <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '5px 10px', fontSize: 12, color: 'var(--text-2)', cursor: 'pointer' }}>
-            <input type="checkbox" checked={activeSet.has(opt)} onChange={() => onToggleValue(opt)} style={{ accentColor: '#479c73', width: 13, height: 13, flexShrink: 0 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{opt}</span>
-          </label>
-        ))}
-      </div>
-      {selected !== null && (
-        <div style={{ borderTop: '1px solid var(--border-3)', padding: '6px 10px' }}>
-          <button onClick={onClear} style={{ background: 'none', border: 'none', color: '#3185FC', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
-            {t('orders.clearFilter')}
-          </button>
-        </div>
-      )}
-    </div>,
-    document.body
-  );
-}
-
 export default function Orders() {
   const { t } = useLanguage();
   const ORDER_SUBTABS = ORDER_SUBTAB_KEYS.map(s => ({ ...s, label: t(s.labelKey) }));
@@ -3152,81 +3096,48 @@ export default function Orders() {
   const [error, setError] = useState('');
   const [filterEmp, setFilterEmp] = useState('');
   const [filterType, setFilterType] = useState('');
-  const [sortKey, setSortKey] = useState(null);
-  const [sortDir, setSortDir] = useState('asc');
-  const toggleSort = (key) => {
-    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortKey(key); setSortDir('asc'); }
-  };
-  // Excel-style column filters: null = no filter (all values); Set = only these values pass
-  const [columnFilters, setColumnFilters] = useState({ employee: null, type: null, direction: null, amount: null, date: null, created: null, modified: null });
-  const [openFilterCol, setOpenFilterCol] = useState(null);
-  const [filterDropdownPos, setFilterDropdownPos] = useState(null);
-  const [filterSearch, setFilterSearch] = useState('');
-  const filterDropdownRef = useRef(null);
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
-  // Adjust table: draggable, hideable column order (Actions/Delete stay pinned last)
-  const ADJUST_CUSTOM_COL_KEYS = ['employee', 'type', 'direction', 'amount', 'date', 'created', 'modified'];
-  const ADJUST_COL_DEFS = {
-    employee: { label: t('orders.employee'), right: false },
-    type:     { label: t('orders.type'),     right: false },
-    direction:{ label: t('orders.direction'),right: false },
-    amount:   { label: t('orders.amount'),   right: true  },
-    date:     { label: t('orders.date'),     right: true  },
-    created:  { label: t('orders.created'),  right: true  },
-    modified: { label: t('orders.modified'), right: true  },
-  };
-  // Excel-style filter dropdowns filter/group by the same text the table cell shows
-  const ADJUST_VALUE_GETTERS = {
-    employee: u => `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.trim() || '—',
-    type: u => u.type || '—',
-    direction: u => (u.direction === 'addition' ? t('orders.addition') : t('orders.deduction')),
-    amount: u => `${u.direction === 'addition' ? '+' : '−'}${fmt(u.amount)}`,
-    date: u => u.date || '—',
-    created: u => u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-    modified: u => (u.updated_at && u.updated_at !== u.created_at) ? new Date(u.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
-  };
-  const [adjustColOrder, setAdjustColOrder] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('orders_adjust_col_order'));
-      if (Array.isArray(saved) && saved.length) {
-        const filtered = saved.filter(k => ADJUST_CUSTOM_COL_KEYS.includes(k));
-        const missing = ADJUST_CUSTOM_COL_KEYS.filter(k => !filtered.includes(k));
-        return [...filtered, ...missing];
-      }
-    } catch {}
-    return ADJUST_CUSTOM_COL_KEYS;
-  });
-  const [adjustVisibleCols, setAdjustVisibleCols] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('orders_adjust_col_visible'));
-      if (Array.isArray(saved)) return saved.filter(k => ADJUST_CUSTOM_COL_KEYS.includes(k));
-    } catch {}
-    return ADJUST_CUSTOM_COL_KEYS;
-  });
-  const [showAdjustColMenu, setShowAdjustColMenu] = useState(false);
-  const adjustDragColIdx = useRef(null);
-  const [adjustDragOverColIdx, setAdjustDragOverColIdx] = useState(null);
-
-  useEffect(() => { localStorage.setItem('orders_adjust_col_order', JSON.stringify(adjustColOrder)); }, [adjustColOrder]);
-  useEffect(() => { localStorage.setItem('orders_adjust_col_visible', JSON.stringify(adjustVisibleCols)); }, [adjustVisibleCols]);
-
-  const toggleAdjustColVisible = (key) => {
-    setAdjustVisibleCols(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-  };
-  const moveAdjustCol = (from, to) => {
-    if (from === to) return;
-    setAdjustColOrder(prev => {
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
-    });
-  };
-  const resetAdjustCols = () => { setAdjustColOrder(ADJUST_CUSTOM_COL_KEYS); setAdjustVisibleCols(ADJUST_CUSTOM_COL_KEYS); };
-  const adjustDisplayCols = adjustColOrder.filter(k => adjustVisibleCols.includes(k));
+  // Adjust table columns: label/alignment + how each column's value is read for
+  // display+filtering (getValue) vs. sorting (getSortValue) — see useExcelTable.
+  const ADJUST_COLUMNS = [
+    {
+      key: 'employee', label: t('orders.employee'), right: false,
+      getValue: u => `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.trim() || '—',
+      getSortValue: u => `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.toLowerCase(),
+    },
+    {
+      key: 'type', label: t('orders.type'), right: false,
+      getValue: u => u.type || '—',
+      getSortValue: u => (u.type || '').toLowerCase(),
+    },
+    {
+      key: 'direction', label: t('orders.direction'), right: false,
+      getValue: u => (u.direction === 'addition' ? t('orders.addition') : t('orders.deduction')),
+      getSortValue: u => (u.direction || ''),
+    },
+    {
+      key: 'amount', label: t('orders.amount'), right: true,
+      getValue: u => `${u.direction === 'addition' ? '+' : '−'}${fmt(u.amount)}`,
+      getSortValue: u => parseFloat(u.amount) || 0,
+    },
+    {
+      key: 'date', label: t('orders.date'), right: true,
+      getValue: u => u.date || '—',
+      getSortValue: u => u.date || '',
+    },
+    {
+      key: 'created', label: t('orders.created'), right: true,
+      getValue: u => u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+      getSortValue: u => u.created_at || '',
+    },
+    {
+      key: 'modified', label: t('orders.modified'), right: true,
+      getValue: u => (u.updated_at && u.updated_at !== u.created_at) ? new Date(u.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+      getSortValue: u => u.updated_at || '',
+    },
+  ];
 
   const renderAdjustCell = (key, u) => {
     switch (key) {
@@ -3350,30 +3261,6 @@ export default function Orders() {
   }, []);
 
   useEffect(() => { loadStatic(); loadRates(); }, [loadStatic, loadRates]);
-
-  // Close the Excel-style filter dropdown on outside click, Escape, or scroll
-  useEffect(() => {
-    if (!openFilterCol) return;
-    const close = () => { setOpenFilterCol(null); setFilterDropdownPos(null); };
-    const onDocClick = (e) => {
-      if (filterDropdownRef.current && !filterDropdownRef.current.contains(e.target)) close();
-    };
-    const onKeyDown = (e) => { if (e.key === 'Escape') close(); };
-    const onScroll = (e) => {
-      if (filterDropdownRef.current && filterDropdownRef.current.contains(e.target)) return;
-      close();
-    };
-    document.addEventListener('mousedown', onDocClick);
-    document.addEventListener('keydown', onKeyDown);
-    window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('resize', close);
-    return () => {
-      document.removeEventListener('mousedown', onDocClick);
-      document.removeEventListener('keydown', onKeyDown);
-      window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('resize', close);
-    };
-  }, [openFilterCol]);
   useEffect(() => { loadSalaries(month); }, [month, loadSalaries]);
 
   // ── Demo seed (giorgi@powerbi.ge only, runs once) ────────────
@@ -3503,58 +3390,8 @@ export default function Orders() {
 
   const uniqueTypes = [...new Set(allUnits.map(u => u.type))];
 
-  const SORT_ACCESSORS = {
-    employee: u => `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.toLowerCase(),
-    type: u => (u.type || '').toLowerCase(),
-    direction: u => (u.direction || ''),
-    amount: u => parseFloat(u.amount) || 0,
-    date: u => u.date || '',
-    created: u => u.created_at || '',
-    modified: u => u.updated_at || '',
-  };
-  // Excel-style: a column with a Set only lets through units whose value is in that Set;
-  // `except` skips one column's own filter so its dropdown can offer cascading options.
-  const applyColumnFilters = (units, except) => units.filter(u => (
-    ADJUST_CUSTOM_COL_KEYS.every(k => {
-      if (k === except) return true;
-      const sel = columnFilters[k];
-      return !sel || sel.has(ADJUST_VALUE_GETTERS[k](u));
-    })
-  ));
-  const columnFilteredUnits = applyColumnFilters(filteredUnits, null);
-  const getColumnFilterOptions = (key) => {
-    const values = applyColumnFilters(filteredUnits, key).map(ADJUST_VALUE_GETTERS[key]);
-    return [...new Set(values)].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
-  };
-  // values/checked lets one call cover both a single checkbox toggle and "select all [visible]"
-  const setColumnFilterValues = (key, allOptions, values, checked) => {
-    setColumnFilters(prev => {
-      const current = prev[key] ?? new Set(allOptions);
-      const next = new Set(current);
-      values.forEach(v => (checked ? next.add(v) : next.delete(v)));
-      return { ...prev, [key]: next.size === allOptions.length ? null : next };
-    });
-  };
-  const clearColumnFilter = (key) => setColumnFilters(prev => ({ ...prev, [key]: null }));
-  const clearAllColumnFilters = () => setColumnFilters({ employee: null, type: null, direction: null, amount: null, date: null, created: null, modified: null });
-  const openColumnFilterDropdown = (e, key) => {
-    e.stopPropagation();
-    if (openFilterCol === key) { setOpenFilterCol(null); setFilterDropdownPos(null); return; }
-    const rect = e.currentTarget.getBoundingClientRect();
-    const DROPDOWN_WIDTH = 230;
-    setFilterDropdownPos({
-      top: rect.bottom + 6,
-      left: Math.min(rect.left - 100, window.innerWidth - DROPDOWN_WIDTH - 16),
-    });
-    setFilterSearch('');
-    setOpenFilterCol(key);
-  };
-  const sortedUnits = sortKey ? [...columnFilteredUnits].sort((a, b) => {
-    const av = SORT_ACCESSORS[sortKey](a);
-    const bv = SORT_ACCESSORS[sortKey](b);
-    const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-    return sortDir === 'asc' ? cmp : -cmp;
-  }) : columnFilteredUnits;
+  const adjustTable = useExcelTable({ storageKey: 'orders_adjust', columns: ADJUST_COLUMNS, rows: filteredUnits });
+  const sortedUnits = adjustTable.sortedRows;
 
   const prevMonth = () => {
     const [y, m] = month.split('-').map(Number);
@@ -3801,70 +3638,19 @@ export default function Orders() {
             {t('orders.clear')}
           </button>
         )}
-        <div style={{ position: 'relative' }}>
-          <button
-            onClick={() => setShowAdjustColMenu(v => !v)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: showAdjustColMenu ? 'var(--surface-2)' : 'var(--surface)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
-          >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-              <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-            </svg>
-            {t('orders.columns')} ({adjustDisplayCols.length}/{ADJUST_CUSTOM_COL_KEYS.length})
-          </button>
-          {showAdjustColMenu && (
-            <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowAdjustColMenu(false)} />
-              <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '8px 0', minWidth: 220 }}>
-                <div style={{ padding: '6px 14px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-4)', borderBottom: '1px solid var(--border-3)' }}>
-                  {t('orders.columnsDragToReorder')}
-                </div>
-                {adjustColOrder.map((key, idx) => (
-                  <label
-                    key={key}
-                    draggable
-                    onDragStart={() => { adjustDragColIdx.current = idx; }}
-                    onDragOver={(e) => { e.preventDefault(); setAdjustDragOverColIdx(idx); }}
-                    onDragLeave={() => setAdjustDragOverColIdx(cur => cur === idx ? null : cur)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (adjustDragColIdx.current !== null) moveAdjustCol(adjustDragColIdx.current, idx);
-                      adjustDragColIdx.current = null;
-                      setAdjustDragOverColIdx(null);
-                    }}
-                    onDragEnd={() => { adjustDragColIdx.current = null; setAdjustDragOverColIdx(null); }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 9, padding: '7px 14px', cursor: 'grab', fontSize: 13, color: 'var(--text-2)',
-                      background: adjustDragOverColIdx === idx ? 'var(--surface-2)' : 'transparent',
-                      borderTop: adjustDragOverColIdx === idx ? '2px solid #3185FC' : '2px solid transparent',
-                    }}
-                  >
-                    <span style={{ color: 'var(--text-4)', fontSize: 12, lineHeight: 1 }}>⠿</span>
-                    <input type="checkbox" checked={adjustVisibleCols.includes(key)} onChange={() => toggleAdjustColVisible(key)} style={{ accentColor: '#3185FC', width: 14, height: 14 }} />
-                    {ADJUST_COL_DEFS[key].label}
-                  </label>
-                ))}
-                <div style={{ borderTop: '1px solid var(--border-3)', padding: '6px 14px 2px' }}>
-                  <button onClick={resetAdjustCols} style={{ background: 'none', border: 'none', color: '#3185FC', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
-                    {t('orders.resetToDefault')}
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <ColumnVisibilityMenu table={adjustTable} t={t} />
       </div>
 
       {/* Orders list */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
           <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '56px 0', fontSize: 13 }}>{t('orders.loading')}</div>
-        ) : filteredUnits.length > 0 && columnFilteredUnits.length === 0 ? (
+        ) : filteredUnits.length > 0 && sortedUnits.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-3)', fontSize: 13 }}>
             {t('orders.noFilterMatches')}
             <div>
               <button
-                onClick={clearAllColumnFilters}
+                onClick={adjustTable.clearAllColumnFilters}
                 style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
               >
                 {t('orders.clear')}
@@ -3897,66 +3683,7 @@ export default function Orders() {
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
-              <tr style={{ background: 'var(--surface-2)' }}>
-                {[
-                  ...adjustDisplayCols.map(key => [ADJUST_COL_DEFS[key].label, ADJUST_COL_DEFS[key].right, key]),
-                  ['', true, null],
-                  ['', true, null],
-                ].map(([h, right, key], i) => (
-                  <th
-                    key={i}
-                    style={{
-                      padding: '9px 16px 8px', textAlign: right ? 'right' : 'left', fontWeight: 600, fontSize: 11,
-                      color: sortKey === key ? 'var(--text)' : 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.05em',
-                      borderBottom: '1px solid var(--border-2)', whiteSpace: 'nowrap', verticalAlign: 'top',
-                    }}
-                  >
-                    <span
-                      style={{ display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center', gap: 3, justifyContent: right ? 'flex-end' : 'flex-start', flexDirection: right ? 'row-reverse' : 'row', userSelect: 'none' }}
-                    >
-                      <span onClick={key ? () => toggleSort(key) : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: key ? 'pointer' : 'default' }}>
-                        {h}
-                        {key && (
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                            style={{ opacity: sortKey === key ? 1 : 0.25, transform: sortKey === key && sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
-                            <polyline points="6 9 12 15 18 9"/>
-                          </svg>
-                        )}
-                      </span>
-                      {key && (
-                        <button
-                          onClick={e => openColumnFilterDropdown(e, key)}
-                          title={t('orders.filterPlaceholder')}
-                          style={{
-                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, padding: 0,
-                            border: 'none', borderRadius: 4, cursor: 'pointer',
-                            background: openFilterCol === key ? 'var(--surface-3, rgba(0,0,0,0.08))' : 'transparent',
-                            color: columnFilters[key] ? '#479c73' : 'var(--text-4)',
-                          }}
-                        >
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill={columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
-                          </svg>
-                        </button>
-                      )}
-                    </span>
-                    {key && openFilterCol === key && filterDropdownPos && (
-                      <ExcelFilterDropdown
-                        dropdownRef={filterDropdownRef}
-                        pos={filterDropdownPos}
-                        options={getColumnFilterOptions(key)}
-                        selected={columnFilters[key]}
-                        search={filterSearch}
-                        onSearchChange={setFilterSearch}
-                        onToggleValue={(value) => setColumnFilterValues(key, getColumnFilterOptions(key), [value], !(columnFilters[key] ?? new Set(getColumnFilterOptions(key))).has(value))}
-                        onToggleAll={(visible, checked) => setColumnFilterValues(key, getColumnFilterOptions(key), visible, checked)}
-                        onClear={() => clearColumnFilter(key)}
-                        t={t}
-                      />
-                    )}
-                  </th>
-                ))}
-              </tr>
+              <TableHeaderRow table={adjustTable} t={t} extraCols={[{ label: '', right: true }, { label: '', right: true }]} />
             </thead>
             <tbody>
               {sortedUnits.map((u, i) => (
@@ -3964,7 +3691,7 @@ export default function Orders() {
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
-                  {adjustDisplayCols.map(key => (
+                  {adjustTable.displayCols.map(key => (
                     <React.Fragment key={key}>{renderAdjustCell(key, u)}</React.Fragment>
                   ))}
 

@@ -1,4 +1,16 @@
 const en = {
+  // ===== Shared Excel-style table controls (sort/filter/columns) =====
+  'table.filterTooltip': 'Filter',
+  'table.filterSearchPlaceholder': 'Search…',
+  'table.selectAll': 'Select All',
+  'table.noFilterOptions': 'No matches',
+  'table.clearFilter': 'Clear filter',
+  'table.noFilterMatches': 'No rows match the column filters.',
+  'table.clear': 'Clear',
+  'table.columns': 'Columns',
+  'table.columnsDragToReorder': 'Columns (drag to reorder)',
+  'table.resetToDefault': 'Reset to default',
+
   // ===== Header / Nav =====
   'nav.logo': 'Finpilot',
   'nav.home': 'Home',
