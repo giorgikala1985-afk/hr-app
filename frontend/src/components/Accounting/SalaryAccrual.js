@@ -5,6 +5,7 @@ import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { PaginationBar } from '../common/ExcelTable';
 import { parseStatementAmount } from '../../utils/bankAmount';
 import { fetchTbcRawStatement } from '../../utils/tbcStatement';
 
@@ -383,7 +384,21 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   // order alone doesn't touch any of that.
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('asc');
+  const [salPage, setSalPage] = useState(1);
+  const [salPageSize, setSalPageSizeState] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('sal_accrual_page_size'));
+      if (saved === 'all' || [50, 100, 200].includes(saved)) return saved;
+    } catch {}
+    return 50;
+  });
+  const setSalPageSize = (size) => {
+    setSalPageSizeState(size);
+    setSalPage(1);
+    try { localStorage.setItem('sal_accrual_page_size', JSON.stringify(size)); } catch {}
+  };
   const toggleSort = (key) => {
+    setSalPage(1);
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
     else { setSortKey(key); setSortDir('asc'); }
   };
@@ -433,6 +448,13 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
     const cmp = av < bv ? -1 : av > bv ? 1 : 0;
     return sortDir === 'asc' ? cmp : -cmp;
   }) : active;
+  const salTotalPages = salPageSize === 'all' ? 1 : Math.max(1, Math.ceil(sortedActive.length / salPageSize));
+  const salSafePage = Math.min(salPage, salTotalPages);
+  const pagedActive = salPageSize === 'all' ? sortedActive : sortedActive.slice((salSafePage - 1) * salPageSize, salSafePage * salPageSize);
+  const salPaginationTable = {
+    page: salSafePage, setPage: setSalPage, pageSize: salPageSize, setPageSize: setSalPageSize,
+    pageSizeOptions: [50, 100, 200], totalPages: salTotalPages, sortedRows: sortedActive,
+  };
 
   const dr = selectedRow;
   const drEmp = dr?.employee;
@@ -836,6 +858,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         ) : visCols.length === 0 ? (
           <div className="acc-empty"><p>No columns selected. Use the Columns button to show columns.</p></div>
         ) : (
+          <>
           <table className="acc-table" style={{ tableLayout: 'fixed', width: tableWidth, fontSize }}>
             <colgroup>
               {visColsMain.map(col => (
@@ -917,7 +940,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               </tr>
             </thead>
             <tbody>
-              {sortedActive.map((r) => {
+              {pagedActive.map((r) => {
                 const emp         = r.employee;
                 const bonus       = unitAmt(r.deductions, 'Bonus');
                 const teamBuild   = unitAmt(r.deductions, 'Team Building');
@@ -1031,6 +1054,8 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               </tr>
             </tfoot>
           </table>
+          <PaginationBar table={salPaginationTable} t={t} />
+          </>
         )}
       </div>
 
