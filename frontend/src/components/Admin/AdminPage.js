@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
+import ChartDesignsGallery from './ChartDesignsGallery';
 
 const RIGHTS_STYLE = {
   'Super Admin': { background: '#fdf4ff', color: '#7e22ce', border: '1px solid #e9d5ff' },
@@ -350,7 +351,7 @@ function AdminPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[{ key: 'companies', label: 'Companies' }, { key: 'users', label: 'All Users' }].map(t => (
+        {[{ key: 'companies', label: 'Companies' }, { key: 'users', label: 'All Users' }, { key: 'chartDesigns', label: 'Chart Designs' }].map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
             padding: '7px 20px', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'inherit',
@@ -363,16 +364,20 @@ function AdminPage() {
       </div>
 
       {/* Search */}
-      <div style={{ marginBottom: 16 }}>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search by email…"
-          style={{ padding: '8px 14px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, width: 280, outline: 'none', background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-        />
-      </div>
+      {activeTab !== 'chartDesigns' && (
+        <div style={{ marginBottom: 16 }}>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search by email…"
+            style={{ padding: '8px 14px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, width: 280, outline: 'none', background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+          />
+        </div>
+      )}
 
-      {loading ? (
+      {activeTab === 'chartDesigns' ? (
+        <ChartDesignsGallery />
+      ) : loading ? (
         <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '60px 0', fontSize: 15 }}>Loading…</div>
       ) : activeTab === 'companies' ? (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
