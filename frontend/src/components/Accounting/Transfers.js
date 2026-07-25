@@ -6,6 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CheckmarkCircleIcon, AlertCircleIcon, FireIcon, HourglassIcon, CancelCircleIcon, PieChartIcon, ClockIcon, ArchiveIcon, ZapIcon, Loading01Icon, Menu01Icon } from '@hugeicons/core-free-icons';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '—';
@@ -94,8 +95,7 @@ function TransfersList() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // --- Column visibility / order / saved view (status column stays pinned first) ---
-  const CUSTOM_COL_KEYS = ['actions', 'amount', 'dueDate', 'description', 'requester', 'approval', 'approver'];
+  // --- Column defs (status column stays pinned first, outside the sort/filter/hide system) ---
   const ALL_COL_DEFS = {
     status:      { label: t('tr.colStatus'), sticky: 0 },
     actions:     { label: t('tr.colOptions') || 'Options' },
@@ -106,45 +106,15 @@ function TransfersList() {
     approval:    { label: t('tr.colApproval') },
     approver:    { label: t('tr.colApprover') },
   };
-  const [colOrder, setColOrder] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('transfers_col_order'));
-      if (Array.isArray(saved) && saved.length) {
-        const filtered = saved.filter(k => CUSTOM_COL_KEYS.includes(k));
-        const missing = CUSTOM_COL_KEYS.filter(k => !filtered.includes(k));
-        return [...filtered, ...missing];
-      }
-    } catch {}
-    return CUSTOM_COL_KEYS;
-  });
-  const [visibleCols, setVisibleCols] = useState(() => {
-    try {
-      const saved = JSON.parse(localStorage.getItem('transfers_col_visible'));
-      if (Array.isArray(saved)) return saved.filter(k => CUSTOM_COL_KEYS.includes(k));
-    } catch {}
-    return CUSTOM_COL_KEYS;
-  });
-  const [showColMenu, setShowColMenu] = useState(false);
-  const dragColIdx = useRef(null);
-  const [dragOverColIdx, setDragOverColIdx] = useState(null);
-
-  useEffect(() => { localStorage.setItem('transfers_col_order', JSON.stringify(colOrder)); }, [colOrder]);
-  useEffect(() => { localStorage.setItem('transfers_col_visible', JSON.stringify(visibleCols)); }, [visibleCols]);
-
-  const toggleColVisible = (key) => {
-    setVisibleCols(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
-  };
-  const moveCol = (from, to) => {
-    if (from === to) return;
-    setColOrder(prev => {
-      const next = [...prev];
-      const [moved] = next.splice(from, 1);
-      next.splice(to, 0, moved);
-      return next;
-    });
-  };
-  const resetCols = () => { setColOrder(CUSTOM_COL_KEYS); setVisibleCols(CUSTOM_COL_KEYS); };
-  const displayCols = ['status', ...colOrder.filter(k => visibleCols.includes(k))];
+  const TRANSFER_COLUMNS = [
+    { key: 'actions', label: ALL_COL_DEFS.actions.label, sortable: false, filterable: false, getValue: () => '' },
+    { key: 'amount', label: ALL_COL_DEFS.amount.label, right: true, getValue: tr => fmt(tr.amount), getSortValue: tr => parseFloat(tr.amount) || 0 },
+    { key: 'dueDate', label: ALL_COL_DEFS.dueDate.label, getValue: tr => tr.due_date ? new Date(tr.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: tr => tr.due_date || '' },
+    { key: 'description', label: ALL_COL_DEFS.description.label, getValue: tr => tr.description || '—' },
+    { key: 'requester', label: ALL_COL_DEFS.requester.label, getValue: tr => tr.requester_name || '—' },
+    { key: 'approval', label: ALL_COL_DEFS.approval.label, getValue: tr => approvalBadge(tr.approval_status || 'pending').label, getSortValue: tr => tr.approval_status || 'pending' },
+    { key: 'approver', label: ALL_COL_DEFS.approver.label, getValue: tr => (tr.approver_name && tr.approval_status !== 'pending') ? tr.approver_name : '—' },
+  ];
 
   const renderCell = (key, tr, bg) => {
     switch (key) {
@@ -381,6 +351,8 @@ function TransfersList() {
   };
 
   const filteredTransfers = transfers.filter(tr => filter === 'all' || (tr.approval_status || 'pending') === filter);
+  const table = useExcelTable({ storageKey: 'transfers', columns: TRANSFER_COLUMNS, rows: filteredTransfers });
+  const displayCols = ['status', ...table.displayCols];
 
   const exportApprovedToExcel = () => {
     const approved = transfers.filter(tr => tr.approval_status === 'approved');
@@ -428,62 +400,7 @@ function TransfersList() {
             </svg>
             Excel-ში შენახვა
           </button>
-          <div style={{ position: 'relative' }}>
-            <button
-              onClick={() => setShowColMenu(v => !v)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: showColMenu ? 'var(--surface-2)' : 'var(--surface)', color: 'var(--text-2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-              </svg>
-              Columns ({displayCols.length}/{CUSTOM_COL_KEYS.length + 1})
-            </button>
-            {showColMenu && (
-              <>
-                <div style={{ position: 'fixed', inset: 0, zIndex: 10 }} onClick={() => setShowColMenu(false)} />
-                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 20, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: '8px 0', minWidth: 220 }}>
-                  <div style={{ padding: '6px 14px 8px', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: 'var(--text-4)', borderBottom: '1px solid var(--border-3)' }}>
-                    Columns (drag to reorder)
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 14px', fontSize: 13, color: 'var(--text-4)' }}>
-                    <input type="checkbox" checked disabled style={{ width: 14, height: 14 }} />
-                    {ALL_COL_DEFS.status.label} <span style={{ fontSize: 11 }}>(pinned)</span>
-                  </div>
-                  {colOrder.map((key, idx) => (
-                    <label
-                      key={key}
-                      draggable
-                      onDragStart={() => { dragColIdx.current = idx; }}
-                      onDragOver={(e) => { e.preventDefault(); setDragOverColIdx(idx); }}
-                      onDragLeave={() => setDragOverColIdx(cur => cur === idx ? null : cur)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        if (dragColIdx.current !== null) moveCol(dragColIdx.current, idx);
-                        dragColIdx.current = null;
-                        setDragOverColIdx(null);
-                      }}
-                      onDragEnd={() => { dragColIdx.current = null; setDragOverColIdx(null); }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 9, padding: '7px 14px', cursor: 'grab', fontSize: 13, color: 'var(--text-2)',
-                        background: dragOverColIdx === idx ? 'var(--surface-2)' : 'transparent',
-                        borderTop: dragOverColIdx === idx ? '2px solid #3185FC' : '2px solid transparent',
-                      }}
-                    >
-                      <span style={{ color: 'var(--text-4)', fontSize: 12, lineHeight: 1 }}>⠿</span>
-                      <input type="checkbox" checked={visibleCols.includes(key)} onChange={() => toggleColVisible(key)} style={{ accentColor: '#3185FC', width: 14, height: 14 }} />
-                      {ALL_COL_DEFS[key].label}
-                    </label>
-                  ))}
-                  <div style={{ borderTop: '1px solid var(--border-3)', padding: '6px 14px 2px' }}>
-                    <button onClick={resetCols} style={{ background: 'none', border: 'none', color: '#3185FC', fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
-                      Reset to default
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <ColumnVisibilityMenu table={table} t={t} />
           <button
             onClick={openNew}
             className="btn-add"
@@ -516,31 +433,96 @@ function TransfersList() {
             </colgroup>
             <thead>
               <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                {displayCols.map(k => ({ key: k, ...ALL_COL_DEFS[k] })).map(col => (
-                  <th key={col.key} style={{
-                    ...th,
-                    position: col.sticky != null ? 'sticky' : 'relative',
-                    left: col.sticky != null ? col.sticky : undefined,
-                    zIndex: col.sticky != null ? 3 : undefined,
-                    background: 'var(--surface-2)',
-                    width: colW[col.key],
-                    textAlign: col.align || 'left',
-                    overflow: 'hidden',
-                    ...(col.key === 'status' ? { textAlign: 'center' } : {}),
-                  }}>
-                    {col.label}
-                    <div
-                      onMouseDown={e => onResizeMouseDown(e, col.key)}
-                      style={RESIZE_HANDLE_STYLE}
-                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                    />
-                  </th>
-                ))}
+                {displayCols.map(k => ({ key: k, ...ALL_COL_DEFS[k] })).map(col => {
+                  const excelCol = table.colByKey[col.key];
+                  const sortable = excelCol && excelCol.sortable !== false;
+                  const filterable = excelCol && excelCol.filterable !== false;
+                  return (
+                    <th key={col.key} style={{
+                      ...th,
+                      position: col.sticky != null ? 'sticky' : 'relative',
+                      left: col.sticky != null ? col.sticky : undefined,
+                      zIndex: col.sticky != null ? 3 : undefined,
+                      background: 'var(--surface-2)',
+                      width: colW[col.key],
+                      textAlign: col.align || 'left',
+                      overflow: 'hidden',
+                      ...(col.key === 'status' ? { textAlign: 'center' } : {}),
+                    }}>
+                      <span
+                        onClick={sortable ? () => table.toggleSort(col.key) : undefined}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: sortable ? 'pointer' : 'default' }}
+                      >
+                        {col.label}
+                        {sortable && (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === col.key ? 1 : 0.25, transform: table.sortKey === col.key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        )}
+                      </span>
+                      {filterable && (
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, col.key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                            background: table.openFilterCol === col.key ? 'rgba(255,255,255,0.12)' : 'transparent',
+                            color: table.columnFilters[col.key] ? '#479c73' : 'var(--text-4)',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[col.key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                      )}
+                      {filterable && table.openFilterCol === col.key && table.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={table.filterDropdownRef}
+                          pos={table.filterDropdownPos}
+                          options={table.getColumnFilterOptions(col.key)}
+                          selected={table.columnFilters[col.key]}
+                          search={table.filterSearch}
+                          onSearchChange={table.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = table.getColumnFilterOptions(col.key);
+                            const activeSet = table.columnFilters[col.key] ?? new Set(opts);
+                            table.setColumnFilterValues(col.key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => table.setColumnFilterValues(col.key, table.getColumnFilterOptions(col.key), visible, checked)}
+                          onClear={() => table.clearColumnFilter(col.key)}
+                          t={t}
+                        />
+                      )}
+                      <div
+                        onMouseDown={e => onResizeMouseDown(e, col.key)}
+                        style={RESIZE_HANDLE_STYLE}
+                        onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.15)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                      />
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>
-              {filteredTransfers.map((tr, i) => {
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={displayCols.length} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {table.sortedRows.map((tr, i) => {
                 const bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)';
                 return (
                   <tr key={tr.id} style={{ borderBottom: '1px solid var(--border-2)', background: bg }}>
