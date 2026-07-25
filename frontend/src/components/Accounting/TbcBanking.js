@@ -3,6 +3,8 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { parseStatementAmount } from '../../utils/bankAmount';
 import { fetchTbcRawStatement } from '../../utils/tbcStatement';
+import { useExcelTable, ExcelFilterDropdown } from '../common/ExcelTable';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
@@ -269,6 +271,7 @@ function BankSettings() {
 
 // ── SALARY PAYMENTS ──────────────────────────────────
 function SalaryPayments() {
+  const { t } = useLanguage();
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -378,6 +381,15 @@ function SalaryPayments() {
   };
 
   const totalSelected = salaries.filter(s => selected.has(s.employee.id)).reduce((sum, s) => sum + s.net_salary, 0);
+
+  const HISTORY_COLUMNS = [
+    { key: 'month', label: 'Month', getValue: h => h.month || '—' },
+    { key: 'employee_count', label: 'Employees', getValue: h => String(h.employee_count ?? '—'), getSortValue: h => h.employee_count || 0 },
+    { key: 'total_amount', label: 'Total', right: true, getValue: h => fmt(h.total_amount), getSortValue: h => parseFloat(h.total_amount) || 0 },
+    { key: 'status', label: 'Status', getValue: h => h.status || '—' },
+    { key: 'created_at', label: 'Date', getValue: h => h.created_at ? new Date(h.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: h => h.created_at || '' },
+  ];
+  const historyTable = useExcelTable({ storageKey: 'tbc_salary_history', columns: HISTORY_COLUMNS, rows: history });
 
   return (
     <div>
@@ -534,15 +546,71 @@ function SalaryPayments() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                  <th style={th}>Month</th>
-                  <th style={th}>Employees</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Total</th>
-                  <th style={th}>Status</th>
-                  <th style={th}>Date</th>
+                  {HISTORY_COLUMNS.map(col => (
+                    <th key={col.key} style={{ ...th, textAlign: col.right ? 'right' : 'left' }}>
+                      <span
+                        onClick={() => historyTable.toggleSort(col.key)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', textTransform: 'none', letterSpacing: 'normal' }}
+                      >
+                        {col.label}
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ opacity: historyTable.sortKey === col.key ? 1 : 0.25, transform: historyTable.sortKey === col.key && historyTable.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </span>
+                      <button
+                        onClick={e => historyTable.openColumnFilterDropdown(e, col.key)}
+                        title={t('table.filterTooltip')}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                          marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                          background: historyTable.openFilterCol === col.key ? 'var(--surface)' : 'transparent',
+                          color: historyTable.columnFilters[col.key] ? '#479c73' : 'var(--text-4)',
+                        }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill={historyTable.columnFilters[col.key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                        </svg>
+                      </button>
+                      {historyTable.openFilterCol === col.key && historyTable.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={historyTable.filterDropdownRef}
+                          pos={historyTable.filterDropdownPos}
+                          options={historyTable.getColumnFilterOptions(col.key)}
+                          selected={historyTable.columnFilters[col.key]}
+                          search={historyTable.filterSearch}
+                          onSearchChange={historyTable.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = historyTable.getColumnFilterOptions(col.key);
+                            const activeSet = historyTable.columnFilters[col.key] ?? new Set(opts);
+                            historyTable.setColumnFilterValues(col.key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => historyTable.setColumnFilterValues(col.key, historyTable.getColumnFilterOptions(col.key), visible, checked)}
+                          onClear={() => historyTable.clearColumnFilter(col.key)}
+                          t={t}
+                        />
+                      )}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {history.map((h, i) => (
+                {historyTable.hasActiveFilters && historyTable.sortedRows.length === 0 && (
+                  <tr>
+                    <td colSpan={HISTORY_COLUMNS.length} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                      {t('table.noFilterMatches')}
+                      <div>
+                        <button
+                          onClick={historyTable.clearAllColumnFilters}
+                          style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                        >
+                          {t('table.clear')}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {historyTable.sortedRows.map((h, i) => (
                   <tr key={h.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                     <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{h.month}</td>
                     <td style={td}>{h.employee_count}</td>
@@ -1017,6 +1085,7 @@ function BankStatements() {
 
 // ── INVOICE PAYMENT ──────────────────────────────────
 function InvoicePayment() {
+  const { t } = useLanguage();
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(null);
@@ -1066,6 +1135,16 @@ function InvoicePayment() {
     }
   };
 
+  const INVOICE_COLUMNS = [
+    { key: 'invoice_number', label: 'Invoice #', getValue: inv => inv.invoice_number || '-' },
+    { key: 'client', label: 'Client', getValue: inv => inv.client || '—' },
+    { key: 'account_number', label: 'Account/IBAN', getValue: inv => inv.account_number || 'No account' },
+    { key: 'total', label: 'Amount', right: true, getValue: inv => `${fmt(inv.total)} ${inv.currency || 'GEL'}`, getSortValue: inv => parseFloat(inv.total) || 0 },
+    { key: 'due_date', label: 'Due Date', getValue: inv => inv.due_date || '-' },
+    { key: 'status', label: 'Status', getValue: inv => inv.status || 'pending' },
+  ];
+  const table = useExcelTable({ storageKey: 'tbc_invoice_payment', columns: INVOICE_COLUMNS, rows: invoices });
+
   if (loading) return <div style={{ color: 'var(--text-3)', padding: 24 }}>Loading invoices...</div>;
 
   return (
@@ -1084,17 +1163,72 @@ function InvoicePayment() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)', borderBottom: '2px solid var(--border-2)' }}>
-                <th style={th}>Invoice #</th>
-                <th style={th}>Client</th>
-                <th style={th}>Account/IBAN</th>
-                <th style={{ ...th, textAlign: 'right' }}>Amount</th>
-                <th style={th}>Due Date</th>
-                <th style={th}>Status</th>
+                {INVOICE_COLUMNS.map(col => (
+                  <th key={col.key} style={{ ...th, textAlign: col.right ? 'right' : 'left', position: 'relative' }}>
+                    <span
+                      onClick={() => table.toggleSort(col.key)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer', textTransform: 'none', letterSpacing: 'normal' }}
+                    >
+                      {col.label}
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ opacity: table.sortKey === col.key ? 1 : 0.25, transform: table.sortKey === col.key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </span>
+                    <button
+                      onClick={e => table.openColumnFilterDropdown(e, col.key)}
+                      title={t('table.filterTooltip')}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                        marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                        background: table.openFilterCol === col.key ? 'var(--surface)' : 'transparent',
+                        color: table.columnFilters[col.key] ? '#479c73' : 'var(--text-4)',
+                      }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[col.key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                      </svg>
+                    </button>
+                    {table.openFilterCol === col.key && table.filterDropdownPos && (
+                      <ExcelFilterDropdown
+                        dropdownRef={table.filterDropdownRef}
+                        pos={table.filterDropdownPos}
+                        options={table.getColumnFilterOptions(col.key)}
+                        selected={table.columnFilters[col.key]}
+                        search={table.filterSearch}
+                        onSearchChange={table.setFilterSearch}
+                        onToggleValue={(value) => {
+                          const opts = table.getColumnFilterOptions(col.key);
+                          const activeSet = table.columnFilters[col.key] ?? new Set(opts);
+                          table.setColumnFilterValues(col.key, opts, [value], !activeSet.has(value));
+                        }}
+                        onToggleAll={(visible, checked) => table.setColumnFilterValues(col.key, table.getColumnFilterOptions(col.key), visible, checked)}
+                        onClear={() => table.clearColumnFilter(col.key)}
+                        t={t}
+                      />
+                    )}
+                  </th>
+                ))}
                 <th style={{ ...th, width: 120 }}></th>
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv, i) => (
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={INVOICE_COLUMNS.length + 1} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {table.sortedRows.map((inv, i) => (
                 <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.invoice_number || '-'}</td>
                   <td style={{ ...td, color: 'var(--text)' }}>{inv.client}</td>
