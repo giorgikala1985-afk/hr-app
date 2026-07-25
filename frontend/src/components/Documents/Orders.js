@@ -644,18 +644,14 @@ function HiringTab() {
                       <div className="form-group" style={{ gridColumn: 'span 2' }}>
                         <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, startDate: v ? p.startDate : endOfMonth(currentMonthStr()) }))} />
                       </div>
-                      <div className="form-group">
+                      <div className="form-group" style={{ maxWidth: 160 }}>
                         <label>{t('orders.startDate')} *</label>
                         <input type="date" value={form.startDate} onChange={fv('startDate')} required />
                       </div>
-                      <div className="form-group">
+                      <div className="form-group" style={{ maxWidth: 160 }}>
                         <label>{t('orders.endDate')}</label>
                         <input type="date" value={form.endDate} onChange={fv('endDate')} />
                         <span className="photo-hint">{t('orders.endDateHint')}</span>
-                      </div>
-                      <div className="form-group">
-                        <label>{t('orders.accountNumber')}</label>
-                        <input value={form.accountNumber} onChange={fv('accountNumber')} placeholder="e.g. GE29TB7894545082100008" maxLength={22} />
                       </div>
                       <div className="form-group">
                         <label>{t('orders.pitRate')}</label>
@@ -663,6 +659,10 @@ function HiringTab() {
                           <option value="5">5%</option>
                           <option value="20">20%</option>
                         </select>
+                      </div>
+                      <div className="form-group">
+                        <label>{t('orders.accountNumber')}</label>
+                        <input value={form.accountNumber} onChange={fv('accountNumber')} placeholder="e.g. GE29TB7894545082100008" maxLength={22} />
                       </div>
                       <div className="form-group">
                         <label>{t('orders.personalEmail')}</label>
