@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../services/api';
-import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
-const DEFAULT_WIDTHS = [110, 160, 150, 130, 140, 200, 120, 80];
+const DEFAULT_COL_WIDTHS = { date: 110, client: 160, product: 150, category: 130, hierarchy: 140, description: 200, amount: 120 };
 
 function IconEdit() {
   return (
@@ -145,7 +146,7 @@ function HierarchyTreeSelect({ hierarchy, selectedNodeId, onSelect }) {
 function Sales() {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
+  const { widths: colWidths, onResizeMouseDown } = useKeyedColumnWidths('sales_col_widths', DEFAULT_COL_WIDTHS);
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
   const [hierarchies, setHierarchies] = useState([]);
@@ -157,6 +158,25 @@ function Sales() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const hierarchyLabel = (r) => {
+    if (!r.hierarchy_id) return '—';
+    const h = hierarchies.find(h => h.id === r.hierarchy_id);
+    if (!h) return '—';
+    const node = r.hierarchy_node_id ? h.nodes?.find(n => n.id === r.hierarchy_node_id) : null;
+    return `${h.name}${node ? ` · ${node.name}` : ''}`;
+  };
+
+  const SALES_COLUMNS = [
+    { key: 'date', label: t('sales.colDate'), getValue: r => r.date || '—' },
+    { key: 'client', label: t('sales.colClient'), getValue: r => r.client || '—' },
+    { key: 'product', label: t('sales.colProduct'), getValue: r => r.product || '—' },
+    { key: 'category', label: t('sales.colCategory'), getValue: r => r.category || '—' },
+    { key: 'hierarchy', label: t('sales.hierarchy'), getValue: hierarchyLabel },
+    { key: 'description', label: t('sales.colDescription'), getValue: r => r.description || '—' },
+    { key: 'amount', label: t('sales.colAmount'), getValue: r => `+${r.currency} ${parseFloat(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, getSortValue: r => parseFloat(r.amount) || 0 },
+  ];
+  const table = useExcelTable({ storageKey: 'sales_list', columns: SALES_COLUMNS, rows: records });
 
   useEffect(() => { load(); loadAgents(); loadHierarchies(); }, []);
 
@@ -234,10 +254,10 @@ function Sales() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === records.length && records.length > 0) {
+    if (selectedIds.size === table.sortedRows.length && table.sortedRows.length > 0) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(records.map(r => r.id)));
+      setSelectedIds(new Set(table.sortedRows.map(r => r.id)));
     }
   };
 
@@ -257,7 +277,10 @@ function Sales() {
 
       <div className="acc-header-row">
         <div />
-        <button className="btn-add" onClick={openNew}>{t('sales.addSale')}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <button className="btn-add" onClick={openNew}>{t('sales.addSale')}</button>
+        </div>
       </div>
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -287,29 +310,85 @@ function Sales() {
           <table className="acc-table">
             <colgroup>
               <col style={{ width: 40 }} />
-              {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+              {table.displayCols.map((key) => <col key={key} style={{ width: colWidths[key] }} />)}
+              <col style={{ width: 80 }} />
             </colgroup>
             <thead><tr>
               <th style={{ width: 40, textAlign: 'center', verticalAlign: 'middle' }}>
                 <input
                   type="checkbox"
-                  checked={selectedIds.size === records.length && records.length > 0}
+                  checked={selectedIds.size === table.sortedRows.length && table.sortedRows.length > 0}
                   onChange={toggleSelectAll}
                   title={t('sales.selectAll')}
                   style={{ width: 15, height: 15, cursor: 'pointer' }}
                 />
               </th>
-              <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>{t('sales.colDate')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>{t('sales.colClient')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('sales.colProduct')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('sales.colCategory')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('sales.hierarchy')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('sales.colDescription')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>{t('sales.colAmount')}<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[7], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              {table.displayCols.map((key) => {
+                const col = table.colByKey[key];
+                return (
+                  <th key={key} style={{ position: 'relative', width: colWidths[key], whiteSpace: 'nowrap' }}>
+                    <span onClick={() => table.toggleSort(key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                      {col.label}
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </span>
+                    <button
+                      onClick={e => table.openColumnFilterDropdown(e, key)}
+                      title={t('table.filterTooltip')}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                        border: 'none', borderRadius: 4, cursor: 'pointer',
+                        background: table.openFilterCol === key ? '#f3f4f6' : 'transparent',
+                        color: table.columnFilters[key] ? '#479c73' : '#9ca3af',
+                      }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                      </svg>
+                    </button>
+                    {table.openFilterCol === key && table.filterDropdownPos && (
+                      <ExcelFilterDropdown
+                        dropdownRef={table.filterDropdownRef}
+                        pos={table.filterDropdownPos}
+                        options={table.getColumnFilterOptions(key)}
+                        selected={table.columnFilters[key]}
+                        search={table.filterSearch}
+                        onSearchChange={table.setFilterSearch}
+                        onToggleValue={(value) => {
+                          const opts = table.getColumnFilterOptions(key);
+                          const activeSet = table.columnFilters[key] ?? new Set(opts);
+                          table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                        }}
+                        onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                        onClear={() => table.clearColumnFilter(key)}
+                        t={t}
+                      />
+                    )}
+                    <div onMouseDown={e => onResizeMouseDown(e, key)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} />
+                  </th>
+                );
+              })}
+              <th></th>
             </tr></thead>
             <tbody>
-              {records.map((r) => (
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length + 2} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {table.sortedRows.map((r) => (
                 <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                     <input
@@ -319,24 +398,26 @@ function Sales() {
                       style={{ width: 15, height: 15, cursor: 'pointer' }}
                     />
                   </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.product || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.category && <span className="acc-category-badge">{r.category}</span>}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {r.hierarchy_id ? (() => {
-                      const h = hierarchies.find(h => h.id === r.hierarchy_id);
-                      if (!h) return '—';
-                      const node = r.hierarchy_node_id ? h.nodes?.find(n => n.id === r.hierarchy_node_id) : null;
-                      return (
-                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0' }}>
-                          {h.name}{node ? ` · ${node.name}` : ''}
-                        </span>
-                      );
-                    })() : '—'}
-                  </td>
-                  <td style={{ color: '#64748b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.description || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount income">+{r.currency} {parseFloat(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>
+                  {table.displayCols.includes('date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>}
+                  {table.displayCols.includes('client') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>}
+                  {table.displayCols.includes('product') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.product || '—'}</td>}
+                  {table.displayCols.includes('category') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.category && <span className="acc-category-badge">{r.category}</span>}</td>}
+                  {table.displayCols.includes('hierarchy') && (
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {r.hierarchy_id ? (() => {
+                        const h = hierarchies.find(h => h.id === r.hierarchy_id);
+                        if (!h) return '—';
+                        const node = r.hierarchy_node_id ? h.nodes?.find(n => n.id === r.hierarchy_node_id) : null;
+                        return (
+                          <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 5, background: '#f0fdf4', color: '#479c73', border: '1px solid #bbf7d0' }}>
+                            {h.name}{node ? ` · ${node.name}` : ''}
+                          </span>
+                        );
+                      })() : '—'}
+                    </td>
+                  )}
+                  {table.displayCols.includes('description') && <td style={{ color: '#64748b', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.description || '—'}</td>}
+                  {table.displayCols.includes('amount') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><span className="acc-amount income">+{r.currency} {parseFloat(r.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></td>}
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}><IconEdit /></button>

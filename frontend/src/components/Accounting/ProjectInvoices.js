@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 function IconEdit() {
   return (
@@ -187,6 +188,15 @@ function ProjectInvoices({ projects }) {
 
   const statusOf = (inv) => inv.status === 'sent' ? 'sent' : (inv.scheduled_send_date ? 'scheduled' : 'draft');
 
+  const INVOICE_COLUMNS = [
+    { key: 'invoice_number', label: t('projInv.colNumber'), getValue: inv => inv.invoice_number || '—' },
+    { key: 'client', label: t('projInv.colClient'), getValue: inv => inv.client || '—' },
+    { key: 'total', label: t('projInv.colAmount'), right: true, getValue: inv => `${parseFloat(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${inv.currency}`, getSortValue: inv => parseFloat(inv.total) || 0 },
+    { key: 'scheduled_send_date', label: t('projInv.colScheduled'), getValue: inv => inv.scheduled_send_date || '—' },
+    { key: 'status', label: t('projInv.colStatus'), getValue: inv => t(`projInv.status${STATUS_COLORS[statusOf(inv)].label}`) },
+  ];
+  const table = useExcelTable({ storageKey: 'proj_invoices_list', columns: INVOICE_COLUMNS, rows: invoices });
+
   return (
     <div>
       <div style={{ marginBottom: 20, maxWidth: 360 }}>
@@ -209,7 +219,10 @@ function ProjectInvoices({ projects }) {
         <>
           <div className="acc-header-row">
             <div />
-            <button className="btn-add" onClick={openNew}>{t('projInv.addInvoice')}</button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
+              <button className="btn-add" onClick={openNew}>{t('projInv.addInvoice')}</button>
+            </div>
           </div>
 
           {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -221,30 +234,88 @@ function ProjectInvoices({ projects }) {
             ) : (
               <table className="acc-table">
                 <thead><tr>
-                  <th>{t('projInv.colNumber')}</th>
-                  <th>{t('projInv.colClient')}</th>
-                  <th style={{ textAlign: 'right' }}>{t('projInv.colAmount')}</th>
-                  <th>{t('projInv.colScheduled')}</th>
+                  {table.displayCols.map((key) => {
+                    const col = table.colByKey[key];
+                    return (
+                      <th key={key} style={{ position: 'relative', textAlign: col.right ? 'right' : 'left' }}>
+                        <span onClick={() => table.toggleSort(key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                          {col.label}
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </span>
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                            background: table.openFilterCol === key ? 'var(--surface-2)' : 'transparent',
+                            color: table.columnFilters[key] ? '#479c73' : 'var(--text-4)',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                        {table.openFilterCol === key && table.filterDropdownPos && (
+                          <ExcelFilterDropdown
+                            dropdownRef={table.filterDropdownRef}
+                            pos={table.filterDropdownPos}
+                            options={table.getColumnFilterOptions(key)}
+                            selected={table.columnFilters[key]}
+                            search={table.filterSearch}
+                            onSearchChange={table.setFilterSearch}
+                            onToggleValue={(value) => {
+                              const opts = table.getColumnFilterOptions(key);
+                              const activeSet = table.columnFilters[key] ?? new Set(opts);
+                              table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                            }}
+                            onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                            onClear={() => table.clearColumnFilter(key)}
+                            t={t}
+                          />
+                        )}
+                      </th>
+                    );
+                  })}
                   <th>{t('projInv.colFile')}</th>
-                  <th>{t('projInv.colStatus')}</th>
                   <th></th>
                 </tr></thead>
                 <tbody>
-                  {invoices.map((inv, i) => {
+                  {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                    <tr>
+                      <td colSpan={table.displayCols.length + 2} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                        {t('table.noFilterMatches')}
+                        <div>
+                          <button
+                            onClick={table.clearAllColumnFilters}
+                            style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                          >
+                            {t('table.clear')}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  {table.sortedRows.map((inv, i) => {
                     const st = statusOf(inv);
                     const sc = STATUS_COLORS[st];
                     return (
                       <tr key={inv.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                        <td style={{ fontWeight: 600, color: 'var(--text)' }}>{inv.invoice_number}</td>
-                        <td>{inv.client}</td>
-                        <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{parseFloat(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>
-                        <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{inv.scheduled_send_date || '—'}</td>
+                        {table.displayCols.includes('invoice_number') && <td style={{ fontWeight: 600, color: 'var(--text)' }}>{inv.invoice_number}</td>}
+                        {table.displayCols.includes('client') && <td>{inv.client}</td>}
+                        {table.displayCols.includes('total') && <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{parseFloat(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>}
+                        {table.displayCols.includes('scheduled_send_date') && <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{inv.scheduled_send_date || '—'}</td>}
+                        {table.displayCols.includes('status') && (
+                          <td>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: sc.bg, color: sc.color }}>
+                              {t(`projInv.status${sc.label}`)}
+                            </span>
+                          </td>
+                        )}
                         <td>{inv.attachment_name ? <span title={inv.attachment_name} style={{ color: '#3b82f6', display: 'inline-flex' }}><IconAttachment /></span> : '—'}</td>
-                        <td>
-                          <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: sc.bg, color: sc.color }}>
-                            {t(`projInv.status${sc.label}`)}
-                          </span>
-                        </td>
                         <td>
                           <div className="action-btns">
                             {st !== 'sent' && (

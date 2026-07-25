@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../../services/api';
-import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
 import ProjectInvoices from './ProjectInvoices';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
-const DEFAULT_WIDTHS = [170, 130, 130, 110, 120, 105, 105, 80];
+const DEFAULT_COL_WIDTHS = { name: 170, client: 130, owner: 130, status: 110, budget: 120, start_date: 105, end_date: 105 };
 
 function IconEdit() {
   return (
@@ -39,7 +40,7 @@ const STATUS_COLORS = {
 function Projects() {
   const { t } = useLanguage();
   const [mainTab, setMainTab] = useState('projects');
-  const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
+  const { widths: colWidths, onResizeMouseDown } = useKeyedColumnWidths('projects_col_widths', DEFAULT_COL_WIDTHS);
   const [records, setRecords] = useState([]);
   const [agents, setAgents] = useState([]);
   const [users, setUsers] = useState([]);
@@ -50,6 +51,17 @@ function Projects() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const PROJECT_COLUMNS = [
+    { key: 'name', label: t('projects.colName'), getValue: r => r.name || '—' },
+    { key: 'client', label: t('projects.colClient'), getValue: r => r.client || '—' },
+    { key: 'owner', label: t('projects.colOwner'), getValue: r => r.owner || '—' },
+    { key: 'status', label: t('projects.colStatus'), getValue: r => r.status || 'Active' },
+    { key: 'budget', label: t('projects.colBudget'), getValue: r => r.budget != null ? `${r.currency || 'GEL'} ${parseFloat(r.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—', getSortValue: r => parseFloat(r.budget) || 0 },
+    { key: 'start_date', label: t('projects.colStart'), getValue: r => r.start_date || '—' },
+    { key: 'end_date', label: t('projects.colEnd'), getValue: r => r.end_date || '—' },
+  ];
+  const table = useExcelTable({ storageKey: 'projects_list', columns: PROJECT_COLUMNS, rows: records });
 
   useEffect(() => { load(); loadAgents(); loadUsers(); }, []);
 
@@ -112,8 +124,8 @@ function Projects() {
   };
 
   const toggleSelectAll = () => {
-    if (selectedIds.size === records.length && records.length > 0) setSelectedIds(new Set());
-    else setSelectedIds(new Set(records.map(r => r.id)));
+    if (selectedIds.size === table.sortedRows.length && table.sortedRows.length > 0) setSelectedIds(new Set());
+    else setSelectedIds(new Set(table.sortedRows.map(r => r.id)));
   };
 
   const handleBulkDelete = async () => {
@@ -168,7 +180,10 @@ function Projects() {
 
       <div className="acc-header-row">
         <div />
-        <button className="btn-add" onClick={openNew}>{t('projects.addProject')}</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '6px 14px' }} />
+          <button className="btn-add" onClick={openNew}>{t('projects.addProject')}</button>
+        </div>
       </div>
 
       {error && <div className="msg-error" style={{ marginBottom: 12 }}>{error}</div>}
@@ -198,29 +213,85 @@ function Projects() {
           <table className="acc-table">
             <colgroup>
               <col style={{ width: 40 }} />
-              {colWidths.map((w, i) => <col key={i} style={{ width: w }} />)}
+              {table.displayCols.map((key) => <col key={key} style={{ width: colWidths[key] }} />)}
+              <col style={{ width: 80 }} />
             </colgroup>
             <thead><tr>
               <th style={{ width: 40, textAlign: 'center', verticalAlign: 'middle' }}>
                 <input
                   type="checkbox"
-                  checked={selectedIds.size === records.length && records.length > 0}
+                  checked={selectedIds.size === table.sortedRows.length && table.sortedRows.length > 0}
                   onChange={toggleSelectAll}
                   title={t('projects.selectAll')}
                   style={{ width: 15, height: 15, cursor: 'pointer' }}
                 />
               </th>
-              <th style={{ position: 'relative', width: colWidths[0], whiteSpace: 'nowrap' }}>{t('projects.colName')}<div onMouseDown={e => onResizeMouseDown(e, 0)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[1], whiteSpace: 'nowrap' }}>{t('projects.colClient')}<div onMouseDown={e => onResizeMouseDown(e, 1)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[2], whiteSpace: 'nowrap' }}>{t('projects.colOwner')}<div onMouseDown={e => onResizeMouseDown(e, 2)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[3], whiteSpace: 'nowrap' }}>{t('projects.colStatus')}<div onMouseDown={e => onResizeMouseDown(e, 3)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[4], whiteSpace: 'nowrap' }}>{t('projects.colBudget')}<div onMouseDown={e => onResizeMouseDown(e, 4)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[5], whiteSpace: 'nowrap' }}>{t('projects.colStart')}<div onMouseDown={e => onResizeMouseDown(e, 5)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[6], whiteSpace: 'nowrap' }}>{t('projects.colEnd')}<div onMouseDown={e => onResizeMouseDown(e, 6)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
-              <th style={{ position: 'relative', width: colWidths[7], whiteSpace: 'nowrap' }}><div onMouseDown={e => onResizeMouseDown(e, 7)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} /></th>
+              {table.displayCols.map((key) => {
+                const col = table.colByKey[key];
+                return (
+                  <th key={key} style={{ position: 'relative', width: colWidths[key], whiteSpace: 'nowrap' }}>
+                    <span onClick={() => table.toggleSort(key)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+                      {col.label}
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                        <polyline points="6 9 12 15 18 9"/>
+                      </svg>
+                    </span>
+                    <button
+                      onClick={e => table.openColumnFilterDropdown(e, key)}
+                      title={t('table.filterTooltip')}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                        border: 'none', borderRadius: 4, cursor: 'pointer',
+                        background: table.openFilterCol === key ? '#f3f4f6' : 'transparent',
+                        color: table.columnFilters[key] ? '#479c73' : '#9ca3af',
+                      }}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                      </svg>
+                    </button>
+                    {table.openFilterCol === key && table.filterDropdownPos && (
+                      <ExcelFilterDropdown
+                        dropdownRef={table.filterDropdownRef}
+                        pos={table.filterDropdownPos}
+                        options={table.getColumnFilterOptions(key)}
+                        selected={table.columnFilters[key]}
+                        search={table.filterSearch}
+                        onSearchChange={table.setFilterSearch}
+                        onToggleValue={(value) => {
+                          const opts = table.getColumnFilterOptions(key);
+                          const activeSet = table.columnFilters[key] ?? new Set(opts);
+                          table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                        }}
+                        onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                        onClear={() => table.clearColumnFilter(key)}
+                        t={t}
+                      />
+                    )}
+                    <div onMouseDown={e => onResizeMouseDown(e, key)} style={RESIZE_HANDLE_STYLE} onMouseEnter={e => e.currentTarget.style.background='#cbd5e1'} onMouseLeave={e => e.currentTarget.style.background='transparent'} />
+                  </th>
+                );
+              })}
+              <th></th>
             </tr></thead>
             <tbody>
-              {records.map((r) => (
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length + 2} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748b', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#f9fafb', color: '#374151', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+              {table.sortedRows.map((r) => (
                 <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                     <input
@@ -230,19 +301,23 @@ function Projects() {
                       style={{ width: 15, height: 15, cursor: 'pointer' }}
                     />
                   </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.name}</strong></td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.client || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.owner || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, ...(STATUS_COLORS[r.status] || STATUS_COLORS.Active) }}>
-                      {r.status || 'Active'}
-                    </span>
-                  </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {r.budget != null ? `${r.currency || 'GEL'} ${parseFloat(r.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
-                  </td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.start_date || '—'}</td>
-                  <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.end_date || '—'}</td>
+                  {table.displayCols.includes('name') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.name}</strong></td>}
+                  {table.displayCols.includes('client') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.client || '—'}</td>}
+                  {table.displayCols.includes('owner') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.owner || '—'}</td>}
+                  {table.displayCols.includes('status') && (
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, ...(STATUS_COLORS[r.status] || STATUS_COLORS.Active) }}>
+                        {r.status || 'Active'}
+                      </span>
+                    </td>
+                  )}
+                  {table.displayCols.includes('budget') && (
+                    <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      {r.budget != null ? `${r.currency || 'GEL'} ${parseFloat(r.budget).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}
+                    </td>
+                  )}
+                  {table.displayCols.includes('start_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.start_date || '—'}</td>}
+                  {table.displayCols.includes('end_date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.end_date || '—'}</td>}
                   <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => openEdit(r)} title="Edit" style={{ color: '#3b82f6' }}><IconEdit /></button>
