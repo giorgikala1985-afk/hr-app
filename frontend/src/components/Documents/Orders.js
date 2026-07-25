@@ -617,7 +617,7 @@ function HiringTab() {
                           <input value={form.department} onChange={fv('department')} placeholder="e.g. Engineering" />
                         )}
                       </div>
-                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
+                      <div className="form-group">
                         <label>{t('orders.salary')} *</label>
                         <div style={{ display: 'flex', gap: 0, borderRadius: 8, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
                           <input
@@ -641,7 +641,7 @@ function HiringTab() {
                           </select>
                         </div>
                       </div>
-                      <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
                         <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, startDate: v ? p.startDate : endOfMonth(currentMonthStr()) }))} />
                       </div>
                       <div className="form-group">
