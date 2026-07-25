@@ -672,10 +672,6 @@ function HiringTab() {
                         <label>{t('orders.phone')}</label>
                         <input type="tel" value={form.phone} onChange={fv('phone')} placeholder="e.g. +995 555 000 000" />
                       </div>
-                      <div className="form-group" style={{ gridColumn: 'span 3' }}>
-                        <label>{t('orders.address')}</label>
-                        <input value={form.address} onChange={fv('address')} placeholder="e.g. 123 Main St, Tbilisi" />
-                      </div>
                       <div className="form-group" style={{ gridColumn: '1 / -1' }}>
                         <label>{t('orders.notes')}</label>
                         <input value={form.notes} onChange={fv('notes')} placeholder="Additional notes…" />
