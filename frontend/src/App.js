@@ -10,7 +10,6 @@ import Register from './components/Auth/Register';
 import PrivateRoute from './components/Layout/PrivateRoute';
 import AdminRoute from './components/Layout/AdminRoute';
 import Header from './components/Layout/Header';
-import EmployeeForm from './components/Employees/EmployeeForm';
 import OptionsPage from './components/Options/OptionsPage';
 import ProfilePage from './components/Profile/ProfilePage';
 import Analytics from './components/Analytics/Analytics';
@@ -77,28 +76,8 @@ function App() {
             }
           />
           <Route path="/employees" element={<Navigate to="/documents" replace />} />
-          <Route
-            path="/employees/new"
-            element={
-              <PrivateRoute>
-                <>
-                  <Header />
-                  <PageTransition><EmployeeForm /></PageTransition>
-                </>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/employees/:id/edit"
-            element={
-              <PrivateRoute>
-                <>
-                  <Header />
-                  <PageTransition><EmployeeForm /></PageTransition>
-                </>
-              </PrivateRoute>
-            }
-          />
+          <Route path="/employees/new" element={<Navigate to="/documents" replace />} />
+          <Route path="/employees/:id/edit" element={<Navigate to="/documents" replace />} />
 
           <Route
             path="/options"

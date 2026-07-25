@@ -1,23 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { jsPDF } from 'jspdf';
 import api from '../../services/api';
+import { HugeiconsIcon } from '@hugeicons/react';
+import { UserIcon, DollarCircleIcon, Exchange01Icon, File01Icon, Agreement01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import SalaryChanges from './SalaryChanges';
 import AccountChanges from './AccountChanges';
 import Documents from './Documents';
 import './Employees.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 
-function EmployeeForm() {
-  const { id } = useParams();
+function EmployeeForm({ employeeId, onClose, onSaved }) {
+  const id = employeeId;
   const isEdit = Boolean(id);
-  const navigate = useNavigate();
   const { t } = useLanguage();
-  const [searchParams] = useSearchParams();
   const fileInputRef = useRef();
 
-  const initialTab = isEdit ? (searchParams.get('tab') || 'info') : 'info';
-  const [activeTab, setActiveTab] = useState(initialTab);
+  const [activeTab, setActiveTab] = useState('info');
   const [employee, setEmployee] = useState(null);
   const [formData, setFormData] = useState({
     first_name: '',
@@ -196,23 +195,18 @@ function EmployeeForm() {
         await api.put(`/employees/${id}`, data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        navigate('/documents?tab=employees&inner=employees');
+        onSaved();
       } else {
         const res = await api.post('/employees', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        const newId = res.data.employee?.id;
         const bk = res.data.bookkeeping;
         if (bk && !bk.success) {
           setError(`თანამშრომელი დაემატა, მაგრამ გატარებები ვერ შეიქმნა: ${bk.error}`);
           setLoading(false);
           return;
         }
-        if (newId) {
-          navigate(`/employees/${newId}/edit?bookkeeping=created`);
-        } else {
-          navigate('/documents?tab=employees&inner=employees');
-        }
+        onSaved();
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save employee');
@@ -222,59 +216,69 @@ function EmployeeForm() {
   };
 
   if (pageLoading) {
-    return <div className="emp-loading">{t('empForm.loadingEmployee')}</div>;
+    return createPortal(
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 16, padding: '40px 60px', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', color: 'var(--text-3)', fontSize: 14 }}>
+          {t('empForm.loadingEmployee')}
+        </div>
+      </div>,
+      document.body
+    );
   }
 
   const currentPhoto = photoPreview || existingPhotoUrl;
   const empName = employee ? `${employee.first_name} ${employee.last_name}` : 'New Employee';
 
   const tabs = [
-    { key: 'info', label: isEdit ? t('empForm.tabEdit') : t('empForm.tabInfo'), icon: 'i' },
-    { key: 'salary', label: t('empForm.tabSalary'), icon: '$', disabled: !isEdit },
-    { key: 'account', label: t('empForm.tabAccount'), icon: '#', disabled: !isEdit },
-    { key: 'documents', label: t('empForm.tabDocuments'), icon: 'D', disabled: !isEdit },
-    { key: 'agreement', label: 'Agreement', icon: '📄', disabled: !isEdit },
-    { key: 'portal', label: 'Portal Access', icon: '🔑', disabled: !isEdit },
+    { key: 'info', label: isEdit ? t('empForm.tabEdit') : t('empForm.tabInfo'), icon: UserIcon },
+    { key: 'salary', label: t('empForm.tabSalary'), icon: DollarCircleIcon, disabled: !isEdit },
+    { key: 'account', label: t('empForm.tabAccount'), icon: Exchange01Icon, disabled: !isEdit },
+    { key: 'documents', label: t('empForm.tabDocuments'), icon: File01Icon, disabled: !isEdit },
+    { key: 'agreement', label: 'Agreement', icon: Agreement01Icon, disabled: !isEdit },
+    { key: 'portal', label: 'Portal Access', icon: Key01Icon, disabled: !isEdit },
   ];
 
-  return (
-    <div className="emp-container">
-      <div className="emp-header">
+  return createPortal(
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+    >
+    <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 1180, maxHeight: '90vh', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      <div className="emp-header" style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', marginBottom: 0 }}>
         <div>
-          <h1>{isEdit ? empName : t('empForm.addTitle')}</h1>
-          <p>{isEdit ? t('empForm.editSubtitle') : t('empForm.addSubtitle')}</p>
+          <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{isEdit ? empName : t('empForm.addTitle')}</h1>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-3)' }}>{isEdit ? t('empForm.editSubtitle') : t('empForm.addSubtitle')}</p>
         </div>
-        <button onClick={() => navigate('/documents?tab=employees&inner=employees')} className="btn-secondary">
-          {t('empForm.backToList')}
-        </button>
+        <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
       </div>
 
-      {error && <div className="msg-error">{error}</div>}
-      {searchParams.get('bookkeeping') === 'created' && (
-        <div className="msg-success" style={{ marginBottom: 12 }}>
-          Employee Has Been Added
-        </div>
-      )}
+      {/* Horizontal tab bar */}
+      <div style={{ display: 'flex', gap: 4, padding: '0 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface)' }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => !tab.disabled && setActiveTab(tab.key)}
+            disabled={tab.disabled}
+            title={tab.disabled ? t('empForm.saveFirst') : ''}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              background: 'none', border: 'none', cursor: tab.disabled ? 'not-allowed' : 'pointer',
+              padding: '10px 4px', marginRight: 18, fontSize: 13, fontWeight: 600,
+              color: tab.disabled ? 'var(--text-4)' : activeTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+              opacity: tab.disabled ? 0.6 : 1,
+              borderBottom: activeTab === tab.key ? '2px solid var(--accent, #3b82f6)' : '2px solid transparent',
+              transition: 'color 0.12s, border-color 0.12s',
+            }}
+          >
+            <HugeiconsIcon icon={tab.icon} size={16} color={activeTab === tab.key ? 'var(--accent, #3b82f6)' : 'currentColor'} strokeWidth={2} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      <div className="emp-edit-layout">
-        {/* Sidebar Tabs */}
-        <div className="emp-sidebar">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              className={`emp-tab-btn ${activeTab === tab.key ? 'active' : ''} ${tab.disabled ? 'disabled' : ''}`}
-              onClick={() => !tab.disabled && setActiveTab(tab.key)}
-              disabled={tab.disabled}
-              title={tab.disabled ? t('empForm.saveFirst') : ''}
-            >
-              <span className="tab-icon">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {error && <div className="msg-error" style={{ margin: '16px 24px 0' }}>{error}</div>}
 
-        {/* Tab Content */}
-        <div className="emp-tab-content">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
           {activeTab === 'info' && (
             <div className="form-card">
               <form onSubmit={handleSubmit}>
@@ -468,7 +472,7 @@ function EmployeeForm() {
                 </div>
 
                 <div className="form-actions">
-                  <button type="button" className="btn-secondary" onClick={() => navigate('/documents?tab=employees&inner=employees')}>{t('empForm.cancel')}</button>
+                  <button type="button" className="btn-secondary" onClick={onClose}>{t('empForm.cancel')}</button>
                   <button type="submit" className="btn-add" disabled={loading}>
                     {loading ? t('empForm.saving') : isEdit ? t('empForm.update') : t('empForm.create')}
                   </button>
@@ -507,9 +511,10 @@ function EmployeeForm() {
             />
           )}
 
-        </div>
       </div>
     </div>
+    </div>,
+    document.body
   );
 }
 
