@@ -932,6 +932,7 @@ const en = {
   'orders.selectPosition': 'Select position…',
   'orders.selectDepartment': 'Select department',
   'orders.selectCurrency': 'Select currency',
+  'orders.currency': 'Currency',
   'orders.cancel': 'Cancel',
   'orders.save': 'Save',
   'orders.saving': 'Saving…',

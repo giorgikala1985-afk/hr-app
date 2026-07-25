@@ -537,7 +537,7 @@ function HiringTab() {
           onClick={e => { if (e.target === e.currentTarget) close(); }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
         >
-        <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 820, maxHeight: '90vh', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 960, maxHeight: '90vh', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
           <div className="emp-header" style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', marginBottom: 0 }}>
             <div>
@@ -578,7 +578,7 @@ function HiringTab() {
                         {submitError}
                       </div>
                     )}
-                    <div className="form-grid-4">
+                    <div className="form-grid-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
                       <div className="form-group">
                         <label>{t('orders.firstName')} *</label>
                         <input value={form.firstName} onChange={fv('firstName')} placeholder="John" required />
@@ -617,7 +617,7 @@ function HiringTab() {
                           <input value={form.department} onChange={fv('department')} placeholder="e.g. Engineering" />
                         )}
                       </div>
-                      <div className="form-group">
+                      <div className="form-group" style={{ gridColumn: 'span 2' }}>
                         <label>{t('orders.salary')} *</label>
                         <div style={{ display: 'flex', gap: 0, borderRadius: 8, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
                           <input
@@ -631,12 +631,12 @@ function HiringTab() {
                             onChange={fv('salaryCurrency')}
                             required
                             style={{
-                              padding: '0 10px', border: 'none', borderLeft: '1px solid var(--border-2)',
+                              flexShrink: 0, padding: '0 10px', border: 'none', borderLeft: '1px solid var(--border-2)',
                               cursor: 'pointer', fontSize: 13, fontWeight: 700,
                               background: 'var(--surface-2)', color: form.salaryCurrency ? 'var(--text)' : 'var(--text-3)',
                             }}
                           >
-                            <option value="" disabled>{t('orders.selectCurrency')}</option>
+                            <option value="" disabled>{t('orders.currency')}</option>
                             {['GEL', 'USD', 'EUR'].map(cur => <option key={cur} value={cur}>{cur}</option>)}
                           </select>
                         </div>
