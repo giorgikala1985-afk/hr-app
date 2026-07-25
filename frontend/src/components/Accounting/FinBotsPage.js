@@ -556,59 +556,40 @@ function ChartBlock({ chartData }) {
 
   const tip = {
     contentStyle: {
-      background: 'rgba(15, 15, 25, 0.85)',
-      backdropFilter: 'blur(10px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-      borderRadius: 12,
-      boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+      background: 'var(--surface)',
+      border: '1px solid var(--border-2)',
+      borderRadius: 8,
+      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
       fontSize: 12,
       fontWeight: 600,
       padding: '8px 12px',
-      color: '#ffffff',
+      color: 'var(--text)',
     },
-    itemStyle: { padding: '2px 0', color: '#ececf1' },
-    cursor: { fill: 'rgba(255,255,255,0.05)' }
+    itemStyle: { padding: '2px 0', color: 'var(--text-2)' },
+    cursor: { fill: 'var(--surface-2)' }
   };
 
   const ax = {
-    tick: { fontSize: 10, fill: 'var(--text-4)', fontWeight: 500, fontFamily: 'var(--font-mono), monospace' },
+    tick: { fontSize: 11, fill: 'var(--text-3)', fontWeight: 400 },
     axisLine: { stroke: 'var(--border-2)', strokeWidth: 1 },
     tickLine: { stroke: 'var(--border-2)' },
   };
 
   const margin = { top: 10, right: 20, left: 0, bottom: 60 };
 
-  const Gradients = () => (
-    <defs>
-      {CHART_COLORS.map((c, i) => (
-        <React.Fragment key={i}>
-          <linearGradient id={`grad-${i}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={c.start} stopOpacity={1} />
-            <stop offset="100%" stopColor={c.end} stopOpacity={0.85} />
-          </linearGradient>
-          <filter id={`glow-${i}`}>
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </React.Fragment>
-      ))}
-    </defs>
-  );
-
   let chart;
   if (type === 'pie') {
     chart = (
       <PieChart>
-        <Gradients />
         <Pie
           data={singleData} dataKey="value" nameKey="name"
           cx="50%" cy="47%" outerRadius="75%"
-          paddingAngle={4} stroke="none"
-          animationBegin={0} animationDuration={1200} animationEasing="ease-out"
+          paddingAngle={2} stroke="var(--surface)" strokeWidth={2}
+          animationBegin={0} animationDuration={500} animationEasing="ease-out"
           label={({ name, percent }) => percent > 0.05 ? `${(percent * 100).toFixed(0)}%` : ''}
           labelLine={false}
         >
-          {singleData.map((_, i) => <Cell key={i} fill={`url(#grad-${i % CHART_COLORS.length})`} filter={`url(#glow-${i % CHART_COLORS.length})`} />)}
+          {singleData.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length].start} />)}
         </Pie>
         <Tooltip {...tip} formatter={(v) => v.toLocaleString()} />
         <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
@@ -626,7 +607,7 @@ function ChartBlock({ chartData }) {
           const fs = Math.max(9, Math.min(13, width / 8));
           return (
             <g>
-              <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2} fill={fill} fillOpacity={0.9} rx={8} />
+              <rect x={x + 1} y={y + 1} width={width - 2} height={height - 2} fill={fill} rx={4} />
               {width > 45 && height > 24 && (
                 <text x={x + width / 2} y={y + height / 2 + (height > 40 ? -5 : 4)} textAnchor="middle" fill="#fff" fontSize={fs} fontWeight={600}>
                   {name}
@@ -645,8 +626,7 @@ function ChartBlock({ chartData }) {
   } else if (type === 'line') {
     chart = (
       <LineChart data={xyData} margin={margin}>
-        <Gradients />
-        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <CartesianGrid vertical={false} stroke="var(--border-2)" />
         <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
         <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
         <Tooltip {...tip} />
@@ -655,9 +635,9 @@ function ChartBlock({ chartData }) {
           <Line
             key={ds.label} type="monotone" dataKey={ds.label}
             stroke={ds.color || CHART_COLORS[i % CHART_COLORS.length].start}
-            strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: 'var(--surface)' }}
-            activeDot={{ r: 6, strokeWidth: 0 }}
-            animationDuration={1500}
+            strokeWidth={2} dot={{ r: 4, strokeWidth: 2, fill: 'var(--surface)' }}
+            activeDot={{ r: 5, strokeWidth: 0 }}
+            animationDuration={500}
           />
         ))}
       </LineChart>
@@ -665,8 +645,7 @@ function ChartBlock({ chartData }) {
   } else if (type === 'area') {
     chart = (
       <AreaChart data={xyData} margin={margin}>
-        <Gradients />
-        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <CartesianGrid vertical={false} stroke="var(--border-2)" />
         <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
         <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
         <Tooltip {...tip} />
@@ -675,10 +654,10 @@ function ChartBlock({ chartData }) {
           <Area
             key={ds.label} type="monotone" dataKey={ds.label}
             stroke={CHART_COLORS[i % CHART_COLORS.length].start}
-            fill={`url(#grad-${i % CHART_COLORS.length})`}
-            strokeWidth={2.5} fillOpacity={0.25}
+            fill={CHART_COLORS[i % CHART_COLORS.length].start}
+            strokeWidth={2} fillOpacity={0.1}
             dot={{ r: 3, strokeWidth: 2, fill: 'var(--surface)' }}
-            animationDuration={1400}
+            animationDuration={500}
           />
         ))}
       </AreaChart>
@@ -686,8 +665,7 @@ function ChartBlock({ chartData }) {
   } else if (type === 'composed') {
     chart = (
       <ComposedChart data={xyData} margin={margin}>
-        <Gradients />
-        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <CartesianGrid vertical={false} stroke="var(--border-2)" />
         <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
         <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
         <Tooltip {...tip} />
@@ -695,13 +673,13 @@ function ChartBlock({ chartData }) {
         {datasets.map((ds, i) =>
           i === datasets.length - 1 && datasets.length > 1 ? (
             <Line key={ds.label} type="monotone" dataKey={ds.label}
-              stroke={CHART_COLORS[i % CHART_COLORS.length].start} strokeWidth={3}
-              dot={{ r: 4, strokeWidth: 2, fill: 'var(--surface)' }} animationDuration={1400} />
+              stroke={CHART_COLORS[i % CHART_COLORS.length].start} strokeWidth={2}
+              dot={{ r: 4, strokeWidth: 2, fill: 'var(--surface)' }} animationDuration={500} />
           ) : (
             <Bar key={ds.label} dataKey={ds.label}
-              fill={`url(#grad-${i % CHART_COLORS.length})`}
-              radius={[5, 5, 0, 0]} animationDuration={1200}
-              barSize={Math.min(36, 280 / xyData.length)} />
+              fill={CHART_COLORS[i % CHART_COLORS.length].start}
+              radius={[4, 4, 0, 0]} animationDuration={500}
+              barSize={Math.min(24, 280 / xyData.length)} />
           )
         )}
       </ComposedChart>
@@ -722,7 +700,7 @@ function ChartBlock({ chartData }) {
           <Radar key={ds.label} name={ds.label} dataKey={ds.label}
             stroke={CHART_COLORS[i % CHART_COLORS.length].start}
             fill={CHART_COLORS[i % CHART_COLORS.length].start}
-            fillOpacity={0.25} strokeWidth={2} animationDuration={1200} />
+            fillOpacity={0.18} strokeWidth={2} animationDuration={500} />
         ))}
         <Tooltip {...tip} />
       </RadarChart>
@@ -731,7 +709,7 @@ function ChartBlock({ chartData }) {
     const scatterData = labels.map((name, i) => ({ x: i + 1, y: datasets[0]?.data[i] || 0, name }));
     chart = (
       <ScatterChart margin={margin}>
-        <CartesianGrid strokeDasharray="4 4" stroke="var(--border-2)" opacity={0.6} />
+        <CartesianGrid stroke="var(--border-2)" />
         <XAxis type="number" dataKey="x" name="index" {...ax} axisLine={false} tickLine={false} />
         <YAxis type="number" dataKey="y" name="value" {...ax} width={40} axisLine={false} tickLine={false} />
         <ZAxis range={[40, 40]} />
@@ -757,7 +735,7 @@ function ChartBlock({ chartData }) {
     chart = (
       <RadialBarChart innerRadius="20%" outerRadius="90%" data={rData} startAngle={180} endAngle={0}
         margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-        <RadialBar dataKey="value" label={{ position: 'insideStart', fill: '#fff', fontSize: 10, fontWeight: 600 }} animationDuration={1400} />
+        <RadialBar dataKey="value" label={{ position: 'insideStart', fill: '#fff', fontSize: 10, fontWeight: 600 }} animationDuration={500} />
         <Legend iconSize={10} layout="horizontal" verticalAlign="bottom" wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
         <Tooltip {...tip} formatter={(v) => v.toLocaleString()} />
       </RadialBarChart>
@@ -769,7 +747,7 @@ function ChartBlock({ chartData }) {
     chart = (
       <FunnelChart margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
         <Tooltip {...tip} formatter={(v) => v.toLocaleString()} />
-        <Funnel dataKey="value" data={funnelData} isAnimationActive animationDuration={1200}>
+        <Funnel dataKey="value" data={funnelData} isAnimationActive animationDuration={500}>
           <LabelList position="center" fill="#fff" fontSize={11} fontWeight={600} formatter={(v, entry) => entry?.name ? `${entry.name}: ${Number(v).toLocaleString()}` : v} />
         </Funnel>
       </FunnelChart>
@@ -777,8 +755,7 @@ function ChartBlock({ chartData }) {
   } else {
     chart = (
       <BarChart data={xyData} margin={margin}>
-        <Gradients />
-        <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--border-2)" opacity={0.6} />
+        <CartesianGrid vertical={false} stroke="var(--border-2)" />
         <XAxis dataKey="name" {...ax} angle={-35} textAnchor="end" interval={0} height={60} />
         <YAxis {...ax} width={40} axisLine={false} tickLine={false} />
         <Tooltip {...tip} />
@@ -786,10 +763,10 @@ function ChartBlock({ chartData }) {
         {datasets.map((ds, i) => (
           <Bar
             key={ds.label} dataKey={ds.label}
-            fill={`url(#grad-${i % CHART_COLORS.length})`}
-            radius={[6, 6, 0, 0]}
-            animationDuration={1200}
-            barSize={Math.min(40, 300 / xyData.length)}
+            fill={CHART_COLORS[i % CHART_COLORS.length].start}
+            radius={[4, 4, 0, 0]}
+            animationDuration={500}
+            barSize={Math.min(24, 300 / xyData.length)}
           />
         ))}
       </BarChart>
@@ -798,15 +775,12 @@ function ChartBlock({ chartData }) {
 
   return (
     <div ref={containerRef} style={{
-      background: 'rgba(255, 255, 255, 0.03)',
-      backdropFilter: 'blur(10px)',
-      border: '1px solid var(--border)',
-      borderRadius: 20,
+      background: 'var(--surface)',
+      border: '1px solid var(--border-2)',
+      borderRadius: 12,
       padding: '20px 12px 12px',
       margin: '16px 0',
       position: 'relative',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-      animation: 'fadeUp 0.5s ease both',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingLeft: 8, marginBottom: 10 }}>
         {title ? <div style={{ fontWeight: 800, fontSize: 14, letterSpacing: '-0.3px', color: 'var(--text)' }}>{title}</div> : <span />}
@@ -818,7 +792,7 @@ function ChartBlock({ chartData }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)',
-              background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-3)', cursor: saving ? 'wait' : 'pointer',
+              background: 'var(--surface-2)', color: 'var(--text-3)', cursor: saving ? 'wait' : 'pointer',
               fontSize: 11, fontWeight: 600, opacity: saving ? 0.6 : 1, transition: 'all 0.15s',
             }}
           >
@@ -836,7 +810,7 @@ function ChartBlock({ chartData }) {
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)',
-              background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-3)', cursor: saving ? 'wait' : 'pointer',
+              background: 'var(--surface-2)', color: 'var(--text-3)', cursor: saving ? 'wait' : 'pointer',
               fontSize: 11, fontWeight: 600, opacity: saving ? 0.6 : 1, transition: 'all 0.15s',
             }}
           >
@@ -1407,10 +1381,6 @@ function FinBotsPage() {
       )}
 
       <style>{`
-        @keyframes fadeUp {
-          from { opacity: 0; transform: translateY(15px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
         @keyframes fb-bounce {
           0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
           40% { transform: translateY(-5px); opacity: 1; }
