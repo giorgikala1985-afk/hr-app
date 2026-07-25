@@ -6,10 +6,8 @@ import { fmtExcelDate } from '../../utils/formatDate';
 import './Employees.css';
 import '../Options/Options.css';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 import EmployeeForm from './EmployeeForm';
-
-const DEFAULT_COLUMN_KEYS = ['photo', 'name', 'personalId', 'birthdate', 'position', 'salary', 'account', 'startDate', 'endDate', 'pension'];
-const DEFAULT_VISIBLE = new Set(DEFAULT_COLUMN_KEYS);
 
 // Default proportional widths (px) per column. With table-layout:fixed + width:100%
 // these set the relative proportions; the browser stretches them to fill the table,
@@ -23,17 +21,21 @@ function EmployeeList() {
   const { t } = useLanguage();
   const { widths: colWidths, onResizeMouseDown } = useKeyedColumnWidths('emp_col_widths', DEFAULT_COL_WIDTHS);
 
-  const ALL_COLUMNS = [
-    { key: 'photo', label: t('col.photo'), hideable: true },
-    { key: 'name', label: t('col.name'), hideable: false },
-    { key: 'personalId', label: t('col.personalId'), hideable: true },
-    { key: 'birthdate', label: t('col.birthdate'), hideable: true },
-    { key: 'position', label: t('col.position'), hideable: true },
-    { key: 'salary', label: t('col.salary'), hideable: false },
-    { key: 'account', label: t('col.account'), hideable: true },
-    { key: 'startDate', label: t('col.startDate'), hideable: true },
-    { key: 'endDate', label: t('col.endDate'), hideable: true },
-    { key: 'pension', label: 'Pension', hideable: true },
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const EMP_COLUMNS = [
+    { key: 'photo', label: t('col.photo'), sortable: false, filterable: false, getValue: () => '' },
+    { key: 'name', label: t('col.name'), getValue: e => `${e.first_name || ''} ${e.last_name || ''}`.trim() || '—' },
+    { key: 'personalId', label: t('col.personalId'), getValue: e => e.personal_id || '—' },
+    { key: 'birthdate', label: t('col.birthdate'), getValue: e => e.birthdate ? formatDate(e.birthdate) : '—', getSortValue: e => e.birthdate || '' },
+    { key: 'position', label: t('col.position'), getValue: e => e.position || '—' },
+    { key: 'salary', label: t('col.salary'), getValue: e => `${Number(e.salary || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${e.salary_currency || 'GEL'}`, getSortValue: e => parseFloat(e.salary) || 0 },
+    { key: 'account', label: t('col.account'), getValue: e => e.account_number || '—' },
+    { key: 'startDate', label: t('col.startDate'), getValue: e => e.start_date ? formatDate(e.start_date) : '—', getSortValue: e => e.start_date || '' },
+    { key: 'endDate', label: t('col.endDate'), getValue: e => e.end_date ? formatDate(e.end_date) : t('emp.active'), getSortValue: e => e.end_date || '' },
+    { key: 'pension', label: 'Pension', getValue: e => e.pension ? '✔' : '—' },
   ];
 
   const [employees, setEmployees] = useState([]);
@@ -43,20 +45,9 @@ function EmployeeList() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
-  const [visibleCols, setVisibleCols] = useState(() => {
-    try {
-      const saved = localStorage.getItem('emp_visible_cols');
-      if (saved) return new Set(JSON.parse(saved));
-    } catch {}
-    return new Set(DEFAULT_VISIBLE);
-  });
-  const [showColMenu, setShowColMenu] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
-  const [filters, setFilters] = useState({
-    name: '', personalId: '', birthdate: '', position: '',
-    salary: '', startDate: '', endDate: '', status: '', account: ''
-  });
+  const table = useExcelTable({ storageKey: 'emp_list', columns: EMP_COLUMNS, rows: employees });
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationSettings, setPaginationSettings] = useState(() => {
     try {
@@ -79,26 +70,11 @@ function EmployeeList() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filters, search, paginationSettings]);
+  }, [table.columnFilters, search, paginationSettings]);
 
   useEffect(() => {
     loadEmployees();
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('emp_visible_cols', JSON.stringify([...visibleCols]));
-  }, [visibleCols]);
-
-  const toggleColumn = (key) => {
-    setVisibleCols((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  const isCol = (key) => visibleCols.has(key);
 
   const loadEmployees = async (searchTerm = '') => {
     setLoading(true);
@@ -146,10 +122,10 @@ function EmployeeList() {
   };
 
   const toggleSelectAll = () => {
-    if (selected.size === filteredEmployees.length) {
+    if (selected.size === table.sortedRows.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(filteredEmployees.map((e) => e.id)));
+      setSelected(new Set(table.sortedRows.map((e) => e.id)));
     }
   };
 
@@ -181,50 +157,19 @@ function EmployeeList() {
     }).format(amount);
   };
 
-  const formatDate = (dateStr) => {
-    return new Date(dateStr).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
-  const updateFilter = (key, value) => {
-    setFilters((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const clearFilters = () => {
-    setFilters({ name: '', personalId: '', birthdate: '', position: '', salary: '', otRate: '', startDate: '', endDate: '', status: '', account: '' });
-  };
-
-  const hasFilters = Object.values(filters).some((v) => v !== '');
-
-  const filteredEmployees = employees.filter((emp) => {
-    const fullName = `${emp.first_name} ${emp.last_name}`.toLowerCase();
-    if (filters.name && !fullName.includes(filters.name.toLowerCase())) return false;
-    if (filters.personalId && !emp.personal_id.toLowerCase().includes(filters.personalId.toLowerCase())) return false;
-    if (filters.birthdate && !emp.birthdate.includes(filters.birthdate)) return false;
-    if (filters.position && !emp.position.toLowerCase().includes(filters.position.toLowerCase())) return false;
-    if (filters.salary && !String(emp.salary).includes(filters.salary)) return false;
-    if (filters.startDate && !emp.start_date.includes(filters.startDate)) return false;
-    if (filters.endDate) {
-      if (!emp.end_date || !emp.end_date.includes(filters.endDate)) return false;
-    }
-    if (filters.status === 'active' && emp.end_date) return false;
-    if (filters.status === 'inactive' && !emp.end_date) return false;
-    if (filters.account && !(emp.account_number || '').toLowerCase().includes(filters.account.toLowerCase())) return false;
-    return true;
-  });
-
   const usePagination = paginationSettings.enabled && paginationSettings.pageSize !== 'all';
-  const pageSize = usePagination ? paginationSettings.pageSize : filteredEmployees.length;
-  const totalPages = usePagination ? Math.max(1, Math.ceil(filteredEmployees.length / pageSize)) : 1;
+  const pageSize = usePagination ? paginationSettings.pageSize : table.sortedRows.length;
+  const totalPages = usePagination ? Math.max(1, Math.ceil(table.sortedRows.length / pageSize)) : 1;
   const safePage = Math.min(currentPage, totalPages);
   const paginatedEmployees = usePagination
-    ? filteredEmployees.slice((safePage - 1) * pageSize, safePage * pageSize)
-    : filteredEmployees;
+    ? table.sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
+    : table.sortedRows;
 
   const exportToExcel = () => {
     const today = new Date().toISOString().slice(0, 10);
     const ws = XLSX.utils.aoa_to_sheet([
       ['Name', 'Personal ID', 'Birthdate', 'Position', 'Department', 'Salary', 'Account Number', 'Start Date', 'End Date', 'Pension'],
-      ...filteredEmployees.map(e => [
+      ...table.sortedRows.map(e => [
         `${e.first_name} ${e.last_name}`,
         e.personal_id,
         fmtExcelDate(e.birthdate),
@@ -257,37 +202,14 @@ function EmployeeList() {
         <div className="emp-header-actions">
           <button
             onClick={exportToExcel}
-            disabled={!filteredEmployees.length}
+            disabled={!table.sortedRows.length}
             title="Download as Excel"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#479c73', cursor: filteredEmployees.length ? 'pointer' : 'not-allowed', opacity: filteredEmployees.length ? 1 : 0.5, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#479c73', cursor: table.sortedRows.length ? 'pointer' : 'not-allowed', opacity: table.sortedRows.length ? 1 : 0.5, fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Excel
           </button>
-          <div className="col-toggle-wrapper">
-            <button
-              className="btn-col-toggle"
-              onClick={() => setShowColMenu((v) => !v)}
-              title={t('action.showHideColumns')}
-            >
-              {t('emp.columns')}
-            </button>
-            {showColMenu && (
-              <div className="col-toggle-menu">
-                {ALL_COLUMNS.map((col) => (
-                  <label key={col.key} className={`col-toggle-item${!col.hideable ? ' col-locked' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={visibleCols.has(col.key)}
-                      onChange={() => toggleColumn(col.key)}
-                      disabled={!col.hideable}
-                    />
-                    {col.label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ height: 36, boxSizing: 'border-box' }} />
           {selected.size > 1 && (
             <button onClick={handleBulkDelete} className="btn-icon btn-delete" disabled={bulkDeleting} title={t('emp.deleteSelected', { count: selected.size })}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -348,8 +270,8 @@ function EmployeeList() {
           <table className="emp-table">
             <colgroup>
               <col style={{ width: 40 }} />
-              {ALL_COLUMNS.filter((c) => isCol(c.key)).map((c) => (
-                <col key={c.key} style={{ width: colWidths[c.key] }} />
+              {table.displayCols.map((key) => (
+                <col key={key} style={{ width: colWidths[key] }} />
               ))}
               <col style={{ width: 64 }} />
             </colgroup>
@@ -358,25 +280,88 @@ function EmployeeList() {
                 <th className="th-checkbox">
                   <input
                     type="checkbox"
-                    checked={filteredEmployees.length > 0 && selected.size === filteredEmployees.length}
+                    checked={table.sortedRows.length > 0 && selected.size === table.sortedRows.length}
                     onChange={toggleSelectAll}
                   />
                 </th>
-                {ALL_COLUMNS.filter((c) => isCol(c.key)).map((c) => (
-                  <th key={c.key} style={{ position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {c.label}
-                    <div
-                      onMouseDown={(e) => onResizeMouseDown(e, c.key)}
-                      style={RESIZE_HANDLE_STYLE}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#cbd5e1')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    />
-                  </th>
-                ))}
+                {table.displayCols.map((key) => {
+                  const col = table.colByKey[key];
+                  return (
+                    <th key={key} style={{ position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <span
+                        onClick={col.sortable !== false ? () => table.toggleSort(key) : undefined}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: col.sortable !== false ? 'pointer' : 'default' }}
+                      >
+                        {col.label}
+                        {col.sortable !== false && (
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        )}
+                      </span>
+                      {col.filterable !== false && (
+                        <button
+                          onClick={e => table.openColumnFilterDropdown(e, key)}
+                          title={t('table.filterTooltip')}
+                          style={{
+                            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                            marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                            background: table.openFilterCol === key ? 'rgba(0,0,0,0.08)' : 'transparent',
+                            color: table.columnFilters[key] ? '#479c73' : '#94a3b8',
+                          }}
+                        >
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                          </svg>
+                        </button>
+                      )}
+                      {table.openFilterCol === key && table.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={table.filterDropdownRef}
+                          pos={table.filterDropdownPos}
+                          options={table.getColumnFilterOptions(key)}
+                          selected={table.columnFilters[key]}
+                          search={table.filterSearch}
+                          onSearchChange={table.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = table.getColumnFilterOptions(key);
+                            const activeSet = table.columnFilters[key] ?? new Set(opts);
+                            table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                          onClear={() => table.clearColumnFilter(key)}
+                          t={t}
+                        />
+                      )}
+                      <div
+                        onMouseDown={(e) => onResizeMouseDown(e, key)}
+                        style={RESIZE_HANDLE_STYLE}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#cbd5e1')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      />
+                    </th>
+                  );
+                })}
                 <th></th>
               </tr>
             </thead>
             <tbody>
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length + 2} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {paginatedEmployees.map((emp) => (
                 <tr key={emp.id} className={selected.has(emp.id) ? 'row-selected' : ''}>
                   <td className="td-checkbox">
@@ -386,7 +371,7 @@ function EmployeeList() {
                       onChange={() => toggleSelect(emp.id)}
                     />
                   </td>
-                  {isCol('photo') && (
+                  {table.displayCols.includes('photo') && (
                     <td>
                       <div className="emp-photo-thumb">
                         {emp.photo_url ? (
@@ -397,19 +382,19 @@ function EmployeeList() {
                       </div>
                     </td>
                   )}
-                  {isCol('name') && (
+                  {table.displayCols.includes('name') && (
                     <td className="emp-name" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                       {emp.first_name} {emp.last_name}
                     </td>
                   )}
-                  {isCol('personalId') && <td>{emp.personal_id}</td>}
-                  {isCol('birthdate') && <td>{formatDate(emp.birthdate)}</td>}
-                  {isCol('position') && <td><span className="position-badge">{emp.position}</span></td>}
-                  {isCol('salary') && <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontFamily: 'var(--font-mono), monospace' }}>{Number(emp.salary).toLocaleString('en-US', { minimumFractionDigits: 2 })} {emp.salary_currency || 'GEL'}</td>}
-                  {isCol('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
-                  {isCol('startDate') && <td>{formatDate(emp.start_date)}</td>}
-                  {isCol('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="status-active">{t('emp.active')}</span>}</td>}
-                  {isCol('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? <span style={{ color: '#479c73', fontWeight: 700, fontSize: 16 }}>✔</span> : '—'}</td>}
+                  {table.displayCols.includes('personalId') && <td>{emp.personal_id}</td>}
+                  {table.displayCols.includes('birthdate') && <td>{formatDate(emp.birthdate)}</td>}
+                  {table.displayCols.includes('position') && <td><span className="position-badge">{emp.position}</span></td>}
+                  {table.displayCols.includes('salary') && <td className="salary" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', fontFamily: 'var(--font-mono), monospace' }}>{Number(emp.salary).toLocaleString('en-US', { minimumFractionDigits: 2 })} {emp.salary_currency || 'GEL'}</td>}
+                  {table.displayCols.includes('account') && <td className={`account-num${emp.account_number ? (emp.account_number.toLowerCase().includes('gb') ? ' acct-gb' : emp.account_number.toLowerCase().includes('tb') ? ' acct-tb' : '') : ''}`}>{emp.account_number || '—'}</td>}
+                  {table.displayCols.includes('startDate') && <td>{formatDate(emp.start_date)}</td>}
+                  {table.displayCols.includes('endDate') && <td>{emp.end_date ? formatDate(emp.end_date) : <span className="status-active">{t('emp.active')}</span>}</td>}
+                  {table.displayCols.includes('pension') && <td style={{ textAlign: 'center' }}>{emp.pension ? <span style={{ color: '#479c73', fontWeight: 700, fontSize: 16 }}>✔</span> : '—'}</td>}
                   <td>
                     <div className="action-btns">
                       <button className="btn-icon" onClick={() => setEditingEmployeeId(emp.id)} title={t('action.edit')} style={{ color: '#3b82f6' }}>
@@ -446,7 +431,7 @@ function EmployeeList() {
                 )}
               <button className="pagination-btn" disabled={safePage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>&rsaquo;</button>
               <button className="pagination-btn" disabled={safePage >= totalPages} onClick={() => setCurrentPage(totalPages)}>&raquo;</button>
-              <span className="pagination-info">{t('emp.total', { count: filteredEmployees.length })}</span>
+              <span className="pagination-info">{t('emp.total', { count: table.sortedRows.length })}</span>
             </div>
           )}
         </div>

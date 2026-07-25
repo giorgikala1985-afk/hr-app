@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -6,6 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { fmtExcelDate } from '../../utils/formatDate';
 import '../Employees/Employees.css';
 import '../Options/Options.css';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
 
 // Proportional default widths per column key (table-layout:fixed stretches to fill).
 const DEFAULT_COL_WIDTHS = {
@@ -24,20 +25,32 @@ const TYPE_COLORS = {
 
 // Data columns (the trailing actions column is rendered separately and always shown).
 const COL_KEYS = [
-  { labelKey: 'agents.colName',      key: 'name',           hideable: false },
-  { labelKey: 'agents.colType',      key: 'type',           hideable: true },
-  { labelKey: 'agents.colDateAdded', key: 'add_date',       hideable: true },
-  { labelKey: 'agents.colAccount',   key: 'account_number', hideable: true },
-  { labelKey: 'agents.colAddress',   key: 'address',        hideable: true },
-  { labelKey: 'agents.colContact',   key: 'contact_name',   hideable: true },
-  { labelKey: 'agents.colPhone',     key: 'phone',          hideable: true },
+  { labelKey: 'agents.colName',      key: 'name' },
+  { labelKey: 'agents.colType',      key: 'type' },
+  { labelKey: 'agents.colDateAdded', key: 'add_date' },
+  { labelKey: 'agents.colAccount',   key: 'account_number' },
+  { labelKey: 'agents.colAddress',   key: 'address' },
+  { labelKey: 'agents.colContact',   key: 'contact_name' },
+  { labelKey: 'agents.colPhone',     key: 'phone' },
 ];
-const ALL_COL_KEYS = COL_KEYS.map(c => c.key);
 
 function Agents() {
   const { t } = useLanguage();
   const COLS = COL_KEYS.map(c => ({ ...c, label: c.labelKey ? t(c.labelKey) : '' }));
   const { widths: colWidths, onResizeMouseDown } = useKeyedColumnWidths('agents_col_widths', DEFAULT_COL_WIDTHS);
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const AGENT_COLUMNS = COLS.map(c => {
+    if (c.key === 'type') return { key: c.key, label: c.label, getValue: r => r.type || '—' };
+    if (c.key === 'add_date') return { key: c.key, label: c.label, getValue: r => formatDate(r.add_date), getSortValue: r => r.add_date || '' };
+    return { key: c.key, label: c.label, getValue: r => r[c.key] || '—' };
+  });
 
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -50,15 +63,6 @@ function Agents() {
   const [form, setForm] = useState(EMPTY);
   const [editId, setEditId] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [visibleCols, setVisibleCols] = useState(() => {
-    try {
-      const saved = localStorage.getItem('agents_visible_cols');
-      if (saved) return new Set(JSON.parse(saved));
-    } catch {}
-    return new Set(ALL_COL_KEYS);
-  });
-  const [showColMenu, setShowColMenu] = useState(false);
-  const colMenuRef = useRef(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [paginationSettings, setPaginationSettings] = useState(() => {
@@ -81,24 +85,6 @@ function Agents() {
     return () => window.removeEventListener('pagination-changed', onPaginationChange);
   }, [onPaginationChange]);
 
-  const isCol = (key) => visibleCols.has(key);
-  const toggleColumn = (key) => {
-    setVisibleCols((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      try { localStorage.setItem('agents_visible_cols', JSON.stringify([...next])); } catch {}
-      return next;
-    });
-  };
-
-  useEffect(() => {
-    const onClickOutside = (e) => {
-      if (colMenuRef.current && !colMenuRef.current.contains(e.target)) setShowColMenu(false);
-    };
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, []);
-
   useEffect(() => { load(); }, []);
   useEffect(() => { setCurrentPage(1); }, [search, paginationSettings]);
 
@@ -110,13 +96,6 @@ function Agents() {
     finally { setLoading(false); }
   };
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return '—';
-    const d = new Date(dateStr);
-    if (isNaN(d)) return dateStr;
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-  };
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return records;
@@ -126,13 +105,16 @@ function Agents() {
     );
   }, [records, search]);
 
+  const table = useExcelTable({ storageKey: 'agents_list', columns: AGENT_COLUMNS, rows: filtered });
+  useEffect(() => { setCurrentPage(1); }, [table.columnFilters]);
+
   const usePagination = paginationSettings.enabled && paginationSettings.pageSize !== 'all';
-  const pageSize = usePagination ? paginationSettings.pageSize : filtered.length;
-  const totalPages = usePagination ? Math.max(1, Math.ceil(filtered.length / pageSize)) : 1;
+  const pageSize = usePagination ? paginationSettings.pageSize : table.sortedRows.length;
+  const totalPages = usePagination ? Math.max(1, Math.ceil(table.sortedRows.length / pageSize)) : 1;
   const safePage = Math.min(currentPage, totalPages);
   const paginated = usePagination
-    ? filtered.slice((safePage - 1) * pageSize, safePage * pageSize)
-    : filtered;
+    ? table.sortedRows.slice((safePage - 1) * pageSize, safePage * pageSize)
+    : table.sortedRows;
 
   const toggleSelect = (id) => {
     setSelected((prev) => {
@@ -143,8 +125,8 @@ function Agents() {
   };
 
   const toggleSelectAll = () => {
-    if (selected.size === filtered.length) setSelected(new Set());
-    else setSelected(new Set(filtered.map((r) => r.id)));
+    if (selected.size === table.sortedRows.length) setSelected(new Set());
+    else setSelected(new Set(table.sortedRows.map((r) => r.id)));
   };
 
   const openNew = () => { setForm({ ...EMPTY, add_date: today() }); setEditId(null); setShowForm(true); setError(''); };
@@ -190,7 +172,7 @@ function Agents() {
   const exportToExcel = () => {
     const ws = XLSX.utils.aoa_to_sheet([
       ['Name', 'Contact Name', 'Type', 'Date Added', 'Account Number', 'Address', 'Phone'],
-      ...filtered.map(r => [r.name, r.contact_name, r.type, fmtExcelDate(r.add_date), r.account_number, r.address, r.phone]),
+      ...table.sortedRows.map(r => [r.name, r.contact_name, r.type, fmtExcelDate(r.add_date), r.account_number, r.address, r.phone]),
     ]);
     ws['!cols'] = [24, 18, 10, 14, 20, 30, 16].map(wch => ({ wch }));
     const wb = XLSX.utils.book_new();
@@ -212,37 +194,14 @@ function Agents() {
         <div className="emp-header-actions">
           <button
             onClick={exportToExcel}
-            disabled={!filtered.length}
+            disabled={!table.sortedRows.length}
             title="Download as Excel"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#479c73', cursor: filtered.length ? 'pointer' : 'not-allowed', opacity: filtered.length ? 1 : 0.5, fontFamily: 'inherit' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 36, boxSizing: 'border-box', background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 500, color: '#479c73', cursor: table.sortedRows.length ? 'pointer' : 'not-allowed', opacity: table.sortedRows.length ? 1 : 0.5, fontFamily: 'inherit' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             {t('agents.excel')}
           </button>
-          <div className="col-toggle-wrapper" ref={colMenuRef}>
-            <button
-              className="btn-col-toggle"
-              onClick={() => setShowColMenu((v) => !v)}
-              title={t('action.showHideColumns')}
-            >
-              {t('emp.columns')}
-            </button>
-            {showColMenu && (
-              <div className="col-toggle-menu">
-                {COLS.map((col) => (
-                  <label key={col.key} className={`col-toggle-item${!col.hideable ? ' col-locked' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={visibleCols.has(col.key)}
-                      onChange={() => toggleColumn(col.key)}
-                      disabled={!col.hideable}
-                    />
-                    {col.label}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+          <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ height: 36, boxSizing: 'border-box' }} />
           {selected.size > 1 && (
             <button onClick={handleBulkDelete} className="btn-icon btn-delete" disabled={bulkDeleting} title={t('emp.deleteSelected', { count: selected.size })}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
@@ -304,8 +263,8 @@ function Agents() {
           <table className="emp-table" style={{ tableLayout: 'fixed', width: '100%' }}>
             <colgroup>
               <col style={{ width: 40 }} />
-              {COLS.filter((c) => isCol(c.key)).map((c) => (
-                <col key={c.key} style={{ width: colWidths[c.key] }} />
+              {table.displayCols.map((key) => (
+                <col key={key} style={{ width: colWidths[key] }} />
               ))}
               <col style={{ width: 64 }} />
             </colgroup>
@@ -314,25 +273,84 @@ function Agents() {
                 <th className="th-checkbox">
                   <input
                     type="checkbox"
-                    checked={filtered.length > 0 && selected.size === filtered.length}
+                    checked={table.sortedRows.length > 0 && selected.size === table.sortedRows.length}
                     onChange={toggleSelectAll}
                   />
                 </th>
-                {COLS.filter((c) => isCol(c.key)).map((c) => (
-                  <th key={c.key} style={{ position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                    {c.label}
-                    <div
-                      onMouseDown={(e) => onResizeMouseDown(e, c.key)}
-                      style={RESIZE_HANDLE_STYLE}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = '#cbd5e1')}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    />
-                  </th>
-                ))}
+                {table.displayCols.map((key) => {
+                  const col = table.colByKey[key];
+                  return (
+                    <th key={key} style={{ position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <span
+                        onClick={() => table.toggleSort(key)}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}
+                      >
+                        {col.label}
+                        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                          style={{ opacity: table.sortKey === key ? 1 : 0.25, transform: table.sortKey === key && table.sortDir === 'desc' ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }}>
+                          <polyline points="6 9 12 15 18 9"/>
+                        </svg>
+                      </span>
+                      <button
+                        onClick={e => table.openColumnFilterDropdown(e, key)}
+                        title={t('table.filterTooltip')}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, padding: 0,
+                          marginLeft: 4, border: 'none', borderRadius: 4, cursor: 'pointer', verticalAlign: 'middle',
+                          background: table.openFilterCol === key ? 'rgba(0,0,0,0.08)' : 'transparent',
+                          color: table.columnFilters[key] ? '#479c73' : '#94a3b8',
+                        }}
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill={table.columnFilters[key] ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polygon points="4 4 20 4 14 12.5 14 19 10 21 10 12.5 4 4"/>
+                        </svg>
+                      </button>
+                      {table.openFilterCol === key && table.filterDropdownPos && (
+                        <ExcelFilterDropdown
+                          dropdownRef={table.filterDropdownRef}
+                          pos={table.filterDropdownPos}
+                          options={table.getColumnFilterOptions(key)}
+                          selected={table.columnFilters[key]}
+                          search={table.filterSearch}
+                          onSearchChange={table.setFilterSearch}
+                          onToggleValue={(value) => {
+                            const opts = table.getColumnFilterOptions(key);
+                            const activeSet = table.columnFilters[key] ?? new Set(opts);
+                            table.setColumnFilterValues(key, opts, [value], !activeSet.has(value));
+                          }}
+                          onToggleAll={(visible, checked) => table.setColumnFilterValues(key, table.getColumnFilterOptions(key), visible, checked)}
+                          onClear={() => table.clearColumnFilter(key)}
+                          t={t}
+                        />
+                      )}
+                      <div
+                        onMouseDown={(e) => onResizeMouseDown(e, key)}
+                        style={RESIZE_HANDLE_STYLE}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#cbd5e1')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      />
+                    </th>
+                  );
+                })}
                 <th></th>
               </tr>
             </thead>
             <tbody>
+              {table.hasActiveFilters && table.sortedRows.length === 0 && (
+                <tr>
+                  <td colSpan={table.displayCols.length + 2} style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-3)', fontSize: 13 }}>
+                    {t('table.noFilterMatches')}
+                    <div>
+                      <button
+                        onClick={table.clearAllColumnFilters}
+                        style={{ marginTop: 10, padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                      >
+                        {t('table.clear')}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
               {paginated.map((r) => {
                 const s = TYPE_COLORS[r.type] || TYPE_COLORS.Other;
                 return (
@@ -344,21 +362,21 @@ function Agents() {
                         onChange={() => toggleSelect(r.id)}
                       />
                     </td>
-                    {isCol('name') && (
+                    {table.displayCols.includes('name') && (
                       <td className="emp-name" style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                         {r.name}
                       </td>
                     )}
-                    {isCol('type') && (
+                    {table.displayCols.includes('type') && (
                       <td>
                         <span style={{ fontSize: 11, fontWeight: 700, background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: 5, padding: '2px 7px' }}>{r.type}</span>
                       </td>
                     )}
-                    {isCol('add_date') && <td>{formatDate(r.add_date)}</td>}
-                    {isCol('account_number') && <td className="account-num">{r.account_number || '—'}</td>}
-                    {isCol('address') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.address || '—'}</td>}
-                    {isCol('contact_name') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.contact_name || '—'}</td>}
-                    {isCol('phone') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.phone || '—'}</td>}
+                    {table.displayCols.includes('add_date') && <td>{formatDate(r.add_date)}</td>}
+                    {table.displayCols.includes('account_number') && <td className="account-num">{r.account_number || '—'}</td>}
+                    {table.displayCols.includes('address') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', color: '#64748b' }}>{r.address || '—'}</td>}
+                    {table.displayCols.includes('contact_name') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.contact_name || '—'}</td>}
+                    {table.displayCols.includes('phone') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.phone || '—'}</td>}
                     <td>
                       <div className="action-btns">
                         <button className="btn-icon" onClick={() => openEdit(r)} title={t('action.edit')} style={{ color: '#3b82f6' }}>
@@ -396,7 +414,7 @@ function Agents() {
                 )}
               <button className="pagination-btn" disabled={safePage >= totalPages} onClick={() => setCurrentPage((p) => p + 1)}>&rsaquo;</button>
               <button className="pagination-btn" disabled={safePage >= totalPages} onClick={() => setCurrentPage(totalPages)}>&raquo;</button>
-              <span className="pagination-info">{t('emp.total', { count: filtered.length })}</span>
+              <span className="pagination-info">{t('emp.total', { count: table.sortedRows.length })}</span>
             </div>
           )}
         </div>
