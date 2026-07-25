@@ -531,18 +531,20 @@ function HiringTab() {
         )}
       </div>
 
-      {/* Full-screen form overlay */}
+      {/* Modal overlay */}
       {showForm && createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'var(--bg, #0f172a)', zIndex: 1000, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div
+          onClick={e => { if (e.target === e.currentTarget) close(); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+        <div style={{ background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 820, maxHeight: '90vh', boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
           {/* Header */}
-          <div className="emp-header" style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface)', marginBottom: 0 }}>
+          <div className="emp-header" style={{ padding: '14px 24px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', marginBottom: 0 }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--text)' }}>{editing ? t('orders.editHiringOrder') : t('orders.newHiringOrder')}</h1>
+              <h1 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text)' }}>{editing ? t('orders.editHiringOrder') : t('orders.newHiringOrder')}</h1>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-3)' }}>{t('orders.enterDetails')}</p>
             </div>
-            <button onClick={close} style={{ padding: '6px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
-              {t('orders.backToList')}
-            </button>
+            <button onClick={close} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
           </div>
 
           {/* Horizontal tab bar */}
@@ -567,7 +569,7 @@ function HiringTab() {
           </div>
 
           {/* Content */}
-          <div style={{ flex: 1, padding: '20px 24px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
               {activeTab === 'info' && (
                 <div className="form-card">
                   <form onSubmit={handleSubmit}>
@@ -733,6 +735,7 @@ function HiringTab() {
               )}
 
           </div>
+        </div>
         </div>,
         document.body
       )}
