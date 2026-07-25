@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -56,7 +56,6 @@ function Agents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -74,16 +73,7 @@ function Agents() {
     finally { setLoading(false); }
   };
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return records;
-    return records.filter(r =>
-      ['name', 'contact_name', 'type', 'account_number', 'address', 'phone']
-        .some(k => (r[k] || '').toLowerCase().includes(q))
-    );
-  }, [records, search]);
-
-  const table = useExcelTable({ storageKey: 'agents_list', columns: AGENT_COLUMNS, rows: filtered });
+  const table = useExcelTable({ storageKey: 'agents_list', columns: AGENT_COLUMNS, rows: records });
 
   const toggleSelect = (id) => {
     setSelected((prev) => {
@@ -199,20 +189,6 @@ function Agents() {
 
       {error && <div className="msg-error">{error}</div>}
       {success && <div className="msg-success">{success}</div>}
-
-      <form className="search-bar" onSubmit={(e) => e.preventDefault()}>
-        <input
-          type="text"
-          placeholder={t('agents.subtitle')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && (
-          <button type="button" className="btn-clear" onClick={() => setSearch('')}>
-            {t('emp.clear')}
-          </button>
-        )}
-      </form>
 
       {records.length === 0 ? (
         <div className="empty-state">

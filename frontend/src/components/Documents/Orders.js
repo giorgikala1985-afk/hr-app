@@ -3094,8 +3094,6 @@ export default function Orders() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [filterEmp, setFilterEmp] = useState('');
-  const [filterType, setFilterType] = useState('');
   const { user } = useAuth();
   const orderCounterRef = useRef(1);
 
@@ -3381,14 +3379,7 @@ export default function Orders() {
     }))
   );
 
-  const filteredUnits = allUnits.filter(u => {
-    const name = `${u.employee?.first_name} ${u.employee?.last_name}`.toLowerCase();
-    if (filterEmp && !name.includes(filterEmp.toLowerCase())) return false;
-    if (filterType && u.type !== filterType) return false;
-    return true;
-  });
-
-  const uniqueTypes = [...new Set(allUnits.map(u => u.type))];
+  const filteredUnits = allUnits;
 
   const adjustTable = useExcelTable({ storageKey: 'orders_adjust', columns: ADJUST_COLUMNS, rows: filteredUnits });
   const sortedUnits = adjustTable.sortedRows;
@@ -3611,33 +3602,8 @@ export default function Orders() {
       </div>}
 
       {subTab === 'adjusting' && <>
-      {/* Search/filter bar */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <div style={{ position: 'relative', flex: 1 }}>
-          <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            placeholder={t('orders.searchEmployee')}
-            value={filterEmp}
-            onChange={e => setFilterEmp(e.target.value)}
-            style={{ ...INPUT, paddingLeft: 32 }}
-          />
-        </div>
-        <select
-          value={filterType}
-          onChange={e => setFilterType(e.target.value)}
-          style={{ ...INPUT, width: 160 }}
-        >
-          <option value="">{t('orders.allTypes')}</option>
-          {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
-        </select>
-        {(filterEmp || filterType) && (
-          <button onClick={() => { setFilterEmp(''); setFilterType(''); }}
-            style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 12, cursor: 'pointer' }}>
-            {t('orders.clear')}
-          </button>
-        )}
+      {/* Column visibility */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginBottom: 16 }}>
         <ColumnVisibilityMenu table={adjustTable} t={t} />
       </div>
 

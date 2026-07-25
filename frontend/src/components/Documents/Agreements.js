@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -37,7 +37,6 @@ export default function Agreements() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showForm, setShowForm] = useState(false);
@@ -64,15 +63,6 @@ export default function Agreements() {
 
   const isExpired = (a) => a.end_date && new Date(a.end_date) < new Date() && a.status === 'active';
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return records;
-    return records.filter(r =>
-      ['title', 'party_name', 'type', 'status', 'notes']
-        .some(k => (r[k] || '').toLowerCase().includes(q))
-    );
-  }, [records, search]);
-
   const AGREEMENT_COLUMNS = [
     { key: 'title', label: 'Title', getValue: r => r.title || '—' },
     { key: 'party_name', label: 'Party', getValue: r => r.party_name || '—' },
@@ -86,7 +76,7 @@ export default function Agreements() {
       getSortValue: r => parseFloat(r.amount) || 0,
     },
   ];
-  const table = useExcelTable({ storageKey: 'agreements_list', columns: AGREEMENT_COLUMNS, rows: filtered });
+  const table = useExcelTable({ storageKey: 'agreements_list', columns: AGREEMENT_COLUMNS, rows: records });
 
   const toggleSelect = (id) => {
     setSelected((prev) => {
@@ -213,20 +203,6 @@ export default function Agreements() {
 
       {error && <div className="msg-error">{error}</div>}
       {success && <div className="msg-success">{success}</div>}
-
-      <form className="search-bar" onSubmit={(e) => e.preventDefault()}>
-        <input
-          type="text"
-          placeholder="Search agreements..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && (
-          <button type="button" className="btn-clear" onClick={() => setSearch('')}>
-            {t('emp.clear')}
-          </button>
-        )}
-      </form>
 
       {records.length === 0 ? (
         <div className="empty-state">

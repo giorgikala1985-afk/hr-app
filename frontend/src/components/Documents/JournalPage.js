@@ -125,7 +125,6 @@ export default function JournalPage() {
   const { user } = useAuth();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
 
   // Orders' local records are namespaced per-tenant (see useLocalOrders in
@@ -161,10 +160,7 @@ export default function JournalPage() {
 
   const filtered = rows.filter(r => {
     if (filterType !== 'all' && r._type !== filterType) return false;
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    const text = JSON.stringify(r).toLowerCase();
-    return text.includes(q);
+    return true;
   });
 
   const JOURNAL_COLUMNS = [
@@ -212,24 +208,8 @@ export default function JournalPage() {
         ))}
       </div>
 
-      {/* Search + refresh */}
+      {/* Refresh + filters */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: 340 }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-            style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-          </svg>
-          <input
-            placeholder={t('journal.search')}
-            value={search}
-            onChange={e => { setSearch(e.target.value); table.setPage(1); }}
-            style={{
-              width: '100%', padding: '8px 12px 8px 34px', borderRadius: 9,
-              border: '1px solid var(--border-2)', background: 'var(--surface)',
-              color: 'var(--text)', fontSize: 13, outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-        </div>
         <button onClick={load} style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '8px 14px', borderRadius: 9,

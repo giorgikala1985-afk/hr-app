@@ -42,7 +42,6 @@ function EmployeeList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -53,23 +52,17 @@ function EmployeeList() {
     loadEmployees();
   }, []);
 
-  const loadEmployees = async (searchTerm = '') => {
+  const loadEmployees = async () => {
     setLoading(true);
     setError('');
     try {
-      const params = searchTerm ? { search: searchTerm } : {};
-      const response = await api.get('/employees', { params });
+      const response = await api.get('/employees');
       setEmployees(response.data?.employees || []);
     } catch (err) {
       setError(t('emp.loadFailed') + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    loadEmployees(search);
   };
 
   const handleDelete = async (employee) => {
@@ -83,7 +76,7 @@ function EmployeeList() {
     try {
       await api.delete(`/employees/${employee.id}`);
       setSuccess(t('emp.deletedSuccess'));
-      loadEmployees(search);
+      loadEmployees();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to delete employee');
     }
@@ -118,10 +111,10 @@ function EmployeeList() {
       }
       setSuccess(t('emp.bulkDeletedSuccess', { count }));
       setSelected(new Set());
-      loadEmployees(search);
+      loadEmployees();
     } catch (err) {
       setError(t('emp.bulkDeleteFailed'));
-      loadEmployees(search);
+      loadEmployees();
     } finally {
       setBulkDeleting(false);
     }
@@ -203,25 +196,6 @@ function EmployeeList() {
 
       {error && <div className="msg-error">{error}</div>}
       {success && <div className="msg-success">{success}</div>}
-
-      <form className="search-bar" onSubmit={handleSearch}>
-        <input
-          type="text"
-          placeholder={t('emp.searchPlaceholder')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <button type="submit" className="btn-search">{t('emp.search')}</button>
-        {search && (
-          <button
-            type="button"
-            className="btn-clear"
-            onClick={() => { setSearch(''); loadEmployees(); }}
-          >
-            {t('emp.clear')}
-          </button>
-        )}
-      </form>
 
       {employees.length === 0 ? (
         <div className="empty-state">
@@ -387,7 +361,7 @@ function EmployeeList() {
         <EmployeeForm
           employeeId={editingEmployeeId}
           onClose={() => setEditingEmployeeId(null)}
-          onSaved={() => { setEditingEmployeeId(null); loadEmployees(search); }}
+          onSaved={() => { setEditingEmployeeId(null); loadEmployees(); }}
         />
       )}
     </div>

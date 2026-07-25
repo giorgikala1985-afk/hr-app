@@ -68,7 +68,6 @@ function Requests() {
   const [saving, setSaving] = useState(false);
 
   const [statusFilter, setStatusFilter] = useState('all');
-  const [searchText, setSearchText] = useState('');
 
   useEffect(() => { load(); }, []);
 
@@ -86,10 +85,8 @@ function Requests() {
 
   const filtered = useMemo(() => requests.filter(r => {
     if (statusFilter !== 'all' && r.status !== statusFilter) return false;
-    if (searchText && !r.title.toLowerCase().includes(searchText.toLowerCase()) &&
-        !r.type.toLowerCase().includes(searchText.toLowerCase())) return false;
     return true;
-  }), [requests, statusFilter, searchText]);
+  }), [requests, statusFilter]);
 
   const counts = useMemo(() => {
     const c = { all: requests.length };
@@ -188,17 +185,6 @@ function Requests() {
 
       {/* Toolbar */}
       <div className="acc-header-row" style={{ marginBottom: 16 }}>
-        <input
-          type="text"
-          placeholder={t('req.searchPlaceholder')}
-          value={searchText}
-          onChange={e => setSearchText(e.target.value)}
-          style={{
-            padding: '8px 14px', border: '1.5px solid var(--border-2)', borderRadius: 8,
-            fontSize: 13, fontFamily: 'inherit', background: 'var(--surface)', color: 'var(--text)',
-            outline: 'none', width: 260,
-          }}
-        />
         <ColumnVisibilityMenu table={table} t={t} buttonStyle={{ padding: '8px 14px' }} />
         <button className="btn-add" onClick={openNew}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
