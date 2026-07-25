@@ -883,7 +883,21 @@ function OrderActionCard({ action, botColor }) {
     setStatus('executing');
     try {
       const { type, employeeId, employeeName } = action;
-      if (type === 'promotion') {
+      if (type === 'hire') {
+        await api.post('/employees', {
+          first_name: action.firstName, last_name: action.lastName,
+          personal_id: action.personalId, birthdate: action.birthdate,
+          position: action.position, salary: action.salary,
+          salary_currency: action.salaryCurrency || 'GEL',
+          start_date: action.startDate, department: action.department || '',
+        });
+      } else if (type === 'transfer') {
+        await api.post('/accounting/transfers', {
+          client_name: action.clientName, agent_id: action.agentId || null,
+          amount: action.amount, due_date: action.dueDate,
+          description: action.description || '', iban: action.iban || null,
+        });
+      } else if (type === 'promotion') {
         localAdd('hr_promotion_orders', {
           employeeId,
           empName: employeeName,
@@ -934,25 +948,40 @@ function OrderActionCard({ action, botColor }) {
   };
 
   const typeLabel = {
+    hire: 'New Hire Order',
     promotion: 'Promotion Order',
     firing: 'Termination Order',
     advance: 'Advance Payment Order',
     adjusting: 'Salary Adjustment',
+    transfer: 'Transfer Order',
   }[action.type] || 'HR Order';
 
   const details = [];
-  if (action.employeeName) details.push(['Employee', action.employeeName]);
-  if (action.newPosition) details.push(['New Position', action.newPosition]);
-  if (action.oldSalary != null && action.newSalary != null)
-    details.push(['Salary Change', `${action.oldSalary} → ${action.newSalary}`]);
-  if (action.effectiveDate) details.push(['Effective Date', new Date(action.effectiveDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
-  if (action.endDate) details.push(['End Date', new Date(action.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
-  if (action.reason) details.push(['Reason', action.reason]);
-  if (action.totalAmount != null) details.push(['Total Amount', `${action.totalAmount} ${action.currency || 'GEL'}`]);
-  if (action.numMonths) details.push(['Months', action.numMonths]);
-  if (action.startMonth) details.push(['Start Month', action.startMonth]);
-  if (action.unitType) details.push(['Type', action.unitType]);
-  if (action.amount != null) details.push(['Amount', `${action.amount} ${action.currency || 'GEL'}`]);
+  if (action.type === 'hire') {
+    details.push(['Name', `${action.firstName || ''} ${action.lastName || ''}`.trim()]);
+    if (action.position) details.push(['Position', action.position]);
+    if (action.department) details.push(['Department', action.department]);
+    if (action.salary != null) details.push(['Salary', `${action.salary} ${action.salaryCurrency || 'GEL'}`]);
+    if (action.startDate) details.push(['Start Date', new Date(action.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
+  } else if (action.type === 'transfer') {
+    details.push(['Recipient', action.clientName]);
+    if (action.amount != null) details.push(['Amount', `${action.amount} GEL`]);
+    if (action.dueDate) details.push(['Due Date', new Date(action.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
+    if (action.description) details.push(['Description', action.description]);
+  } else {
+    if (action.employeeName) details.push(['Employee', action.employeeName]);
+    if (action.newPosition) details.push(['New Position', action.newPosition]);
+    if (action.oldSalary != null && action.newSalary != null)
+      details.push(['Salary Change', `${action.oldSalary} → ${action.newSalary}`]);
+    if (action.effectiveDate) details.push(['Effective Date', new Date(action.effectiveDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
+    if (action.endDate) details.push(['End Date', new Date(action.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })]);
+    if (action.reason) details.push(['Reason', action.reason]);
+    if (action.totalAmount != null) details.push(['Total Amount', `${action.totalAmount} ${action.currency || 'GEL'}`]);
+    if (action.numMonths) details.push(['Months', action.numMonths]);
+    if (action.startMonth) details.push(['Start Month', action.startMonth]);
+    if (action.unitType) details.push(['Type', action.unitType]);
+    if (action.amount != null) details.push(['Amount', `${action.amount} ${action.currency || 'GEL'}`]);
+  }
 
   const color = botColor || '#3b82f6';
 

@@ -17,6 +17,7 @@ import HierarchyBuilder from './HierarchyBuilder';
 import BgColorSettings from './BgColorSettings';
 import FontSettings from './FontSettings';
 import LogoSettings from './LogoSettings';
+import TelegramSettings from './TelegramSettings';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
 import {
@@ -96,6 +97,11 @@ function OptionsPage() {
       </svg>
     )},
     { key: 'tools', label: t('options.tools'), icon: optIcon(Settings01Icon, '#f59e0b') },
+    { key: 'telegram', label: 'Telegram', icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0ea5e9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    )},
     { key: 'appearance', label: t('options.appearance'), icon: optIcon(PaintBoardIcon, '#f43f5e') },
     { key: 'about', label: t('options.about'), icon: optIcon(InformationSquareIcon, '#ec4899') },
   ];
@@ -188,6 +194,7 @@ function OptionsPage() {
         {activeTab === 'users' && isSuperAdmin && <UsersSettings />}
         {activeTab === 'hierarchy' && <HierarchyBuilder />}
         {activeTab === 'tools' && <ToolsPage />}
+        {activeTab === 'telegram' && <TelegramSettings />}
         {activeTab === 'appearance' && (
           <div>
             <LogoSettings />

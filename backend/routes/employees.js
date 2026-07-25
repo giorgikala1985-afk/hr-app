@@ -4,6 +4,7 @@ const multer = require('multer');
 const bcrypt = require('bcrypt');
 const crypto = require('crypto');
 const supabase = require('../config/supabase');
+const { createEmployeeRecord, setEmployeeEndDate } = require('../services/employeeService');
 // Multer with memory storage for Supabase upload
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -168,105 +169,19 @@ router.get('/:id', async (req, res) => {
 // POST /api/employees - create
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
-    const { first_name, last_name, personal_id, birthdate, position, salary, salary_currency, overtime_rate, start_date, end_date, account_number, tax_code, pension, personal_email, mobile_number, department, pit_rate } = req.body;
-
-    // Validate required fields
-    if (!first_name || !last_name || !personal_id || !birthdate || !position || !salary || !start_date) {
-      return res.status(400).json({ error: 'All fields are required (end date is optional)' });
-    }
-
     let photo_url = null;
     if (req.file) {
       const result = await uploadPhoto(req.file, req.userId);
       photo_url = result.publicUrl;
     }
 
-    const { data, error } = await supabase
-      .from('employees')
-      .insert({
-        user_id: req.userId,
-        first_name: first_name.trim(),
-        last_name: last_name.trim(),
-        personal_id: personal_id.trim(),
-        birthdate,
-        position: position.trim(),
-        salary: parseFloat(salary),
-        salary_currency: ['GEL', 'USD', 'EUR'].includes(salary_currency) ? salary_currency : 'GEL',
-        overtime_rate: overtime_rate ? parseFloat(overtime_rate) : 0,
-        start_date,
-        end_date: end_date || null,
-        account_number: account_number ? account_number.trim() : null,
-        tax_code: tax_code ? tax_code.trim() : null,
-        pension: pension === 'true' || pension === true,
-        personal_email: personal_email ? personal_email.trim() : null,
-        mobile_number: mobile_number ? mobile_number.trim() : null,
-        department: department ? department.trim() : null,
-        pit_rate: pit_rate ? parseInt(pit_rate) : 20,
-        photo_url
-      })
-      .select()
-      .single();
+    const { employee, bookkeeping } = await createEmployeeRecord(req.userId, req.body, photo_url);
 
-    if (error) {
-      console.error('Error creating employee:', error);
-      return res.status(500).json({ error: 'Failed to create employee' });
-    }
-
-    // Look up bookkeeping accounts by code
-    const { data: accs } = await supabase
-      .from('bookkeeping_accounts')
-      .select('code, name')
-      .eq('user_id', req.userId)
-      .in('code', ['3130', '1210']);
-
-    const accMap = {};
-    (accs || []).forEach(a => { accMap[a.code] = `${a.code} - ${a.name}`; });
-
-    const debitAccount = accMap['3130'] || '3130';
-    const creditAccount = accMap['1210'] || '1210';
-    const description = `თანამშრომელი: ${first_name.trim()} ${last_name.trim()}`;
-
-    // Auto-create double-entry bookkeeping entries
-    const bookkeepingEntries = [
-      {
-        user_id: req.userId,
-        transaction_id: data.id,
-        date: start_date,
-        description,
-        account: debitAccount,
-        debit: parseFloat(salary),
-        credit: 0,
-      },
-      {
-        user_id: req.userId,
-        transaction_id: data.id,
-        date: start_date,
-        description,
-        account: creditAccount,
-        debit: 0,
-        credit: parseFloat(salary),
-      },
-    ];
-
-    const { data: bookkeepingData, error: bookkeepingError } = await supabase
-      .from('bookkeeping_entries')
-      .insert(bookkeepingEntries)
-      .select();
-
-    if (bookkeepingError) {
-      console.error('Error creating bookkeeping entries:', bookkeepingError);
-    }
-
-    res.status(201).json({
-      message: 'Employee created successfully',
-      employee: data,
-      bookkeeping: bookkeepingError
-        ? { success: false, error: bookkeepingError.message }
-        : { success: true, entries: bookkeepingData },
-    });
+    res.status(201).json({ message: 'Employee created successfully', employee, bookkeeping });
   } catch (error) {
     console.error('Create employee error:', error);
-    res.status(500).json({ error: 'An error occurred while creating employee' });
+    const status = /required/i.test(error.message) ? 400 : 500;
+    res.status(status).json({ error: error.message || 'An error occurred while creating employee' });
   }
 });
 
@@ -344,21 +259,11 @@ router.put('/:id', upload.single('photo'), async (req, res) => {
 // PATCH /api/employees/:id/end-date - set or clear termination date (used by Firing orders)
 router.patch('/:id/end-date', async (req, res) => {
   try {
-    const { end_date } = req.body;
-    const { data, error } = await supabase
-      .from('employees')
-      .update({ end_date: end_date || null, updated_at: new Date().toISOString() })
-      .eq('id', req.params.id)
-      .eq('user_id', req.userId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Employee not found' });
-
-    res.json({ employee: data });
+    const employee = await setEmployeeEndDate(req.userId, req.params.id, req.body.end_date);
+    res.json({ employee });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    const status = err.message === 'Employee not found' ? 404 : 500;
+    res.status(status).json({ error: err.message });
   }
 });
 

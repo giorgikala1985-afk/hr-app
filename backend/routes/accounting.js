@@ -4,6 +4,7 @@ const supabase = require('../config/supabase');
 const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
 const { checkPermission } = require('../middleware/permission');
+const { createTransferRecord } = require('../services/transferService');
 const { generateInvoicePdf } = require('../utils/invoicePdf');
 const { sendInvoiceEmail } = require('../utils/mailer');
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
@@ -1001,36 +1002,9 @@ const APPROVAL_TITLES = {
 
 router.post('/transfers', checkPermission('initiate_transfer'), async (req, res) => {
   try {
-    const { client_name, agent_id, amount, due_date, description, status, invoice_raw, iban, invoice_number, auto_approved } = req.body;
-
     const requester_name = await resolveUserName(req);
     const requester_email = req.user?.email || null;
-    const { data, error } = await supabase.from('accounting_transfers').insert([{
-      user_id: req.userId, client_name, agent_id: agent_id || null,
-      amount: parseFloat(amount), due_date, description,
-      iban: iban || null, invoice_number: invoice_number || null,
-      status: status || 'normal',
-      requester_name,
-      requester_email,
-      approval_status: auto_approved ? 'approved' : 'pending',
-      invoice_raw: invoice_raw || null,
-    }]).select().single();
-    if (error) throw error;
-
-    // Notify all approvers (and main user) except the requester
-    const [approverEmails, mainEmail] = await Promise.all([
-      getApproverEmails(req.userId),
-      getMainUserEmail(req.userId),
-    ]);
-    const recipients = [...new Set([...approverEmails, mainEmail])].filter(e => e && e !== requester_email);
-    console.log('[notif] transfer submitted — requester:', requester_email, '| approvers:', approverEmails, '| main:', mainEmail, '| recipients:', recipients);
-    await createNotifications(
-      req.userId, recipients, 'transfer_submitted',
-      '📤 New Transfer Request',
-      `${requester_name} submitted a transfer for ${client_name} — ${parseFloat(amount).toLocaleString()}`,
-      data.id
-    );
-
+    const data = await createTransferRecord(req.userId, requester_name, requester_email, req.body);
     res.status(201).json({ record: data });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

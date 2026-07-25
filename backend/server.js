@@ -36,6 +36,7 @@ const accountRoutes = require('./routes/account');
 const cronRoutes = require('./routes/cron');
 const testDebugRoutes = require('./routes/test_debug');
 const hierarchyRoutes = require('./routes/hierarchies');
+const telegramRoutes = require('./routes/telegram');
 const { authenticateUser } = require('./middleware/auth');
 
 // Force restart to apply FinBot debug changes
@@ -104,6 +105,9 @@ app.use('/api/requests', authenticateUser, requestRoutes);
 app.use('/api/account', accountRoutes);
 // Cron: external scheduler triggers (guarded by CRON_SECRET, no user auth)
 app.use('/api/cron', cronRoutes);
+// Telegram bot: webhook has no user session (guarded by its own secret token
+// check inside the route); link-code/status/link sub-routes apply authenticateUser themselves.
+app.use('/api/telegram', telegramRoutes);
 // Admin: super admin panel
 app.use('/api/admin', adminRoutes);
 // Portal: handles its own auth internally
