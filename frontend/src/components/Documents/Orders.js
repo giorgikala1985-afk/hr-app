@@ -3621,7 +3621,7 @@ export default function Orders() {
                   >
                     <span
                       onClick={key ? () => toggleSort(key) : undefined}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: right ? 'row-reverse' : 'row', cursor: key ? 'pointer' : 'default', userSelect: 'none' }}
+                      style={{ display: 'flex', width: '100%', boxSizing: 'border-box', alignItems: 'center', gap: 4, justifyContent: right ? 'flex-end' : 'flex-start', flexDirection: right ? 'row-reverse' : 'row', cursor: key ? 'pointer' : 'default', userSelect: 'none' }}
                     >
                       {h}
                       {key && (
@@ -3641,6 +3641,7 @@ export default function Orders() {
                         style={{
                           display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 5,
                           padding: '3px 6px', fontSize: 11, fontWeight: 400, textTransform: 'none', letterSpacing: 'normal',
+                          textAlign: right ? 'right' : 'left',
                           border: '1px solid var(--border-2)', borderRadius: 5,
                           background: 'var(--surface)', color: 'var(--text-2)', outline: 'none',
                         }}
