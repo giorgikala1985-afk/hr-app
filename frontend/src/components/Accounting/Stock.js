@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -196,6 +196,7 @@ export default function Stock() {
             <p>{t('stock.noResults')}</p>
           </div>
         ) : (
+          <>
           <table className="acc-table" style={{ tableLayout: 'fixed', width: table.displayCols.reduce((a, k) => a + colWidths[k], 70) }}>
             <colgroup>
               {table.displayCols.map((key) => <col key={key} style={{ width: colWidths[key] }} />)}
@@ -273,7 +274,7 @@ export default function Stock() {
                   </td>
                 </tr>
               )}
-              {filtered.map(r => (
+              {table.pagedRows.map(r => (
                 <tr key={r.id}>
                   {table.displayCols.includes('sku') && (
                     <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
@@ -310,6 +311,8 @@ export default function Stock() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={table} t={t} />
+          </>
         )}
       </div>
 

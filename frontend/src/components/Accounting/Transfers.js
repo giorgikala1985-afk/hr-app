@@ -6,7 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CheckmarkCircleIcon, AlertCircleIcon, FireIcon, HourglassIcon, CancelCircleIcon, PieChartIcon, ClockIcon, ArchiveIcon, ZapIcon, Loading01Icon, Menu01Icon } from '@hugeicons/core-free-icons';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '—';
@@ -522,7 +522,7 @@ function TransfersList() {
                   </td>
                 </tr>
               )}
-              {table.sortedRows.map((tr, i) => {
+              {table.pagedRows.map((tr, i) => {
                 const bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)';
                 return (
                   <tr key={tr.id} style={{ borderBottom: '1px solid var(--border-2)', background: bg }}>
@@ -534,6 +534,7 @@ function TransfersList() {
               })}
             </tbody>
           </table>
+          <PaginationBar table={table} t={t} />
         </div>
       )}
 

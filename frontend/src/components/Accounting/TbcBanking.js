@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { parseStatementAmount } from '../../utils/bankAmount';
 import { fetchTbcRawStatement } from '../../utils/tbcStatement';
-import { useExcelTable, ExcelFilterDropdown } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, PaginationBar } from '../common/ExcelTable';
 import { useLanguage } from '../../contexts/LanguageContext';
 
 const fmt = (n) =>
@@ -610,7 +610,7 @@ function SalaryPayments() {
                     </td>
                   </tr>
                 )}
-                {historyTable.sortedRows.map((h, i) => (
+                {historyTable.pagedRows.map((h, i) => (
                   <tr key={h.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                     <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{h.month}</td>
                     <td style={td}>{h.employee_count}</td>
@@ -630,6 +630,7 @@ function SalaryPayments() {
                 ))}
               </tbody>
             </table>
+            <PaginationBar table={historyTable} t={t} />
           </div>
         )}
       </div>
@@ -1228,7 +1229,7 @@ function InvoicePayment() {
                   </td>
                 </tr>
               )}
-              {table.sortedRows.map((inv, i) => (
+              {table.pagedRows.map((inv, i) => (
                 <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.invoice_number || '-'}</td>
                   <td style={{ ...td, color: 'var(--text)' }}>{inv.client}</td>
@@ -1265,6 +1266,7 @@ function InvoicePayment() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={table} t={t} />
         </div>
       )}
     </div>

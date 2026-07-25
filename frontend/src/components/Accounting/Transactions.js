@@ -5,7 +5,7 @@ import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumn
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { fmtExcelDate } from '../../utils/formatDate';
-import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu } from '../common/ExcelTable';
+import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 
 const DEFAULT_COL_WIDTHS = { date: 110, client: 160, item_type: 150, amount: 110, note: 220 };
 
@@ -305,6 +305,7 @@ function Transactions() {
             <p>{t('tx.noResults')}</p>
           </div>
         ) : (
+          <>
           <table className="acc-table">
             <colgroup>
               <col style={{ width: 40 }} />
@@ -398,7 +399,7 @@ function Transactions() {
                   </td>
                 </tr>
               )}
-              {filtered.map((r) => (
+              {table.pagedRows.map((r) => (
                 <tr key={r.id} style={selectedIds.has(r.id) ? { background: '#f0f9ff' } : {}}>
                   <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                     <input
@@ -427,6 +428,8 @@ function Transactions() {
               ))}
             </tbody>
           </table>
+          <PaginationBar table={table} t={t} />
+          </>
         )}
       </div>
 
