@@ -159,6 +159,13 @@ function Sales() {
   const [error, setError] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
   const hierarchyLabel = (r) => {
     if (!r.hierarchy_id) return '—';
     const h = hierarchies.find(h => h.id === r.hierarchy_id);
@@ -168,7 +175,7 @@ function Sales() {
   };
 
   const SALES_COLUMNS = [
-    { key: 'date', label: t('sales.colDate'), getValue: r => r.date || '—' },
+    { key: 'date', label: t('sales.colDate'), getValue: r => formatDate(r.date), getSortValue: r => r.date || '' },
     { key: 'client', label: t('sales.colClient'), getValue: r => r.client || '—' },
     { key: 'product', label: t('sales.colProduct'), getValue: r => r.product || '—' },
     { key: 'category', label: t('sales.colCategory'), getValue: r => r.category || '—' },
@@ -399,7 +406,7 @@ function Sales() {
                       style={{ width: 15, height: 15, cursor: 'pointer' }}
                     />
                   </td>
-                  {table.displayCols.includes('date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.date}</td>}
+                  {table.displayCols.includes('date') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{formatDate(r.date)}</td>}
                   {table.displayCols.includes('client') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.client}</strong></td>}
                   {table.displayCols.includes('product') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.product || '—'}</td>}
                   {table.displayCols.includes('category') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{r.category && <span className="acc-category-badge">{r.category}</span>}</td>}
