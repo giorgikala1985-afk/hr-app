@@ -1,12 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const supabase = require('../config/supabase');
+const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
 const { checkPermission } = require('../middleware/permission');
 const { createTransferRecord } = require('../services/transferService');
 const { generateInvoicePdf } = require('../utils/invoicePdf');
 const { sendInvoiceEmail } = require('../utils/mailer');
-const { getGeminiModel, stripJsonFences } = require('../services/geminiClient');
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 
 // Advance a YYYY-MM-DD date by one recurrence period; null for non-recurring.
 function addPeriod(dateStr, recurrence) {
@@ -51,13 +52,12 @@ const INVOICE_PROMPT = `You are an invoice analysis expert. Extract the followin
 }
 If a field is not found, use null. Return only valid JSON.`;
 
-// Extract structured invoice fields from a base64 file using Gemini. Throws on failure.
+// Extract structured invoice fields from a base64 file using GPT-4o. Throws on failure.
 async function analyzeInvoiceFile(data, mimeType) {
-  const model = getGeminiModel();
-  if (!model) throw new Error('Gemini API key not configured.');
+  if (!openai) throw new Error('OpenAI API key not configured.');
   if (!data) throw new Error('No file data provided.');
 
-  let parts;
+  let messages;
 
   if (mimeType === 'application/pdf') {
     const buffer = Buffer.from(data, 'base64');
@@ -71,24 +71,28 @@ async function analyzeInvoiceFile(data, mimeType) {
     }
 
     if (pdfText) {
-      parts = [{ text: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
+      messages = [{ role: 'user', content: `${INVOICE_PROMPT}\n\nInvoice text:\n${pdfText}` }];
     } else {
       // Scanned / image-only PDF (no extractable text). OCR rendering via
       // Chromium is disabled (not available on serverless). Ask for an image.
       throw new Error('This PDF appears to be scanned (no readable text). Please upload it as an image (JPG or PNG), or use a text-based PDF.');
     }
   } else {
-    // Image — send directly to Gemini's vision input
+    // Image — send directly to GPT-4o vision
     const imageType = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(mimeType)
       ? mimeType : 'image/jpeg';
-    parts = [
-      { text: INVOICE_PROMPT },
-      { inlineData: { mimeType: imageType, data } },
-    ];
+    messages = [{
+      role: 'user',
+      content: [
+        { type: 'text', text: INVOICE_PROMPT },
+        { type: 'image_url', image_url: { url: `data:${imageType};base64,${data}` } },
+      ],
+    }];
   }
 
-  const result = await model.generateContent(parts);
-  const jsonText = stripJsonFences(result.response.text());
+  const response = await openai.chat.completions.create({ model: 'gpt-4o', messages, max_tokens: 1000 });
+  const rawText = response.choices[0].message.content.trim();
+  const jsonText = rawText.replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/i, '').trim();
 
   try {
     return JSON.parse(jsonText);

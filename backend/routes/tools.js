@@ -4,7 +4,7 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const XLSX = require('xlsx');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel } = require('docx');
-const { getGeminiModel } = require('../services/geminiClient');
+const OpenAI = require('openai');
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -107,8 +107,8 @@ router.post('/pdf-ask', uploadMulti.array('files', 20), async (req, res) => {
     const question = (req.body.question || '').trim();
     if (!question) return res.status(400).json({ error: 'Question is required' });
 
-    const model = getGeminiModel({ systemInstruction: 'You are a helpful assistant. Answer questions based only on the provided documents. If the answer comes from a specific document, mention its name.' });
-    if (!model) return res.status(500).json({ error: 'GEMINI_API_KEY is not configured on the server.' });
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'OPENAI_API_KEY is not configured on the server.' });
 
     // Extract text from all PDFs and combine with file name labels
     const charsPerFile = Math.floor(100000 / files.length);
@@ -122,8 +122,18 @@ router.post('/pdf-ask', uploadMulti.array('files', 20), async (req, res) => {
       )
     ).join('\n\n');
 
-    const result = await model.generateContent(`Documents:\n"""\n${combinedText}\n"""\n\nQuestion: ${question}`);
-    res.json({ answer: result.response.text() });
+    const openai = new OpenAI({ apiKey });
+
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: 'You are a helpful assistant. Answer questions based only on the provided documents. If the answer comes from a specific document, mention its name.' },
+        { role: 'user', content: `Documents:\n"""\n${combinedText}\n"""\n\nQuestion: ${question}` }
+      ],
+    });
+
+    const answer = completion.choices[0].message.content;
+    res.json({ answer });
   } catch (err) {
     console.error('PDF ask error:', err);
     res.status(500).json({ error: 'Failed to get answer: ' + (err.message || 'Unknown error') });

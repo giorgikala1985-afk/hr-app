@@ -1,5 +1,5 @@
 const supabase = require('../config/supabase');
-const { getGeminiModel } = require('./geminiClient');
+const OpenAI = require('openai');
 
 // ── Data fetchers per source ─────────────────────────────────────────────────
 
@@ -229,13 +229,14 @@ Order types and required fields:
 
 IMPORTANT: Use the DB_ID value (e.g. DB_ID:abc123) from the employee/coagent data as employeeId/agentId. If the user's request is ambiguous (e.g. missing salary, personal ID, or date), ask for the missing info before outputting the block. Always show a brief summary of what will happen alongside the action block.`;
 
-// Shared by the web FinBots chat UI (routes/finbots.js), the Telegram bot, and
-// the WhatsApp bot — builds the data-source context, runs the Gemini call,
-// and returns the raw answer.
+// Shared by the web FinBots chat UI (routes/finbots.js) and the Telegram bot —
+// builds the data-source context, runs the OpenAI call, and returns the raw answer.
 // Callers are responsible for parsing [ORDER_ACTION]/[CHART] blocks out of the answer.
 async function runFinBotChat({ userId, dataSources = [], messages = [], botName = 'FinBot', systemPrompt = '', dlTablesData = [], preferredChartType = 'bar' }) {
   if (!messages.length) throw new Error('No messages provided.');
-  if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY is not configured on the server.');
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured on the server.');
 
   const sourceKeys = dataSources.filter(s => !!SOURCE_FETCHERS[s]);
 
@@ -282,21 +283,20 @@ async function runFinBotChat({ userId, dataSources = [], messages = [], botName 
       : `\n\nNo data sources are connected to this bot. Tell the user to connect data sources in the bot settings.`,
   ].join('');
 
-  const model = getGeminiModel({ systemInstruction: systemContent });
+  const openai = new OpenAI({ apiKey });
 
   const validRoles = new Set(['user', 'assistant']);
-  // Gemini's chat history uses {role: 'user'|'model', parts}, and the most
-  // recent message is sent separately via sendMessage rather than included
-  // in the history array.
-  const turns = messages
-    .filter(m => validRoles.has(m.role))
-    .map(m => ({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
-  const lastTurn = turns.pop();
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [
+      { role: 'system', content: systemContent },
+      ...messages
+        .filter(m => validRoles.has(m.role))
+        .map(m => ({ role: m.role, content: m.content })),
+    ],
+  });
 
-  const chat = model.startChat({ history: turns });
-  const result = await chat.sendMessage(lastTurn.parts[0].text);
-
-  return { answer: result.response.text() || '' };
+  return { answer: completion.choices[0]?.message?.content || '' };
 }
 
 module.exports = { runFinBotChat, SOURCE_FETCHERS };

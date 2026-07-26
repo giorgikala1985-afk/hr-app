@@ -47,7 +47,3 @@ services:
         sync: false
       - key: WHATSAPP_DISPLAY_NUMBER
         sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GEMINI_MODEL
-        value: gemini-2.0-flash
