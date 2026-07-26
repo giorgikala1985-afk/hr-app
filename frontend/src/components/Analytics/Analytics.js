@@ -242,17 +242,151 @@ const SALARY_REPORT_WIDTHS = [130, 120, 130, 130, 130];
 const fmt = (amount) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
 
+function EmployeeInsights({ employees, t }) {
+  const active = employees.filter(e => !e.end_date);
+  const departmentCounts = {};
+  const positionCounts = {};
+  active.forEach(e => {
+    const dept = e.department || t('analytics.notAssigned');
+    departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
+    const pos = e.position || t('analytics.notAssigned');
+    positionCounts[pos] = (positionCounts[pos] || 0) + 1;
+  });
+  const departmentBreakdown = Object.entries(departmentCounts)
+    .map(([department, count]) => ({ department, count }))
+    .sort((a, b) => b.count - a.count);
+
+  const avgTenureYears = (() => {
+    if (!active.length) return 0;
+    const now = new Date();
+    const totalYears = active.reduce((sum, e) => {
+      if (!e.start_date) return sum;
+      const start = new Date(e.start_date);
+      return sum + (now - start) / (365.25 * 24 * 3600 * 1000);
+    }, 0);
+    return totalYears / active.length;
+  })();
+
+  const upcomingBirthdays = (() => {
+    if (!active.length) return [];
+    const now = new Date();
+    const in30 = new Date(now.getTime() + 30 * 24 * 3600 * 1000);
+    return active
+      .filter(e => e.birthdate)
+      .map(e => {
+        const bd = new Date(e.birthdate);
+        const next = new Date(now.getFullYear(), bd.getMonth(), bd.getDate());
+        if (next < new Date(now.getFullYear(), now.getMonth(), now.getDate())) next.setFullYear(now.getFullYear() + 1);
+        return { name: `${e.first_name} ${e.last_name}`, next };
+      })
+      .filter(e => e.next <= in30)
+      .sort((a, b) => a.next - b.next);
+  })();
+
+  const CARDS = [
+    {
+      cls: 'an-stat--indigo', value: employees.length, label: t('analytics.totalEmployees'),
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>),
+    },
+    {
+      cls: 'an-stat--cyan', value: active.length, label: t('analytics.activeEmployees'),
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/><polyline points="16,11 17,13 21,9"/></svg>),
+    },
+    {
+      cls: 'an-stat--violet', value: Object.keys(departmentCounts).length, label: t('analytics.departments'),
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6"/></svg>),
+    },
+    {
+      cls: 'an-stat--emerald', value: Object.keys(positionCounts).length, label: t('analytics.positions'),
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>),
+    },
+    {
+      cls: 'an-stat--amber', value: `${avgTenureYears.toFixed(1)}y`, label: t('analytics.avgTenure'),
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>),
+    },
+    {
+      cls: 'an-stat--rose', value: upcomingBirthdays.length, label: t('analytics.upcomingBirthdays'),
+      icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-8H4v8"/><path d="M4 13V9a2 2 0 0 1 2-2h1"/><path d="M17 7h1a2 2 0 0 1 2 2v4"/><path d="M12 3c-1 1.5-1 2.5 0 4 1-1.5 1-2.5 0-4Z"/><line x1="4" y1="17" x2="20" y2="17"/></svg>),
+    },
+  ];
+
+  return (
+    <>
+      <div className="an-stat-grid">
+        {CARDS.map((s, i) => (
+          <div key={i} className={`an-stat-card ${s.cls}`}>
+            <div className="an-stat-icon">{s.icon}</div>
+            <div className="an-stat-value">{s.value}</div>
+            <div className="an-stat-label">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {departmentBreakdown.length > 0 && (
+        <div className="an-section">
+          <div className="an-section-head">
+            <div className="an-section-title">{t('analytics.byDepartment')}</div>
+          </div>
+          <div className="an-pos-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>{t('analytics.department')}</th>
+                  <th>{t('analytics.count')}</th>
+                  <th>{t('analytics.percentage')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {departmentBreakdown.map((d, i) => (
+                  <tr key={i}>
+                    <td>{d.department}</td>
+                    <td>{d.count}</td>
+                    <td>{((d.count / active.length) * 100).toFixed(1)}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {upcomingBirthdays.length > 0 && (
+        <div className="an-section">
+          <div className="an-section-head">
+            <div className="an-section-title">{t('analytics.upcomingBirthdays')}</div>
+          </div>
+          <div className="an-holidays">
+            {upcomingBirthdays.map((b, i) => (
+              <div key={i} className="an-holiday-card">
+                <div className="an-holiday-date">
+                  {b.next.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                </div>
+                <div className="an-holiday-name">{b.name}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function Analytics() {
   const { t } = useLanguage();
   const { colWidths, onResizeMouseDown } = useColumnResize(SALARY_REPORT_WIDTHS);
+  const [subTab, setSubTab] = useState('overview');
   const [analytics, setAnalytics] = useState(null);
   const [salaryReport, setSalaryReport] = useState([]);
   const [reportMonths, setReportMonths] = useState(12);
+  const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => { fetchAnalytics(); }, []);
   useEffect(() => { fetchSalaryReport(); }, [reportMonths]);
+  useEffect(() => {
+    api.get('/employees').then(r => setEmployees(r.data.employees || [])).catch(() => {});
+  }, []);
 
   const fetchAnalytics = async () => {
     try {
@@ -374,6 +508,26 @@ function Analytics() {
           {t('analytics.refresh')}
         </button>
       </div>
+
+      {/* Sub-tabs */}
+      <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
+        {[
+          { key: 'overview', label: t('analytics.tabOverview') },
+          { key: 'employees', label: t('analytics.tabEmployees') },
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setSubTab(tab.key)} style={{
+            padding: '7px 16px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            background: subTab === tab.key ? 'var(--surface)' : 'transparent',
+            color: subTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+            boxShadow: subTab === tab.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+            transition: 'all 0.15s',
+          }}>{tab.label}</button>
+        ))}
+      </div>
+
+      {subTab === 'employees' && <EmployeeInsights employees={employees} t={t} />}
+
+      {subTab === 'overview' && <>
 
       {/* Stat cards */}
       <div className="an-stat-grid">
@@ -559,6 +713,8 @@ function Analytics() {
       )}
 
       <DataLakeCharts />
+
+      </>}
 
     </div>
   );
