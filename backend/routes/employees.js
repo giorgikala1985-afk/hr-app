@@ -3,7 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const bcrypt = require('bcrypt');
 const supabase = require('../config/supabase');
-const { createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit, recordSalaryChange } = require('../services/employeeService');
+const { createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit, recordSalaryChange, updateEmployeePosition } = require('../services/employeeService');
 const { resolveUserName } = require('../services/userIdentity');
 // Multer with memory storage for Supabase upload
 const upload = multer({
@@ -375,8 +375,11 @@ router.get('/:id/salary-changes', async (req, res) => {
 });
 
 // POST /api/employees/:id/salary-changes
+// Optionally also accepts `position` — used by the quick-add "Promote"
+// action to update title + salary in one call.
 router.post('/:id/salary-changes', async (req, res) => {
   try {
+    if (req.body.position) await updateEmployeePosition(req.userId, req.params.id, req.body.position);
     const data = await recordSalaryChange(req.userId, req.params.id, req.body);
     res.status(201).json({ message: 'Salary change recorded', salary_change: data });
   } catch (error) {
