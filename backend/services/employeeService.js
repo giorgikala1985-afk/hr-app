@@ -120,7 +120,7 @@ async function setEmployeeEndDate(userId, employeeId, endDate) {
 // "adjusting"/"advance" actions — inserts the unit row and auto-posts to
 // bookkeeping if a matching posting rule exists.
 async function createEmployeeUnit(userId, employeeId, fields) {
-  const { type, amount, date, currency, include_in_salary, note } = fields;
+  const { type, amount, date, currency, include_in_salary, note, created_by_name } = fields;
   if (!type || amount === undefined || !date) {
     throw new Error('Type, amount, and date are required');
   }
@@ -138,6 +138,7 @@ async function createEmployeeUnit(userId, employeeId, fields) {
       currency: currency || 'GEL',
       include_in_salary: include_in_salary !== false,
       note: note || null,
+      created_by_name: created_by_name || null,
     })
     .select()
     .single();

@@ -110,6 +110,7 @@ router.post('/webhook', async (req, res) => {
       return;
     }
     const userId = link.user_id;
+    const actorLabel = link.telegram_username ? `@${link.telegram_username} (Telegram)` : 'Telegram';
 
     const { data: pending } = await supabase.from('telegram_pending_actions')
       .select('*').eq('chat_id', chatId).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -118,7 +119,7 @@ router.post('/webhook', async (req, res) => {
       const lower = text.toLowerCase();
       if (['yes', 'y', 'confirm'].includes(lower)) {
         await supabase.from('telegram_pending_actions').delete().eq('id', pending.id);
-        await executeAction(userId, pending.action_payload, (t) => sendMessage(chatId, t));
+        await executeAction(userId, pending.action_payload, (t) => sendMessage(chatId, t), actorLabel);
         return;
       }
       if (['no', 'n', 'cancel'].includes(lower)) {

@@ -42,8 +42,10 @@ function summarizeAction(action) {
 
 // Runs a confirmed action and reports the outcome via the caller-supplied
 // `notify(text)` — each channel (Telegram/WhatsApp) passes in its own sender
-// so this logic stays completely channel-agnostic.
-async function executeAction(userId, action, notify) {
+// so this logic stays completely channel-agnostic. `actorLabel` identifies
+// who sent the message (e.g. "@giorgi (Telegram)") so Journal can show who
+// made each hire/fire/promotion/adjustment, same as the web app does.
+async function executeAction(userId, action, notify, actorLabel = 'Bot') {
   try {
     if (action.type === 'hire') {
       await createEmployeeRecord(userId, {
@@ -55,17 +57,17 @@ async function executeAction(userId, action, notify) {
       });
       await logOrder(userId, 'hiring', {
         firstName: action.firstName, lastName: action.lastName,
-        position: action.position, department: action.department,
+        position: action.position, department: action.department, createdBy: actorLabel,
       });
       await notify(`✅ Hired ${action.firstName} ${action.lastName}.`);
     } else if (action.type === 'firing') {
       await setEmployeeEndDate(userId, action.employeeId, action.endDate);
       await logOrder(userId, 'firing', {
-        empName: action.employeeName, terminationDate: action.endDate, reason: action.reason,
+        empName: action.employeeName, terminationDate: action.endDate, reason: action.reason, createdBy: actorLabel,
       });
       await notify(`✅ ${action.employeeName || 'Employee'} terminated, end date ${action.endDate}.`);
     } else if (action.type === 'transfer') {
-      await createTransferRecord(userId, 'Bot', null, {
+      await createTransferRecord(userId, actorLabel, null, {
         client_name: action.clientName, agent_id: action.agentId || null,
         amount: action.amount, due_date: action.dueDate,
         description: action.description, iban: action.iban,
@@ -80,7 +82,7 @@ async function executeAction(userId, action, notify) {
       }
       await logOrder(userId, 'promotion', {
         empName: action.employeeName, newPosition: action.newPosition,
-        oldSalary: action.oldSalary, newSalary: action.newSalary, notes: action.notes,
+        oldSalary: action.oldSalary, newSalary: action.newSalary, notes: action.notes, createdBy: actorLabel,
       });
       await notify(`✅ ${action.employeeName || 'Employee'} promoted${action.newPosition ? ` to ${action.newPosition}` : ''}${action.newSalary != null ? `, salary now ${action.newSalary}` : ''}.`);
     } else if (action.type === 'adjusting') {
@@ -88,6 +90,7 @@ async function executeAction(userId, action, notify) {
         type: action.unitType, amount: action.amount,
         date: new Date().toISOString().slice(0, 10),
         currency: action.currency || 'GEL', include_in_salary: true,
+        created_by_name: actorLabel,
       });
       await notify(`✅ ${action.unitType || 'Adjustment'} of ${action.amount} ${action.currency || 'GEL'} recorded for ${action.employeeName || 'employee'}.`);
     }

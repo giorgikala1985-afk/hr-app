@@ -5,6 +5,7 @@ const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
 const { checkPermission } = require('../middleware/permission');
 const { createTransferRecord } = require('../services/transferService');
+const { resolveUserName } = require('../services/userIdentity');
 const { generateInvoicePdf } = require('../utils/invoicePdf');
 const { sendInvoiceEmail } = require('../utils/mailer');
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
@@ -946,17 +947,6 @@ router.get('/transfers', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// Resolve a friendly display name for the current user (for requester/approver labels)
-async function resolveUserName(req) {
-  const email = req.user?.email;
-  if (!email) return 'Unknown';
-  const { data: appUser } = await supabase
-    .from('app_users')
-    .select('name')
-    .eq('email', email)
-    .maybeSingle();
-  return appUser?.name || email;
-}
 
 // ── Notification helpers ─────────────────────────────────
 async function createNotifications(user_id, recipient_emails, type, title, body, reference_id) {

@@ -4,6 +4,7 @@ const multer = require('multer');
 const bcrypt = require('bcrypt');
 const supabase = require('../config/supabase');
 const { createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit, recordSalaryChange } = require('../services/employeeService');
+const { resolveUserName } = require('../services/userIdentity');
 // Multer with memory storage for Supabase upload
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -888,7 +889,8 @@ router.get('/:id/units', async (req, res) => {
 // POST create unit for employee
 router.post('/:id/units', async (req, res) => {
   try {
-    const data = await createEmployeeUnit(req.userId, req.params.id, req.body);
+    const created_by_name = await resolveUserName(req);
+    const data = await createEmployeeUnit(req.userId, req.params.id, { ...req.body, created_by_name });
     res.status(201).json({ unit: data });
   } catch (err) {
     const status = /required/i.test(err.message) ? 400 : 500;

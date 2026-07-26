@@ -135,6 +135,7 @@ router.post('/webhook', async (req, res) => {
       return;
     }
     const userId = link.user_id;
+    const actorLabel = link.wa_name ? `${link.wa_name} (WhatsApp)` : 'WhatsApp';
 
     const { data: pending } = await supabase.from('whatsapp_pending_actions')
       .select('*').eq('wa_id', waId).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -143,7 +144,7 @@ router.post('/webhook', async (req, res) => {
       const lower = text.toLowerCase();
       if (['yes', 'y', 'confirm'].includes(lower)) {
         await supabase.from('whatsapp_pending_actions').delete().eq('id', pending.id);
-        await executeAction(userId, pending.action_payload, (t) => sendMessage(waId, t));
+        await executeAction(userId, pending.action_payload, (t) => sendMessage(waId, t), actorLabel);
         return;
       }
       if (['no', 'n', 'cancel'].includes(lower)) {

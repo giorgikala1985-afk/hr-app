@@ -1865,6 +1865,7 @@ const ka = {
   'journal.colType': 'ტიპი',
   'journal.colSummary': 'შინაარსი',
   'journal.colNotes': 'შენიშვნები',
+  'journal.colCreatedBy': 'შემქმნელი',
   'journal.prev': '← წინა',
   'journal.next': 'შემდეგი →',
   'journal.pageOf': 'გვ. {page} / {total}',

@@ -104,7 +104,7 @@ function useLocalOrders(key, isOwnedByCurrentTenant) {
     } catch { return []; }
   });
   const save = (next) => { setOrders(next); localStorage.setItem(namespacedKey, JSON.stringify(next)); };
-  const add = (row) => save([{ id: Date.now(), createdAt: new Date().toISOString(), ...row }, ...orders]);
+  const add = (row) => save([{ id: Date.now(), createdAt: new Date().toISOString(), createdBy: user?.name || user?.email || 'Unknown', ...row }, ...orders]);
   const update = (id, row) => save(orders.map(o => o.id === id ? { ...o, ...row } : o));
   const remove = (id) => save(orders.filter(o => o.id !== id));
   return { orders, add, update, remove };

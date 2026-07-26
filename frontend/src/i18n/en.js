@@ -1867,6 +1867,7 @@ const en = {
   'journal.colType': 'Type',
   'journal.colSummary': 'Summary',
   'journal.colNotes': 'Notes',
+  'journal.colCreatedBy': 'Created By',
   'journal.prev': '← Prev',
   'journal.next': 'Next →',
   'journal.pageOf': 'Page {page} of {total}',

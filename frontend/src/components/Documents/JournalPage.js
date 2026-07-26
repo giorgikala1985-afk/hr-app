@@ -144,7 +144,7 @@ export default function JournalPage() {
       let adjustments = [];
       try {
         const res = await api.get('/employees/units/all');
-        adjustments = (res.data.units || []).map(u => ({ ...u, _type: 'adjustment', createdAt: u.created_at || u.date }));
+        adjustments = (res.data.units || []).map(u => ({ ...u, _type: 'adjustment', createdAt: u.created_at || u.date, createdBy: u.created_by_name }));
       } catch {}
 
       // Hire/fire/promotion events created by non-browser channels (Telegram/
@@ -175,6 +175,7 @@ export default function JournalPage() {
   const JOURNAL_COLUMNS = [
     { key: 'date', label: t('journal.colDate'), getValue: r => formatDate(r.createdAt), getSortValue: r => r.createdAt || '' },
     { key: 'type', label: t('journal.colType'), getValue: r => t(TYPE_META[r._type]?.labelKey || r._type) },
+    { key: 'createdBy', label: t('journal.colCreatedBy'), getValue: r => r.createdBy || '—' },
     { key: 'summary', label: t('journal.colSummary'), sortable: false, filterable: false, getValue: () => '' },
     { key: 'notes', label: t('journal.colNotes'), getValue: r => r.notes || r.reason || '—' },
   ];
@@ -362,6 +363,11 @@ export default function JournalPage() {
                     {table.displayCols.includes('type') && (
                       <td style={{ padding: '12px 16px' }}>
                         <Badge color={meta.color} typeKey={row._type} />
+                      </td>
+                    )}
+                    {table.displayCols.includes('createdBy') && (
+                      <td style={{ padding: '12px 16px', color: 'var(--text-2)', fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {row.createdBy || '—'}
                       </td>
                     )}
                     {table.displayCols.includes('summary') && (
