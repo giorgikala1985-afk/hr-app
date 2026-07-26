@@ -147,7 +147,16 @@ export default function JournalPage() {
         adjustments = (res.data.units || []).map(u => ({ ...u, _type: 'adjustment', createdAt: u.created_at || u.date }));
       } catch {}
 
-      const all = [...hiring, ...firing, ...promote, ...trips, ...advances, ...adjustments]
+      // Hire/fire/promotion events created by non-browser channels (Telegram/
+      // WhatsApp bots) — those have no browser to write the localStorage
+      // entries above, so they're logged to a real table instead.
+      let botOrders = [];
+      try {
+        const res = await api.get('/employees/order-log');
+        botOrders = (res.data.logs || []).map(l => ({ ...l.payload, _type: l.type, createdAt: l.created_at }));
+      } catch {}
+
+      const all = [...hiring, ...firing, ...promote, ...trips, ...advances, ...adjustments, ...botOrders]
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
       setRows(all);

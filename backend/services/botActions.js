@@ -1,5 +1,19 @@
+const supabase = require('../config/supabase');
 const { createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit, recordSalaryChange, updateEmployeePosition } = require('./employeeService');
 const { createTransferRecord } = require('./transferService');
+
+// Journal (frontend/src/components/Documents/JournalPage.js) sources its
+// Hiring/Firing/Promotion entries from browser localStorage written by the
+// web Orders.js tabs — a bot has no browser to write to, so its real DB
+// changes would otherwise never show up there. This logs the same event
+// shape Journal expects into a real table it also reads from.
+async function logOrder(userId, type, payload) {
+  try {
+    await supabase.from('order_log').insert({ user_id: userId, type, payload });
+  } catch (err) {
+    console.error('[botActions] logOrder error:', err.message);
+  }
+}
 
 // Action types the chat-bot channels (Telegram, WhatsApp) know how to actually
 // execute after confirmation. The shared system prompt (finbotChat.js) also
@@ -39,9 +53,16 @@ async function executeAction(userId, action, notify) {
         salary_currency: action.salaryCurrency, start_date: action.startDate,
         department: action.department,
       });
+      await logOrder(userId, 'hiring', {
+        firstName: action.firstName, lastName: action.lastName,
+        position: action.position, department: action.department,
+      });
       await notify(`✅ Hired ${action.firstName} ${action.lastName}.`);
     } else if (action.type === 'firing') {
       await setEmployeeEndDate(userId, action.employeeId, action.endDate);
+      await logOrder(userId, 'firing', {
+        empName: action.employeeName, terminationDate: action.endDate, reason: action.reason,
+      });
       await notify(`✅ ${action.employeeName || 'Employee'} terminated, end date ${action.endDate}.`);
     } else if (action.type === 'transfer') {
       await createTransferRecord(userId, 'Bot', null, {
@@ -57,6 +78,10 @@ async function executeAction(userId, action, notify) {
           salary: action.newSalary, effective_date: action.effectiveDate, note: action.notes,
         });
       }
+      await logOrder(userId, 'promotion', {
+        empName: action.employeeName, newPosition: action.newPosition,
+        oldSalary: action.oldSalary, newSalary: action.newSalary, notes: action.notes,
+      });
       await notify(`✅ ${action.employeeName || 'Employee'} promoted${action.newPosition ? ` to ${action.newPosition}` : ''}${action.newSalary != null ? `, salary now ${action.newSalary}` : ''}.`);
     } else if (action.type === 'adjusting') {
       await createEmployeeUnit(userId, action.employeeId, {

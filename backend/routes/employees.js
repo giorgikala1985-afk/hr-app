@@ -144,6 +144,27 @@ router.post('/import', async (req, res) => {
   }
 });
 
+// GET /api/employees/order-log — hire/fire/promotion events logged by
+// non-browser channels (Telegram/WhatsApp bots), for the Journal page to
+// merge in alongside its browser-localStorage-sourced entries. Must be
+// registered before GET /:id below, or Express would route this request
+// there instead (treating "order-log" as an :id).
+router.get('/order-log', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('order_log')
+      .select('*')
+      .eq('user_id', req.userId)
+      .order('created_at', { ascending: false })
+      .limit(500);
+
+    if (error) throw error;
+    res.json({ logs: data || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/employees/:id - get single
 router.get('/:id', async (req, res) => {
   try {
