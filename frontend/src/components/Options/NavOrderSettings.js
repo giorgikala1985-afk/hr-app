@@ -30,7 +30,7 @@ export const ACC_SIDEBAR_ORDER_KEY = 'acc_sidebar_order';
 export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'projects', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'orders', 'ai-agent'];
 
 export const OPT_SIDEBAR_ORDER_KEY = 'opt_sidebar_order';
-export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'hierarchy', 'tools', 'telegram', 'appearance', 'about'];
+export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'hierarchy', 'tools', 'telegram', 'whatsapp', 'appearance', 'about'];
 
 export const DOCS_SIDEBAR_ORDER_KEY = 'docs_sidebar_order';
 export const DOCS_SIDEBAR_DEFAULT = ['journal', 'requests', 'employees', 'agents', 'agreements', 'devices', 'nbg-rates', 'datalake', 'banking', 'rsge'];

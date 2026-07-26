@@ -37,6 +37,7 @@ const cronRoutes = require('./routes/cron');
 const testDebugRoutes = require('./routes/test_debug');
 const hierarchyRoutes = require('./routes/hierarchies');
 const telegramRoutes = require('./routes/telegram');
+const whatsappRoutes = require('./routes/whatsapp');
 const { authenticateUser } = require('./middleware/auth');
 
 // Force restart to apply FinBot debug changes
@@ -60,7 +61,9 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '50mb' }));
+// Capture the raw request body alongside the parsed one — needed by the
+// WhatsApp webhook to verify Meta's X-Hub-Signature-256 header.
+app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Health check
@@ -108,6 +111,9 @@ app.use('/api/cron', cronRoutes);
 // Telegram bot: webhook has no user session (guarded by its own secret token
 // check inside the route); link-code/status/link sub-routes apply authenticateUser themselves.
 app.use('/api/telegram', telegramRoutes);
+// WhatsApp bot: same pattern — webhook is public (Meta signature-verified inside
+// the route), link-code/status/link sub-routes apply authenticateUser themselves.
+app.use('/api/whatsapp', whatsappRoutes);
 // Admin: super admin panel
 app.use('/api/admin', adminRoutes);
 // Portal: handles its own auth internally

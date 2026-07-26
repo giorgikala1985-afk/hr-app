@@ -4,17 +4,10 @@ const axios = require('axios');
 const supabase = require('../config/supabase');
 const { authenticateUser } = require('../middleware/auth');
 const { runFinBotChat } = require('../services/finbotChat');
-const { createEmployeeRecord, setEmployeeEndDate, createEmployeeUnit, recordSalaryChange, updateEmployeePosition } = require('../services/employeeService');
-const { createTransferRecord } = require('../services/transferService');
+const { EXECUTABLE_TYPES, summarizeAction, executeAction } = require('../services/botActions');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-
-// Action types the Telegram channel knows how to actually execute after
-// confirmation. The shared system prompt (services/finbotChat.js) also lets
-// the model suggest "advance" for the web FinBots UI — that one isn't wired
-// up here yet, so we tell the user to use the app instead.
-const EXECUTABLE_TYPES = new Set(['hire', 'firing', 'transfer', 'promotion', 'adjusting']);
 
 async function sendMessage(chatId, text) {
   if (!BOT_TOKEN) { console.error('[telegram] TELEGRAM_BOT_TOKEN not configured'); return; }
@@ -22,68 +15,6 @@ async function sendMessage(chatId, text) {
     await axios.post(`${TG_API}/sendMessage`, { chat_id: chatId, text });
   } catch (err) {
     console.error('[telegram] sendMessage error:', err.response?.data || err.message);
-  }
-}
-
-function summarizeAction(action) {
-  switch (action.type) {
-    case 'hire':
-      return `📋 Hire: ${action.firstName || ''} ${action.lastName || ''} as ${action.position || '-'}, salary ${action.salary ?? '-'} ${action.salaryCurrency || 'GEL'}, starting ${action.startDate || '-'}.`;
-    case 'firing':
-      return `📋 Terminate: ${action.employeeName || '-'}, end date ${action.endDate || '-'}. Reason: ${action.reason || '-'}`;
-    case 'transfer':
-      return `📋 Transfer: ${action.amount ?? '-'} GEL to ${action.clientName || '-'}, due ${action.dueDate || '-'}.${action.description ? ` Note: ${action.description}` : ''}`;
-    case 'promotion':
-      return `📋 Promote: ${action.employeeName || '-'} to ${action.newPosition || '-'}, salary ${action.oldSalary ?? '-'} → ${action.newSalary ?? '-'}, effective ${action.effectiveDate || '-'}.`;
-    case 'advance':
-      return `📋 Advance payment: ${action.employeeName || '-'}, ${action.totalAmount ?? '-'} ${action.currency || 'GEL'} over ${action.numMonths || '-'} month(s) starting ${action.startMonth || '-'}.`;
-    case 'adjusting':
-      return `📋 ${action.unitType || 'Adjustment'}: ${action.employeeName || '-'}, ${action.amount ?? '-'} ${action.currency || 'GEL'}.`;
-    default:
-      return `📋 ${action.type}`;
-  }
-}
-
-async function executeAction(userId, action, chatId) {
-  try {
-    if (action.type === 'hire') {
-      await createEmployeeRecord(userId, {
-        first_name: action.firstName, last_name: action.lastName,
-        personal_id: action.personalId, birthdate: action.birthdate,
-        position: action.position, salary: action.salary,
-        salary_currency: action.salaryCurrency, start_date: action.startDate,
-        department: action.department,
-      });
-      await sendMessage(chatId, `✅ Hired ${action.firstName} ${action.lastName}.`);
-    } else if (action.type === 'firing') {
-      await setEmployeeEndDate(userId, action.employeeId, action.endDate);
-      await sendMessage(chatId, `✅ ${action.employeeName || 'Employee'} terminated, end date ${action.endDate}.`);
-    } else if (action.type === 'transfer') {
-      await createTransferRecord(userId, 'Telegram Bot', null, {
-        client_name: action.clientName, agent_id: action.agentId || null,
-        amount: action.amount, due_date: action.dueDate,
-        description: action.description, iban: action.iban,
-      });
-      await sendMessage(chatId, `✅ Transfer of ${action.amount} GEL to ${action.clientName} submitted for approval.`);
-    } else if (action.type === 'promotion') {
-      if (action.newPosition) await updateEmployeePosition(userId, action.employeeId, action.newPosition);
-      if (action.newSalary != null) {
-        await recordSalaryChange(userId, action.employeeId, {
-          salary: action.newSalary, effective_date: action.effectiveDate, note: action.notes,
-        });
-      }
-      await sendMessage(chatId, `✅ ${action.employeeName || 'Employee'} promoted${action.newPosition ? ` to ${action.newPosition}` : ''}${action.newSalary != null ? `, salary now ${action.newSalary}` : ''}.`);
-    } else if (action.type === 'adjusting') {
-      await createEmployeeUnit(userId, action.employeeId, {
-        type: action.unitType, amount: action.amount,
-        date: new Date().toISOString().slice(0, 10),
-        currency: action.currency || 'GEL', include_in_salary: true,
-      });
-      await sendMessage(chatId, `✅ ${action.unitType || 'Adjustment'} of ${action.amount} ${action.currency || 'GEL'} recorded for ${action.employeeName || 'employee'}.`);
-    }
-  } catch (err) {
-    console.error('[telegram] executeAction error:', err.message);
-    await sendMessage(chatId, `❌ Failed: ${err.message}`);
   }
 }
 
@@ -187,7 +118,7 @@ router.post('/webhook', async (req, res) => {
       const lower = text.toLowerCase();
       if (['yes', 'y', 'confirm'].includes(lower)) {
         await supabase.from('telegram_pending_actions').delete().eq('id', pending.id);
-        await executeAction(userId, pending.action_payload, chatId);
+        await executeAction(userId, pending.action_payload, (t) => sendMessage(chatId, t));
         return;
       }
       if (['no', 'n', 'cancel'].includes(lower)) {
