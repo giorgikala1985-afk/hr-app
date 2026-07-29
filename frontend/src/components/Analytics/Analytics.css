@@ -16,8 +16,8 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
-  50%       { box-shadow: 0 0 18px 4px rgba(99,102,241,0.18); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(92,150,224,0); }
+  50%       { box-shadow: 0 0 18px 4px rgba(92,150,224,0.18); }
 }
 
 @keyframes spin {
@@ -50,7 +50,7 @@
   font-weight: 700;
   letter-spacing: 2.5px;
   text-transform: uppercase;
-  color: #6366f1;
+  color: #5c96e0;
   margin-bottom: 6px;
   display: flex;
   align-items: center;
@@ -62,7 +62,7 @@
   display: inline-block;
   width: 20px;
   height: 2px;
-  background: #6366f1;
+  background: #5c96e0;
   border-radius: 2px;
 }
 
@@ -101,8 +101,8 @@
 }
 
 .an-refresh-btn:hover {
-  border-color: #6366f1;
-  color: #6366f1;
+  border-color: #5c96e0;
+  color: #5c96e0;
   background: rgba(99,102,241,0.06);
 }
 
@@ -164,14 +164,14 @@
   pointer-events: none;
 }
 
-.an-stat--indigo::before { background: linear-gradient(90deg,#6366f1,#818cf8); }
-.an-stat--indigo::after  { background: #6366f1; }
-.an-stat--emerald::before{ background: linear-gradient(90deg,#479c73,#479c73); }
-.an-stat--emerald::after { background: #479c73; }
-.an-stat--violet::before { background: linear-gradient(90deg,#8b5cf6,#a78bfa); }
-.an-stat--violet::after  { background: #8b5cf6; }
-.an-stat--cyan::before   { background: linear-gradient(90deg,#06b6d4,#22d3ee); }
-.an-stat--cyan::after    { background: #06b6d4; }
+.an-stat--indigo::before { background: linear-gradient(90deg,#5c96e0,#82b3ea); }
+.an-stat--indigo::after  { background: #5c96e0; }
+.an-stat--emerald::before{ background: linear-gradient(90deg,#6ac79c,#93d9bb); }
+.an-stat--emerald::after { background: #6ac79c; }
+.an-stat--violet::before { background: linear-gradient(90deg,#625db2,#8c87c7); }
+.an-stat--violet::after  { background: #625db2; }
+.an-stat--cyan::before   { background: linear-gradient(90deg,#4d9a48,#7ab873); }
+.an-stat--cyan::after    { background: #4d9a48; }
 .an-stat--amber::before  { background: linear-gradient(90deg,#d59b41,#f0b95e); }
 .an-stat--amber::after   { background: #d59b41; }
 .an-stat--rose::before   { background: linear-gradient(90deg,#f68ab2,#fbb6ce); }
@@ -187,10 +187,10 @@
   margin-bottom: 18px;
 }
 
-.an-stat--indigo  .an-stat-icon { background: rgba(99,102,241,0.12); color: #6366f1; }
-.an-stat--emerald .an-stat-icon { background: rgba(71,156,115,0.12); color: #479c73; }
-.an-stat--violet  .an-stat-icon { background: rgba(139,92,246,0.12); color: #8b5cf6; }
-.an-stat--cyan    .an-stat-icon { background: rgba(6,182,212,0.12);  color: #06b6d4; }
+.an-stat--indigo  .an-stat-icon { background: rgba(92,150,224,0.12); color: #5c96e0; }
+.an-stat--emerald .an-stat-icon { background: rgba(106,199,156,0.12); color: #6ac79c; }
+.an-stat--violet  .an-stat-icon { background: rgba(98,93,178,0.12); color: #625db2; }
+.an-stat--cyan    .an-stat-icon { background: rgba(77,154,72,0.12);  color: #4d9a48; }
 .an-stat--amber   .an-stat-icon { background: rgba(213,155,65,0.12); color: #d59b41; }
 .an-stat--rose    .an-stat-icon { background: rgba(246,138,178,0.12);color: #f68ab2; }
 
@@ -247,7 +247,7 @@
   width: 4px;
   height: 16px;
   border-radius: 4px;
-  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  background: linear-gradient(180deg, #5c96e0, #625db2);
 }
 
 .an-select {
@@ -270,7 +270,7 @@
 
 .an-select:focus {
   outline: none;
-  border-color: #6366f1;
+  border-color: #5c96e0;
 }
 
 /* ── Bar chart ─────────────────────────────────────────────────────── */
@@ -315,7 +315,7 @@
 .an-bar:hover { filter: brightness(1.15); }
 
 .an-bar--net {
-  background: linear-gradient(180deg, #818cf8, #6366f1);
+  background: linear-gradient(180deg, #82b3ea, #5c96e0);
   box-shadow: 0 -2px 12px rgba(99,102,241,0.3);
 }
 
@@ -371,7 +371,7 @@
   border-radius: 3px;
 }
 
-.an-legend-dot--net { background: linear-gradient(135deg,#818cf8,#6366f1); }
+.an-legend-dot--net { background: linear-gradient(135deg,#82b3ea,#5c96e0); }
 .an-legend-dot--ded { background: #f87171; }
 
 /* ── Report table ──────────────────────────────────────────────────── */
@@ -407,7 +407,7 @@
 .an-td-month  { font-weight: 700; color: var(--text); }
 .an-td-amount { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .an-td-ded    { font-weight: 600; color: #f87171; font-variant-numeric: tabular-nums; }
-.an-td-net    { font-weight: 700; color: #818cf8; font-variant-numeric: tabular-nums; }
+.an-td-net    { font-weight: 700; color: #82b3ea; font-variant-numeric: tabular-nums; }
 
 .an-table-wrap tfoot td {
   border-top: 2px solid var(--border);
@@ -463,7 +463,7 @@
   background: var(--surface-2);
   padding: 14px 18px;
   border-radius: 12px;
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid #5c96e0;
   transition: background 0.15s;
 }
 
@@ -485,7 +485,7 @@
 .an-range-bar {
   height: 100%;
   border-radius: 999px;
-  background: linear-gradient(90deg, #6366f1, #818cf8);
+  background: linear-gradient(90deg, #5c96e0, #82b3ea);
   transition: width 0.7s cubic-bezier(0.34,1.56,0.64,1);
 }
 
@@ -519,7 +519,7 @@
   position: absolute;
   left: 0; top: 0; bottom: 0;
   width: 3px;
-  background: linear-gradient(180deg,#6366f1,#8b5cf6);
+  background: linear-gradient(180deg,#5c96e0,#625db2);
   border-radius: 12px 0 0 12px;
 }
 
@@ -533,7 +533,7 @@
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  color: #818cf8;
+  color: #82b3ea;
   margin-bottom: 6px;
 }
 
@@ -562,7 +562,7 @@
   width: 32px;
   height: 32px;
   border: 3px solid var(--border);
-  border-top-color: #6366f1;
+  border-top-color: #5c96e0;
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -580,7 +580,7 @@
 
 .an-retry-btn {
   padding: 9px 20px;
-  background: #6366f1;
+  background: #5c96e0;
   color: white;
   border: none;
   border-radius: 8px;
@@ -591,7 +591,7 @@
   transition: background 0.15s, transform 0.15s;
 }
 
-.an-retry-btn:hover { background: #4f46e5; transform: translateY(-1px); }
+.an-retry-btn:hover { background: #4a7fc4; transform: translateY(-1px); }
 
 /* ── Responsive ────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
@@ -656,7 +656,7 @@
   white-space: nowrap;
 }
 .dl-chart-toggle-btn.active {
-  background: #6366f1;
+  background: #5c96e0;
   color: #fff;
 }
 .dl-chart-toggle-btn:not(.active):hover {
