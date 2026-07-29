@@ -6,8 +6,6 @@ const supabase = require('../config/supabase');
 const { authenticateUser } = require('../middleware/auth');
 const { runFinBotChat } = require('../services/finbotChat');
 const { EXECUTABLE_TYPES, summarizeAction, executeAction } = require('../services/botActions');
-const { getBotDataSources, setBotDataSources, ALL_SOURCES } = require('../services/botSettings');
-const { buildDashboardSummary } = require('../services/dashboardSummary');
 
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
@@ -60,26 +58,6 @@ router.delete('/link', authenticateUser, async (req, res) => {
   try {
     await supabase.from('whatsapp_links').delete().eq('user_id', req.userId);
     res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// GET /api/whatsapp/settings — which data sources the bot can access.
-router.get('/settings', authenticateUser, async (req, res) => {
-  try {
-    const dataSources = await getBotDataSources(req.userId, 'whatsapp');
-    res.json({ dataSources, allSources: ALL_SOURCES });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/whatsapp/settings — save which data sources the bot can access.
-router.post('/settings', authenticateUser, async (req, res) => {
-  try {
-    const dataSources = await setBotDataSources(req.userId, 'whatsapp', req.body.dataSources);
-    res.json({ dataSources });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -140,7 +118,7 @@ router.post('/webhook', async (req, res) => {
         wa_id: waId, status: 'linked', linked_at: new Date().toISOString(),
         wa_name: contactName, link_code: null,
       }).eq('id', row.id);
-      await sendMessage(waId, '✅ Connected! You can now ask me to hire, fire, promote, adjust, or initiate a transfer — e.g. "fire John Doe, last day Aug 1, reason: resignation". Send "dashboard" for a quick summary.');
+      await sendMessage(waId, '✅ Connected! You can now ask me to hire, fire, promote, adjust, or initiate a transfer — e.g. "fire John Doe, last day Aug 1, reason: resignation".');
       return;
     }
 
@@ -158,11 +136,6 @@ router.post('/webhook', async (req, res) => {
     }
     const userId = link.user_id;
     const actorLabel = link.wa_name ? `${link.wa_name} (WhatsApp)` : 'WhatsApp';
-
-    if (/^\/?dashboard$/i.test(text)) {
-      await sendMessage(waId, await buildDashboardSummary(userId));
-      return;
-    }
 
     const { data: pending } = await supabase.from('whatsapp_pending_actions')
       .select('*').eq('wa_id', waId).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -183,10 +156,9 @@ router.post('/webhook', async (req, res) => {
       return;
     }
 
-    const dataSources = await getBotDataSources(userId, 'whatsapp');
     const { answer } = await runFinBotChat({
       userId,
-      dataSources,
+      dataSources: ['employees', 'coagents'],
       messages: [{ role: 'user', content: text }],
       botName: 'Finpilot Assistant',
     });

@@ -5,8 +5,6 @@ const supabase = require('../config/supabase');
 const { authenticateUser } = require('../middleware/auth');
 const { runFinBotChat } = require('../services/finbotChat');
 const { EXECUTABLE_TYPES, summarizeAction, executeAction } = require('../services/botActions');
-const { getBotDataSources, setBotDataSources, ALL_SOURCES } = require('../services/botSettings');
-const { buildDashboardSummary } = require('../services/dashboardSummary');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TG_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
@@ -58,26 +56,6 @@ router.delete('/link', authenticateUser, async (req, res) => {
   }
 });
 
-// GET /api/telegram/settings — which data sources the bot can access.
-router.get('/settings', authenticateUser, async (req, res) => {
-  try {
-    const dataSources = await getBotDataSources(req.userId, 'telegram');
-    res.json({ dataSources, allSources: ALL_SOURCES });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// POST /api/telegram/settings — save which data sources the bot can access.
-router.post('/settings', authenticateUser, async (req, res) => {
-  try {
-    const dataSources = await setBotDataSources(req.userId, 'telegram', req.body.dataSources);
-    res.json({ dataSources });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // POST /api/telegram/webhook — Telegram calls this directly (no user session).
 // Auth: Telegram's `X-Telegram-Bot-Api-Secret-Token` header, set via setWebhook's
 // secret_token param, compared against TELEGRAM_WEBHOOK_SECRET.
@@ -115,7 +93,7 @@ router.post('/webhook', async (req, res) => {
         chat_id: chatId, status: 'linked', linked_at: new Date().toISOString(),
         telegram_username: msg.from?.username || null, link_code: null,
       }).eq('id', row.id);
-      await sendMessage(chatId, '✅ Connected! You can now ask me to hire, fire, promote, adjust, or initiate a transfer — e.g. "fire John Doe, last day Aug 1, reason: resignation". Send /dashboard for a quick summary.');
+      await sendMessage(chatId, '✅ Connected! You can now ask me to hire, fire, or initiate a transfer — e.g. "fire John Doe, last day Aug 1, reason: resignation".');
       return;
     }
 
@@ -133,11 +111,6 @@ router.post('/webhook', async (req, res) => {
     }
     const userId = link.user_id;
     const actorLabel = link.telegram_username ? `@${link.telegram_username} (Telegram)` : 'Telegram';
-
-    if (text === '/dashboard') {
-      await sendMessage(chatId, await buildDashboardSummary(userId));
-      return;
-    }
 
     const { data: pending } = await supabase.from('telegram_pending_actions')
       .select('*').eq('chat_id', chatId).order('created_at', { ascending: false }).limit(1).maybeSingle();
@@ -158,10 +131,9 @@ router.post('/webhook', async (req, res) => {
       return;
     }
 
-    const dataSources = await getBotDataSources(userId, 'telegram');
     const { answer } = await runFinBotChat({
       userId,
-      dataSources,
+      dataSources: ['employees', 'coagents'],
       messages: [{ role: 'user', content: text }],
       botName: 'Finpilot Assistant',
     });
