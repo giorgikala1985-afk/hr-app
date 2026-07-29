@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { BOT_DATA_SOURCE_DEFS } from '../../utils/botDataSourceDefs';
 
 function WhatsAppSettings() {
   const [loading, setLoading] = useState(true);
@@ -8,6 +9,10 @@ function WhatsAppSettings() {
   const [codeInfo, setCodeInfo] = useState(null); // { code, businessNumber, expiresAt }
   const [generating, setGenerating] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+
+  const [dataSources, setDataSources] = useState(new Set());
+  const [savingSources, setSavingSources] = useState(false);
+  const [sourcesSaved, setSourcesSaved] = useState(false);
 
   const loadStatus = async () => {
     setLoading(true);
@@ -23,7 +28,36 @@ function WhatsAppSettings() {
     }
   };
 
-  useEffect(() => { loadStatus(); }, []);
+  const loadSettings = async () => {
+    try {
+      const res = await api.get('/whatsapp/settings');
+      setDataSources(new Set(res.data.dataSources || []));
+    } catch {}
+  };
+
+  useEffect(() => { loadStatus(); loadSettings(); }, []);
+
+  const toggleSource = (key) => {
+    setDataSources(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+    setSourcesSaved(false);
+  };
+
+  const handleSaveSources = async () => {
+    setSavingSources(true);
+    try {
+      await api.post('/whatsapp/settings', { dataSources: Array.from(dataSources) });
+      setSourcesSaved(true);
+      setTimeout(() => setSourcesSaved(false), 2000);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save data access settings.');
+    } finally {
+      setSavingSources(false);
+    }
+  };
 
   const handleConnect = async () => {
     setGenerating(true);
@@ -141,6 +175,49 @@ function WhatsAppSettings() {
           </button>
         </div>
       )}
+
+      {/* Control center — what data the bot can see */}
+      <div style={{ marginTop: 28 }}>
+        <h4 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Data Access</h4>
+        <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-3)' }}>
+          Choose which company data the WhatsApp bot can read when answering questions. Send <span style={{ fontFamily: 'monospace' }}>dashboard</span> in the chat for a quick summary.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {BOT_DATA_SOURCE_DEFS.map(ds => (
+            <label
+              key={ds.key}
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 8, padding: '9px 12px',
+                borderRadius: 8, border: '1px solid var(--border-2)',
+                background: dataSources.has(ds.key) ? 'var(--surface-2)' : 'var(--surface)',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={dataSources.has(ds.key)}
+                onChange={() => toggleSource(ds.key)}
+                style={{ marginTop: 2 }}
+              />
+              <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: ds.color }}>{ds.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-4)', marginTop: 1 }}>{ds.desc}</div>
+              </div>
+            </label>
+          ))}
+        </div>
+        <button
+          onClick={handleSaveSources}
+          disabled={savingSources}
+          style={{
+            marginTop: 14, padding: '8px 18px', borderRadius: 8, border: 'none',
+            background: sourcesSaved ? '#479c73' : '#25D366', color: '#fff',
+            fontSize: 13, fontWeight: 600, cursor: savingSources ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {savingSources ? 'Saving…' : sourcesSaved ? '✓ Saved' : 'Save Data Access'}
+        </button>
+      </div>
     </div>
   );
 }
