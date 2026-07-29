@@ -66,6 +66,18 @@ app.use(cors({
 app.use(express.json({ limit: '50mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
+// Prevent a single hung downstream call (e.g. a stalled Supabase request) from
+// tying up the connection indefinitely — fail it after 20s instead of hanging
+// forever, so the rest of the server stays responsive.
+app.use((req, res, next) => {
+  res.setTimeout(20000, () => {
+    if (!res.headersSent) {
+      res.status(503).json({ error: 'Request timed out. Please try again.' });
+    }
+  });
+  next();
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'HR API is running', timestamp: new Date().toISOString() });
