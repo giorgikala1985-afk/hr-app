@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import ChartDesignsGallery from './ChartDesignsGallery';
+import ModuleMapView from './ModuleMapView';
 
 const RIGHTS_STYLE = {
   'Super Admin': { background: '#fdf4ff', color: '#7e22ce', border: '1px solid #e9d5ff' },
@@ -351,7 +352,7 @@ function AdminPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[{ key: 'companies', label: 'Companies' }, { key: 'users', label: 'All Users' }, { key: 'chartDesigns', label: 'Chart Designs' }].map(t => (
+        {[{ key: 'companies', label: 'Companies' }, { key: 'users', label: 'All Users' }, { key: 'chartDesigns', label: 'Chart Designs' }, { key: 'moduleMap', label: 'Module Map' }].map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
             padding: '7px 20px', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'inherit',
@@ -364,7 +365,7 @@ function AdminPage() {
       </div>
 
       {/* Search */}
-      {activeTab !== 'chartDesigns' && (
+      {activeTab !== 'chartDesigns' && activeTab !== 'moduleMap' && (
         <div style={{ marginBottom: 16 }}>
           <input
             value={search}
@@ -377,6 +378,8 @@ function AdminPage() {
 
       {activeTab === 'chartDesigns' ? (
         <ChartDesignsGallery />
+      ) : activeTab === 'moduleMap' ? (
+        <ModuleMapView />
       ) : loading ? (
         <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '60px 0', fontSize: 15 }}>Loading…</div>
       ) : activeTab === 'companies' ? (
