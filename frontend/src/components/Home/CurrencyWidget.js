@@ -3,10 +3,62 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { ExchangeDollarIcon } from '@hugeicons/core-free-icons';
 
+// Windows commonly renders flag emoji (🇺🇸🇪🇺🇬🇧) as plain two-letter text
+// instead of a flag glyph, so these are drawn as small inline SVGs instead —
+// guaranteed to render the same everywhere.
+function FlagUS() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24">
+      <clipPath id="cw-flag-us"><circle cx="12" cy="12" r="12" /></clipPath>
+      <g clipPath="url(#cw-flag-us)">
+        <rect width="24" height="24" fill="#B22234" />
+        <rect y="1.85" width="24" height="1.85" fill="#fff" />
+        <rect y="5.54" width="24" height="1.85" fill="#fff" />
+        <rect y="9.23" width="24" height="1.85" fill="#fff" />
+        <rect y="12.92" width="24" height="1.85" fill="#fff" />
+        <rect y="16.62" width="24" height="1.85" fill="#fff" />
+        <rect y="20.31" width="24" height="1.85" fill="#fff" />
+        <rect width="10" height="13" fill="#3C3B6E" />
+      </g>
+    </svg>
+  );
+}
+
+function FlagEU() {
+  const dots = [...Array(8)].map((_, i) => {
+    const angle = (i / 8) * 2 * Math.PI - Math.PI / 2;
+    return { x: 12 + 7 * Math.cos(angle), y: 12 + 7 * Math.sin(angle) };
+  });
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24">
+      <clipPath id="cw-flag-eu"><circle cx="12" cy="12" r="12" /></clipPath>
+      <g clipPath="url(#cw-flag-eu)">
+        <rect width="24" height="24" fill="#003399" />
+        {dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r="1.15" fill="#FFCC00" />)}
+      </g>
+    </svg>
+  );
+}
+
+function FlagGB() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24">
+      <clipPath id="cw-flag-gb"><circle cx="12" cy="12" r="12" /></clipPath>
+      <g clipPath="url(#cw-flag-gb)">
+        <rect width="24" height="24" fill="#00247D" />
+        <path d="M0,0 L24,24 M24,0 L0,24" stroke="#fff" strokeWidth="4" />
+        <path d="M0,0 L24,24 M24,0 L0,24" stroke="#CF142B" strokeWidth="2" />
+        <path d="M12,0 V24 M0,12 H24" stroke="#fff" strokeWidth="6" />
+        <path d="M12,0 V24 M0,12 H24" stroke="#CF142B" strokeWidth="3.5" />
+      </g>
+    </svg>
+  );
+}
+
 const CURRENCIES = [
-  { code: 'USD', flag: '🇺🇸', color: '#479c73' },
-  { code: 'EUR', flag: '🇪🇺', color: '#2563eb' },
-  { code: 'GBP', flag: '🇬🇧', color: '#7c3aed' },
+  { code: 'USD', Flag: FlagUS, color: '#479c73' },
+  { code: 'EUR', Flag: FlagEU, color: '#2563eb' },
+  { code: 'GBP', Flag: FlagGB, color: '#7c3aed' },
 ];
 
 function todayStr() {
@@ -57,9 +109,9 @@ function CurrencyWidget() {
         ) : (
           <>
             <div style={{ display: 'flex', gap: 12, alignItems: 'baseline' }}>
-              {CURRENCIES.map(({ code, flag, color }) => (
-                <div key={code} style={{ display: 'flex', alignItems: 'baseline', gap: 3 }}>
-                  <span style={{ fontSize: 13 }}>{flag}</span>
+              {CURRENCIES.map(({ code, Flag, color }) => (
+                <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Flag />
                   <span style={{ fontSize: 15, fontWeight: 700, color, fontVariantNumeric: 'tabular-nums' }}>
                     {rates[code]?.toFixed(4) ?? '—'}
                   </span>
