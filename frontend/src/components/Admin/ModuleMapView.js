@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { MODULE_MAP } from './moduleMap';
+import ConnectionsGraphView from './ConnectionsGraphView';
 
 function countNodes(node) {
   return 1 + (node.children || []).reduce((sum, c) => sum + countNodes(c), 0);
@@ -45,10 +46,28 @@ function TreeNode({ node, depth, color }) {
 
 export default function ModuleMapView() {
   const [zoom, setZoom] = useState(1);
+  const [view, setView] = useState('structure');
   const total = countNodes(MODULE_MAP) - 1; // exclude the synthetic root
 
   return (
     <div>
+      <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 16, width: 'fit-content' }}>
+        {[{ key: 'structure', label: 'Structure' }, { key: 'connections', label: 'Connections' }].map(v => (
+          <button key={v.key} onClick={() => setView(v.key)} style={{
+            padding: '7px 18px', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            fontFamily: 'inherit',
+            background: view === v.key ? 'var(--surface)' : 'transparent',
+            color: view === v.key ? 'var(--text)' : 'var(--text-3)',
+            boxShadow: view === v.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+            transition: 'all 0.15s',
+          }}>{v.label}</button>
+        ))}
+      </div>
+
+      {view === 'connections' ? (
+        <ConnectionsGraphView />
+      ) : (
+        <>
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         marginBottom: 16, flexWrap: 'wrap', gap: 12,
@@ -151,6 +170,8 @@ export default function ModuleMapView() {
           padding: 1px 5px;
         }
       `}</style>
+        </>
+      )}
     </div>
   );
 }
