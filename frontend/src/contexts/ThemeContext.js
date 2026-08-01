@@ -24,6 +24,12 @@ const GOOGLE_FONTS = {
   'IBM Plex Sans': 'family=IBM+Plex+Sans:wght@400;500;600;700',
   'Public Sans': 'family=Public+Sans:wght@400;500;600;700',
   'Source Sans 3': 'family=Source+Sans+3:wght@400;500;600;700',
+  // The only two Google Fonts families with real Georgian glyph coverage
+  // (verified against google/fonts' own METADATA.pb subset declarations —
+  // every other font in this app, including the Latin ones above, has zero
+  // Georgian glyphs and silently falls back without these).
+  'Noto Sans Georgian': 'family=Noto+Sans+Georgian:wght@400;500;600;700',
+  'Noto Serif Georgian': 'family=Noto+Serif+Georgian:wght@400;500;600;700',
 };
 
 export function ThemeProvider({ children }) {
