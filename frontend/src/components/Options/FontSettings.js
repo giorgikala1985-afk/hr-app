@@ -6,6 +6,7 @@ const BASE_FONTS = [
   { label: 'Inter', value: 'Inter' },
   { label: 'Plus Jakarta Sans', value: 'Plus Jakarta Sans' },
   { label: 'Roboto', value: 'Roboto' },
+  { label: 'Product Sans', value: 'Product Sans', local: true },
 ];
 
 const MONO_FONTS = [
@@ -34,12 +35,13 @@ export default function FontSettings() {
           Base Font
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {BASE_FONTS.map(({ label, value }) => {
+          {BASE_FONTS.map(({ label, value, local }) => {
             const isActive = fontBase === value;
             return (
               <button
                 key={value}
                 onClick={() => setFontBase(value)}
+                title={local ? 'Only renders if this font is already installed on your device — Google doesn\'t publish it for web use.' : undefined}
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
@@ -53,11 +55,14 @@ export default function FontSettings() {
                   fontFamily: value === 'Lexend' ? 'inherit' : `'${value}', sans-serif`,
                 }}
               >
-                {label}
+                {label}{local && <span style={{ opacity: 0.6, fontWeight: 400 }}> *</span>}
               </button>
             );
           })}
         </div>
+        <p style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 8 }}>
+          * Product Sans isn't distributed by Google Fonts, so it only appears if it's already installed on your device — otherwise this falls back to the default automatically.
+        </p>
       </div>
 
       {/* Monospace Font */}
