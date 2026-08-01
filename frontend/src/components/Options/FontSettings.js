@@ -13,6 +13,7 @@ const MONO_FONTS = [
   { label: 'IBM Plex Sans', value: 'IBM Plex Sans' },
   { label: 'Public Sans', value: 'Public Sans' },
   { label: 'Source Sans 3', value: 'Source Sans 3' },
+  { label: 'Product Sans', value: 'Product Sans', local: true },
 ];
 
 export default function FontSettings() {
@@ -65,12 +66,13 @@ export default function FontSettings() {
           Numbers Font
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {MONO_FONTS.map(({ label, value }) => {
+          {MONO_FONTS.map(({ label, value, local }) => {
             const isActive = fontMono === value;
             return (
               <button
                 key={value}
                 onClick={() => setFontMono(value)}
+                title={local ? 'Only renders if this font is already installed on your device — Google doesn\'t publish it for web use.' : undefined}
                 style={{
                   padding: '8px 16px',
                   borderRadius: 8,
@@ -84,13 +86,14 @@ export default function FontSettings() {
                   fontFamily: value === 'default' ? 'var(--font-mono)' : `'${value}', sans-serif`,
                 }}
               >
-                {label}
+                {label}{local && <span style={{ opacity: 0.6, fontWeight: 400 }}> *</span>}
               </button>
             );
           })}
         </div>
         <p style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 8 }}>
           Used for tabular data like salaries, account numbers, and rates.
+          {' '}* Product Sans isn't distributed by Google Fonts, so it only appears if it's already installed on your device — otherwise this falls back to the default automatically.
         </p>
       </div>
       
