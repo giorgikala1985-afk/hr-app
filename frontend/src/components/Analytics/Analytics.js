@@ -3,6 +3,7 @@ import api from '../../services/api';
 import './Analytics.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import SharedReports from './SharedReports';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line
@@ -514,6 +515,7 @@ function Analytics() {
         {[
           { key: 'overview', label: t('analytics.tabOverview') },
           { key: 'employees', label: t('analytics.tabEmployees') },
+          { key: 'shared', label: t('analytics.tabShared') },
         ].map(tab => (
           <button key={tab.key} onClick={() => setSubTab(tab.key)} style={{
             padding: '7px 16px', border: 'none', borderRadius: 7, fontWeight: 600, fontSize: 13, cursor: 'pointer',
@@ -526,6 +528,8 @@ function Analytics() {
       </div>
 
       {subTab === 'employees' && <EmployeeInsights employees={employees} t={t} />}
+
+      {subTab === 'shared' && <SharedReports />}
 
       {subTab === 'overview' && <>
 

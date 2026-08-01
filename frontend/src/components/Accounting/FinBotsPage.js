@@ -506,10 +506,120 @@ const CHART_COLORS = [
   { start: '#f17972', end: '#ff9d95', glow: 'rgba(241,121,114,0.3)' }, // Red
 ];
 
-function ChartBlock({ chartData }) {
+function ShareChartModal({ chartData, title, botName, onClose }) {
+  const [teammates, setTeammates] = useState([]);
+  const [selected, setSelected] = useState(new Set());
+  const [customTitle, setCustomTitle] = useState(title || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const overlayRef = useRef(null);
+
+  useEffect(() => {
+    api.get('/users').then(r => setTeammates(r.data.users || [])).catch(() => {});
+  }, []);
+
+  const toggle = (id) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleShare = async () => {
+    if (selected.size === 0) return;
+    setSaving(true); setError('');
+    try {
+      await api.post('/shared-reports', {
+        title: customTitle.trim() || null,
+        botName,
+        chartData,
+        recipientIds: Array.from(selected),
+      });
+      setSuccess(true);
+      setTimeout(onClose, 1200);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to share.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOverlayClick = (e) => { if (e.target === overlayRef.current) onClose(); };
+
+  return (
+    <div ref={overlayRef} onClick={handleOverlayClick} style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+      zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
+    }}>
+      <div style={{
+        background: 'var(--surface)', borderRadius: 16, width: '100%', maxWidth: 400,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.4)', border: '1px solid var(--border-2)', overflow: 'hidden',
+      }}>
+        <div style={{
+          padding: '18px 22px', borderBottom: '1px solid var(--border-2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-2)',
+        }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>Share Chart</div>
+          <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 16, cursor: 'pointer' }}>×</button>
+        </div>
+
+        <div style={{ padding: 20 }}>
+          {error && <div style={{ padding: '8px 12px', background: 'rgba(220,38,38,0.12)', color: '#f87171', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, fontSize: 12.5, marginBottom: 14 }}>{error}</div>}
+          {success && <div style={{ padding: '8px 12px', background: 'rgba(71,156,115,0.12)', color: '#479c73', border: '1px solid rgba(71,156,115,0.25)', borderRadius: 8, fontSize: 12.5, marginBottom: 14 }}>✓ Shared successfully.</div>}
+
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5 }}>Title (optional)</label>
+          <input
+            value={customTitle} onChange={e => setCustomTitle(e.target.value)}
+            placeholder="e.g. Q3 Salary Breakdown"
+            style={{ width: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, marginBottom: 16, outline: 'none' }}
+          />
+
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>Share with</label>
+          <div style={{ maxHeight: 220, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {teammates.length === 0 && (
+              <div style={{ fontSize: 12.5, color: 'var(--text-4)' }}>No teammates found — add one in Options → Users.</div>
+            )}
+            {teammates.map(tm => (
+              <label key={tm.id} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px',
+                borderRadius: 8, border: '1px solid var(--border-2)',
+                background: selected.has(tm.id) ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer',
+              }}>
+                <input type="checkbox" checked={selected.has(tm.id)} onChange={() => toggle(tm.id)} />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)' }}>{tm.name || tm.email}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-4)' }}>{tm.email}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
+            <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+            <button
+              onClick={handleShare}
+              disabled={saving || success || selected.size === 0}
+              style={{
+                padding: '8px 18px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 13,
+                background: saving || success || selected.size === 0 ? 'var(--surface-2)' : '#3b82f6',
+                color: saving || success || selected.size === 0 ? 'var(--text-3)' : '#fff',
+                cursor: saving || success || selected.size === 0 ? 'not-allowed' : 'pointer',
+              }}
+            >{saving ? 'Sharing…' : `Share${selected.size ? ` (${selected.size})` : ''}`}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ChartBlock({ chartData, botName, shareable = true }) {
   const { type, title, labels = [], datasets = [] } = chartData;
   const containerRef = useRef(null);
   const [saving, setSaving] = useState(false);
+  const [showShare, setShowShare] = useState(false);
 
   const handleSavePng = async () => {
     if (!containerRef.current || saving) return;
@@ -821,6 +931,24 @@ function ChartBlock({ chartData }) {
             </svg>
             PDF
           </button>
+          {shareable && (
+            <button
+              onClick={() => setShowShare(true)}
+              title="Share with a teammate"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '4px 10px', borderRadius: 7, border: '1px solid var(--border)',
+                background: 'var(--surface-2)', color: 'var(--text-3)', cursor: 'pointer',
+                fontSize: 11, fontWeight: 600, transition: 'all 0.15s',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/><line x1="15.4" y1="6.5" x2="8.6" y2="10.5"/>
+              </svg>
+              Share
+            </button>
+          )}
         </div>
       </div>
       {type === 'matrix' ? (
@@ -829,6 +957,14 @@ function ChartBlock({ chartData }) {
         <ResponsiveContainer width="100%" height={['treemap', 'radar', 'radial-bar', 'funnel'].includes(type) ? 360 : 320}>
           {chart}
         </ResponsiveContainer>
+      )}
+      {showShare && (
+        <ShareChartModal
+          chartData={chartData}
+          title={title}
+          botName={botName}
+          onClose={() => setShowShare(false)}
+        />
       )}
     </div>
   );
@@ -1047,13 +1183,13 @@ function OrderActionCard({ action, botColor }) {
   );
 }
 
-function MessageContent({ content, botColor }) {
+function MessageContent({ content, botColor, botName }) {
   const parts = parseMessageParts(content);
   return (
     <>
       {parts.map((p, i) =>
         p.kind === 'chart'
-          ? <ChartBlock key={i} chartData={p.data} />
+          ? <ChartBlock key={i} chartData={p.data} botName={botName} />
           : p.kind === 'order_action'
           ? <OrderActionCard key={i} action={p.data} botColor={botColor} />
           : <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{p.text}</span>
@@ -1209,7 +1345,7 @@ export function BotChat({ bot, showHeader = true }) {
               <div className="fb-msg-sender">
                 {msg.role === 'user' ? 'You' : msg.role === 'error' ? 'Error' : bot.name}
               </div>
-              <div className="fb-msg-text"><MessageContent content={msg.content} botColor={bot.color} /></div>
+              <div className="fb-msg-text"><MessageContent content={msg.content} botColor={bot.color} botName={bot.name} /></div>
             </div>
           </div>
         ))}

@@ -38,6 +38,7 @@ const testDebugRoutes = require('./routes/test_debug');
 const hierarchyRoutes = require('./routes/hierarchies');
 const telegramRoutes = require('./routes/telegram');
 const whatsappRoutes = require('./routes/whatsapp');
+const sharedReportsRoutes = require('./routes/shared_reports');
 const { authenticateUser } = require('./middleware/auth');
 
 // Force restart to apply FinBot debug changes
@@ -112,6 +113,7 @@ app.use('/api/rsge', authenticateUser, rsgeRoutes);
 app.use('/api/billing', billingRoutes);
 // FinBots: AI assistants connected to company data
 app.use('/api/finbots', authenticateUser, finbotsRoutes);
+app.use('/api/shared-reports', authenticateUser, sharedReportsRoutes);
 // Notifications
 app.use('/api/notifications', authenticateUser, notificationRoutes);
 // Requests
