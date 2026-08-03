@@ -73,7 +73,7 @@ export default function ModuleMapView() {
         marginBottom: 16, flexWrap: 'wrap', gap: 12,
       }}>
         <div style={{ fontSize: 12.5, color: 'var(--text-3)', maxWidth: 620 }}>
-          Every section, tab, and sub-tab in Finpilot — click a node to expand or collapse it.
+          Every section, tab, and sub-tab in Datum — click a node to expand or collapse it.
           {' '}<strong>{total}</strong> nodes mapped. To add a future module, add an entry to{' '}
           <code style={{ background: 'var(--surface-2)', padding: '1px 5px', borderRadius: 4 }}>
             frontend/src/components/Admin/moduleMap.js

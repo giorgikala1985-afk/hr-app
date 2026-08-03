@@ -1,4 +1,4 @@
--- Links a WhatsApp number to a Finpilot account, and holds short-lived
+-- Links a WhatsApp number to a Datum account, and holds short-lived
 -- pending actions awaiting a YES/NO confirmation from the user in chat.
 -- Mirrors telegram_migration.sql's telegram_links / telegram_pending_actions.
 

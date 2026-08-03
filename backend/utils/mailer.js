@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
 async function sendSigningInvite({ toEmail, toName, signUrl, companyName }) {
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
   await transporter.sendMail({
-    from: `"${companyName || 'Finpilot'}" <${from}>`,
+    from: `"${companyName || 'Datum'}" <${from}>`,
     to: toEmail,
     subject: 'Please sign your Employment Agreement',
     html: `
@@ -55,9 +55,9 @@ async function sendInvoiceEmail({ toEmail, toName, invoice, pdfBuffer, companyNa
   }];
   if (extraAttachment) attachments.push(extraAttachment);
   await transporter.sendMail({
-    from: `"${companyName || 'Finpilot'}" <${from}>`,
+    from: `"${companyName || 'Datum'}" <${from}>`,
     to: toEmail,
-    subject: `Invoice ${invoice.invoice_number || ''} from ${companyName || 'Finpilot'}`,
+    subject: `Invoice ${invoice.invoice_number || ''} from ${companyName || 'Datum'}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1e293b;">
         <h2 style="color:#1e293b;">Invoice ${invoice.invoice_number || ''}</h2>
@@ -65,7 +65,7 @@ async function sendInvoiceEmail({ toEmail, toName, invoice, pdfBuffer, companyNa
         <p>Please find attached invoice <strong>${invoice.invoice_number || ''}</strong>
            for <strong>${total} ${cur}</strong>${invoice.due_date ? `, due <strong>${new Date(invoice.due_date).toLocaleDateString('en-GB')}</strong>` : ''}.</p>
         ${invoice.notes ? `<p style="font-size:13px;color:#475569;">${invoice.notes}</p>` : ''}
-        <p style="font-size:13px;color:#94a3b8;">Thank you for your business.<br/>${companyName || 'Finpilot'}</p>
+        <p style="font-size:13px;color:#94a3b8;">Thank you for your business.<br/>${companyName || 'Datum'}</p>
       </div>
     `,
     attachments,

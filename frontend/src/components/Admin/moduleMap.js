@@ -18,7 +18,7 @@ import {
 
 export const MODULE_MAP = {
   id: 'root',
-  label: 'Finpilot',
+  label: 'Datum',
   color: '#5c96e0',
   children: [
     {

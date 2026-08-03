@@ -1,4 +1,4 @@
--- Links a Telegram chat to a Finpilot account, and holds short-lived
+-- Links a Telegram chat to a Datum account, and holds short-lived
 -- pending actions awaiting a YES/NO confirmation from the user in chat.
 
 CREATE TABLE IF NOT EXISTS telegram_links (

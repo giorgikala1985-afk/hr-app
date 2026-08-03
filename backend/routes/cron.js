@@ -40,7 +40,7 @@ router.all('/run-invoices', async (req, res) => {
     for (const inv of (scheduled || [])) {
       results.processed++;
       try {
-        let companyName = 'Finpilot';
+        let companyName = 'Datum';
         try {
           const { data } = await supabase.auth.admin.getUserById(inv.user_id);
           companyName = data?.user?.user_metadata?.company_name || companyName;
@@ -70,7 +70,7 @@ router.all('/run-invoices', async (req, res) => {
     for (const src of (due || [])) {
       results.processed++;
       try {
-        let companyName = 'Finpilot';
+        let companyName = 'Datum';
         try {
           const { data } = await supabase.auth.admin.getUserById(src.user_id);
           companyName = data?.user?.user_metadata?.company_name || companyName;

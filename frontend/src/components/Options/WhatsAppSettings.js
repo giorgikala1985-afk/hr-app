@@ -93,7 +93,7 @@ function WhatsAppSettings() {
     <div style={{ maxWidth: 560 }}>
       <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>WhatsApp</h3>
       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-3)' }}>
-        Connect WhatsApp to hire, fire, promote, adjust, or initiate transfers by chatting with the Finpilot bot.
+        Connect WhatsApp to hire, fire, promote, adjust, or initiate transfers by chatting with the Datum bot.
       </p>
 
       {error && <div className="msg-error" style={{ marginBottom: 14 }}>{error}</div>}
@@ -133,9 +133,9 @@ function WhatsAppSettings() {
                 href={`https://wa.me/${codeInfo.businessNumber}?text=${encodeURIComponent(`link ${codeInfo.code}`)}`}
                 target="_blank" rel="noreferrer" style={{ color: '#25D366', fontWeight: 600 }}
               >
-                the Finpilot WhatsApp number
+                the Datum WhatsApp number
               </a>
-            ) : 'the Finpilot WhatsApp number'}{' '}
+            ) : 'the Datum WhatsApp number'}{' '}
             (tapping the link above pre-fills the message below).<br />
             2. Send this message:
           </p>

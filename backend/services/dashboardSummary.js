@@ -37,7 +37,7 @@ async function buildDashboardSummary(userId) {
     .filter(b => b.next <= in30)
     .sort((a, b) => a.next - b.next);
 
-  let msg = `📊 Finpilot Dashboard\n\n`;
+  let msg = `📊 Datum Dashboard\n\n`;
   msg += `👥 Total Employees: ${emps.length}\n`;
   msg += `✅ Active: ${active.length}\n`;
   msg += `🏢 Departments: ${departments.size}\n`;

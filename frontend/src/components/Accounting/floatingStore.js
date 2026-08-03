@@ -1,7 +1,7 @@
 // Client-side store for which FinBots are pinned as floating chat widgets.
 // Kept in localStorage so it works without backend/DB schema changes.
-export const FLOATING_KEY = 'finpilot_floating_bots';
-export const FLOATING_EVENT = 'finpilot_floating_changed';
+export const FLOATING_KEY = 'datum_floating_bots';
+export const FLOATING_EVENT = 'datum_floating_changed';
 
 export function loadFloatingIds() {
   try { return JSON.parse(localStorage.getItem(FLOATING_KEY)) || []; } catch { return []; }

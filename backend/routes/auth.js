@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { authenticateUser } = require('../middleware/auth');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'finpilot-member-secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'datum-member-secret';
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {

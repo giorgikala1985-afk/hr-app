@@ -219,7 +219,7 @@ router.post('/companies/:id/payment-link', authenticateUser, adminGuard, async (
       returnUrl: `${FRONTEND_URL}/billing?success=true`,
       callbackUrl,
       merchantPaymentId: `adminsub_${id}_${Date.now()}`,
-      description: 'Finpilot Subscription',
+      description: 'Datum Subscription',
     });
 
     // Save amount/currency and the pending pay id; the shared /billing/callback

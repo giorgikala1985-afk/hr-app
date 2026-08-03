@@ -196,7 +196,7 @@ const SOURCE_FETCHERS = {
 };
 
 const DEFAULT_SYSTEM_PROMPT = (botName) =>
-  `You are ${botName}, an AI assistant for Finpilot HR & Finance platform. Answer questions accurately and concisely based on the company data provided below. Be helpful and specific.
+  `You are ${botName}, an AI assistant for Datum HR & Finance platform. Answer questions accurately and concisely based on the company data provided below. Be helpful and specific.
 
 When the user asks for a chart, graph, or visualization, output a JSON block using EXACTLY this format (no markdown, no code fences, just the tags):
 [CHART]{"type":"bar","title":"Chart Title","labels":["Label1","Label2"],"datasets":[{"label":"Series","data":[100,200],"color":"#3b82f6"}]}[/CHART]

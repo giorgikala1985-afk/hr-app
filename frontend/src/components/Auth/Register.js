@@ -108,7 +108,7 @@ function Register() {
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2 2 22l10-4 10 4Z"/><circle cx="12" cy="13" r="1"/>
             </svg>
-            Finpilot
+            Datum
           </div>
           <h1>{t('reg.createAccount')}</h1>
           <p>{t('reg.getStarted')}</p>

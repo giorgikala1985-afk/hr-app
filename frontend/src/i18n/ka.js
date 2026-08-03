@@ -15,7 +15,7 @@ const ka = {
   'table.showingRows': '{from}–{to} / {total}',
 
   // ===== Header / Nav =====
-  'nav.logo': 'Finpilot',
+  'nav.logo': 'Datum',
   'nav.home': 'მთავარი',
   'nav.employees': 'თანამშრომლები',
   'nav.salaries': 'ხელფასები',
@@ -46,7 +46,7 @@ const ka = {
   'docs.devicesComingSoon': 'მალე',
 
   // ===== Auth =====
-  'auth.title': 'Finpilot',
+  'auth.title': 'Datum',
   'auth.signInSubtitle': 'შედით თანამშრომლების მართვისთვის',
   'auth.signUpSubtitle': 'შექმენით თქვენი ანგარიში',
   'auth.email': 'ელ-ფოსტა',
@@ -715,7 +715,7 @@ const ka = {
   'billing.loading': 'ჩატვირთვა...',
 
   // ===== Subscription =====
-  'sub.title': 'Finpilot-ზე გამოწერა',
+  'sub.title': 'Datum-ზე გამოწერა',
   'sub.subtitle': 'მიიღეთ სრული წვდომა HR მართვის ყველა ფუნქციაზე',
   'sub.monthlyPlan': 'თვიური გეგმა',
   'sub.feature1': 'თანამშრომელთა მართვა',

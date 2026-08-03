@@ -52,7 +52,7 @@ async function createPayment({ amount, currency, returnUrl, callbackUrl, merchan
       callbackUrl: callbackUrl,
       merchantPaymentId: merchantPaymentId,
       language: 'EN',
-      description: description || 'Finpilot Subscription',
+      description: description || 'Datum Subscription',
     },
     {
       headers: {

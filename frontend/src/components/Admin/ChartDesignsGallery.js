@@ -181,7 +181,7 @@ function ChartDesignsGallery() {
       <p style={{ margin: '0 0 24px', fontSize: 13, color: 'var(--text-3)', maxWidth: 720 }}>
         Five color themes, the same five chart types under each, using placeholder data so only the
         design changes. Each palette passes the lightness, chroma, colorblind-separation and contrast
-        checks — pick the one that fits Finpilot, and it becomes the app-wide default.
+        checks — pick the one that fits Datum, and it becomes the app-wide default.
       </p>
       {THEMES.map(theme => <ThemeSection key={theme.key} theme={theme} />)}
     </div>

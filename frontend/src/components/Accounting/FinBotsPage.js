@@ -53,7 +53,7 @@ const DATA_SOURCE_DEFS = [
   { key: 'coagents',    labelKey: 'fb.ds.clients',   descKey: 'fb.ds.clients.desc',   color: '#6366f1' },
 ];
 
-const STORAGE_KEY_PREFIX = 'finpilot_finbots_';
+const STORAGE_KEY_PREFIX = 'datum_finbots_';
 const DL_TABLES_KEY = 'dl_custom_tables';
 
 function getStorageKey(userId) {
@@ -77,13 +77,13 @@ export function mapBot(b) {
 }
 
 function loadChatHistory(botId) {
-  try { return JSON.parse(localStorage.getItem(`finpilot_chat_${botId}`) || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(`datum_chat_${botId}`) || '[]'); } catch { return []; }
 }
 function saveChatHistory(botId, messages) {
-  localStorage.setItem(`finpilot_chat_${botId}`, JSON.stringify(messages));
+  localStorage.setItem(`datum_chat_${botId}`, JSON.stringify(messages));
 }
 function clearChatHistory(botId) {
-  localStorage.removeItem(`finpilot_chat_${botId}`);
+  localStorage.removeItem(`datum_chat_${botId}`);
 }
 
 // ── Available icons ──────────────────────────────────────────────────────────

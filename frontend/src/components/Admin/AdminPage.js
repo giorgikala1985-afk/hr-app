@@ -332,7 +332,7 @@ function AdminPage() {
       {/* Page header */}
       <div style={{ marginBottom: 28 }}>
         <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>Platform Admin</h2>
-        <p style={{ margin: '4px 0 0', color: 'var(--text-3)', fontSize: 14 }}>Overview of all registered companies and users on Finpilot.</p>
+        <p style={{ margin: '4px 0 0', color: 'var(--text-3)', fontSize: 14 }}>Overview of all registered companies and users on Datum.</p>
       </div>
 
       {error && (

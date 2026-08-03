@@ -93,7 +93,7 @@ function Header() {
         <div className="header-logo">
           <Link to="/">
             <Logo id={logo} size={22} />
-            Finpilot
+            Datum
           </Link>
         </div>
         <nav className="header-nav">

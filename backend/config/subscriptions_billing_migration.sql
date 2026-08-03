@@ -1,4 +1,4 @@
--- Subscriptions / billing table for Finpilot (per-company billing + admin controls).
+-- Subscriptions / billing table for Datum (per-company billing + admin controls).
 -- The table did not exist yet, so this creates it with all columns the app uses.
 -- Run this in your Supabase SQL editor.
 

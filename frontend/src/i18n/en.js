@@ -15,7 +15,7 @@ const en = {
   'table.showingRows': '{from}–{to} of {total}',
 
   // ===== Header / Nav =====
-  'nav.logo': 'Finpilot',
+  'nav.logo': 'Datum',
   'nav.home': 'Home',
   'nav.employees': 'Employees',
   'nav.salaries': 'Salaries',
@@ -46,7 +46,7 @@ const en = {
   'docs.devicesComingSoon': 'Coming soon',
 
   // ===== Auth =====
-  'auth.title': 'Finpilot',
+  'auth.title': 'Datum',
   'auth.signInSubtitle': 'Sign in to manage employees',
   'auth.signUpSubtitle': 'Create your account',
   'auth.email': 'Email',
@@ -662,7 +662,7 @@ const en = {
   'billing.loading': 'Loading...',
 
   // ===== Subscription =====
-  'sub.title': 'Subscribe to Finpilot',
+  'sub.title': 'Subscribe to Datum',
   'sub.subtitle': 'Get full access to all HR management features',
   'sub.monthlyPlan': 'Monthly Plan',
   'sub.feature1': 'Employee Management',

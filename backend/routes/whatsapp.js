@@ -29,7 +29,7 @@ async function sendMessage(waId, text) {
 }
 
 // POST /api/whatsapp/link-code — generate a one-time code the user sends to
-// the business WhatsApp number to link their chat to their Finpilot account.
+// the business WhatsApp number to link their chat to their Datum account.
 router.post('/link-code', authenticateUser, async (req, res) => {
   try {
     const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -123,7 +123,7 @@ router.post('/webhook', async (req, res) => {
     const contactName = value.contacts?.[0]?.profile?.name || null;
 
     if (/^(hi|hello|start|help)$/i.test(text)) {
-      await sendMessage(waId, "Welcome to Finpilot! To connect your account, open Settings → WhatsApp in the app to get a 6-digit code, then send it here as:\nlink 123456");
+      await sendMessage(waId, "Welcome to Datum! To connect your account, open Settings → WhatsApp in the app to get a 6-digit code, then send it here as:\nlink 123456");
       return;
     }
 
@@ -153,7 +153,7 @@ router.post('/webhook', async (req, res) => {
     const { data: link } = await supabase.from('whatsapp_links')
       .select('*').eq('wa_id', waId).eq('status', 'linked').maybeSingle();
     if (!link) {
-      await sendMessage(waId, "This number isn't linked to a Finpilot account yet. Open Settings → WhatsApp in the app to get a code, then send it here as: link 123456");
+      await sendMessage(waId, "This number isn't linked to a Datum account yet. Open Settings → WhatsApp in the app to get a code, then send it here as: link 123456");
       return;
     }
     const userId = link.user_id;
@@ -188,7 +188,7 @@ router.post('/webhook', async (req, res) => {
       userId,
       dataSources,
       messages: [{ role: 'user', content: text }],
-      botName: 'Finpilot Assistant',
+      botName: 'Datum Assistant',
     });
 
     const actionMatch = answer.match(/\[ORDER_ACTION\]([\s\S]*?)\[\/ORDER_ACTION\]/);
@@ -199,7 +199,7 @@ router.post('/webhook', async (req, res) => {
       let action;
       try { action = JSON.parse(actionMatch[1]); } catch { action = null; }
       if (action?.type && !EXECUTABLE_TYPES.has(action.type)) {
-        await sendMessage(waId, `"${action.type}" orders aren't supported via WhatsApp yet — please use the Finpilot web app for this one.`);
+        await sendMessage(waId, `"${action.type}" orders aren't supported via WhatsApp yet — please use the Datum web app for this one.`);
       } else if (action?.type) {
         const summary = summarizeAction(action);
         const expires_at = new Date(Date.now() + 10 * 60 * 1000).toISOString();

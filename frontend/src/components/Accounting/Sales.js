@@ -193,7 +193,7 @@ function Sales() {
     const mkDate = (daysAgo) => { const d = new Date(); d.setDate(d.getDate() - daysAgo); return d.toISOString().split('T')[0]; };
     const items = [
       { client: 'Magti GSM', product: 'IT Consulting', description: 'HR system consultation Q2', amount: 2500, currency: 'USD', category: 'Consulting' },
-      { client: 'Bank of Georgia', product: 'Software License', description: 'Annual Finpilot license', amount: 4800, currency: 'USD', category: 'License' },
+      { client: 'Bank of Georgia', product: 'Software License', description: 'Annual Datum license', amount: 4800, currency: 'USD', category: 'License' },
       { client: 'Silknet', product: 'Network Maintenance', description: 'Monthly retainer July', amount: 1200, currency: 'USD', category: 'Service' },
       { client: 'Aris.ge', product: 'Marketing Package', description: 'Social media & SEO', amount: 800, currency: 'USD', category: 'Service' },
       { client: 'GPB', product: 'HR Platform', description: 'Annual subscription renewal', amount: 3600, currency: 'USD', category: 'Subscription' },

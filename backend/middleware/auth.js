@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_ANON_KEY
 );
 
-const JWT_SECRET = process.env.JWT_SECRET || 'finpilot-member-secret';
+const JWT_SECRET = process.env.JWT_SECRET || 'datum-member-secret';
 
 const authenticateUser = async (req, res, next) => {
   try {

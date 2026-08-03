@@ -93,7 +93,7 @@ function TelegramSettings() {
     <div style={{ maxWidth: 560 }}>
       <h3 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 700, color: 'var(--text)' }}>Telegram</h3>
       <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-3)' }}>
-        Connect Telegram to hire, fire, promote, adjust, or initiate transfers by chatting with the Finpilot bot.
+        Connect Telegram to hire, fire, promote, adjust, or initiate transfers by chatting with the Datum bot.
       </p>
 
       {error && <div className="msg-error" style={{ marginBottom: 14 }}>{error}</div>}
@@ -132,7 +132,7 @@ function TelegramSettings() {
               <a href={`https://t.me/${codeInfo.botUsername}`} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontWeight: 600 }}>
                 @{codeInfo.botUsername}
               </a>
-            ) : 'the Finpilot bot'}{' '}
+            ) : 'the Datum bot'}{' '}
             on Telegram.<br />
             2. Send this message to the bot:
           </p>

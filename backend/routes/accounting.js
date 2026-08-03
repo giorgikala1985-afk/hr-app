@@ -24,7 +24,7 @@ function addPeriod(dateStr, recurrence) {
 // Generate the PDF and email an invoice to its client_email. Returns true if sent.
 async function sendOneInvoice(invoice, userId) {
   if (!invoice.client_email) throw new Error('No client email on this invoice.');
-  let companyName = 'Finpilot';
+  let companyName = 'Datum';
   try {
     const { data } = await supabase.auth.admin.getUserById(userId);
     companyName = data?.user?.user_metadata?.company_name || companyName;

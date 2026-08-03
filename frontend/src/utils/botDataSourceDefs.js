@@ -1,7 +1,7 @@
 // Same set + labels as FinBotsPage.js's DATA_SOURCE_DEFS (the web FinBots
 // per-bot data-source picker) — used by the Telegram/WhatsApp settings pages'
 // "what can the bot see" control center so wording stays consistent across
-// every place a Finpilot chat channel's data access is configured.
+// every place a Datum chat channel's data access is configured.
 export const BOT_DATA_SOURCE_DEFS = [
   { key: 'employees', label: 'Employees', desc: 'Names, positions, salaries, start dates', color: '#3b82f6' },
   { key: 'salaries', label: 'Salary Changes', desc: 'Salary history and changes per employee', color: '#479c73' },
