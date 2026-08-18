@@ -354,20 +354,19 @@ function TransfersList() {
   const table = useExcelTable({ storageKey: 'transfers', columns: TRANSFER_COLUMNS, rows: filteredTransfers });
   const displayCols = ['status', ...table.displayCols];
 
-  const exportApprovedToExcel = () => {
-    const approved = transfers.filter(tr => tr.approval_status === 'approved');
+  const exportToExcel = () => {
     const headersKa = ['მიმღების ანგარიში', 'მიმღების სახელი და გვარი', 'თანხა', 'დანიშნულება'];
     const headersEn = ['Account Number', "Employee's Name", 'Amount', 'Description'];
     const wsData = [
       headersKa,
       headersEn,
-      ...approved.map(tr => [tr.iban || '', tr.client_name || '', parseFloat(tr.approved_amount ?? tr.amount ?? 0), tr.description || '']),
+      ...filteredTransfers.map(tr => [tr.iban || '', tr.client_name || '', parseFloat(tr.approved_amount ?? tr.amount ?? 0), tr.description || '']),
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     ws['!cols'] = [{ wch: 28 }, { wch: 24 }, { wch: 14 }, { wch: 40 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Transfers');
-    XLSX.writeFile(wb, `approved-transfers-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `${filter}-transfers-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
@@ -391,7 +390,7 @@ function TransfersList() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
-            onClick={exportApprovedToExcel}
+            onClick={exportToExcel}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 12px', borderRadius: 8, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: '#479c73', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
