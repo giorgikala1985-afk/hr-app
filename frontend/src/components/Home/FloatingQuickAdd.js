@@ -101,24 +101,25 @@ export default function FloatingQuickAdd() {
           right: 24,
           width: 52,
           height: 52,
-          borderRadius: '50%',
+          borderRadius: 14,
           border: 'none',
-          background: '#3b82f6',
+          background: '#4CAF50',
           color: '#fff',
-          fontSize: 26,
-          lineHeight: 1,
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          boxShadow: '0 4px 20px rgba(59,130,246,0.45)',
+          boxShadow: '0 4px 20px rgba(76,175,80,0.45)',
           zIndex: 890,
           transition: 'transform 0.15s, box-shadow 0.15s',
         }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(59,130,246,0.6)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(59,130,246,0.45)'; }}
+        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(76,175,80,0.6)'; }}
+        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(76,175,80,0.45)'; }}
       >
-        {menuOpen ? '×' : '+'}
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ transform: menuOpen ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+          <rect x="10" y="4" width="4" height="16" rx="2" fill="currentColor" />
+          <rect x="4" y="10" width="16" height="4" rx="2" fill="currentColor" />
+        </svg>
       </button>
 
       {activeModal === 'fire' && <QuickFireModal onClose={closeModal} />}
