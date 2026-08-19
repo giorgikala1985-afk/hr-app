@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import QuickUnitModal from './QuickUnitModal';
-import QuickHireModal from './QuickHireModal';
 import QuickFireModal from './QuickFireModal';
 import QuickPromoteModal from './QuickPromoteModal';
 import QuickTransferModal from './QuickTransferModal';
@@ -41,6 +40,7 @@ const MENU_ITEMS = [
 export default function FloatingQuickAdd() {
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeModal, setActiveModal] = useState(null);
 
@@ -49,6 +49,15 @@ export default function FloatingQuickAdd() {
   if (location.pathname.startsWith('/portal')) return null;
 
   const closeModal = () => setActiveModal(null);
+
+  const handleItemClick = (key) => {
+    setMenuOpen(false);
+    if (key === 'hire') {
+      navigate('/finances?tab=orders', { state: { openHire: true } });
+      return;
+    }
+    setActiveModal(key);
+  };
 
   return (
     <>
@@ -66,7 +75,7 @@ export default function FloatingQuickAdd() {
           {MENU_ITEMS.map(item => (
             <button
               key={item.key}
-              onClick={() => { setActiveModal(item.key); setMenuOpen(false); }}
+              onClick={() => handleItemClick(item.key)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px',
                 borderRadius: 8, border: 'none', background: 'transparent',
@@ -112,7 +121,6 @@ export default function FloatingQuickAdd() {
         {menuOpen ? '×' : '+'}
       </button>
 
-      {activeModal === 'hire' && <QuickHireModal onClose={closeModal} />}
       {activeModal === 'fire' && <QuickFireModal onClose={closeModal} />}
       {activeModal === 'promote' && <QuickPromoteModal onClose={closeModal} />}
       {activeModal === 'adjust' && <QuickUnitModal onClose={closeModal} />}

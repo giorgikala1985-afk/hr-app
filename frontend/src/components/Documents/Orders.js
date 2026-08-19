@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
@@ -459,6 +460,16 @@ function HiringTab() {
     setShowForm(true);
   };
   const close = () => { setShowForm(false); setEditing(null); setSubmitError(''); };
+
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (location.state?.openHire && canCreate) {
+      openAdd();
+      navigate(location.pathname + location.search, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
