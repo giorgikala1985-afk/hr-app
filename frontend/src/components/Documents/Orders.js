@@ -2703,18 +2703,21 @@ function BonusTab({ employees, gelRate, eurRate }) {
   useEffect(() => { loadLiveUnits(); }, []);
 
   const localUnitIds = new Set(localOrders.flatMap(o => (o.entries || []).map(en => en.unitId).filter(Boolean)));
-  const liveOnlyRows = liveUnits
+  const liveOnlyByMonth = {};
+  liveUnits
     .filter(u => !localUnitIds.has(u.id))
-    .map(u => ({
-      id: `live-${u.id}`,
-      month: (u.date || '').slice(0, 7),
-      currency: 'USD',
-      purpose: u.note || '',
-      entries: [{ employeeId: u.employee_id, empName: u.employee ? `${u.employee.first_name} ${u.employee.last_name}` : '', amount: u.amount, unitId: u.id }],
-      total: parseFloat(u.amount),
-      createdAt: u.created_at,
-      _live: true,
-    }));
+    .forEach(u => {
+      const month = (u.date || '').slice(0, 7);
+      if (!liveOnlyByMonth[month]) {
+        liveOnlyByMonth[month] = { id: `live-${month}`, month, currency: 'USD', purpose: '', entries: [], total: 0, createdAt: u.created_at, _live: true };
+      }
+      const grp = liveOnlyByMonth[month];
+      grp.entries.push({ employeeId: u.employee_id, empName: u.employee ? `${u.employee.first_name} ${u.employee.last_name}` : '', amount: u.amount, unitId: u.id });
+      grp.total += parseFloat(u.amount) || 0;
+      if (u.note && !grp.purpose) grp.purpose = u.note;
+      if (new Date(u.created_at) > new Date(grp.createdAt)) grp.createdAt = u.created_at;
+    });
+  const liveOnlyRows = Object.values(liveOnlyByMonth);
   const orders = [...localOrders, ...liveOnlyRows].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
   const toUSD = (amount, currency) => {
