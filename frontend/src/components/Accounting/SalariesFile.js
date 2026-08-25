@@ -3,15 +3,20 @@ import * as XLSX from 'xlsx';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
 import { useLanguage } from '../../contexts/LanguageContext';
+import api from '../../services/api';
 
 const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace';
 
-function SalariesFile({ data, onClear }) {
+function SalariesFile({ data, onClear, onSent }) {
   const { t } = useLanguage();
   const [rows, setRows] = useState([]);
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState('');
+  const [sendSummary, setSendSummary] = useState(null);
 
   useEffect(() => {
     if (data?.rows) setRows(data.rows.map(r => ({ ...r })));
+    setSendError(''); setSendSummary(null);
   }, [data]);
 
   const updateRow = (idx, field, value) => {
@@ -31,6 +36,44 @@ function SalariesFile({ data, onClear }) {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Salary File');
     XLSX.writeFile(wb, data?.month ? `salary-file-${data.month}.xlsx` : 'salary-file.xlsx');
+  };
+
+  const sendToTransfers = async () => {
+    if (data?.sentToTransfers) {
+      if (!window.confirm(t('salFile.resendConfirm'))) return;
+    }
+    setSending(true); setSendError(''); setSendSummary(null);
+
+    const batchTag = `SALARY-${data.month}`;
+    const dueDate = data.transferDate || new Date().toISOString().slice(0, 10);
+    const ready = rows.filter(r => parseFloat(r.amount || 0) > 0 && r.iban);
+    const skipped = rows.filter(r => parseFloat(r.amount || 0) > 0 && !r.iban);
+
+    if (ready.length === 0) {
+      setSendError(t('salFile.noRowsReady'));
+      setSending(false);
+      return;
+    }
+
+    let sentCount = 0;
+    try {
+      await Promise.all(ready.map(r => api.post('/accounting/transfers', {
+        client_name: `${r.first_name || ''} ${r.last_name || ''}`.trim(),
+        amount: parseFloat(r.amount || 0),
+        due_date: dueDate,
+        description: r.description || `Salary — ${data.month}`,
+        iban: r.iban,
+        invoice_number: batchTag,
+      }).then(() => { sentCount += 1; })));
+    } catch (err) {
+      setSendError(err.response?.data?.error || t('salFile.sendFailed'));
+      setSending(false);
+      return;
+    }
+
+    setSending(false);
+    setSendSummary({ sentCount, skipped: skipped.map(r => `${r.first_name} ${r.last_name}`.trim()) });
+    onSent?.();
   };
 
   if (!data) {
@@ -73,7 +116,25 @@ function SalariesFile({ data, onClear }) {
       <p className="acc-subtitle">{t('salFile.rateNote')}</p>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        {data.sentToTransfers && (
+          <span style={{ fontSize: 12, color: '#479c73', fontWeight: 600, marginRight: 4 }}>
+            ✓ {t('salFile.sentBadge')}{data.sentAt ? ` — ${new Date(data.sentAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+          </span>
+        )}
+        <button onClick={sendToTransfers} disabled={sending || rows.length === 0} style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
+          background: data.sentToTransfers ? 'var(--surface)' : '#3b82f6',
+          border: data.sentToTransfers ? '1.5px solid var(--border-2)' : 'none', borderRadius: 7,
+          fontSize: 13, fontWeight: 600, color: data.sentToTransfers ? 'var(--text-2)' : '#fff',
+          cursor: sending || rows.length === 0 ? 'not-allowed' : 'pointer',
+          opacity: sending || rows.length === 0 ? 0.6 : 1, fontFamily: 'inherit',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+          {sending ? t('salFile.sending') : data.sentToTransfers ? t('salFile.resend') : t('salFile.sendToTransfers')}
+        </button>
         <button onClick={exportToExcel} disabled={rows.length === 0} style={{
           display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px',
           background: 'var(--surface)', border: '1.5px solid var(--border-2)', borderRadius: 7,
@@ -101,6 +162,20 @@ function SalariesFile({ data, onClear }) {
           </button>
         )}
       </div>
+
+      {(sendError || sendSummary) && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+          {sendError && <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 500 }}>{sendError}</span>}
+          {sendSummary && (
+            <span style={{ fontSize: 12, color: '#479c73', fontWeight: 500 }}>
+              ✓ {t('salFile.sentCount').replace('{count}', sendSummary.sentCount)}
+              {sendSummary.skipped.length > 0 && (
+                <span style={{ color: '#f59e0b' }}> · {t('salFile.skippedNoIban').replace('{count}', sendSummary.skipped.length)}: {sendSummary.skipped.join(', ')}</span>
+              )}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Table */}
       <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-2)' }}>

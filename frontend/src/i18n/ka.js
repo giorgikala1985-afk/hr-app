@@ -872,6 +872,15 @@ const ka = {
   'salFile.colIban': 'IBAN',
   'salFile.colAmount': 'თანხა (GEL)',
   'salFile.colDescription': 'აღწერა',
+  'salFile.sendToTransfers': 'გადარიცხვებში გაგზავნა',
+  'salFile.resend': 'ხელახლა გაგზავნა',
+  'salFile.resendConfirm': 'ეს სახელფასო ფაილი უკვე გაიგზავნა გადარიცხვებში. ხელახლა გავაგზავნო? ეს შექმნის ახალ გადარიცხვის მოთხოვნებს.',
+  'salFile.sending': 'იგზავნება…',
+  'salFile.sentBadge': 'გაგზავნილია გადარიცხვებში',
+  'salFile.noRowsReady': 'არცერთ სტრიქონს არ აქვს ერთდროულად თანხა და IBAN — გასაგზავნი არაფერია.',
+  'salFile.sendFailed': 'გადარიცხვებში გაგზავნა ვერ მოხერხდა.',
+  'salFile.sentCount': 'გაიგზავნა {count} გადარიცხვებში.',
+  'salFile.skippedNoIban': '{count} გამოტოვებულია (IBAN არ არის)',
 
   // ===== Orders =====
   'orders.title': 'ბრძანებები',

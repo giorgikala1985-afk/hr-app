@@ -46,6 +46,15 @@ function SalariesPage() {
     setSubTab('accrual');
   };
 
+  const handleSent = () => {
+    setSalaryFile(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, sentToTransfers: true, sentAt: new Date().toISOString() };
+      localStorage.setItem(fileKey(updated.month), JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Subtab bar */}
@@ -75,7 +84,7 @@ function SalariesPage() {
         />
       )}
       {subTab === 'file' && (
-        <SalariesFile data={salaryFile} onClear={handleClear} />
+        <SalariesFile data={salaryFile} onClear={handleClear} onSent={handleSent} />
       )}
       {subTab === 'pit' && (
         <PersonalIncomeTax />

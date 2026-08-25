@@ -874,6 +874,15 @@ const en = {
   'salFile.colIban': 'IBAN',
   'salFile.colAmount': 'Amount (GEL)',
   'salFile.colDescription': 'Description',
+  'salFile.sendToTransfers': 'Send to Transfers',
+  'salFile.resend': 'Send to Transfers again',
+  'salFile.resendConfirm': 'This salary file was already sent to Transfers. Send it again? This will create a new set of transfer requests.',
+  'salFile.sending': 'Sending…',
+  'salFile.sentBadge': 'Sent to Transfers',
+  'salFile.noRowsReady': 'No rows have both an amount and an IBAN — nothing to send.',
+  'salFile.sendFailed': 'Failed to send to Transfers.',
+  'salFile.sentCount': 'Sent {count} to Transfers.',
+  'salFile.skippedNoIban': '{count} skipped (no IBAN)',
 
   // ===== Orders =====
   'orders.title': 'Orders',
