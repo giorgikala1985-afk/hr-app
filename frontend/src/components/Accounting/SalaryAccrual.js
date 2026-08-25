@@ -571,75 +571,113 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
     return ut.direction === 'addition' ? raw : -raw;
   };
 
+  // Excel-native number format: positive values render in green, negative in
+  // red with a minus sign, zero stays neutral. This is a number FORMAT (not a
+  // cell style), so it round-trips through the free/community "xlsx" package,
+  // which drops font/fill styling on write.
+  const SIGNED_NUM_FMT = '[Green]#,##0.00;[Red]-#,##0.00;0.00';
+  const r2 = (n) => Math.round((parseFloat(n) || 0) * 100) / 100;
+
   const exportToExcel = () => {
-    // Header row — export every column unconditionally (ignores the on-screen
-    // "Columns" visibility toggle), plus every dynamic unit type, Gross
-    // Salary and Pension.
-    const headers = [];
-    TCOLS.forEach(col => headers.push(col.label));
-    dynUnitCols.forEach(ut => headers.push(ut.name));
-    headers.push(t('salAccrual.colGrossSalary'));
-    headers.push(t('salAccrual.colPension'));
+    // Column order matches the on-screen table: the fixed columns, then one
+    // column per dynamic unit type in use, then Total Sum / Total GEL / Gross
+    // Salary / Pension — mirrors visColsMain -> dynUnitCols -> tailCols.
+    const mainTCOLS = TCOLS.slice(0, 8); // date..insurance
+    const activeRate = transferRate || nbgRate || gelRate;
 
-    // Data rows
+    const headers = [
+      ...mainTCOLS.map(c => c.label),
+      ...dynUnitCols.map(ut => ut.name),
+      t('salAccrual.colTotalSum'),
+      t('salAccrual.colTotalGEL'),
+      t('salAccrual.colGrossSalary'),
+      t('salAccrual.colPension'),
+    ];
+
+    const netSalaryCol   = XLSX.utils.encode_col(4);
+    const insuranceCol   = XLSX.utils.encode_col(7);
+    const totalSumColIdx = 8 + dynUnitCols.length;
+    const totalGELColIdx = totalSumColIdx + 1;
+    const grossColIdx    = totalGELColIdx + 1;
+    const pensionColIdx  = grossColIdx + 1;
+    const totalSumCol    = XLSX.utils.encode_col(totalSumColIdx);
+
+    // Data rows — plain values for every column except Total Sum / Total GEL,
+    // which are placeholders here and get replaced with live formulas below
+    // once the sheet exists (aoa_to_sheet only accepts literal values).
     const rows = active.map(r => {
-      const emp        = r.employee;
-
+      const emp   = r.employee;
       const fitpass    = parseFloat(r.fitpass_deduction || 0);
       const insurance  = getInsAmount2(emp?.personal_id, month);
       const grossSalary = calcGross(r.net_salary, emp.pension);
       const pensionAmt = emp.pension ? grossSalary * 0.02 : 0;
-      const rowData = [];
-      TCOLS.forEach(col => {
-        switch (col.key) {
-          case 'date':        rowData.push(accrualDate || fmtMonth(month)); break;
-          case 'personalId':  rowData.push(emp.personal_id || null); break;
-          case 'firstName':   rowData.push(emp.first_name || null); break;
-          case 'lastName':    rowData.push(emp.last_name || null); break;
-          case 'netSalary':   rowData.push(parseFloat(r.accrued_salary || 0) || null); break;
-          case 'ot':          rowData.push(otAmt(r.deductions) || null); break;
-          case 'fitpass':     rowData.push(fitpass || null); break;
-          case 'insurance':   rowData.push(insurance || null); break;
-          case 'totalSum': {
-            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
-            rowData.push(c || null); break;
-          }
-          case 'totalGEL': {
-            const c = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
-            const activeRate = transferRate || nbgRate || gelRate;
-            rowData.push(activeRate ? Math.round(c * activeRate * 100) / 100 || null : null); break;
-          }
-          default:            rowData.push(null);
-        }
-      });
-      dynUnitCols.forEach(ut => rowData.push(signedUnitAmt(r.deductions, ut)));
-      rowData.push(grossSalary || null);
-      rowData.push(emp.pension ? pensionAmt || null : null);
-      return rowData;
+      const totalSumVal = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - insurance;
+      const totalGELVal = activeRate ? r2(totalSumVal * activeRate) : null;
+
+      const rowData = [
+        accrualDate || fmtMonth(month),
+        emp.personal_id || null,
+        emp.first_name || null,
+        emp.last_name || null,
+        r2(r.accrued_salary) || null,
+        r2(otAmt(r.deductions)) || null,
+        fitpass ? -r2(fitpass) : null,   // deduction -> negative, so it reads red
+        insurance ? -r2(insurance) : null,
+        ...dynUnitCols.map(ut => signedUnitAmt(r.deductions, ut)),
+        r2(totalSumVal) || null,
+        totalGELVal,
+        r2(grossSalary) || null,
+        emp.pension ? r2(pensionAmt) || null : null,
+      ];
+      return { rowData, netSalary: r2(r.net_salary), insDeduction: r2(r.insurance_deduction) };
     });
 
-    // Totals row
-    const totalsRow = [];
-    TCOLS.forEach(col => {
-      switch (col.key) {
-        case 'date':        totalsRow.push('TOTALS'); break;
-        case 'netSalary':   totalsRow.push(totNetSalary || null); break;
-        case 'ot':          totalsRow.push(totOT || null); break;
-        case 'fitpass':     totalsRow.push(totFitpass || null); break;
-        case 'insurance':   totalsRow.push(totInsurance || null); break;
-        case 'totalSum':    totalsRow.push(totSum || null); break;
-        default:            totalsRow.push(null);
+    const N = rows.length;
+    const lastDataRow = N + 1; // sheet row of the last data row (row 1 = headers)
+
+    const sumFormulaRow = (colIdx) => {
+      const col = XLSX.utils.encode_col(colIdx);
+      return `SUM(${col}2:${col}${lastDataRow})`;
+    };
+    const totalsRow = [
+      'TOTALS', null, null, null,
+      { f: sumFormulaRow(4) },
+      { f: sumFormulaRow(5) },
+      { f: sumFormulaRow(6) },
+      { f: sumFormulaRow(7) },
+      ...dynUnitCols.map((_, i) => ({ f: sumFormulaRow(8 + i) })),
+      { f: sumFormulaRow(totalSumColIdx) },
+      { f: sumFormulaRow(totalGELColIdx) },
+      { f: sumFormulaRow(grossColIdx) },
+      { f: sumFormulaRow(pensionColIdx) },
+    ];
+
+    const wsData = [headers, ...rows.map(x => x.rowData), totalsRow.map(c => (c && typeof c === 'object') ? 0 : c)];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+    // Patch in the live formulas (Total Sum / Total GEL per row, SUM() on the totals row)
+    // and the red/green number format on every numeric column.
+    rows.forEach((row, i) => {
+      const sheetRow = i + 2;
+      const totalSumRef = `${totalSumCol}${sheetRow}`;
+      ws[totalSumRef] = { t: 'n', f: `${row.netSalary}+${row.insDeduction}+${insuranceCol}${sheetRow}`, v: row.rowData[totalSumColIdx] ?? 0, z: SIGNED_NUM_FMT };
+      if (activeRate) {
+        ws[`${XLSX.utils.encode_col(totalGELColIdx)}${sheetRow}`] = { t: 'n', f: `${totalSumRef}*${activeRate}`, v: row.rowData[totalGELColIdx] ?? 0, z: SIGNED_NUM_FMT };
+      }
+      for (let c = 4; c < headers.length; c++) {
+        if (c === totalSumColIdx || (c === totalGELColIdx && activeRate)) continue;
+        const ref = XLSX.utils.encode_cell({ r: sheetRow - 1, c });
+        if (ws[ref]) ws[ref].z = SIGNED_NUM_FMT;
       }
     });
-    dynUnitCols.forEach(ut => {
-      const sum = active.reduce((s, r) => s + (signedUnitAmt(r.deductions, ut) || 0), 0);
-      totalsRow.push(sum || null);
+    const totalsSheetRow = lastDataRow + 1;
+    totalsRow.forEach((cell, c) => {
+      if (!cell || typeof cell !== 'object') return;
+      const ref = XLSX.utils.encode_cell({ r: totalsSheetRow - 1, c });
+      ws[ref] = { t: 'n', f: cell.f, z: SIGNED_NUM_FMT };
     });
-    totalsRow.push(totGross || null);
-    totalsRow.push(totPension || null);
 
-    const wsData = [headers, ...rows, totalsRow];
-    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: totalsSheetRow - 1, c: headers.length - 1 } });
 
     // Column widths hint for Excel
     ws['!cols'] = headers.map((_, i) => ({ wch: i < 4 ? 18 : 14 }));
