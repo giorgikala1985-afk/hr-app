@@ -2784,6 +2784,11 @@ function BonusTab({ employees, gelRate, eurRate }) {
           }
           return '';
         };
+        // Excel silently reformats a "Personal ID" cell to a number if it's ever
+        // touched (dropping leading zeros, e.g. "010101898636" -> 10101898636),
+        // so compare digits-only with leading zeros stripped rather than exact strings.
+        const normPid = v => String(v ?? '').replace(/\D/g, '').replace(/^0+/, '');
+        const normName = v => String(v ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
         const matched = {};
         const unmatched = [];
         data.forEach((row) => {
@@ -2792,9 +2797,10 @@ function BonusTab({ employees, gelRate, eurRate }) {
           const lastName = String(getVal(row, 'Last Name', 'LastName', 'last_name') || '').trim();
           const amount = parseFloat(getVal(row, 'Amount', 'amount') || 0);
           if (!amount || amount <= 0) return;
-          let emp = personalId ? employees.find(e => e.personal_id === personalId) : null;
+          const pidNorm = normPid(personalId);
+          let emp = pidNorm ? employees.find(e => normPid(e.personal_id) === pidNorm) : null;
           if (!emp && (firstName || lastName)) {
-            emp = employees.find(e => e.first_name.toLowerCase() === firstName.toLowerCase() && e.last_name.toLowerCase() === lastName.toLowerCase());
+            emp = employees.find(e => normName(e.first_name) === normName(firstName) && normName(e.last_name) === normName(lastName));
           }
           if (emp) matched[emp.id] = amount;
           else unmatched.push(personalId || `${firstName} ${lastName}`.trim() || '(unknown row)');
