@@ -78,6 +78,12 @@ function TransfersList() {
   const readInvoiceRef = useRef(null);
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [dropdownPos, setDropdownPos] = useState(null); // { top, right } for fixed positioning
+  const [expandedGroups, setExpandedGroups] = useState(new Set());
+  const toggleGroup = (id) => setExpandedGroups(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
   const { widths: colW, onResizeMouseDown } = useKeyedColumnWidths('transfers_col_widths', {
     status: 52, amount: 100, dueDate: 110,
     description: 240, requester: 130, approval: 130, approver: 160, actions: 48,
@@ -119,6 +125,22 @@ function TransfersList() {
   const renderCell = (key, tr, bg) => {
     switch (key) {
       case 'status':
+        if (tr._isGroup) {
+          const isExpanded = expandedGroups.has(tr.id);
+          return (
+            <td style={{ ...tdCompact, position: 'sticky', left: 0, zIndex: 1, background: bg, textAlign: 'center' }}>
+              <button
+                onClick={() => toggleGroup(tr.id)}
+                title={isExpanded ? t('tr.collapse') : t('tr.expand')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 2 }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s' }}>
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </button>
+            </td>
+          );
+        }
         return (
           <td style={{ ...tdCompact, position: 'sticky', left: 0, zIndex: 1, background: bg, textAlign: 'center' }}>
             {(() => {
@@ -150,7 +172,7 @@ function TransfersList() {
       case 'dueDate':
         return <td style={{ ...tdCompact, color: 'var(--text-3)', fontSize: 12 }}>{tr.due_date ? new Date(tr.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>;
       case 'description':
-        return <td style={{ ...td, color: 'var(--text-2)' }}>{tr.description}</td>;
+        return <td style={{ ...td, color: 'var(--text-2)', fontWeight: tr._isGroup ? 700 : 400, ...(tr._nested ? { paddingLeft: 32 } : {}) }}>{tr._nested ? '↳ ' : ''}{tr.description}</td>;
       case 'requester':
         return <td style={{ ...tdCompact, color: 'var(--text-2)', fontSize: 12 }}>{tr.requester_name || '—'}</td>;
       case 'approval':
@@ -351,8 +373,58 @@ function TransfersList() {
   };
 
   const filteredTransfers = transfers.filter(tr => filter === 'all' || (tr.approval_status || 'pending') === filter);
-  const table = useExcelTable({ storageKey: 'transfers', columns: TRANSFER_COLUMNS, rows: filteredTransfers });
+
+  // Transfers created together from one salary run share an invoice_number of
+  // "SALARY-<month>" (see SalariesFile's "Send to Transfers"). Collapse those
+  // into a single summary row so a payroll run reads as one line item, while
+  // still keeping every individual transfer reachable by expanding it.
+  const groupSalaryBatches = (list) => {
+    const byBatch = {};
+    list.forEach(tr => {
+      if (tr.invoice_number?.startsWith('SALARY-')) (byBatch[tr.invoice_number] ??= []).push(tr);
+    });
+    const emitted = new Set();
+    const result = [];
+    list.forEach(tr => {
+      const key = tr.invoice_number;
+      const members = key && byBatch[key];
+      if (members && members.length > 1) {
+        if (emitted.has(key)) return;
+        emitted.add(key);
+        const statuses = new Set(members.map(m => m.approval_status || 'pending'));
+        result.push({
+          id: `group-${key}`, _isGroup: true, _members: members,
+          amount: members.reduce((s, m) => s + parseFloat(m.amount || 0), 0),
+          due_date: members[0].due_date,
+          description: `${t('tr.salaryBatch')} — ${members.length} ${t('tr.employees')}`,
+          requester_name: members[0].requester_name,
+          approval_status: statuses.size === 1 ? [...statuses][0] : 'pending',
+          approver_name: statuses.size === 1 ? members[0].approver_name : null,
+          approver_note: null,
+          status: 'normal',
+          invoice_number: key,
+        });
+      } else {
+        result.push(tr);
+      }
+    });
+    return result;
+  };
+  const groupedTransfers = groupSalaryBatches(filteredTransfers);
+  const table = useExcelTable({ storageKey: 'transfers', columns: TRANSFER_COLUMNS, rows: groupedTransfers });
   const displayCols = ['status', ...table.displayCols];
+
+  const doGroupAction = async (members, action, body) => {
+    try {
+      await Promise.all(members.map(m => api.post(`/accounting/transfers/${m.id}/${action}`, body || {}).catch(() => {})));
+      loadTransfers();
+    } catch (err) { setError(err.response?.data?.error || `Failed: ${action}`); }
+  };
+  const handleApproveAll = (group) => doGroupAction(group._members.filter(m => m.approval_status !== 'approved'), 'approve');
+  const handleRejectAll = (group) => {
+    const note = window.prompt(t('tr.rejectReasonPrompt')) || '';
+    doGroupAction(group._members.filter(m => m.approval_status !== 'rejected'), 'reject', { note });
+  };
 
   const exportToExcel = () => {
     const headersKa = ['მიმღების ანგარიში', 'მიმღების სახელი და გვარი', 'თანხა', 'დანიშნულება'];
@@ -523,6 +595,25 @@ function TransfersList() {
               )}
               {table.pagedRows.map((tr, i) => {
                 const bg = i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)';
+                if (tr._isGroup) {
+                  const isExpanded = expandedGroups.has(tr.id);
+                  return (
+                    <React.Fragment key={tr.id}>
+                      <tr style={{ borderBottom: '1px solid var(--border-2)', background: bg }}>
+                        {displayCols.map(key => (
+                          <React.Fragment key={key}>{renderCell(key, tr, bg)}</React.Fragment>
+                        ))}
+                      </tr>
+                      {isExpanded && tr._members.map(member => (
+                        <tr key={member.id} style={{ borderBottom: '1px solid var(--border-2)', background: 'var(--surface-3)' }}>
+                          {displayCols.map(key => (
+                            <React.Fragment key={key}>{renderCell(key, { ...member, _nested: true }, 'var(--surface-3)')}</React.Fragment>
+                          ))}
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                }
                 return (
                   <tr key={tr.id} style={{ borderBottom: '1px solid var(--border-2)', background: bg }}>
                     {displayCols.map(key => (
@@ -749,9 +840,35 @@ function TransfersList() {
 
       {/* Fixed-position dropdown — rendered outside overflow containers to avoid clipping */}
       {openDropdownId !== null && dropdownPos && (() => {
-        const activeRow = transfers.find(t => t.id === openDropdownId);
+        const activeRow = openDropdownId.startsWith('group-')
+          ? groupedTransfers.find(g => g.id === openDropdownId)
+          : transfers.find(t => t.id === openDropdownId);
         if (!activeRow) return null;
         const closeDD = () => { setOpenDropdownId(null); setDropdownPos(null); };
+        if (activeRow._isGroup) {
+          return createPortal(
+            <div ref={dropdownRef} style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', zIndex: 9999, minWidth: 180, overflow: 'hidden' }}>
+              {canApprove && (
+                <button onClick={() => { handleApproveAll(activeRow); closeDD(); }} style={ddItem}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#479c73" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  {t('tr.approveAll')}
+                </button>
+              )}
+              {canReject && (
+                <button onClick={() => { handleRejectAll(activeRow); closeDD(); }} style={{ ...ddItem, color: '#f87171' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+                  {t('tr.rejectAll')}
+                </button>
+              )}
+              <div style={{ height: 1, background: 'var(--border)', margin: '2px 0' }} />
+              <button onClick={() => { toggleGroup(activeRow.id); closeDD(); }} style={ddItem}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                {expandedGroups.has(activeRow.id) ? t('tr.collapse') : t('tr.expand')}
+              </button>
+            </div>,
+            document.body
+          );
+        }
         return createPortal(
           <div ref={dropdownRef} style={{ position: 'fixed', top: dropdownPos.top, right: dropdownPos.right, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', zIndex: 9999, minWidth: 160, overflow: 'hidden' }}>
             {activeRow.approval_status !== 'archived' && canApprove && (<>
