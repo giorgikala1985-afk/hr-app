@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
+import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLanguage } from '../../contexts/LanguageContext';
@@ -2672,6 +2673,9 @@ function BonusTab({ employees, gelRate, eurRate }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [bulkError, setBulkError] = useState('');
+  const [bulkSummary, setBulkSummary] = useState(null);
+  const bulkFileRef = useRef(null);
 
   // Any bonus-type unit created elsewhere (e.g. the Adjusting tab, or via a custom
   // bonus unit type) won't be in this tab's local batch log — pull those in live
@@ -2744,7 +2748,64 @@ function BonusTab({ employees, gelRate, eurRate }) {
     `${e.first_name} ${e.last_name}`.toLowerCase().includes(search.trim().toLowerCase())
   );
 
-  const openNew = () => { setEditId(null); setForm(EMPTY); setSearch(''); setShowForm(true); setError(''); };
+  const downloadBulkTemplate = () => {
+    const headers = ['Personal ID', 'First Name', 'Last Name', 'Amount'];
+    const exampleRows = employees.slice(0, 3).map(e => [e.personal_id || '', e.first_name || '', e.last_name || '', '']);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...exampleRows]);
+    ws['!cols'] = [{ wch: 18 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Bonuses');
+    XLSX.writeFile(wb, 'Bonus_Upload_Template.xlsx');
+  };
+
+  const handleBulkUpload = (e) => {
+    const file = e.target.files[0];
+    if (bulkFileRef.current) bulkFileRef.current.value = '';
+    if (!file) return;
+    setBulkError(''); setBulkSummary(null);
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const wb = XLSX.read(evt.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        const norm = s => String(s).toLowerCase().replace(/[\s_\-]+/g, '').trim();
+        const getVal = (row, ...keys) => {
+          const normKeys = keys.map(norm);
+          for (const col of Object.keys(row)) {
+            if (normKeys.includes(norm(col))) return row[col];
+          }
+          return '';
+        };
+        const matched = {};
+        const unmatched = [];
+        data.forEach((row) => {
+          const personalId = String(getVal(row, 'Personal ID', 'PersonalID', 'personal_id') || '').trim();
+          const firstName = String(getVal(row, 'First Name', 'FirstName', 'first_name') || '').trim();
+          const lastName = String(getVal(row, 'Last Name', 'LastName', 'last_name') || '').trim();
+          const amount = parseFloat(getVal(row, 'Amount', 'amount') || 0);
+          if (!amount || amount <= 0) return;
+          let emp = personalId ? employees.find(e => e.personal_id === personalId) : null;
+          if (!emp && (firstName || lastName)) {
+            emp = employees.find(e => e.first_name.toLowerCase() === firstName.toLowerCase() && e.last_name.toLowerCase() === lastName.toLowerCase());
+          }
+          if (emp) matched[emp.id] = String(amount);
+          else unmatched.push(personalId || `${firstName} ${lastName}`.trim() || '(unknown row)');
+        });
+        if (Object.keys(matched).length === 0) {
+          setBulkError('No rows matched an existing employee. Check Personal ID / First Name / Last Name against your employee list.');
+          return;
+        }
+        setForm(p => ({ ...p, selections: { ...p.selections, ...matched } }));
+        setBulkSummary({ matchedCount: Object.keys(matched).length, unmatched });
+      } catch (err) {
+        setBulkError('Failed to read file: ' + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const openNew = () => { setEditId(null); setForm(EMPTY); setSearch(''); setShowForm(true); setError(''); setBulkError(''); setBulkSummary(null); };
 
   const openEdit = (o) => {
     setEditId(o.id);
@@ -2754,6 +2815,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     setSearch('');
     setShowForm(true);
     setError('');
+    setBulkError(''); setBulkSummary(null);
   };
 
   const handleSubmit = async (e) => {
@@ -2922,6 +2984,36 @@ function BonusTab({ employees, gelRate, eurRate }) {
                 placeholder="მაგ. Q3 პერფორმანს ბონუსი"
                 style={INPUT}
               />
+            </div>
+
+            <div style={{ marginBottom: 14, padding: 12, borderRadius: 9, border: '1px dashed var(--border-2)', background: 'var(--surface-2)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)', marginBottom: 8 }}>Bulk upload</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" onClick={downloadBulkTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 7, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: '#479c73', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7,10 12,15 17,10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  Download Template
+                </button>
+                <input ref={bulkFileRef} type="file" accept=".xlsx,.xls" onChange={handleBulkUpload} style={{ display: 'none' }} id="bonus-bulk-upload" />
+                <button type="button" onClick={() => bulkFileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 7, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                  </svg>
+                  Upload Filled File
+                </button>
+              </div>
+              {bulkError && <p style={{ color: '#f87171', fontSize: 12, marginTop: 8, marginBottom: 0 }}>{bulkError}</p>}
+              {bulkSummary && (
+                <p style={{ fontSize: 12, marginTop: 8, marginBottom: 0, color: '#479c73' }}>
+                  Matched {bulkSummary.matchedCount} employee{bulkSummary.matchedCount !== 1 ? 's' : ''} — check amounts below before saving.
+                  {bulkSummary.unmatched.length > 0 && (
+                    <span style={{ color: '#f59e0b' }}> · {bulkSummary.unmatched.length} row{bulkSummary.unmatched.length !== 1 ? 's' : ''} not matched: {bulkSummary.unmatched.join(', ')}</span>
+                  )}
+                </p>
+              )}
             </div>
 
             <div style={{ marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
