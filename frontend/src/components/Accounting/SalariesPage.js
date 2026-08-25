@@ -4,6 +4,7 @@ import SalariesFile from './SalariesFile';
 import PersonalIncomeTax from './PersonalIncomeTax';
 import Transferred from './Transferred';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SUBTAB_KEYS = [
   { key: 'accrual',     labelKey: 'salPage.calculation' },
@@ -13,9 +14,8 @@ const SUBTAB_KEYS = [
 ];
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
-const fileKey = (month) => `salary_file_data_${month}`;
 
-function loadFile(month) {
+function loadFile(fileKey, month) {
   try {
     const saved = localStorage.getItem(fileKey(month));
     return saved ? JSON.parse(saved) : null;
@@ -24,14 +24,21 @@ function loadFile(month) {
 
 function SalariesPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  // localStorage is scoped per browser origin, not per logged-in company —
+  // an un-namespaced key here let one organization's cached salary file leak
+  // into another's view when the same browser is used to log into more than
+  // one org. Namespace by the current tenant so each org only ever sees its
+  // own generated file (same fix already applied to Orders.js's local orders).
+  const fileKey = (month) => `salary_file_data_${user?.id || 'anon'}_${month}`;
   const SUBTABS = SUBTAB_KEYS.map(s => ({ ...s, label: s.label || t(s.labelKey) }));
   const [currentMonth, setCurrentMonth] = useState(todayMonth);
-  const [salaryFile, setSalaryFile] = useState(() => loadFile(todayMonth()));
+  const [salaryFile, setSalaryFile] = useState(() => loadFile(fileKey, todayMonth()));
   const [subTab, setSubTab] = useState('accrual');
 
   const handleMonthChange = (month) => {
     setCurrentMonth(month);
-    setSalaryFile(loadFile(month));
+    setSalaryFile(loadFile(fileKey, month));
   };
 
   const handleCreateSalaryFile = (data) => {
