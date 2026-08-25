@@ -2763,8 +2763,12 @@ function BonusTab({ employees, gelRate, eurRate }) {
     if (bulkFileRef.current) bulkFileRef.current.value = '';
     if (!file) return;
     setBulkError(''); setBulkSummary(null);
+    if (!form.month || !form.currency) {
+      setBulkError('Select Month and Currency above before uploading.');
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = (evt) => {
+    reader.onload = async (evt) => {
       try {
         const wb = XLSX.read(evt.target.result, { type: 'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
@@ -2789,15 +2793,43 @@ function BonusTab({ employees, gelRate, eurRate }) {
           if (!emp && (firstName || lastName)) {
             emp = employees.find(e => e.first_name.toLowerCase() === firstName.toLowerCase() && e.last_name.toLowerCase() === lastName.toLowerCase());
           }
-          if (emp) matched[emp.id] = String(amount);
+          if (emp) matched[emp.id] = amount;
           else unmatched.push(personalId || `${firstName} ${lastName}`.trim() || '(unknown row)');
         });
         if (Object.keys(matched).length === 0) {
           setBulkError('No rows matched an existing employee. Check Personal ID / First Name / Last Name against your employee list.');
           return;
         }
-        setForm(p => ({ ...p, selections: { ...p.selections, ...matched } }));
-        setBulkSummary({ matchedCount: Object.keys(matched).length, unmatched });
+
+        setSaving(true);
+        const [y, m] = form.month.split('-').map(Number);
+        const lastDay = new Date(y, m, 0).getDate();
+        const date = `${form.month}-${String(lastDay).padStart(2, '0')}`;
+        const createdEntries = [];
+        try {
+          await Promise.all(Object.entries(matched).map(async ([id, amount]) => {
+            const res = await api.post(`/employees/${id}/units`, {
+              type: 'Bonus',
+              amount: toUSD(amount, form.currency),
+              date,
+              currency: 'USD',
+              include_in_salary: true,
+              note: form.purpose || null,
+            });
+            const emp = employees.find(x => String(x.id) === String(id));
+            createdEntries.push({ employeeId: id, empName: emp ? `${emp.first_name} ${emp.last_name}` : '', amount, unitId: res.data?.unit?.id });
+          }));
+        } catch (err) {
+          setBulkError(err.response?.data?.error || 'Failed to create some bonuses.');
+          setSaving(false);
+          return;
+        }
+
+        const total = createdEntries.reduce((s, en) => s + en.amount, 0);
+        add({ month: form.month, currency: form.currency, purpose: form.purpose, entries: createdEntries, total });
+        setSaving(false);
+        setBulkSummary({ createdCount: createdEntries.length, unmatched });
+        loadLiveUnits();
       } catch (err) {
         setBulkError('Failed to read file: ' + err.message);
       }
@@ -2996,19 +3028,19 @@ function BonusTab({ employees, gelRate, eurRate }) {
                   </svg>
                   Download Template
                 </button>
-                <input ref={bulkFileRef} type="file" accept=".xlsx,.xls" onChange={handleBulkUpload} style={{ display: 'none' }} id="bonus-bulk-upload" />
-                <button type="button" onClick={() => bulkFileRef.current?.click()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 7, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                <input ref={bulkFileRef} type="file" accept=".xlsx,.xls" onChange={handleBulkUpload} style={{ display: 'none' }} id="bonus-bulk-upload" disabled={saving} />
+                <button type="button" onClick={() => bulkFileRef.current?.click()} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 7, border: '1.5px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="17,8 12,3 7,8"/><line x1="12" y1="3" x2="12" y2="15"/>
                   </svg>
-                  Upload Filled File
+                  {saving ? 'Uploading…' : 'Upload Filled File'}
                 </button>
               </div>
               {bulkError && <p style={{ color: '#f87171', fontSize: 12, marginTop: 8, marginBottom: 0 }}>{bulkError}</p>}
               {bulkSummary && (
                 <p style={{ fontSize: 12, marginTop: 8, marginBottom: 0, color: '#479c73' }}>
-                  Matched {bulkSummary.matchedCount} employee{bulkSummary.matchedCount !== 1 ? 's' : ''} — check amounts below before saving.
+                  ✓ Created {bulkSummary.createdCount} bonus{bulkSummary.createdCount !== 1 ? 'es' : ''}.
                   {bulkSummary.unmatched.length > 0 && (
                     <span style={{ color: '#f59e0b' }}> · {bulkSummary.unmatched.length} row{bulkSummary.unmatched.length !== 1 ? 's' : ''} not matched: {bulkSummary.unmatched.join(', ')}</span>
                   )}
