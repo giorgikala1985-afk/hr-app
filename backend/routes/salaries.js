@@ -304,4 +304,92 @@ router.get('/', async (req, res) => {
   }
 });
 
+// ── Salary File (the generated payroll transfer file) ──────────────────────
+// One draft per org per month — previously cached in the browser's
+// localStorage (salary_file_data_<user>_<month>), which meant it only ever
+// existed on the device that generated it and was lost on browser/device
+// switch. Now persisted server-side.
+
+// GET /api/salaries/file/:month
+router.get('/file/:month', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('salary_files')
+      .select('*')
+      .eq('user_id', req.userId)
+      .eq('month', req.params.month)
+      .maybeSingle();
+    if (error) throw error;
+    res.json({ file: data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/salaries/file — create or replace the draft for a month
+router.post('/file', async (req, res) => {
+  try {
+    const { month, transfer_date, rate, rows } = req.body;
+    if (!month || !Array.isArray(rows)) {
+      return res.status(400).json({ error: 'month and rows are required' });
+    }
+    const { data, error } = await supabase
+      .from('salary_files')
+      .upsert({
+        user_id: req.userId,
+        month,
+        transfer_date: transfer_date || null,
+        rate: rate || null,
+        rows,
+        sent_to_transfers: false,
+        sent_at: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id,month' })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json({ file: data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH /api/salaries/file/:month — update rows and/or mark as sent
+router.patch('/file/:month', async (req, res) => {
+  try {
+    const patch = { updated_at: new Date().toISOString() };
+    if (req.body.rows !== undefined) patch.rows = req.body.rows;
+    if (req.body.sent_to_transfers !== undefined) {
+      patch.sent_to_transfers = req.body.sent_to_transfers;
+      patch.sent_at = new Date().toISOString();
+    }
+    const { data, error } = await supabase
+      .from('salary_files')
+      .update(patch)
+      .eq('user_id', req.userId)
+      .eq('month', req.params.month)
+      .select()
+      .single();
+    if (error) throw error;
+    res.json({ file: data });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/salaries/file/:month — clear the draft
+router.delete('/file/:month', async (req, res) => {
+  try {
+    const { error } = await supabase
+      .from('salary_files')
+      .delete()
+      .eq('user_id', req.userId)
+      .eq('month', req.params.month);
+    if (error) throw error;
+    res.json({ message: 'Deleted' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

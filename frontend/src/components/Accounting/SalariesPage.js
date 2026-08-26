@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SalaryAccrual from './SalaryAccrual';
 import SalariesFile from './SalariesFile';
 import PersonalIncomeTax from './PersonalIncomeTax';
 import Transferred from './Transferred';
 import { useLanguage } from '../../contexts/LanguageContext';
-import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
 const SUBTAB_KEYS = [
   { key: 'accrual',     labelKey: 'salPage.calculation' },
@@ -15,51 +15,60 @@ const SUBTAB_KEYS = [
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 
-function loadFile(fileKey, month) {
+// Salary files used to live only in the browser's localStorage (lost on
+// device/browser switch, and briefly bled across orgs sharing a browser
+// before being namespaced). Now persisted server-side in `salary_files`,
+// scoped by user_id the same way every other table in this app is.
+const fromApi = (f) => f ? {
+  month: f.month, transferDate: f.transfer_date, rate: f.rate, rows: f.rows,
+  sentToTransfers: f.sent_to_transfers, sentAt: f.sent_at,
+} : null;
+
+async function loadFile(month) {
   try {
-    const saved = localStorage.getItem(fileKey(month));
-    return saved ? JSON.parse(saved) : null;
+    const res = await api.get(`/salaries/file/${month}`);
+    return fromApi(res.data.file);
   } catch { return null; }
 }
 
 function SalariesPage() {
   const { t } = useLanguage();
-  const { user } = useAuth();
-  // localStorage is scoped per browser origin, not per logged-in company —
-  // an un-namespaced key here let one organization's cached salary file leak
-  // into another's view when the same browser is used to log into more than
-  // one org. Namespace by the current tenant so each org only ever sees its
-  // own generated file (same fix already applied to Orders.js's local orders).
-  const fileKey = (month) => `salary_file_data_${user?.id || 'anon'}_${month}`;
   const SUBTABS = SUBTAB_KEYS.map(s => ({ ...s, label: s.label || t(s.labelKey) }));
   const [currentMonth, setCurrentMonth] = useState(todayMonth);
-  const [salaryFile, setSalaryFile] = useState(() => loadFile(fileKey, todayMonth()));
+  const [salaryFile, setSalaryFile] = useState(null);
   const [subTab, setSubTab] = useState('accrual');
 
-  const handleMonthChange = (month) => {
+  useEffect(() => { loadFile(todayMonth()).then(setSalaryFile); }, []);
+
+  const handleMonthChange = async (month) => {
     setCurrentMonth(month);
-    setSalaryFile(loadFile(fileKey, month));
+    setSalaryFile(await loadFile(month));
   };
 
-  const handleCreateSalaryFile = (data) => {
-    setSalaryFile(data);
-    localStorage.setItem(fileKey(data.month), JSON.stringify(data));
-    setSubTab('file');
+  const handleCreateSalaryFile = async (data) => {
+    try {
+      const res = await api.post('/salaries/file', {
+        month: data.month, transfer_date: data.transferDate, rate: data.rate, rows: data.rows,
+      });
+      setSalaryFile(fromApi(res.data.file));
+      setSubTab('file');
+    } catch (err) {
+      window.alert(err.response?.data?.error || 'Failed to save the salary file.');
+    }
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
+    try { await api.delete(`/salaries/file/${currentMonth}`); } catch {}
     setSalaryFile(null);
-    localStorage.removeItem(fileKey(currentMonth));
     setSubTab('accrual');
   };
 
-  const handleSent = () => {
-    setSalaryFile(prev => {
-      if (!prev) return prev;
-      const updated = { ...prev, sentToTransfers: true, sentAt: new Date().toISOString() };
-      localStorage.setItem(fileKey(updated.month), JSON.stringify(updated));
-      return updated;
-    });
+  const handleSent = async () => {
+    if (!salaryFile) return;
+    try {
+      const res = await api.patch(`/salaries/file/${salaryFile.month}`, { sent_to_transfers: true });
+      setSalaryFile(fromApi(res.data.file));
+    } catch {}
   };
 
   return (
