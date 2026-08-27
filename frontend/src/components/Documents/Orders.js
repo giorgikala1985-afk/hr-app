@@ -10,7 +10,6 @@ import { generateOrderPDF, generatePromotionPDF } from '../../utils/generateOrde
 import { HugeiconsIcon } from '@hugeicons/react';
 import { UserIcon, Exchange01Icon, File01Icon, Agreement01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import '../Employees/Employees.css';
-import './Orders.css';
 import { useExcelTable, TableHeaderRow, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 import TableSkeleton from '../common/TableSkeleton';
 
@@ -3702,21 +3701,25 @@ export default function Orders() {
         </button>}
       </div>
 
-      {/* Subtabs — segmented snap rail: equal-width flex cells, one pill
-          sized to a column (not to any label) that slides via a CSS
-          custom property. See Orders.css for the :has()-driven hover
-          preview and the real-selection attribute rule. */}
-      <div className="order-rail" data-active-index={ORDER_SUBTABS.findIndex(t => t.key === subTab)}>
+      {/* Subtabs */}
+      <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, width: 'fit-content', marginBottom: 24 }}>
         {ORDER_SUBTABS.map(tab => (
           <button
             key={tab.key}
-            className="order-rail-btn"
-            aria-selected={subTab === tab.key}
             onClick={() => {
               if (tab.key === subTab) return;
               setLoadingSubTab(tab.key);
               setTimeout(() => setLoadingSubTab(null), 220);
               setSubTab(tab.key);
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '7px 18px', border: 'none', borderRadius: 7,
+              fontWeight: 600, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit',
+              background: subTab === tab.key ? 'var(--surface)' : 'transparent',
+              color: subTab === tab.key ? 'var(--text)' : 'var(--text-3)',
+              boxShadow: subTab === tab.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
+              transition: 'all 0.15s',
             }}
           >
             {tab.label}
