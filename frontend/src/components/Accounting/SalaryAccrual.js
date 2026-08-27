@@ -887,7 +887,24 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
 
       <div className="acc-table-wrapper" style={{ overflowX: 'auto' }}>
         {loading ? (
-          <div className="acc-empty"><p>Loading…</p></div>
+          <div className="sa-skeleton">
+            <div className="sa-skeleton-header">
+              <span className="sa-skeleton-coin">₾</span>
+              <span className="sa-skeleton-label">{t('salAccrual.loadingPayroll')}</span>
+            </div>
+            {Array.from({ length: 8 }).map((_, row) => (
+              <div key={row} className="sa-skeleton-row">
+                <div className="sa-skeleton-bar" style={{ width: '9%', animationDelay: `${row * 0.06}s` }} />
+                <div className="sa-skeleton-bar" style={{ width: '11%', animationDelay: `${row * 0.06 + 0.03}s` }} />
+                <div className="sa-skeleton-bar" style={{ width: `${13 + (row % 3) * 3}%`, animationDelay: `${row * 0.06 + 0.06}s` }} />
+                <div className="sa-skeleton-bar" style={{ width: `${11 + (row % 4) * 2}%`, animationDelay: `${row * 0.06 + 0.09}s` }} />
+                <div className="sa-skeleton-bar" style={{ width: '10%', marginLeft: 'auto', animationDelay: `${row * 0.06 + 0.12}s` }} />
+                <div className="sa-skeleton-bar" style={{ width: '7%', animationDelay: `${row * 0.06 + 0.15}s` }} />
+                <div className="sa-skeleton-bar" style={{ width: '7%', animationDelay: `${row * 0.06 + 0.18}s` }} />
+                <div className="sa-skeleton-bar" style={{ width: '9%', animationDelay: `${row * 0.06 + 0.21}s` }} />
+              </div>
+            ))}
+          </div>
         ) : !data || active.length === 0 ? (
           <div className="acc-empty">
             <div className="acc-empty-icon"><HugeiconsIcon icon={MoneyBag01Icon} size={40} color="#cbd5e1" strokeWidth={1.8} /></div>

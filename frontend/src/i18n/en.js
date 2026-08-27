@@ -802,6 +802,7 @@ const en = {
   'salAccrual.rateUnavailable': 'Rate unavailable',
   'salAccrual.removeUnit': 'Remove this unit?',
   'salAccrual.failedLoad': 'Failed to load salary data.',
+  'salAccrual.loadingPayroll': 'Loading payroll…',
   'salAccrual.failedAdd': 'Failed to add unit.',
   'salAccrual.failedRemove': 'Failed to remove unit.',
   'salAccrual.colAccrualDate': 'Accrual Date',

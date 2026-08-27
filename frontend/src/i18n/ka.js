@@ -361,6 +361,7 @@ const ka = {
   'salAccrual.rateUnavailable': 'კურსი მიუწვდომელია',
   'salAccrual.removeUnit': 'ამოღებულ იქნეს ეს ერთეული?',
   'salAccrual.failedLoad': 'სახელფასო მონაცემების ჩამოტვირთვა ვერ მოხერხდა.',
+  'salAccrual.loadingPayroll': 'იტვირთება…',
   'salAccrual.failedAdd': 'ერთეულის დამატება ვერ მოხერხდა.',
   'salAccrual.failedRemove': 'ერთეულის ამოღება ვერ მოხერხდა.',
   'salAccrual.colAccrualDate': 'დარიცხვის თარიღი',
