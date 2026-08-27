@@ -497,6 +497,19 @@
   0%, 100% { opacity: 0.55; }
   50%      { opacity: 1; }
 }
+.sa-skeleton-swap {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0; overflow: hidden;
+}
+.sa-skeleton-swap svg { animation: sa-swap-cycle 1.3s ease-in-out infinite; }
+@keyframes sa-swap-cycle {
+  0%, 100% { transform: translateX(0) scale(1); }
+  25%      { transform: translateX(2px) scale(1.05); }
+  50%      { transform: translateX(0) rotate(180deg) scale(1); }
+  75%      { transform: translateX(-2px) scale(1.05); }
+}
 .sa-skeleton-row { display: flex; align-items: center; gap: 18px; height: 40px; }
 .sa-skeleton-bar {
   height: 13px;

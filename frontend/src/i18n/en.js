@@ -1091,6 +1091,7 @@ const en = {
   'tr.subtitle': 'Manage payment transfers',
   'tr.newTransfer': '+ New Transfer',
   'tr.loading': 'Loading…',
+  'tr.loadingTransfers': 'Loading transfers…',
   'tr.noTransfers': 'No transfers yet',
   'tr.noTransfersHint': 'Click "+ New Transfer" to add one.',
   'tr.colStatus': 'Status',

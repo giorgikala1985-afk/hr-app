@@ -1089,6 +1089,7 @@ const ka = {
   'tr.subtitle': 'სახელფასო და სხვა გადარიცხვების მართვა',
   'tr.newTransfer': '+ ახალი გადარიცხვა',
   'tr.loading': 'ჩატვირთვა…',
+  'tr.loadingTransfers': 'გადარიცხვების ჩატვირთვა…',
   'tr.noTransfers': 'გადარიცხვები არ არის',
   'tr.noTransfersHint': 'დააჭირეთ "+ ახალი გადარიცხვა" დასამატებლად.',
   'tr.colStatus': 'სტატუსი',
