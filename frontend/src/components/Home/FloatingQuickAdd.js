@@ -38,17 +38,13 @@ const MENU_ITEMS = [
   )},
 ];
 
-// Fan the items across a quarter-circle from straight-up to straight-left of
-// the button (it sits in the bottom-right corner, so that's the only quadrant
-// with room), evenly spaced, further out the more items there are.
-const RADIUS = 140;
-const ARC_START = -8 * (Math.PI / 180);  // just right of straight-up
-const ARC_END = 106 * (Math.PI / 180);   // just past straight-left
+// Stack straight up above the button — the item closest to the button
+// (last in the array) unfolds first, the farthest last, so it reads as
+// the stack "growing" outward rather than everything popping at once.
+const ITEM_HEIGHT = 46;
 const fanPosition = (i, total) => {
-  const angle = ARC_START + (ARC_END - ARC_START) * (i / (total - 1));
-  const tx = -RADIUS * Math.sin(angle);
-  const ty = -RADIUS * Math.cos(angle);
-  return { '--tx': `${tx.toFixed(1)}px`, '--ty': `${ty.toFixed(1)}px`, '--delay': `${i * 50}ms` };
+  const ty = -(total - i) * ITEM_HEIGHT;
+  return { '--tx': '0px', '--ty': `${ty}px`, '--delay': `${(total - 1 - i) * 50}ms` };
 };
 
 export default function FloatingQuickAdd() {
