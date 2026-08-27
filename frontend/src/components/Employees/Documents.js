@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import TableSkeleton from '../common/TableSkeleton';
 
 function Documents({ employeeId }) {
   const { t } = useLanguage();
@@ -138,7 +139,18 @@ function Documents({ employeeId }) {
 
       {/* Document List */}
       {loading ? (
-        <div className="emp-loading">{t('doc.loading')}</div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+          }
+          color="#6366f1"
+          label={t('doc.loading')}
+          cols={[
+            { size: 18 }, { width: '45%' }, { width: '25%' }, { size: 18 }, { size: 18 },
+          ]}
+        />
       ) : documents.length === 0 ? (
         <div className="sc-empty">{t('doc.noDocuments')}</div>
       ) : (

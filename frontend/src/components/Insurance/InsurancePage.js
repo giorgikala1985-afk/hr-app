@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Insurance.css';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import TableSkeleton from '../common/TableSkeleton';
 
 const INS_DEFAULT_WIDTHS = [160, 140, 130, 130, 120, 120, 120, 80];
 
@@ -150,7 +151,21 @@ function InsurancePage() {
 
   const totalMonthly = assignments.reduce((sum, a) => sum + parseFloat(a.insurance_plans?.premium || 0), 0);
 
-  if (loading) return <div className="emp-loading">{t('billing.loading')}</div>;
+  if (loading) return (
+    <TableSkeleton
+      icon={
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+      }
+      color="#f43f5e"
+      label={t('billing.loading')}
+      cols={[
+        { width: '16%' }, { width: '14%' }, { width: '13%' }, { width: '13%' },
+        { width: '12%' }, { width: '12%' }, { width: '12%' }, { size: 18 },
+      ]}
+    />
+  );
 
   return (
     <div className="ins-container">

@@ -5,6 +5,7 @@ import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumn
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const DEFAULT_COL_WIDTHS = { date: 110, client: 160, product: 150, category: 130, hierarchy: 140, description: 200, amount: 120 };
 
@@ -311,7 +312,22 @@ function Sales() {
       )}
 
       <div className="acc-table-wrapper">
-        {loading ? <div className="acc-empty"><p>{t('sales.loading')}</p></div> : records.length === 0 ? (
+        {loading ? (
+          <TableSkeleton
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+              </svg>
+            }
+            color="#06b6d4"
+            label={t('sales.loading')}
+            cols={[
+              { size: 18 },
+              { width: '10%' }, { width: '14%' }, { width: '13%' }, { width: '11%' }, { width: '11%' }, { width: '21%' }, { width: '12%', align: 'right' },
+              { size: 18 },
+            ]}
+          />
+        ) : records.length === 0 ? (
           <div className="acc-empty"><div className="acc-empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><p>{t('sales.noSales')}</p></div>
         ) : (
           <>

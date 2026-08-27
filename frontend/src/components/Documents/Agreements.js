@@ -7,6 +7,7 @@ import { fmtExcelDate } from '../../utils/formatDate';
 import '../Employees/Employees.css';
 import '../Options/Options.css';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const TYPES = ['Service', 'Supply', 'NDA', 'Lease', 'Partnership', 'Loan', 'Other'];
 const CURRENCIES = ['GEL', 'USD', 'EUR'];
@@ -154,7 +155,21 @@ export default function Agreements() {
   };
 
   if (loading && records.length === 0) {
-    return <div className="emp-loading">Loading...</div>;
+    return (
+      <TableSkeleton
+        icon={
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+        }
+        color="#f97316"
+        label="Loading..."
+        cols={[
+          { width: '20%' }, { width: '16%' }, { width: '10%' }, { width: '10%' },
+          { width: '11%' }, { width: '11%' }, { width: '12%', align: 'right' },
+        ]}
+      />
+    );
   }
 
   return (

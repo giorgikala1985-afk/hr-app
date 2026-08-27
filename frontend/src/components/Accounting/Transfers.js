@@ -7,6 +7,7 @@ import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumn
 import { HugeiconsIcon } from '@hugeicons/react';
 import { CheckmarkCircleIcon, AlertCircleIcon, FireIcon, HourglassIcon, CancelCircleIcon, PieChartIcon, ClockIcon, ArchiveIcon, ZapIcon, Loading01Icon, Menu01Icon } from '@hugeicons/core-free-icons';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 import './Accounting.css';
 
 const fmt = (n) =>
@@ -488,28 +489,19 @@ function TransfersList() {
       {error && <div style={errBox}>{error}</div>}
 
       {loading ? (
-        <div className="sa-skeleton">
-          <div className="sa-skeleton-header">
-            <span className="sa-skeleton-swap">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-              </svg>
-            </span>
-            <span className="sa-skeleton-label">{t('tr.loadingTransfers')}</span>
-          </div>
-          {Array.from({ length: 8 }).map((_, row) => (
-            <div key={row} className="sa-skeleton-row">
-              <div className="sa-skeleton-bar" style={{ width: 18, height: 18, borderRadius: 5, animationDelay: `${row * 0.06}s` }} />
-              <div className="sa-skeleton-bar" style={{ width: 18, height: 18, borderRadius: 5, animationDelay: `${row * 0.06 + 0.03}s` }} />
-              <div className="sa-skeleton-bar" style={{ width: '9%', marginLeft: 'auto', animationDelay: `${row * 0.06 + 0.06}s` }} />
-              <div className="sa-skeleton-bar" style={{ width: '10%', animationDelay: `${row * 0.06 + 0.09}s` }} />
-              <div className="sa-skeleton-bar" style={{ width: `${20 + (row % 3) * 4}%`, animationDelay: `${row * 0.06 + 0.12}s` }} />
-              <div className="sa-skeleton-bar" style={{ width: '11%', animationDelay: `${row * 0.06 + 0.15}s` }} />
-              <div className="sa-skeleton-bar" style={{ width: '10%', animationDelay: `${row * 0.06 + 0.18}s` }} />
-              <div className="sa-skeleton-bar" style={{ width: '12%', animationDelay: `${row * 0.06 + 0.21}s` }} />
-            </div>
-          ))}
-        </div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+            </svg>
+          }
+          color="#3b82f6"
+          label={t('tr.loadingTransfers')}
+          cols={[
+            { size: 18 }, { size: 18 }, { width: '9%', align: 'right' }, { width: '10%' },
+            { width: '24%' }, { width: '11%' }, { width: '10%' }, { width: '12%' },
+          ]}
+        />
       ) : transfers.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-3)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>💸</div>

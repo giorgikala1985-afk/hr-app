@@ -3,6 +3,7 @@ import api from '../../services/api';
 import './Analytics.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import TableSkeleton from '../common/TableSkeleton';
 import SharedReports from './SharedReports';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -416,10 +417,19 @@ function Analytics() {
   if (loading) {
     return (
       <div className="analytics-container">
-        <div className="an-loading">
-          <div className="an-spinner" />
-          {t('analytics.loading')}
-        </div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+          }
+          color="#6366f1"
+          label={t('analytics.loading')}
+          cols={[
+            { width: '18%' }, { width: '16%' }, { width: '16%' }, { width: '16%' },
+            { width: '14%', align: 'right' }, { width: '12%', align: 'right' },
+          ]}
+        />
       </div>
     );
   }

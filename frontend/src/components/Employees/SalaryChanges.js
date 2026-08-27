@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import TableSkeleton from '../common/TableSkeleton';
 
 function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalaryUpdated }) {
   const { t } = useLanguage();
@@ -116,7 +117,18 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
 
       {/* History */}
       {loading ? (
-        <div className="emp-loading">{t('sc.loadingHistory')}</div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+          }
+          color="#8b5cf6"
+          label={t('sc.loadingHistory')}
+          cols={[
+            { width: '15%' }, { width: '18%' }, { size: 14 }, { width: '18%' }, { width: '35%' }, { size: 18 },
+          ]}
+        />
       ) : changes.length === 0 ? (
         <div className="sc-empty">{t('sc.noChanges')}</div>
       ) : (

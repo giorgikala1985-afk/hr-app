@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { ChartBlock } from '../Accounting/FinBotsPage';
+import TableSkeleton from '../common/TableSkeleton';
 
 export default function SharedReports() {
   const { t } = useLanguage();
@@ -33,7 +34,19 @@ export default function SharedReports() {
   };
 
   if (loading) {
-    return <div className="an-loading"><div className="an-spinner" /></div>;
+    return (
+      <TableSkeleton
+        icon={
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+          </svg>
+        }
+        color="#06b6d4"
+        label=""
+        rows={4}
+        cols={[{ width: '40%' }, { width: '35%' }, { size: 18 }]}
+      />
+    );
   }
 
   if (reports.length === 0) {

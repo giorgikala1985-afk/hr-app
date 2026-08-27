@@ -10,6 +10,7 @@ import {
   CheckmarkSquare01Icon, Image01Icon, Mail01Icon,
 } from '@hugeicons/core-free-icons';
 import { fetchTbcRawStatement, saveTbcRawStatement, clearTbcRawStatement } from '../../utils/tbcStatement';
+import TableSkeleton from '../common/TableSkeleton';
 import './ct-styles.css';
 
 const typeIcon = (icon) => <HugeiconsIcon icon={icon} size={15} color="currentColor" strokeWidth={1.8} />;
@@ -152,7 +153,19 @@ function TBCBank() {
   if (initialLoading) {
     return (
       <div className="tbc-page">
-        <div className="dl-uploading"><div className="dl-spinner" /><span>Loading statement...</span></div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+            </svg>
+          }
+          color="#14b8a6"
+          label="Loading statement..."
+          cols={[
+            { width: '16%' }, { width: '16%' }, { width: '26%' },
+            { width: '16%', align: 'right' }, { width: '16%', align: 'right' },
+          ]}
+        />
       </div>
     );
   }

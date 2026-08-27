@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import TableSkeleton from '../common/TableSkeleton';
 
 function GymSettings() {
   const { t } = useLanguage();
@@ -143,7 +144,21 @@ function GymSettings() {
 
   const totalMonthly = assignments.reduce((sum, a) => sum + parseFloat(a.gym_plans?.price || 0), 0);
 
-  if (loading) return <div className="emp-loading">{t('common.loading')}</div>;
+  if (loading) return (
+    <TableSkeleton
+      icon={
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6.5 6.5h11v11h-11z"/><path d="M2 9v6"/><path d="M22 9v6"/><path d="M6 12h12"/>
+        </svg>
+      }
+      color="#10b981"
+      label={t('common.loading')}
+      rows={5}
+      cols={[
+        { width: '22%' }, { width: '20%' }, { width: '18%' }, { width: '15%' }, { size: 18 },
+      ]}
+    />
+  );
 
   return (
     <div className="tab-panel">

@@ -5,6 +5,7 @@ import { parseStatementAmount } from '../../utils/bankAmount';
 import { fetchTbcRawStatement } from '../../utils/tbcStatement';
 import { useExcelTable, ExcelFilterDropdown, PaginationBar } from '../common/ExcelTable';
 import { useLanguage } from '../../contexts/LanguageContext';
+import TableSkeleton from '../common/TableSkeleton';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
@@ -538,7 +539,20 @@ function SalaryPayments() {
       <div style={{ marginTop: 32 }}>
         <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: '0 0 12px' }}>Payment History</h3>
         {historyLoading ? (
-          <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading...</div>
+          <TableSkeleton
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="5 6 12 3 19 6"/>
+                <line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/>
+                <line x1="8" y1="14" x2="8" y2="17"/><line x1="12" y1="14" x2="12" y2="17"/><line x1="16" y1="14" x2="16" y2="17"/>
+              </svg>
+            }
+            color="#3b82f6"
+            label="Loading..."
+            cols={[
+              { width: '18%' }, { width: '18%' }, { width: '20%', align: 'right' }, { width: '20%' }, { width: '24%' },
+            ]}
+          />
         ) : history.length === 0 ? (
           <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No salary payments recorded yet.</div>
         ) : (
@@ -1146,7 +1160,21 @@ function InvoicePayment() {
   ];
   const table = useExcelTable({ storageKey: 'tbc_invoice_payment', columns: INVOICE_COLUMNS, rows: invoices });
 
-  if (loading) return <div style={{ color: 'var(--text-3)', padding: 24 }}>Loading invoices...</div>;
+  if (loading) return (
+    <TableSkeleton
+      icon={
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+      }
+      color="#3b82f6"
+      label="Loading invoices..."
+      cols={[
+        { width: '14%' }, { width: '20%' }, { width: '20%' }, { width: '16%', align: 'right' }, { width: '16%' }, { width: '14%' },
+      ]}
+    />
+  );
 
   return (
     <div>

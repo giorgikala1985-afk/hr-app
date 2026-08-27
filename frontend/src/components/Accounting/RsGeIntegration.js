@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const fmt = (n) =>
   n != null ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
@@ -266,7 +267,20 @@ function EmployeeRegistration() {
         </div>
       </div>
 
-      {loading ? <div style={{ color: 'var(--text-3)' }}>Loading...</div> : employees.length === 0 ? (
+      {loading ? (
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          }
+          color="#f97316"
+          label="Loading..."
+          cols={[
+            { width: '24%' }, { width: '18%' }, { width: '18%' }, { width: '18%' }, { width: '22%' },
+          ]}
+        />
+      ) : employees.length === 0 ? (
         <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No employees with personal IDs found.</div>
       ) : (
         <div style={{ overflowX: 'auto', marginBottom: 24 }}>
@@ -329,7 +343,20 @@ function EmployeeRegistration() {
         <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Registration History</h3>
         <ColumnVisibilityMenu table={histTable} t={t} />
       </div>
-      {histLoading ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading...</div> : history.length === 0 ? (
+      {histLoading ? (
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          }
+          color="#f97316"
+          label="Loading..."
+          cols={[
+            { width: '30%' }, { width: '22%' }, { width: '24%' }, { width: '24%' },
+          ]}
+        />
+      ) : history.length === 0 ? (
         <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No registration history yet.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -588,7 +615,22 @@ function TaxDeclarations() {
         <h3 style={{ fontSize: 16, fontWeight: 700, color: 'var(--text)', margin: 0 }}>Declaration History</h3>
         <ColumnVisibilityMenu table={declTable} t={t} />
       </div>
-      {histLoading ? <div style={{ color: 'var(--text-3)', fontSize: 13 }}>Loading...</div> : history.length === 0 ? (
+      {histLoading ? (
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          }
+          color="#f97316"
+          label="Loading..."
+          cols={[
+            { width: '12%' }, { width: '12%' }, { width: '16%', align: 'right' }, { width: '14%', align: 'right' },
+            { width: '14%', align: 'right' }, { width: '14%' }, { width: '18%' },
+          ]}
+        />
+      ) : history.length === 0 ? (
         <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No declarations submitted yet.</div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -738,7 +780,21 @@ function Waybills() {
       {error && <div style={errBox}>{error}</div>}
       {success && <div style={successBox}>{success}</div>}
 
-      {loading ? <div style={{ color: 'var(--text-3)' }}>Loading...</div> : waybills.length === 0 ? (
+      {loading ? (
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+              <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+          }
+          color="#f97316"
+          label="Loading..."
+          cols={[
+            { width: '14%' }, { width: '20%' }, { width: '26%' }, { width: '14%', align: 'right' }, { width: '12%' }, { width: '14%' },
+          ]}
+        />
+      ) : waybills.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-3)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📦</div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)' }}>No waybills yet</div>
@@ -976,7 +1032,21 @@ function EInvoices() {
       {error && <div style={errBox}>{error}</div>}
       {success && <div style={successBox}>{success}</div>}
 
-      {loading ? <div style={{ color: 'var(--text-3)' }}>Loading...</div> : einvoices.length === 0 ? (
+      {loading ? (
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          }
+          color="#f97316"
+          label="Loading..."
+          cols={[
+            { width: '14%' }, { width: '22%' }, { width: '18%' }, { width: '16%', align: 'right' }, { width: '14%', align: 'right' }, { width: '16%' },
+          ]}
+        />
+      ) : einvoices.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-3)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
           <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-2)' }}>No e-invoices yet</div>

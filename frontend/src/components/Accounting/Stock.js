@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const today = () => new Date().toISOString().split('T')[0];
 
@@ -180,7 +181,21 @@ export default function Stock() {
 
       <div className="acc-table-wrapper">
         {loading ? (
-          <div className="acc-empty"><p>{t('stock.loading')}</p></div>
+          <TableSkeleton
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            }
+            color="#8b5cf6"
+            label={t('stock.loading')}
+            cols={[
+              { width: '10%' }, { width: '14%' }, { width: '12%' }, { width: '11%' }, { width: '9%', align: 'right' },
+              { width: '11%', align: 'right' }, { width: '11%' }, { width: '9%', align: 'right' }, { width: '11%', align: 'right' },
+              { size: 18 },
+            ]}
+          />
         ) : records.length === 0 ? (
           <div className="acc-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>

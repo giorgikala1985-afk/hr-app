@@ -6,6 +6,7 @@ import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { fmtExcelDate } from '../../utils/formatDate';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const DEFAULT_COL_WIDTHS = { date: 110, client: 160, item_type: 150, amount: 110, note: 220 };
 
@@ -290,7 +291,23 @@ function Transactions() {
       )}
 
       <div className="acc-table-wrapper">
-        {loading ? <div className="acc-empty"><p>{t('tx.loading')}</p></div> : records.length === 0 ? (
+        {loading ? (
+          <TableSkeleton
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+              </svg>
+            }
+            color="#f97316"
+            label={t('tx.loading')}
+            cols={[
+              { size: 18 },
+              { width: '12%' }, { width: '18%' }, { width: '16%' }, { width: '12%', align: 'right' }, { width: '30%' },
+              { size: 18 },
+            ]}
+          />
+        ) : records.length === 0 ? (
           <div className="acc-empty">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
               <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>

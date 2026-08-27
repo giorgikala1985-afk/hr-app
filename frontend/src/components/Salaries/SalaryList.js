@@ -8,6 +8,7 @@ import '../Options/Options.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useExcelTable, ExcelFilterDropdown } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const SAL_DEFAULT_WIDTHS = [60, 160, 140, 130, 110, 130, 130]; // Photo, Name, Position, Salary, Days, Accrued, Net
 
@@ -368,7 +369,15 @@ function SalaryList() {
       {error && <div className="msg-error">{error}</div>}
 
       {loading ? (
-        <div className="emp-loading">{t('sal.calculating')}</div>
+        <TableSkeleton
+          icon={<span style={{ fontSize: 11, fontWeight: 800 }}>$</span>}
+          color="#f97316"
+          label={t('sal.calculating')}
+          cols={[
+            { size: 18 }, { width: '20%' }, { width: '17%' }, { width: '16%' },
+            { width: '14%' }, { width: '16%' }, { width: '16%', align: 'right' },
+          ]}
+        />
       ) : activeEmployees.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><HugeiconsIcon icon={MoneyBag01Icon} size={48} color="#cbd5e1" strokeWidth={1.5} /></div>

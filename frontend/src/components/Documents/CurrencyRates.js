@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import TableSkeleton from '../common/TableSkeleton';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP'];
 const CURRENCY_COLORS = { USD: '#479c73', EUR: '#2563eb', GBP: '#7c3aed' };
@@ -254,7 +255,16 @@ export default function CurrencyRates() {
             />
           </div>
           {loading ? (
-            <div style={{ textAlign: 'center', color: 'var(--text-3)', paddingTop: 40, fontSize: 13 }}>Loading...</div>
+            <TableSkeleton
+              icon={<span style={{ fontSize: 11, fontWeight: 800 }}>₾</span>}
+              color="#06b6d4"
+              label="Loading..."
+              rows={3}
+              cols={[
+                { size: 32 }, { width: '20%' }, { width: '30%' },
+                { width: '20%', align: 'right' }, { width: '15%', align: 'right' },
+              ]}
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {dayRates.map(r => (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);
 
@@ -141,7 +142,20 @@ export default function PersonalIncomeTax() {
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-3)' }}>{t('pit.loading')}</div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="5" x2="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
+            </svg>
+          }
+          color="#f59e0b"
+          label={t('pit.loading')}
+          cols={[
+            { width: '12%' }, { width: '12%' }, { width: '12%' },
+            { width: '13%', align: 'right' }, { width: '13%', align: 'right' },
+            { width: '13%', align: 'right' }, { width: '13%', align: 'right' }, { width: '12%', align: 'right' },
+          ]}
+        />
       ) : error ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--danger)' }}>{error}</div>
       ) : (

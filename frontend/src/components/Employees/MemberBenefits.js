@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import TableSkeleton from '../common/TableSkeleton';
 
 const MEMBER_TYPES = ['Gym', 'Insurance', 'Pension', 'Custom'];
 
@@ -371,7 +372,18 @@ function MemberBenefits({ employeeId }) {
 
       {/* Members List */}
       {loading ? (
-        <div className="emp-loading">{t('mb.loading')}</div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2 4 5v6c0 5 3.6 9 8 11 4.4-2 8-6 8-11V5l-8-3Z"/>
+            </svg>
+          }
+          color="#ec4899"
+          label={t('mb.loading')}
+          cols={[
+            { size: 18 }, { width: '40%' }, { width: '20%' }, { width: '20%', align: 'right' }, { size: 18 },
+          ]}
+        />
       ) : members.length === 0 ? (
         <div className="sc-empty">{t('mb.noMembers')}</div>
       ) : (

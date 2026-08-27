@@ -1,0 +1,31 @@
+/* ── Shared table/matrix skeleton loader ─────────────────────────────── */
+.ts-skeleton { padding: 20px 24px 28px; }
+.ts-skeleton-header { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; color: var(--text-3); font-size: 13px; font-weight: 600; }
+.ts-skeleton-icon {
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; flex-shrink: 0; overflow: hidden;
+}
+.ts-skeleton-icon svg { animation: ts-icon-pulse 1.3s ease-in-out infinite; }
+@keyframes ts-icon-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+.ts-skeleton-label { animation: ts-label-pulse 1.4s ease-in-out infinite; }
+@keyframes ts-label-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+.ts-skeleton-row { display: flex; align-items: center; gap: 18px; height: 40px; }
+.ts-skeleton-bar {
+  height: 13px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: ts-shimmer 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes ts-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

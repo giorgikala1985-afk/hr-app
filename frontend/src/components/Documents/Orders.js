@@ -11,6 +11,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { UserIcon, Exchange01Icon, File01Icon, Agreement01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import '../Employees/Employees.css';
 import { useExcelTable, TableHeaderRow, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
+import TableSkeleton from '../common/TableSkeleton';
 
 const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -3754,7 +3755,19 @@ export default function Orders() {
       {/* Orders list */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--text-3)', padding: '56px 0', fontSize: 13 }}>{t('orders.loading')}</div>
+          <TableSkeleton
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+              </svg>
+            }
+            color="#3b82f6"
+            label={t('orders.loading')}
+            cols={[
+              { width: '18%' }, { width: '14%' }, { width: '14%' }, { width: '14%' },
+              { width: '20%' }, { width: '12%', align: 'right' },
+            ]}
+          />
         ) : filteredUnits.length > 0 && sortedUnits.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 24px', color: 'var(--text-3)', fontSize: 13 }}>
             {t('orders.noFilterMatches')}

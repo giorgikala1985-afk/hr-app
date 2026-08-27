@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './Gym.css';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
+import TableSkeleton from '../common/TableSkeleton';
 
 const GYM_DEFAULT_WIDTHS = [160, 140, 130, 130, 100, 120, 80];
 
@@ -148,7 +149,21 @@ function GymPage() {
 
   const totalMonthly = assignments.reduce((sum, a) => sum + parseFloat(a.gym_plans?.price || 0), 0);
 
-  if (loading) return <div className="emp-loading">{t('billing.loading')}</div>;
+  if (loading) return (
+    <TableSkeleton
+      icon={
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6.5 6.5h11v11h-11z"/><path d="M2 9v6"/><path d="M22 9v6"/><path d="M6 12h12"/>
+        </svg>
+      }
+      color="#10b981"
+      label={t('billing.loading')}
+      cols={[
+        { width: '19%' }, { width: '16%' }, { width: '15%' }, { width: '15%' },
+        { width: '12%' }, { width: '14%' }, { size: 18 },
+      ]}
+    />
+  );
 
   return (
     <div className="gym-container">

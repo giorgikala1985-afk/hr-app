@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import TableSkeleton from '../common/TableSkeleton';
 
 const UNIT_TYPES = ['Fitpass', 'Insurance', 'Custom'];
 
@@ -145,7 +146,19 @@ function EmployeeUnits({ employeeId }) {
 
       {/* Units List */}
       {loading ? (
-        <div className="emp-loading">{t('eu.loading')}</div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+          }
+          color="#f59e0b"
+          label={t('eu.loading')}
+          cols={[
+            { size: 18 }, { width: '40%' }, { width: '20%' }, { width: '20%', align: 'right' }, { size: 18 },
+          ]}
+        />
       ) : units.length === 0 ? (
         <div className="sc-empty">{t('eu.noUnits')}</div>
       ) : (

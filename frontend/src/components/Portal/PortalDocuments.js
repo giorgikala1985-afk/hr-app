@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import portalApi from '../../services/portalApi';
+import TableSkeleton from '../common/TableSkeleton';
 
 function formatSize(bytes) {
   if (!bytes) return '';
@@ -99,7 +100,17 @@ export default function PortalDocuments() {
       {/* List */}
       <div className="portal-card">
         {loading ? (
-          <div className="portal-spinner">Loading...</div>
+          <TableSkeleton
+            icon={
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+            }
+            color="#f59e0b"
+            label="Loading..."
+            rows={5}
+            cols={[{ size: 32 }, { width: '35%' }, { width: '25%' }, { width: '15%', align: 'right' }]}
+          />
         ) : docs.length === 0 ? (
           <div className="portal-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">

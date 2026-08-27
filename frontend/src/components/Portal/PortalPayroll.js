@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import portalApi from '../../services/portalApi';
+import TableSkeleton from '../common/TableSkeleton';
 
 function fmt(n) {
   return (n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -50,7 +51,15 @@ export default function PortalPayroll() {
         />
       </div>
 
-      {loading && <div className="portal-spinner">Loading...</div>}
+      {loading && (
+        <TableSkeleton
+          icon={<span style={{ fontSize: 11, fontWeight: 800 }}>$</span>}
+          color="#3b82f6"
+          label="Loading..."
+          rows={4}
+          cols={[{ width: '55%' }, { width: '25%', align: 'right' }]}
+        />
+      )}
       {error && <div className="portal-login-error">{error}</div>}
 
       {data && !loading && (

@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
+import TableSkeleton from '../common/TableSkeleton';
 
 const fmt = (n) =>
   n ? new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) : '';
@@ -422,7 +423,18 @@ function Bookkeeping() {
           </div>
 
           {txLoading ? (
-            <div style={{ color: 'var(--text-4)', padding: 24 }}>{t('bk.loading')}</div>
+            <TableSkeleton
+              icon={
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                </svg>
+              }
+              color="#3b82f6"
+              label={t('bk.loading')}
+              cols={[
+                { width: '12%' }, { width: '12%' }, { width: '12%' }, { width: '28%' }, { width: '14%', align: 'right' }, { width: '14%' }, { size: 18 },
+              ]}
+            />
           ) : filteredRows.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-4)' }}>
               <div style={{ marginBottom: 12 }}><HugeiconsIcon icon={Book01Icon} size={40} color="#cbd5e1" strokeWidth={1.8} /></div>

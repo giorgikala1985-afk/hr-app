@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import ChartDesignsGallery from './ChartDesignsGallery';
 import ModuleMapView from './ModuleMapView';
+import TableSkeleton from '../common/TableSkeleton';
 
 const RIGHTS_STYLE = {
   'Super Admin': { background: '#fdf4ff', color: '#7e22ce', border: '1px solid #e9d5ff' },
@@ -381,7 +382,20 @@ function AdminPage() {
       ) : activeTab === 'moduleMap' ? (
         <ModuleMapView />
       ) : loading ? (
-        <div style={{ textAlign: 'center', color: 'var(--text-4)', padding: '60px 0', fontSize: 15 }}>Loading…</div>
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/>
+            </svg>
+          }
+          color="#6366f1"
+          label="Loading…"
+          cols={[
+            { size: 18 }, { width: '18%' }, { width: '18%' }, { width: '10%' },
+            { width: '12%' }, { width: '9%', align: 'right' }, { width: '8%', align: 'right' },
+            { width: '11%' }, { width: '9%' }, { size: 18 },
+          ]}
+        />
       ) : activeTab === 'companies' ? (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

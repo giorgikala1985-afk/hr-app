@@ -8,6 +8,7 @@ import '../Options/Options.css';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 import EmployeeForm from './EmployeeForm';
+import TableSkeleton from '../common/TableSkeleton';
 
 // Default proportional widths (px) per column. With table-layout:fixed + width:100%
 // these set the relative proportions; the browser stretches them to fill the table,
@@ -151,7 +152,24 @@ function EmployeeList() {
   };
 
   if (loading && employees.length === 0) {
-    return <div className="emp-loading">{t('emp.loading')}</div>;
+    return (
+      <div className="emp-container">
+        <TableSkeleton
+          icon={
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          }
+          color="#06b6d4"
+          label={t('emp.loading')}
+          cols={[
+            { size: 18 }, { size: 18 }, { width: '17%' }, { width: '12%' },
+            { width: '10%' }, { width: '12%' }, { width: '10%', align: 'right' },
+            { width: '13%' }, { width: '9%' }, { width: '9%' }, { size: 18 }, { size: 18 },
+          ]}
+        />
+      </div>
+    );
   }
 
   return (
