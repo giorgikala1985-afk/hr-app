@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import QuickUnitModal from './QuickUnitModal';
 import QuickFireModal from './QuickFireModal';
 import QuickPromoteModal from './QuickPromoteModal';
 import QuickTransferModal from './QuickTransferModal';
+import './FloatingQuickAdd.css';
 
 const HIDDEN_PATHS = ['/login', '/signup', '/register', '/sign'];
 
@@ -37,11 +38,24 @@ const MENU_ITEMS = [
   )},
 ];
 
+// Fan the items across a quarter-circle from straight-up to straight-left of
+// the button (it sits in the bottom-right corner, so that's the only quadrant
+// with room), evenly spaced, further out the more items there are.
+const RADIUS = 140;
+const ARC_START = -8 * (Math.PI / 180);  // just right of straight-up
+const ARC_END = 106 * (Math.PI / 180);   // just past straight-left
+const fanPosition = (i, total) => {
+  const angle = ARC_START + (ARC_END - ARC_START) * (i / (total - 1));
+  const tx = -RADIUS * Math.sin(angle);
+  const ty = -RADIUS * Math.cos(angle);
+  return { '--tx': `${tx.toFixed(1)}px`, '--ty': `${ty.toFixed(1)}px`, '--delay': `${i * 50}ms` };
+};
+
 export default function FloatingQuickAdd() {
   const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const checkboxRef = useRef(null);
   const [activeModal, setActiveModal] = useState(null);
 
   if (!user) return null;
@@ -49,9 +63,10 @@ export default function FloatingQuickAdd() {
   if (location.pathname.startsWith('/portal')) return null;
 
   const closeModal = () => setActiveModal(null);
+  const closeMenu = () => { if (checkboxRef.current) checkboxRef.current.checked = false; };
 
   const handleItemClick = (key) => {
-    setMenuOpen(false);
+    closeMenu();
     if (key === 'hire') {
       navigate('/finances?tab=orders', { state: { openHire: true } });
       return;
@@ -61,66 +76,29 @@ export default function FloatingQuickAdd() {
 
   return (
     <>
-      {menuOpen && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 889 }} onClick={() => setMenuOpen(false)} />
-      )}
+      {/* Hidden checkbox drives every visual: open/close, fan-out, icon
+          rotation — all pure CSS via :checked sibling selectors below. */}
+      <input ref={checkboxRef} type="checkbox" id="fab-toggle" className="fab-checkbox" aria-label="Quick Orders" />
 
-      {menuOpen && (
-        <div style={{
-          position: 'fixed', bottom: 86, right: 24, zIndex: 890,
-          display: 'flex', flexDirection: 'column', gap: 8,
-          background: 'var(--surface)', border: '1px solid var(--border-2)',
-          borderRadius: 12, padding: 8, boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
-        }}>
-          {MENU_ITEMS.map(item => (
-            <button
-              key={item.key}
-              onClick={() => handleItemClick(item.key)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px',
-                borderRadius: 8, border: 'none', background: 'transparent',
-                color: item.color, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                whiteSpace: 'nowrap', transition: 'background 0.12s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {MENU_ITEMS.map((item, i) => (
+        <button
+          key={item.key}
+          className="fab-item"
+          style={{ ...fanPosition(i, MENU_ITEMS.length), color: item.color }}
+          onClick={() => handleItemClick(item.key)}
+        >
+          {item.icon}
+          {item.label}
+        </button>
+      ))}
 
-      <button
-        onClick={() => setMenuOpen(v => !v)}
-        title="Quick Orders"
-        style={{
-          position: 'fixed',
-          bottom: 24,
-          right: 24,
-          width: 52,
-          height: 52,
-          borderRadius: 14,
-          border: 'none',
-          background: '#4CAF50',
-          color: '#fff',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 20px rgba(76,175,80,0.45)',
-          zIndex: 890,
-          transition: 'transform 0.15s, box-shadow 0.15s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.1)'; e.currentTarget.style.boxShadow = '0 6px 28px rgba(76,175,80,0.6)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(76,175,80,0.45)'; }}
-      >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ transform: menuOpen ? 'rotate(45deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+      <label htmlFor="fab-toggle" className="fab-overlay" />
+      <label htmlFor="fab-toggle" className="fab-label" title="Quick Orders">
+        <svg className="fab-icon" width="28" height="28" viewBox="0 0 24 24" fill="none">
           <rect x="10" y="4" width="4" height="16" rx="2" fill="currentColor" />
           <rect x="4" y="10" width="16" height="4" rx="2" fill="currentColor" />
         </svg>
-      </button>
+      </label>
 
       {activeModal === 'fire' && <QuickFireModal onClose={closeModal} />}
       {activeModal === 'promote' && <QuickPromoteModal onClose={closeModal} />}
