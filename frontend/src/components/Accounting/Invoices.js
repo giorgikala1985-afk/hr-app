@@ -497,48 +497,52 @@ function Invoices() {
                 return (
                   <div key={date} style={{ border: '1px solid var(--border-2)', borderRadius: 12, marginBottom: 14, overflow: 'hidden' }}>
                     {/* Block header */}
-                    <div
-                      onClick={() => toggleDateGroup(date)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'var(--surface-2)', cursor: 'pointer' }}
-                    >
-                      <span style={{ fontSize: 12, color: 'var(--text-4)', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▶</span>
-                      <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{dateGroupLabel(date)}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, background: 'var(--surface)', border: '1px solid var(--border-2)', color: 'var(--text-3)', borderRadius: 20, padding: '2px 10px' }}>
-                        {dayRecords.length}
-                      </span>
-                      <button
-                        onClick={e => { e.stopPropagation(); setTab('upload'); }}
-                        title="ინვოისის ატვირთვა"
-                        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer' }}
+                    <div style={{ background: 'var(--surface-2)' }}>
+                      <div
+                        onClick={() => toggleDateGroup(date)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px 8px', cursor: 'pointer' }}
                       >
-                        <HugeiconsIcon icon={Upload01Icon} size={14} color="currentColor" strokeWidth={2} />
-                        ატვირთვა
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); handleExtractBlock(date, dayRecords); }}
-                        disabled={extractingDate === date}
-                        title="ტექსტის ამოღება ყველა ფაილიდან და Excel-ში ჩაწერა"
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#2563eb', cursor: extractingDate === date ? 'not-allowed' : 'pointer', opacity: extractingDate === date ? 0.7 : 1 }}
-                      >
-                        <HugeiconsIcon icon={extractingDate === date ? Loading03Icon : AiMagicIcon} size={14} color="currentColor" strokeWidth={2} />
-                        {extractingDate === date ? 'მუშავდება...' : 'Extract'}
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); exportRecordsToExcel(dayRecords, date); }}
-                        title="ამ დღის Excel-ში გატანა"
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#479c73', cursor: 'pointer' }}
-                      >
-                        <HugeiconsIcon icon={FileSpreadsheetIcon} size={14} color="currentColor" strokeWidth={2} />
-                        Excel
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); openEditTransactions(date, dayRecords); }}
-                        title="მონაცემების რედაქტირება და Transfers-ში გაგზავნა"
-                        style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}
-                      >
-                        <HugeiconsIcon icon={TaskEdit01Icon} size={14} color="currentColor" strokeWidth={2} />
-                        Edit Transactions
-                      </button>
+                        <span style={{ fontSize: 12, color: 'var(--text-4)', transform: isOpen ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>▶</span>
+                        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{dateGroupLabel(date)}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, background: 'var(--surface)', border: '1px solid var(--border-2)', color: 'var(--text-3)', borderRadius: 20, padding: '2px 10px' }}>
+                          {dayRecords.length}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px 10px 38px' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); setTab('upload'); }}
+                          title="ინვოისის ატვირთვა"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer' }}
+                        >
+                          <HugeiconsIcon icon={Upload01Icon} size={12} color="currentColor" strokeWidth={2} />
+                          ატვირთვა
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); handleExtractBlock(date, dayRecords); }}
+                          disabled={extractingDate === date}
+                          title="ტექსტის ამოღება ყველა ფაილიდან და Excel-ში ჩაწერა"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#2563eb', cursor: extractingDate === date ? 'not-allowed' : 'pointer', opacity: extractingDate === date ? 0.7 : 1 }}
+                        >
+                          <HugeiconsIcon icon={extractingDate === date ? Loading03Icon : AiMagicIcon} size={12} color="currentColor" strokeWidth={2} />
+                          {extractingDate === date ? 'მუშავდება...' : 'Extract'}
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); exportRecordsToExcel(dayRecords, date); }}
+                          title="ამ დღის Excel-ში გატანა"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#479c73', cursor: 'pointer' }}
+                        >
+                          <HugeiconsIcon icon={FileSpreadsheetIcon} size={12} color="currentColor" strokeWidth={2} />
+                          Excel
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); openEditTransactions(date, dayRecords); }}
+                          title="მონაცემების რედაქტირება და Transfers-ში გაგზავნა"
+                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#7c3aed', cursor: 'pointer' }}
+                        >
+                          <HugeiconsIcon icon={TaskEdit01Icon} size={12} color="currentColor" strokeWidth={2} />
+                          Edit Transactions
+                        </button>
+                      </div>
                     </div>
 
                     {/* Block body */}
