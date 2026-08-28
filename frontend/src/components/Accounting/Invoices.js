@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { InboxIcon, AiMagicIcon, Loading03Icon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, FileSpreadsheetIcon } from '@hugeicons/core-free-icons';
+import { InboxIcon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, FileSpreadsheetIcon } from '@hugeicons/core-free-icons';
 import { fmtExcelDate } from '../../utils/formatDate';
 
 function Invoices() {
@@ -122,27 +122,6 @@ function Invoices() {
     XLSX.writeFile(wb, `invoices_${filenameSuffix}.xlsx`);
   };
   const handleExportExcel = () => exportRecordsToExcel(filteredUploadRecords, today());
-
-  const [extractingDate, setExtractingDate] = useState(null);
-  const handleExtractBlock = async (date, records) => {
-    setExtractingDate(date);
-    try {
-      const results = await Promise.all(records.map(async (rec) => {
-        try {
-          const res = await api.post(`/accounting/invoices/uploads/${rec.id}/rescan`);
-          return { id: rec.id, extracted: res.data.upload.extracted };
-        } catch {
-          return null;
-        }
-      }));
-      const byId = new Map(results.filter(Boolean).map(r => [r.id, r.extracted]));
-      setUploadRecords(prev => prev.map(r => byId.has(r.id) ? { ...r, extracted: byId.get(r.id) } : r));
-      const freshRecords = records.map(r => byId.has(r.id) ? { ...r, extracted: byId.get(r.id) } : r);
-      exportRecordsToExcel(freshRecords, date);
-    } finally {
-      setExtractingDate(null);
-    }
-  };
 
   // Edit Transactions tab — a block's extracted data, opened as editable rows.
   const [editRecords, setEditRecords] = useState([]);
@@ -547,23 +526,6 @@ function Invoices() {
                         {dayRecords.length}
                       </span>
                       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <button
-                          onClick={e => { e.stopPropagation(); setTab('upload'); }}
-                          title="ინვოისის ატვირთვა"
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 11, fontWeight: 600, color: 'var(--text-2)', cursor: 'pointer' }}
-                        >
-                          <HugeiconsIcon icon={Upload01Icon} size={12} color="currentColor" strokeWidth={2} />
-                          ატვირთვა
-                        </button>
-                        <button
-                          onClick={e => { e.stopPropagation(); handleExtractBlock(date, dayRecords); }}
-                          disabled={extractingDate === date}
-                          title="ტექსტის ამოღება ყველა ფაილიდან და Excel-ში ჩაწერა"
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, fontSize: 11, fontWeight: 600, color: '#2563eb', cursor: extractingDate === date ? 'not-allowed' : 'pointer', opacity: extractingDate === date ? 0.7 : 1 }}
-                        >
-                          <HugeiconsIcon icon={extractingDate === date ? Loading03Icon : AiMagicIcon} size={12} color="currentColor" strokeWidth={2} />
-                          {extractingDate === date ? 'მუშავდება...' : 'Extract'}
-                        </button>
                         <button
                           onClick={e => { e.stopPropagation(); exportRecordsToExcel(dayRecords, date); }}
                           title="ამ დღის Excel-ში გატანა"
