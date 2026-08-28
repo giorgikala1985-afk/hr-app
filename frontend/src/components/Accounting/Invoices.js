@@ -257,16 +257,44 @@ function Invoices() {
     } catch {}
   };
 
-  const [uploadFilters, setUploadFilters] = useState({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' });
+  const [uploadFilters, setUploadFilters] = useState({ fileName: '', period: 'all', periodFrom: '', periodTo: '', urgent: 'all' });
   const uf = uploadFilters;
+
+  // "period" filters by upload date — the same date the day-blocks below are
+  // grouped by — either a quick preset (last N days / this month) or a
+  // custom from/to range, replacing what used to be two separate exact-date
+  // filters (invoice date, due date) that couldn't express a range at all.
+  const PERIOD_PRESETS = [
+    { key: 'all',   label: 'ყველა დრო' },
+    { key: '7d',    label: 'ბოლო 7 დღე' },
+    { key: '14d',   label: 'ბოლო 2 კვირა' },
+    { key: '30d',   label: 'ბოლო 30 დღე' },
+    { key: 'month', label: 'ეს თვე' },
+    { key: 'custom', label: 'მორგებული პერიოდი' },
+  ];
+  const periodRange = (() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    // Local calendar date, not toISOString()'s UTC conversion — that shifts
+    // the date back a day (excluding "today") in any UTC+ timezone.
+    const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    if (uf.period === '7d') { const from = new Date(today); from.setDate(from.getDate() - 6); return { from: iso(from), to: iso(today) }; }
+    if (uf.period === '14d') { const from = new Date(today); from.setDate(from.getDate() - 13); return { from: iso(from), to: iso(today) }; }
+    if (uf.period === '30d') { const from = new Date(today); from.setDate(from.getDate() - 29); return { from: iso(from), to: iso(today) }; }
+    if (uf.period === 'month') { const from = new Date(today.getFullYear(), today.getMonth(), 1); return { from: iso(from), to: iso(today) }; }
+    if (uf.period === 'custom') return { from: uf.periodFrom || null, to: uf.periodTo || null };
+    return null;
+  })();
+
   const filteredUploadRecords = uploadRecords.filter(r => {
     if (uf.fileName) {
       const q = uf.fileName.toLowerCase();
       const hay = [r.fileName, r.extracted?.payee, r.extracted?.invoice_number].filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
-    if (uf.uploadDate && r.extracted?.invoice_date !== uf.uploadDate) return false;
-    if (uf.dueDate && r.dueDate !== uf.dueDate) return false;
+    if (periodRange) {
+      if (periodRange.from && (!r.uploadDate || r.uploadDate < periodRange.from)) return false;
+      if (periodRange.to && (!r.uploadDate || r.uploadDate > periodRange.to)) return false;
+    }
     if (uf.urgent === 'yes' && !r.urgent) return false;
     if (uf.urgent === 'no' && r.urgent) return false;
     return true;
@@ -449,20 +477,32 @@ function Invoices() {
                   placeholder="ძებნა ფაილში/გადამხდელში..."
                   style={{ flex: '1 1 220px', padding: '7px 10px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
                 />
-                <input
-                  type="date"
-                  value={uf.uploadDate}
-                  onChange={e => setUF('uploadDate', e.target.value)}
-                  title="ინვოისის თარიღი"
+                <select
+                  value={uf.period}
+                  onChange={e => setUF('period', e.target.value)}
+                  title="პერიოდი"
                   style={{ padding: '7px 8px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                />
-                <input
-                  type="date"
-                  value={uf.dueDate}
-                  onChange={e => setUF('dueDate', e.target.value)}
-                  title="გადახდის ვადა"
-                  style={{ padding: '7px 8px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
-                />
+                >
+                  {PERIOD_PRESETS.map(p => <option key={p.key} value={p.key}>{p.label}</option>)}
+                </select>
+                {uf.period === 'custom' && (
+                  <>
+                    <input
+                      type="date"
+                      value={uf.periodFrom}
+                      onChange={e => setUF('periodFrom', e.target.value)}
+                      title="დან"
+                      style={{ padding: '7px 8px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                    />
+                    <input
+                      type="date"
+                      value={uf.periodTo}
+                      onChange={e => setUF('periodTo', e.target.value)}
+                      title="მდე"
+                      style={{ padding: '7px 8px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit' }}
+                    />
+                  </>
+                )}
                 <select
                   value={uf.urgent}
                   onChange={e => setUF('urgent', e.target.value)}
@@ -472,9 +512,9 @@ function Invoices() {
                   <option value="yes">სასწრაფო</option>
                   <option value="no">ჩვეულებრივი</option>
                 </select>
-                {(uf.fileName || uf.uploadDate || uf.dueDate || uf.urgent !== 'all') && (
+                {(uf.fileName || uf.period !== 'all' || uf.urgent !== 'all') && (
                   <button
-                    onClick={() => setUploadFilters({ fileName: '', uploadDate: '', dueDate: '', urgent: 'all' })}
+                    onClick={() => setUploadFilters({ fileName: '', period: 'all', periodFrom: '', periodTo: '', urgent: 'all' })}
                     style={{ padding: '6px 12px', background: 'none', border: '1px solid var(--border-2)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--text-4)' }}
                   >
                     გასუფთავება
