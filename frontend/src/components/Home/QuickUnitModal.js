@@ -35,7 +35,7 @@ const monthLabel = (() => {
 
 const EMPTY_FORM = {
   employeeId: '', type: 'OT', amount: '', otRate: '110',
-  otHours: '', currency: 'USD', includeInSalary: true, date: monthLastDay,
+  otHours: '', currency: '', includeInSalary: true, date: monthLastDay,
 };
 
 export default function QuickUnitModal({ onClose, preselectedType }) {
@@ -123,7 +123,7 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!form.employeeId || !form.amount) return;
+    if (!form.employeeId || !form.amount || !form.currency) return;
     setSaving(true); setError('');
     try {
       const amountUSD = toUSD(form.amount, form.currency);
@@ -316,7 +316,7 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
               <div style={{ gridColumn: '1 / -1' }}>
                 <label style={LABEL}>
                   {t('orders.amount')} *
-                  {form.currency !== 'USD' && form.amount
+                  {form.currency && form.currency !== 'USD' && form.amount
                     ? <span style={{ fontWeight: 400, color: 'var(--text-3)', marginLeft: 6 }}>≈ ${toUSD(form.amount, form.currency)}</span>
                     : null}
                 </label>
@@ -327,20 +327,14 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
                     onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
                     required style={{ ...INPUT, flex: 1 }}
                   />
-                  <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-2)' }}>
-                    {CURRENCIES.map(({ code, symbol, color }) => (
-                      <button key={code} type="button"
-                        onClick={() => setForm(p => ({ ...p, currency: code }))}
-                        style={{
-                          padding: '0 12px', height: '100%', border: 'none', cursor: 'pointer',
-                          fontSize: 14, fontWeight: 700,
-                          background: form.currency === code ? color : 'var(--surface-2)',
-                          color: form.currency === code ? '#fff' : color,
-                          transition: 'all 0.12s',
-                        }}
-                      >{symbol}</button>
-                    ))}
-                  </div>
+                  <select
+                    value={form.currency}
+                    onChange={e => setForm(p => ({ ...p, currency: e.target.value }))}
+                    required style={{ ...INPUT, width: 110, flexShrink: 0 }}
+                  >
+                    <option value="">— Currency —</option>
+                    {CURRENCIES.map(({ code, symbol }) => <option key={code} value={code}>{symbol} {code}</option>)}
+                  </select>
                 </div>
               </div>
             </div>
@@ -376,12 +370,12 @@ export default function QuickUnitModal({ onClose, preselectedType }) {
                 style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 {t('orders.cancel')}
               </button>
-              <button type="submit" disabled={saving || success || !form.amount || !form.employeeId}
+              <button type="submit" disabled={saving || success || !form.amount || !form.employeeId || !form.currency}
                 style={{
                   padding: '9px 24px', borderRadius: 8, border: 'none', fontWeight: 700, fontSize: 13,
-                  background: saving || success || !form.amount || !form.employeeId ? 'var(--surface-2)' : 'var(--accent, #3b82f6)',
-                  color: saving || success || !form.amount || !form.employeeId ? 'var(--text-3)' : '#fff',
-                  cursor: saving || success || !form.amount || !form.employeeId ? 'not-allowed' : 'pointer',
+                  background: saving || success || !form.amount || !form.employeeId || !form.currency ? 'var(--surface-2)' : 'var(--accent, #3b82f6)',
+                  color: saving || success || !form.amount || !form.employeeId || !form.currency ? 'var(--text-3)' : '#fff',
+                  cursor: saving || success || !form.amount || !form.employeeId || !form.currency ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', gap: 6, transition: 'all 0.15s',
                 }}>
                 {saving ? (
