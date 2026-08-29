@@ -289,6 +289,7 @@ function PromotionTab({ employees }) {
   const [editing, setEditing] = useState(null);
   const [positions, setPositions] = useState([]);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
+  const [detailsFor, setDetailsFor] = useState(null);
   const EMPTY = { employeeId: '', newPosition: '', oldSalary: '', newSalary: '', effectiveDate: '', notes: '', immediateEffect: true };
 
   const handleDownloadPDF = async (o, idx) => {
@@ -315,6 +316,7 @@ function PromotionTab({ employees }) {
 
   const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
   const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); };
+  const openCopy = (o) => { setEditing(null); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); };
   const close = () => { setShowForm(false); setEditing(null); };
 
   const handleSubmit = (e) => {
@@ -361,8 +363,13 @@ function PromotionTab({ employees }) {
                           <line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 18 15 15"/>
                         </svg>
                       </button>
-                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
+                      <RowActionsMenu
+                        t={t}
+                        onCopy={() => openCopy(o)}
+                        onEdit={() => openEdit(o)}
+                        onDetails={() => setDetailsFor(o)}
+                        onDelete={() => remove(o.id)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -371,6 +378,23 @@ function PromotionTab({ employees }) {
           </table>
         )}
       </div>
+      {detailsFor && (
+        <DetailsModal
+          t={t}
+          title={t('orders.promotion')}
+          onClose={() => setDetailsFor(null)}
+          fields={[
+            { label: t('orders.date'), value: new Date(detailsFor.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+            { label: t('orders.employee'), value: detailsFor.empName },
+            { label: t('orders.oldPosition'), value: detailsFor.oldPosition },
+            { label: t('orders.newPosition'), value: detailsFor.newPosition },
+            { label: t('orders.oldSalary'), value: detailsFor.oldSalary },
+            { label: t('orders.newSalary'), value: detailsFor.newSalary },
+            { label: t('orders.effectiveDate'), value: detailsFor.effectiveDate ? new Date(detailsFor.effectiveDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+            { label: t('orders.notes'), value: detailsFor.notes },
+          ]}
+        />
+      )}
       {showForm && (
         <SubTabModal title={editing ? t('orders.editPromotion') : t('orders.newPromotion')} onClose={close}>
           <form onSubmit={handleSubmit}>
@@ -445,6 +469,7 @@ function HiringTab() {
   const perms = useOrdersPermissions();
   const canCreate = perms.create_hiring === 'Yes';
 
+  const [detailsFor, setDetailsFor] = useState(null);
   const openAdd = () => { setEditing(null); setForm(EMPTY); setActiveTab('info'); setShowForm(true); };
   const openEdit = (o) => {
     setEditing(o.id);
@@ -457,6 +482,21 @@ function HiringTab() {
       pitRate: o.pitRate || '20',
       pension: o.pension || false, personalEmail: o.personalEmail || '',
       phone: o.phone || '', address: o.address || '', notes: o.notes || '',
+    });
+    setActiveTab('info');
+    setShowForm(true);
+  };
+  const openCopy = (o) => {
+    setEditing(null);
+    setForm({
+      firstName: o.firstName || '', lastName: o.lastName || '',
+      personalId: '', birthdate: o.birthdate || '',
+      position: o.position || '', department: o.department || '',
+      startDate: o.startDate || '', endDate: o.endDate || '',
+      salary: o.salary || '', salaryCurrency: o.salaryCurrency || '', accountNumber: '',
+      pitRate: o.pitRate || '20',
+      pension: o.pension || false, personalEmail: '',
+      phone: '', address: o.address || '', notes: o.notes || '',
     });
     setActiveTab('info');
     setShowForm(true);
@@ -536,8 +576,13 @@ function HiringTab() {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
+                      <RowActionsMenu
+                        t={t}
+                        onCopy={() => openCopy(o)}
+                        onEdit={() => openEdit(o)}
+                        onDetails={() => setDetailsFor(o)}
+                        onDelete={() => remove(o.id)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -546,6 +591,24 @@ function HiringTab() {
           </table>
         )}
       </div>
+
+      {detailsFor && (
+        <DetailsModal
+          t={t}
+          title={t('orders.hiring')}
+          onClose={() => setDetailsFor(null)}
+          fields={[
+            { label: t('orders.date'), value: new Date(detailsFor.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+            { label: t('orders.fullName'), value: `${detailsFor.firstName || ''} ${detailsFor.lastName || ''}`.trim() },
+            { label: t('orders.personalId'), value: detailsFor.personalId },
+            { label: t('orders.position'), value: detailsFor.position },
+            { label: t('orders.department'), value: detailsFor.department },
+            { label: t('orders.startDate'), value: detailsFor.startDate ? new Date(detailsFor.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+            { label: t('orders.salary'), value: detailsFor.salary ? `${detailsFor.salary} ${detailsFor.salaryCurrency || ''}`.trim() : null },
+            { label: t('orders.notes'), value: detailsFor.notes },
+          ]}
+        />
+      )}
 
       {/* Modal overlay */}
       {showForm && createPortal(
@@ -1397,8 +1460,10 @@ function FiringTab({ employees }) {
   const perms = useOrdersPermissions();
   const canCreate = perms.create_firing === 'Yes';
 
+  const [detailsFor, setDetailsFor] = useState(null);
   const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
   const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, terminationDate: o.terminationDate, reason: o.reason, notes: o.notes || '' }); setShowForm(true); };
+  const openCopy = (o) => { setEditing(null); setForm({ employeeId: o.employeeId, terminationDate: o.terminationDate, reason: o.reason, notes: o.notes || '' }); setShowForm(true); };
   const close = () => { setShowForm(false); setEditing(null); };
 
   const handleSubmit = (e) => {
@@ -1441,10 +1506,13 @@ function FiringTab({ employees }) {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      {!o._live && (
-                        <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                      )}
-                      <button onClick={() => handleRemove(o)} style={actionBtn} title={o._live ? 'Clear termination date' : undefined} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
+                      <RowActionsMenu
+                        t={t}
+                        onCopy={o._live ? undefined : () => openCopy(o)}
+                        onEdit={o._live ? undefined : () => openEdit(o)}
+                        onDetails={() => setDetailsFor(o)}
+                        onDelete={() => handleRemove(o)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -1453,6 +1521,21 @@ function FiringTab({ employees }) {
           </table>
         )}
       </div>
+      {detailsFor && (
+        <DetailsModal
+          t={t}
+          title={t('orders.firing')}
+          onClose={() => setDetailsFor(null)}
+          fields={[
+            { label: t('orders.date'), value: new Date(detailsFor.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+            { label: t('orders.employee'), value: detailsFor.empName },
+            { label: t('orders.position'), value: detailsFor.position },
+            { label: t('orders.terminationDate'), value: detailsFor.terminationDate ? new Date(detailsFor.terminationDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+            { label: t('orders.reason'), value: detailsFor.reason },
+            { label: t('orders.notes'), value: detailsFor.notes },
+          ]}
+        />
+      )}
       {showForm && (
         <SubTabModal title={editing ? t('orders.editFiringOrder') : t('orders.newFiringOrder')} onClose={close}>
           <form onSubmit={handleSubmit}>
@@ -1747,9 +1830,16 @@ function BusinessTripTab({ employees }) {
     ? COUNTRIES.filter(c => c.name.toLowerCase().includes(countrySearch.toLowerCase()))
     : COUNTRIES;
 
+  const [detailsFor, setDetailsFor] = useState(null);
   const openAdd = () => { setEditing(null); setForm(EMPTY); setCountrySearch(''); setEmpSearch(''); setModalTab('details'); setShowForm(true); };
   const openEdit = (o) => {
     setEditing(o.id);
+    setForm({ employeeId: o.employeeId, employeeIds: [], isGroup: false, fromDate: o.fromDate, toDate: o.toDate, countryCode: o.countryCode, countryName: o.countryName, cityName: o.cityName || '', perDiem: o.perDiem || '', amount: o.amount || '', notes: o.notes || '' });
+    setModalTab('details');
+    setShowForm(true);
+  };
+  const openCopy = (o) => {
+    setEditing(null);
     setForm({ employeeId: o.employeeId, employeeIds: [], isGroup: false, fromDate: o.fromDate, toDate: o.toDate, countryCode: o.countryCode, countryName: o.countryName, cityName: o.cityName || '', perDiem: o.perDiem || '', amount: o.amount || '', notes: o.notes || '' });
     setModalTab('details');
     setShowForm(true);
@@ -1892,8 +1982,12 @@ function BusinessTripTab({ employees }) {
                             <td style={{ padding: '9px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{m.notes || '—'}</td>
                             <td style={{ padding: '9px 14px', whiteSpace: 'nowrap' }}>
                               <div style={{ display: 'flex', gap: 6 }}>
-                                <button onClick={() => openEdit(m)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                                <button onClick={() => remove(m.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
+                                <RowActionsMenu
+                                  onCopy={() => openCopy(m)}
+                                  onEdit={() => openEdit(m)}
+                                  onDetails={() => setDetailsFor(m)}
+                                  onDelete={() => remove(m.id)}
+                                />
                               </div>
                             </td>
                           </tr>
@@ -1922,8 +2016,12 @@ function BusinessTripTab({ employees }) {
                         <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                         <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                            <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
+                            <RowActionsMenu
+                              onCopy={() => openCopy(o)}
+                              onEdit={() => openEdit(o)}
+                              onDetails={() => setDetailsFor(o)}
+                              onDelete={() => remove(o.id)}
+                            />
                           </div>
                         </td>
                       </tr>
@@ -1936,6 +2034,22 @@ function BusinessTripTab({ employees }) {
           </table>
         )}
       </div>
+
+      {detailsFor && (
+        <DetailsModal
+          title="Business Trip"
+          onClose={() => setDetailsFor(null)}
+          fields={[
+            { label: 'Employee', value: detailsFor.empName },
+            { label: 'Period', value: `${formatDate(detailsFor.fromDate)} – ${formatDate(detailsFor.toDate)}` },
+            { label: 'Days', value: detailsFor.days ? `${detailsFor.days}d` : null },
+            { label: 'Destination', value: [detailsFor.countryName, detailsFor.cityName].filter(Boolean).join(', ') },
+            { label: 'Per Diem/day', value: detailsFor.perDiem ? `$${detailsFor.perDiem}` : null },
+            { label: 'Amount', value: detailsFor.amount ? `$${detailsFor.amount}` : null },
+            { label: 'Notes', value: detailsFor.notes },
+          ]}
+        />
+      )}
 
       {showForm && (
         <SubTabModal title={editing ? 'Edit Business Trip' : 'New Business Trip'} onClose={close}>
@@ -2395,6 +2509,27 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     setError('');
   };
 
+  const openCopy = (o) => {
+    setEditId(null);
+    setForm({
+      employeeId: o.employeeId,
+      currency: o.currency || 'GEL',
+      mode: o.mode || 'automatic',
+      totalAmount: o.mode === 'automatic' ? String(o.total ?? '') : '',
+      numMonths: o.mode !== 'sameperiod' ? (o.schedule?.length || 1) : 1,
+      startMonth: thisMonth,
+      manualSlots: o.mode === 'manual' && o.schedule?.length
+        ? o.schedule.map(s => ({ amount: String(s.amount ?? '') }))
+        : [{ amount: '' }],
+      samePeriodMonth: thisMonth,
+      samePeriodAmount: o.mode === 'sameperiod' ? String(o.schedule?.[0]?.amount ?? '') : '',
+      includeInSalary: o.includeInSalary !== false,
+      immediateEffect: true,
+    });
+    setShowForm(true);
+    setError('');
+  };
+
   const handleRemove = async (o) => {
     if (!window.confirm('Delete this advance payment?')) return;
     if (o.unitIds?.length) {
@@ -2405,6 +2540,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     remove(o.id);
   };
 
+  const [detailsFor, setDetailsFor] = useState(null);
   const CURR_SYMBOLS = { GEL: '₾', USD: '$', EUR: '€' };
 
   return (
@@ -2467,14 +2603,12 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                   </td>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEdit(o)} style={actionBtn} title="Edit"
-                        onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
-                        <EditIcon />
-                      </button>
-                      <button onClick={() => handleRemove(o)}
-                        style={{ ...actionBtn, color: '#f87171' }} title="Delete">
-                        <DeleteIcon />
-                      </button>
+                      <RowActionsMenu
+                        onCopy={() => openCopy(o)}
+                        onEdit={() => openEdit(o)}
+                        onDetails={() => setDetailsFor(o)}
+                        onDelete={() => handleRemove(o)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -2483,6 +2617,22 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
           </table>
         )}
       </div>
+
+      {detailsFor && (
+        <DetailsModal
+          title="Advance Payment"
+          onClose={() => setDetailsFor(null)}
+          fields={[
+            { label: 'Date', value: new Date(detailsFor.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+            { label: 'Employee', value: detailsFor.empName },
+            { label: 'Total', value: `${CURR_SYMBOLS[detailsFor.currency]}${Number(detailsFor.total).toFixed(2)}` },
+            { label: 'Currency', value: detailsFor.currency },
+            { label: 'Mode', value: detailsFor.mode === 'automatic' ? 'Auto' : detailsFor.mode === 'sameperiod' ? 'Same Period' : 'Manual' },
+            { label: 'ჩარიცხულია', value: detailsFor.includeInSalary !== false ? '✓' : 'არა' },
+            { label: 'Schedule', value: (detailsFor.schedule || []).map(s => `${s.month}: ${CURR_SYMBOLS[detailsFor.currency]}${Number(s.amount).toFixed(0)}`).join(', ') },
+          ]}
+        />
+      )}
 
       {showForm && (
         <SubTabModal title={editId ? 'Edit Advance Payment' : 'Advance Payment'} onClose={() => { setShowForm(false); setEditId(null); setError(''); }} maxWidth={680}>
@@ -2917,6 +3067,17 @@ function BonusTab({ employees, gelRate, eurRate }) {
     loadLiveUnits();
   };
 
+  const openCopy = (o) => {
+    setEditId(null);
+    const selections = {};
+    (o.entries || []).forEach(en => { selections[en.employeeId] = String(en.amount); });
+    setForm({ month: o.month, currency: o.currency, purpose: o.purpose || '', selections });
+    setSearch('');
+    setShowForm(true);
+    setError('');
+    setBulkError(''); setBulkSummary(null);
+  };
+
   const handleRemove = async (o) => {
     if (!window.confirm('Delete this bonus batch?')) return;
     if (o.entries?.length) {
@@ -2928,6 +3089,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     else remove(o.id);
   };
 
+  const [detailsFor, setDetailsFor] = useState(null);
   const CURR_SYMBOLS = { GEL: '₾', USD: '$', EUR: '€' };
 
   return (
@@ -2981,16 +3143,12 @@ function BonusTab({ employees, gelRate, eurRate }) {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.currency}</td>
                   <td style={{ padding: '11px 14px' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      {!o._live && (
-                        <button onClick={() => openEdit(o)} style={actionBtn} title="Edit"
-                          onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}>
-                          <EditIcon />
-                        </button>
-                      )}
-                      <button onClick={() => handleRemove(o)}
-                        style={{ ...actionBtn, color: '#f87171' }} title="Delete">
-                        <DeleteIcon />
-                      </button>
+                      <RowActionsMenu
+                        onCopy={() => openCopy(o)}
+                        onEdit={o._live ? undefined : () => openEdit(o)}
+                        onDetails={() => setDetailsFor(o)}
+                        onDelete={() => handleRemove(o)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -2999,6 +3157,21 @@ function BonusTab({ employees, gelRate, eurRate }) {
           </table>
         )}
       </div>
+
+      {detailsFor && (
+        <DetailsModal
+          title="Bonus Batch"
+          onClose={() => setDetailsFor(null)}
+          fields={[
+            { label: 'Date', value: new Date(detailsFor.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+            { label: 'Month', value: detailsFor.month },
+            { label: 'Employees', value: (detailsFor.entries || []).map(en => `${en.empName} (${CURR_SYMBOLS[detailsFor.currency]}${Number(en.amount).toFixed(0)})`).join(', ') },
+            { label: 'დანიშნულება', value: detailsFor.purpose },
+            { label: 'Total', value: `${CURR_SYMBOLS[detailsFor.currency]}${Number(detailsFor.total).toFixed(2)}` },
+            { label: 'Currency', value: detailsFor.currency },
+          ]}
+        />
+      )}
 
       {showForm && (
         <SubTabModal title={editId ? 'Edit Bonus Batch' : 'Bonus'} onClose={() => { setShowForm(false); setEditId(null); setError(''); }}>
@@ -3127,9 +3300,15 @@ function HandoverTab({ employees }) {
   const [form, setForm] = useState(EMPTY);
   const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const [detailsFor, setDetailsFor] = useState(null);
   const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
   const openEdit = (o) => {
     setEditing(o.id);
+    setForm({ fromEmployeeId: o.fromEmployeeId, toEmployeeId: o.toEmployeeId, handoverDate: o.handoverDate, items: o.items || '', notes: o.notes || '', immediateEffect: o.immediateEffect !== false });
+    setShowForm(true);
+  };
+  const openCopy = (o) => {
+    setEditing(null);
     setForm({ fromEmployeeId: o.fromEmployeeId, toEmployeeId: o.toEmployeeId, handoverDate: o.handoverDate, items: o.items || '', notes: o.notes || '', immediateEffect: o.immediateEffect !== false });
     setShowForm(true);
   };
@@ -3174,8 +3353,13 @@ function HandoverTab({ employees }) {
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                   <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => openEdit(o)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f59e0b'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><EditIcon /></button>
-                      <button onClick={() => remove(o.id)} style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
+                      <RowActionsMenu
+                        t={t}
+                        onCopy={() => openCopy(o)}
+                        onEdit={() => openEdit(o)}
+                        onDetails={() => setDetailsFor(o)}
+                        onDelete={() => remove(o.id)}
+                      />
                     </div>
                   </td>
                 </tr>
@@ -3184,6 +3368,21 @@ function HandoverTab({ employees }) {
           </table>
         )}
       </div>
+      {detailsFor && (
+        <DetailsModal
+          t={t}
+          title={t('orders.handover')}
+          onClose={() => setDetailsFor(null)}
+          fields={[
+            { label: t('orders.date'), value: new Date(detailsFor.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) },
+            { label: t('orders.fromEmployee'), value: detailsFor.fromName || getName(detailsFor.fromEmployeeId) },
+            { label: t('orders.toEmployee'), value: detailsFor.toName || getName(detailsFor.toEmployeeId) },
+            { label: t('orders.handoverDate'), value: detailsFor.handoverDate ? new Date(detailsFor.handoverDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+            { label: t('orders.handoverItems'), value: detailsFor.items },
+            { label: t('orders.notes'), value: detailsFor.notes },
+          ]}
+        />
+      )}
       {showForm && (
         <SubTabModal title={editing ? t('orders.editHandoverOrder') : t('orders.newHandoverOrder')} onClose={close}>
           <form onSubmit={handleSubmit}>
@@ -3220,6 +3419,111 @@ function DeleteIcon() {
       <path d="M10 11v6"/><path d="M14 11v6"/>
       <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
     </svg>
+  );
+}
+function CopyIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+    </svg>
+  );
+}
+function DetailsIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>
+  );
+}
+function MenuDotsIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/>
+    </svg>
+  );
+}
+
+const ddItem = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-2)', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.1s' };
+
+// Shared per-row "⋯" menu: Copy (duplicate as a new unsaved draft) / Edit /
+// Details (read-only field dump) / Delete. Any handler left out (undefined)
+// simply doesn't render that item, so tabs without e.g. a live-row delete
+// guard can omit it.
+function RowActionsMenu({ onCopy, onEdit, onDetails, onDelete, t }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const ref = useRef(null);
+  const L = (key, fallback) => (t ? t(key) : fallback);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setPos(null); } };
+    const onKey = (e) => { if (e.key === 'Escape') { setOpen(false); setPos(null); } };
+    document.addEventListener('mousedown', close);
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', onKey); };
+  }, [open]);
+
+  const act = (fn) => { setOpen(false); setPos(null); fn(); };
+
+  return (
+    <>
+      <button
+        onClick={e => {
+          e.stopPropagation();
+          if (open) { setOpen(false); setPos(null); return; }
+          const r = e.currentTarget.getBoundingClientRect();
+          setPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+          setOpen(true);
+        }}
+        style={actionBtn}
+        title={L('orders.options', 'Options')}
+      >
+        <MenuDotsIcon />
+      </button>
+      {open && pos && createPortal(
+        <div ref={ref} style={{ position: 'fixed', top: pos.top, right: pos.right, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', zIndex: 9999, minWidth: 160, overflow: 'hidden' }}>
+          {onCopy && (
+            <button onClick={() => act(onCopy)} style={ddItem} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <CopyIcon /> {L('orders.copy', 'Copy')}
+            </button>
+          )}
+          {onEdit && (
+            <button onClick={() => act(onEdit)} style={ddItem} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <EditIcon /> {L('orders.edit', 'Edit')}
+            </button>
+          )}
+          {onDetails && (
+            <button onClick={() => act(onDetails)} style={ddItem} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <DetailsIcon /> {L('orders.details', 'Details')}
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={() => act(onDelete)} style={{ ...ddItem, color: '#f87171' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <DeleteIcon /> {L('orders.delete', 'Delete')}
+            </button>
+          )}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
+
+// Generic read-only "Details" modal — pass an array of { label, value } pairs.
+function DetailsModal({ title, fields, onClose, t }) {
+  const shown = fields.filter(f => f && f.value !== undefined && f.value !== null && f.value !== '');
+  return (
+    <SubTabModal title={title || (t ? t('orders.details') : 'Details')} onClose={onClose} maxWidth={440}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {shown.map((f, i) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 16, paddingBottom: 8, borderBottom: i < shown.length - 1 ? '1px solid var(--border-2)' : 'none' }}>
+            <span style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 600 }}>{f.label}</span>
+            <span style={{ fontSize: 13, color: 'var(--text)', fontWeight: 600, textAlign: 'right' }}>{f.value}</span>
+          </div>
+        ))}
+      </div>
+    </SubTabModal>
   );
 }
 
@@ -3359,6 +3663,7 @@ export default function Orders() {
   const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '', immediateEffect: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
+  const [detailsForUnit, setDetailsForUnit] = useState(null);
 
   const perms = useOrdersPermissions();
   const canCreateAdjusting = perms.create_adjusting === 'Yes';
@@ -3821,19 +4126,6 @@ export default function Orders() {
                   {/* Actions */}
                   <td style={{ padding: '12px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <div style={{ display: 'inline-flex', gap: 6 }}>
-                      {/* Edit */}
-                      <button
-                        onClick={() => handleEdit(u)}
-                        style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-3)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.color = '#f59e0b'; e.currentTarget.style.background = 'rgba(245,158,11,0.08)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-2)'; e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'var(--surface-2)'; }}
-                        title="Edit"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                      </button>
                       {/* PDF */}
                       <button
                         onClick={() => handleDownloadPdf(u, i)}
@@ -3850,31 +4142,18 @@ export default function Orders() {
                         </svg>
                         PDF
                       </button>
-                      {/* Duplicate */}
-                      <button
-                        onClick={() => handleDuplicate(u)}
-                        style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-3)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#8b5cf6'; e.currentTarget.style.color = '#8b5cf6'; e.currentTarget.style.background = 'rgba(139,92,246,0.08)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-2)'; e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'var(--surface-2)'; }}
-                        title="Duplicate"
-                      >
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="9" y="9" width="13" height="13" rx="2"/>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                        </svg>
-                      </button>
                     </div>
                   </td>
 
-                  {/* Delete */}
+                  {/* Copy / Edit / Details / Delete */}
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    <button
-                      onClick={() => handleDelete(u.employee?.id, u.id)}
-                      style={{ width: 28, height: 28, borderRadius: 6, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text-3)', fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#f87171'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(220,38,38,0.08)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-2)'; e.currentTarget.style.color = 'var(--text-3)'; e.currentTarget.style.background = 'var(--surface-2)'; }}
-                      title="Delete"
-                    ><DeleteIcon /></button>
+                    <RowActionsMenu
+                      t={t}
+                      onCopy={() => handleDuplicate(u)}
+                      onEdit={() => handleEdit(u)}
+                      onDetails={() => setDetailsForUnit(u)}
+                      onDelete={() => handleDelete(u.employee?.id, u.id)}
+                    />
                   </td>
                 </tr>
               ))}
@@ -3883,6 +4162,22 @@ export default function Orders() {
         )}
         {sortedUnits.length > 0 && <PaginationBar table={adjustTable} t={t} />}
       </div>
+
+      {detailsForUnit && (
+        <DetailsModal
+          t={t}
+          title={t('orders.adjusting')}
+          onClose={() => setDetailsForUnit(null)}
+          fields={[
+            { label: t('orders.employee'), value: detailsForUnit.employee ? `${detailsForUnit.employee.first_name} ${detailsForUnit.employee.last_name}` : null },
+            { label: 'Position', value: detailsForUnit.employee?.position },
+            { label: 'Type', value: detailsForUnit.type },
+            { label: t('orders.amount'), value: `${detailsForUnit.direction === 'addition' ? '+' : '−'}${fmt(detailsForUnit.amount)}` },
+            { label: t('orders.date'), value: detailsForUnit.date ? new Date(detailsForUnit.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null },
+            { label: t('orders.includeInSalary'), value: detailsForUnit.include_in_salary === false ? '✗' : '✓' },
+          ]}
+        />
+      )}
 
       {/* ── MODAL FORM OVERLAY ── */}
       {showForm && createPortal(
