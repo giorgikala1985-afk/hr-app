@@ -344,7 +344,7 @@ function PromotionTab({ employees }) {
             </thead>
             <tbody>
               {orders.map((o, idx) => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)', cursor: 'pointer' }} onClick={openRowMenu} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.oldPosition || '—'}</td>
@@ -565,7 +565,7 @@ function HiringTab() {
             </thead>
             <tbody>
               {orders.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)', cursor: 'pointer' }} onClick={openRowMenu} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.firstName} {o.lastName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.personalId || '—'}</td>
@@ -1497,7 +1497,7 @@ function FiringTab({ employees }) {
             </thead>
             <tbody>
               {orders.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)', cursor: 'pointer' }} onClick={openRowMenu} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)' }}>{o.empName}</td>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.position || '—'}</td>
@@ -2566,7 +2566,8 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
             </thead>
             <tbody>
               {orders.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)', cursor: 'pointer' }}
+                  onClick={openRowMenu}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
@@ -3124,7 +3125,8 @@ function BonusTab({ employees, gelRate, eurRate }) {
             </thead>
             <tbody>
               {orders.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }}
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)', cursor: 'pointer' }}
+                  onClick={openRowMenu}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
@@ -3344,7 +3346,7 @@ function HandoverTab({ employees }) {
             </thead>
             <tbody>
               {orders.map(o => (
-                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                <tr key={o.id} style={{ borderBottom: '1px solid var(--border-2)', cursor: 'pointer' }} onClick={openRowMenu} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                   <td style={{ padding: '11px 14px', color: 'var(--text-3)', fontSize: 12, whiteSpace: 'nowrap' }}>{new Date(o.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap' }}>{o.fromName || getName(o.fromEmployeeId)}</td>
                   <td style={{ padding: '11px 14px', fontWeight: 600, color: '#3b82f6', whiteSpace: 'nowrap' }}>{o.toName || getName(o.toEmployeeId)}</td>
@@ -3478,6 +3480,7 @@ function RowActionsMenu({ onCopy, onEdit, onDetails, onDelete, t }) {
         }}
         style={actionBtn}
         title={L('orders.options', 'Options')}
+        data-row-menu-trigger="true"
       >
         <MenuDotsIcon />
       </button>
@@ -3509,6 +3512,16 @@ function RowActionsMenu({ onCopy, onEdit, onDetails, onDelete, t }) {
     </>
   );
 }
+
+// Lets a whole <tr> open its RowActionsMenu, not just the small "⋯" button —
+// finds that row's own trigger button and clicks it, unless the click
+// already originated from the button itself (which handles its own toggle).
+const openRowMenu = (e) => {
+  // Any other interactive element in the row (e.g. a PDF-download button)
+  // handles its own click — only bare row space should open the menu.
+  if (e.target.closest('button, a, input, select, textarea')) return;
+  e.currentTarget.querySelector('[data-row-menu-trigger]')?.click();
+};
 
 // Generic read-only "Details" modal — pass an array of { label, value } pairs.
 function DetailsModal({ title, fields, onClose, t }) {
@@ -4115,7 +4128,8 @@ export default function Orders() {
             </thead>
             <tbody>
               {adjustTable.pagedRows.map((u, i) => (
-                <tr key={`${u.id}-${i}`} style={{ borderBottom: '1px solid var(--border-2)', transition: 'background 0.1s', opacity: u.include_in_salary === false ? 0.6 : 1 }}
+                <tr key={`${u.id}-${i}`} style={{ borderBottom: '1px solid var(--border-2)', transition: 'background 0.1s', opacity: u.include_in_salary === false ? 0.6 : 1, cursor: 'pointer' }}
+                  onClick={openRowMenu}
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                 >
