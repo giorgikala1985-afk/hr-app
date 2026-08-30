@@ -14,6 +14,7 @@ import {
   Menu01Icon, AccountSetting01Icon, UserSettings01Icon, Settings01Icon, PaintBoardIcon,
   ManagerIcon, CubeIcon, ColorsIcon, Analytics01Icon,
 } from '@hugeicons/core-free-icons';
+import PinnedChartView, { loadPinnedCharts, savePinnedCharts } from '../common/PinnedChartView';
 import './HomePage.css';
 
 const homeIcon = (icon) => <HugeiconsIcon icon={icon} size={24} color="currentColor" strokeWidth={1.8} />;
@@ -167,10 +168,27 @@ function HomePage() {
   });
   const [customizing, setCustomizing] = useState(false);
   const [empCount, setEmpCount] = useState(null);
+  const [pinnedCharts, setPinnedCharts] = useState(loadPinnedCharts);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(pinned));
   }, [pinned]);
+
+  useEffect(() => {
+    const reload = () => setPinnedCharts(loadPinnedCharts());
+    window.addEventListener('storage', reload);
+    window.addEventListener('pinned-charts-changed', reload);
+    return () => {
+      window.removeEventListener('storage', reload);
+      window.removeEventListener('pinned-charts-changed', reload);
+    };
+  }, []);
+
+  const unpinChart = (id) => {
+    const next = pinnedCharts.filter(p => p.id !== id);
+    setPinnedCharts(next);
+    savePinnedCharts(next);
+  };
 
   useEffect(() => {
     api.get('/employees').then(res => setEmpCount((res.data.employees || []).length)).catch(() => {});
@@ -284,6 +302,23 @@ function HomePage() {
             </Link>
           ))}
         </div>
+      )}
+
+      {!customizing && pinnedCharts.length > 0 && (
+        <>
+          <div className="home-section-title" style={{ marginTop: 28 }}>{t('home.pinnedVisuals')}</div>
+          <div className="home-charts-grid">
+            {pinnedCharts.map(chart => (
+              <div key={chart.id} className="home-chart-card">
+                <div className="home-chart-card-head">
+                  <span className="home-chart-card-title">{chart.title}</span>
+                  <button onClick={() => unpinChart(chart.id)} title={t('home.unpin')} className="home-chart-unpin">×</button>
+                </div>
+                <PinnedChartView config={chart} height={200} />
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
     </>

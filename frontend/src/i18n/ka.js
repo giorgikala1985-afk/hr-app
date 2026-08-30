@@ -798,6 +798,8 @@ const ka = {
   'home.customize': 'მორგება',
   'home.done': 'მზადაა',
   'home.pinnedTabs': 'დამაგრებული ჩანართები',
+  'home.pinnedVisuals': 'დამაგრებული ვიზუალები',
+  'home.unpin': 'მოხსნა',
   'home.selectTabs': 'აირჩიეთ ჩანართები',
   'home.noTabs': 'დამაგრებული ჩანართები არ არის. დააჭირეთ მორგებას.',
   'home.tab.hr': 'HR',

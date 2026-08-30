@@ -9,10 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line
 } from 'recharts';
-
-const DL_TABLES_KEY = 'dl_custom_tables';
-// Pastel theme (picked from Admin > Chart Designs); see ChartDesignsGallery.js.
-const CHART_COLORS = ['#5c96e0','#f9916b','#6ac79c','#d59b41','#f68ab2','#4d9a48','#625db2','#f17972'];
+import { DL_TABLES_KEY, CHART_COLORS, buildChartData as buildDlChartData, loadPinnedCharts, savePinnedCharts } from '../common/PinnedChartView';
 
 function DataLakeCharts() {
   const [tables, setTables] = useState([]);
@@ -22,6 +19,7 @@ function DataLakeCharts() {
   const [valueColId, setValueColId] = useState('');
   const [groupColId, setGroupColId] = useState('');
   const [chartType, setChartType] = useState('bar');
+  const [pinnedCharts, setPinnedCharts] = useState(loadPinnedCharts);
 
   useEffect(() => {
     const load = () => {
@@ -49,28 +47,7 @@ function DataLakeCharts() {
     setChartType('bar');
   }, [selectedTableId, mode]);
 
-  const buildChartData = () => {
-    if (!table || !table.rows.length) return [];
-    if (mode === 'values') {
-      if (!valueColId) return [];
-      return table.rows
-        .map(r => ({
-          label: labelColId ? String(r[labelColId] || '') : '',
-          value: parseFloat(r[valueColId]) || 0,
-        }))
-        .filter(d => d.value !== 0 || d.label);
-    } else {
-      if (!groupColId) return [];
-      const counts = {};
-      table.rows.forEach(r => {
-        const key = String(r[groupColId] || 'Empty');
-        counts[key] = (counts[key] || 0) + 1;
-      });
-      return Object.entries(counts).map(([label, value]) => ({ label, value }));
-    }
-  };
-
-  const chartData = buildChartData();
+  const chartData = buildDlChartData(table, { mode, labelColId, valueColId, groupColId });
   const maxVal = chartData.length ? Math.max(...chartData.map(d => d.value)) : 0;
 
   const CustomTooltip = ({ active, payload }) => {
@@ -95,6 +72,29 @@ function DataLakeCharts() {
       </div>
     );
   }
+
+  const chartConfig = { tableId: selectedTableId, mode, labelColId, valueColId, groupColId, chartType };
+  const pinned = pinnedCharts.find(p =>
+    p.tableId === chartConfig.tableId && p.mode === chartConfig.mode &&
+    p.labelColId === chartConfig.labelColId && p.valueColId === chartConfig.valueColId &&
+    p.groupColId === chartConfig.groupColId && p.chartType === chartConfig.chartType
+  );
+  const togglePin = () => {
+    if (pinned) {
+      const next = pinnedCharts.filter(p => p.id !== pinned.id);
+      setPinnedCharts(next);
+      savePinnedCharts(next);
+      return;
+    }
+    const valueColName = numericCols.find(c => c.id === valueColId)?.name;
+    const groupColName = allCols.find(c => c.id === groupColId)?.name;
+    const title = mode === 'values'
+      ? `${table.name} — ${valueColName || 'Chart'}`
+      : `${table.name} — by ${groupColName || 'Chart'}`;
+    const next = [...pinnedCharts, { id: `pc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, title, ...chartConfig }];
+    setPinnedCharts(next);
+    savePinnedCharts(next);
+  };
 
   return (
     <div className="an-section">
@@ -172,6 +172,23 @@ function DataLakeCharts() {
             </div>
           ) : (
             <div style={{ marginTop: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 4 }}>
+                <button
+                  type="button"
+                  onClick={togglePin}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
+                    borderRadius: 7, border: `1.5px solid ${pinned ? '#6366f1' : 'var(--border-2)'}`,
+                    background: pinned ? 'rgba(99,102,241,0.1)' : 'var(--surface)',
+                    color: pinned ? '#6366f1' : 'var(--text-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill={pinned ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+                  </svg>
+                  {pinned ? 'Pinned to Home' : 'Pin to Home'}
+                </button>
+              </div>
               {chartType === 'bar' && (
                 <ResponsiveContainer width="100%" height={240}>
                   <BarChart data={chartData} margin={{ top: 4, right: 8, left: -10, bottom: 32 }}>

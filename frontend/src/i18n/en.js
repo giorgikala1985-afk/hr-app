@@ -744,6 +744,8 @@ const en = {
   'home.customize': 'Customize',
   'home.done': 'Done',
   'home.pinnedTabs': 'Pinned Tabs',
+  'home.pinnedVisuals': 'Pinned Visuals',
+  'home.unpin': 'Unpin',
   'home.selectTabs': 'Select tabs to pin',
   'home.noTabs': 'No pinned tabs. Click Customize to add shortcuts.',
   'home.tab.hr': 'HR',
