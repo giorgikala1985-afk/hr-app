@@ -54,11 +54,17 @@ body {
 
 /* ── Dark mode global polish ─────────────────────────────────────── */
 
-/* Card depth */
+/* Card depth. [class*="-card"] would also match nested sub-elements whose
+   name merely starts with a "-card-"/"-box-"/"-panel-" namespace prefix
+   (e.g. .home-card-label inside .home-pinned-card, or .tab-panel-header) —
+   match only classes that actually end in the token, covering both
+   "…-card" (last class) and "…-card other-class" (not last). */
 [data-theme="dark"] .docs-sidebar,
 [data-theme="dark"] .acc-panel,
-[data-theme="dark"] [class*="-card"],
-[data-theme="dark"] [class*="-box"],
+[data-theme="dark"] [class$="-card"],
+[data-theme="dark"] [class*="-card "],
+[data-theme="dark"] [class$="-box"],
+[data-theme="dark"] [class*="-box "],
 [data-theme="dark"] [class*="-modal"] {
   box-shadow: var(--shadow-md) !important;
 }
@@ -190,10 +196,17 @@ body {
   color: var(--text-3) !important;
 }
 
-/* Cards / panels with white/light backgrounds */
-[data-theme="dark"] [class*="-card"],
-[data-theme="dark"] [class*="-panel"],
-[data-theme="dark"] [class*="-box"] {
+/* Cards / panels with white/light backgrounds. Same end-of-token matching
+   as the box-shadow rule above — a plain [class*="-card"] was also painting
+   a background behind nested "-card-"/"-panel-"/"-box-" prefixed
+   sub-elements (e.g. a card's own label/section text), showing up as a
+   stray box around the text. */
+[data-theme="dark"] [class$="-card"],
+[data-theme="dark"] [class*="-card "],
+[data-theme="dark"] [class$="-panel"],
+[data-theme="dark"] [class*="-panel "],
+[data-theme="dark"] [class$="-box"],
+[data-theme="dark"] [class*="-box "] {
   background: var(--surface) !important;
   border-color: var(--border-2) !important;
   color: var(--text) !important;
