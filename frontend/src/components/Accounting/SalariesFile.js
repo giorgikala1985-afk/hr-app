@@ -5,7 +5,7 @@ import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
 import { useLanguage } from '../../contexts/LanguageContext';
 import api from '../../services/api';
 
-const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace';
+const FONT_MONO = 'var(--font-mono)';
 
 function SalariesFile({ data, onClear, onSent }) {
   const { t } = useLanguage();

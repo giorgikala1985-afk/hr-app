@@ -918,9 +918,9 @@ function HiringAccountChanges({ orderId, currentAccount }) {
               <div className="sc-item-date">{fmtDate(c.effective_date)}</div>
               <div className="sc-item-detail">
                 <div className="sc-item-salary">
-                  <span style={{ color: acctColor(c.old_account), fontFamily: 'monospace', fontSize: 13 }}>{c.old_account || '—'}</span>
+                  <span style={{ color: acctColor(c.old_account), fontFamily: 'var(--font-mono)', fontSize: 13 }}>{c.old_account || '—'}</span>
                   <span className="sc-arrow">→</span>
-                  <span style={{ color: acctColor(c.new_account), fontFamily: 'monospace', fontSize: 13, fontWeight: 700 }}>{c.new_account}</span>
+                  <span style={{ color: acctColor(c.new_account), fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700 }}>{c.new_account}</span>
                 </div>
                 {c.note && <div className="sc-item-note">{c.note}</div>}
               </div>

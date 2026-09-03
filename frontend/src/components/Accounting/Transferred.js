@@ -3,7 +3,7 @@ import api from '../../services/api';
 import TableSkeleton from '../common/TableSkeleton';
 import './Accounting.css';
 
-const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace';
+const FONT_MONO = 'var(--font-mono)';
 const TBC_STORAGE_KEY = 'tbc_excel_data';
 
 const todayMonth = () => new Date().toISOString().slice(0, 7);

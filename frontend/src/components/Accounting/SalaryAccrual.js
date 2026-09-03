@@ -175,7 +175,7 @@ const moneyTotalSign = (n, dir) => {
   return `${sign}$${v.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 };
 
-const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", "Fira Mono", Menlo, Consolas, monospace';
+const FONT_MONO = 'var(--font-mono)';
 const TD_NUM = { textAlign: 'right', fontFamily: FONT_MONO, fontSize: 13, padding: '11px 14px' };
 const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: 'var(--text)' };
 

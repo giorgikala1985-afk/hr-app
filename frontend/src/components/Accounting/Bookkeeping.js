@@ -462,11 +462,11 @@ function Bookkeeping() {
                     const isLastInTx = i === filteredRows.length - 1 || filteredRows[i + 1]?.txId !== row.txId;
                     return (
                       <tr key={`${row.txId}-${i}`} style={{ borderBottom: isLastInTx ? '2px solid var(--border-2)' : '1px solid var(--border-3)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                        <td style={{ ...td, color: 'var(--text-3)', fontFamily: 'monospace', fontSize: 12, whiteSpace: 'nowrap' }}>{row.isFirst && row.date ? new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</td>
+                        <td style={{ ...td, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', fontSize: 12, whiteSpace: 'nowrap' }}>{row.isFirst && row.date ? new Date(row.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</td>
                         <td style={{ ...td, color: '#479c73', fontWeight: 500 }}>{row.debit?.account || ''}</td>
                         <td style={{ ...td, color: '#b91c1c', fontWeight: 500 }}>{row.credit?.account || ''}</td>
                         <td style={{ ...td, color: 'var(--text-2)' }}>{row.isFirst ? row.desc : ''}</td>
-                        <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: 'var(--text)' }}>{row.amount > 0 ? fmt(row.amount) : ''}</td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--text)' }}>{row.amount > 0 ? fmt(row.amount) : ''}</td>
                         <td style={td}>
                           {row.isFirst && row.agentId && agentMap[row.agentId] && (
                             <span style={{ fontSize: 11, background: '#f0f4ff', color: '#4f46e5', padding: '2px 8px', borderRadius: 4, fontWeight: 600, whiteSpace: 'nowrap' }}>
@@ -535,7 +535,7 @@ function Bookkeeping() {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 110px 28px', gap: 6, marginBottom: drSubs.length || crSubs.length ? 8 : 0 }}>
                           <input list="bk-accs" value={line.debitAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], debitAccount: e.target.value }; setFormLines(l); const s = [...formLineSubkontos]; s[idx] = { ...s[idx], debit: {} }; setFormLineSubkontos(s); }} placeholder="Debit account…" style={{ ...inpStyle, borderColor: line.debitAccount ? '#bbf7d0' : 'var(--border-2)', color: '#479c73' }} />
                           <input list="bk-accs" value={line.creditAccount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], creditAccount: e.target.value }; setFormLines(l); const s = [...formLineSubkontos]; s[idx] = { ...s[idx], credit: {} }; setFormLineSubkontos(s); }} placeholder="Credit account…" style={{ ...inpStyle, borderColor: line.creditAccount ? '#fca5a5' : 'var(--border-2)', color: '#b91c1c' }} />
-                          <input type="number" min="0" step="0.01" value={line.amount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], amount: e.target.value }; setFormLines(l); }} placeholder="0.00" style={{ ...inpStyle, textAlign: 'right', fontFamily: 'monospace' }} />
+                          <input type="number" min="0" step="0.01" value={line.amount} onChange={e => { const l = [...formLines]; l[idx] = { ...l[idx], amount: e.target.value }; setFormLines(l); }} placeholder="0.00" style={{ ...inpStyle, textAlign: 'right', fontFamily: 'var(--font-mono)' }} />
                           {formLines.length > 1 ? (
                             <button type="button" onClick={() => { setFormLines(formLines.filter((_, i) => i !== idx)); setFormLineSubkontos(formLineSubkontos.filter((_, i) => i !== idx)); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 18, lineHeight: 1, padding: 0, alignSelf: 'center' }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>×</button>
                           ) : <div />}
@@ -648,11 +648,11 @@ function Bookkeeping() {
                     return (
                       <React.Fragment key={row.account}>
                         <tr onClick={() => toggleAccount(row.account)} style={{ borderBottom: '1px solid var(--border-3)', background: rowBg, cursor: 'pointer' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'} onMouseLeave={e => e.currentTarget.style.background = rowBg}>
-                          <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)', fontWeight: 700 }}>{accountCodeMap[row.account] || '—'}</td>
+                          <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)', fontWeight: 700 }}>{accountCodeMap[row.account] || '—'}</td>
                           <td style={{ ...td, fontWeight: 500, color: 'var(--text)' }}><span style={{ marginRight: 8, color: 'var(--text-4)', fontSize: 10, display: 'inline-block', width: 10 }}>{isExpanded ? '▼' : '▶'}</span>{row.account}</td>
-                          <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#479c73' }}>{row.debit > 0 ? fmt(row.debit) : '—'}</td>
-                          <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#b91c1c' }}>{row.credit > 0 ? fmt(row.credit) : '—'}</td>
-                          <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 600, color: net > 0 ? '#479c73' : net < 0 ? '#b91c1c' : 'var(--text-3)' }}>{net !== 0 ? `${fmt(Math.abs(net))} ${net > 0 ? 'Dr' : 'Cr'}` : '0.00'}</td>
+                          <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#479c73' }}>{row.debit > 0 ? fmt(row.debit) : '—'}</td>
+                          <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#b91c1c' }}>{row.credit > 0 ? fmt(row.credit) : '—'}</td>
+                          <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 600, color: net > 0 ? '#479c73' : net < 0 ? '#b91c1c' : 'var(--text-3)' }}>{net !== 0 ? `${fmt(Math.abs(net))} ${net > 0 ? 'Dr' : 'Cr'}` : '0.00'}</td>
                         </tr>
                         {isExpanded && accountEntries.slice().sort((a, b) => (a.date || '').localeCompare(b.date || '')).map(e => {
                           const agent = e.agent_id ? agentMap[e.agent_id] : null;
@@ -660,7 +660,7 @@ function Bookkeeping() {
                             <tr key={e.id} style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)' }}>
                               <td style={td} />
                               <td style={{ ...td, paddingLeft: 30, fontSize: 12, color: 'var(--text-3)' }}>
-                                <span style={{ fontFamily: 'monospace', marginRight: 12, color: 'var(--text-4)' }}>{e.date ? new Date(e.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</span>
+                                <span style={{ fontFamily: 'var(--font-mono)', marginRight: 12, color: 'var(--text-4)' }}>{e.date ? new Date(e.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}</span>
                                 {e.description}
                                 {agent && (
                                   <span style={{ marginLeft: 8, color: 'var(--text-4)' }}>
@@ -669,8 +669,8 @@ function Bookkeeping() {
                                   </span>
                                 )}
                               </td>
-                              <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: '#479c73' }}>{e.debit > 0 ? fmt(e.debit) : ''}</td>
-                              <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: '#b91c1c' }}>{e.credit > 0 ? fmt(e.credit) : ''}</td>
+                              <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#479c73' }}>{e.debit > 0 ? fmt(e.debit) : ''}</td>
+                              <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#b91c1c' }}>{e.credit > 0 ? fmt(e.credit) : ''}</td>
                               <td style={td} />
                             </tr>
                           );
@@ -682,9 +682,9 @@ function Bookkeeping() {
                 <tfoot>
                   <tr style={{ background: 'var(--surface-2)', borderTop: '2px solid var(--border-2)' }}>
                     <td style={td} /><td style={{ ...td, fontWeight: 700, color: 'var(--text)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>{t('bk.total')}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#479c73' }}>{fmt(tbTotalDebit)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: '#b91c1c' }}>{fmt(tbTotalCredit)}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '#479c73' : '#dc2626' }}>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#479c73' }}>{fmt(tbTotalDebit)}</td>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#b91c1c' }}>{fmt(tbTotalCredit)}</td>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? '#479c73' : '#dc2626' }}>
                       {Math.abs(tbTotalDebit - tbTotalCredit) < 0.001 ? t('bk.balanced') : `${t('bk.difference')}: ${fmt(Math.abs(tbTotalDebit - tbTotalCredit))}`}
                     </td>
                   </tr>
@@ -769,7 +769,7 @@ function Bookkeeping() {
                       onClick={() => setSelectedAccountId(isSelected ? null : acc.id)}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', cursor: 'pointer' }}
                     >
-                      {acc.code && <span style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)', minWidth: 40 }}>{acc.code}</span>}
+                      {acc.code && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)', minWidth: 40 }}>{acc.code}</span>}
                       <span style={{ flex: 1, fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>{acc.name}</span>
                       {acc.type && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, ...typeMeta }}>{acc.type}</span>}
                       {acc.subkontos?.length > 0 && (
@@ -985,7 +985,7 @@ function Bookkeeping() {
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}</div>
                           <div style={{ display: 'flex', gap: 4, marginTop: 2 }}>
-                            {a.code && <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--text-3)' }}>{a.code}</span>}
+                            {a.code && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-3)' }}>{a.code}</span>}
                             <span style={{ fontSize: 10, fontWeight: 700, padding: '0px 5px', borderRadius: 3, ...ts }}>{a.type}</span>
                           </div>
                         </div>
@@ -1029,7 +1029,7 @@ function Bookkeeping() {
                       {tDebit.map(entry => (
                         <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, background: 'var(--surface)', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 10px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            {entry.code && <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--text-3)', marginRight: 5 }}>{entry.code}</span>}
+                            {entry.code && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-3)', marginRight: 5 }}>{entry.code}</span>}
                             <span style={{ fontSize: 12, fontWeight: 600, color: '#479c73' }}>{entry.account}</span>
                           </div>
                           <input
@@ -1037,7 +1037,7 @@ function Bookkeeping() {
                             value={entry.amount}
                             onChange={e => updateTEntry('debit', entry.id, e.target.value)}
                             placeholder="0.00"
-                            style={{ width: 90, padding: '4px 7px', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 12, fontFamily: 'monospace', textAlign: 'right', outline: 'none' }}
+                            style={{ width: 90, padding: '4px 7px', border: '1px solid #bbf7d0', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'right', outline: 'none' }}
                           />
                           <button onClick={() => removeTEntry('debit', entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 16, lineHeight: 1, padding: 2 }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>×</button>
                         </div>
@@ -1047,7 +1047,7 @@ function Bookkeeping() {
                     {/* Debit total */}
                     <div style={{ borderTop: '2px solid var(--text)', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', background: 'var(--surface-2)' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>Total Dr</span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#479c73' }}>{tDebitTotal > 0 ? fmt(tDebitTotal) : '0.00'}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, color: '#479c73' }}>{tDebitTotal > 0 ? fmt(tDebitTotal) : '0.00'}</span>
                     </div>
                   </div>
 
@@ -1070,7 +1070,7 @@ function Bookkeeping() {
                       {tCredit.map(entry => (
                         <div key={entry.id} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8, background: 'var(--surface)', border: '1px solid #fca5a5', borderRadius: 8, padding: '6px 10px' }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            {entry.code && <span style={{ fontFamily: 'monospace', fontSize: 10, color: 'var(--text-3)', marginRight: 5 }}>{entry.code}</span>}
+                            {entry.code && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-3)', marginRight: 5 }}>{entry.code}</span>}
                             <span style={{ fontSize: 12, fontWeight: 600, color: '#b91c1c' }}>{entry.account}</span>
                           </div>
                           <input
@@ -1078,7 +1078,7 @@ function Bookkeeping() {
                             value={entry.amount}
                             onChange={e => updateTEntry('credit', entry.id, e.target.value)}
                             placeholder="0.00"
-                            style={{ width: 90, padding: '4px 7px', border: '1px solid #fca5a5', borderRadius: 6, fontSize: 12, fontFamily: 'monospace', textAlign: 'right', outline: 'none' }}
+                            style={{ width: 90, padding: '4px 7px', border: '1px solid #fca5a5', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', textAlign: 'right', outline: 'none' }}
                           />
                           <button onClick={() => removeTEntry('credit', entry.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 16, lineHeight: 1, padding: 2 }} onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#cbd5e1'}>×</button>
                         </div>
@@ -1088,7 +1088,7 @@ function Bookkeeping() {
                     {/* Credit total */}
                     <div style={{ borderTop: '2px solid var(--text)', padding: '8px 14px', display: 'flex', justifyContent: 'space-between', background: 'var(--surface-2)' }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase' }}>Total Cr</span>
-                      <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: '#b91c1c' }}>{tCreditTotal > 0 ? fmt(tCreditTotal) : '0.00'}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, color: '#b91c1c' }}>{tCreditTotal > 0 ? fmt(tCreditTotal) : '0.00'}</span>
                     </div>
                   </div>
                 </div>

@@ -137,7 +137,7 @@ function TelegramSettings() {
             2. Send this message to the bot:
           </p>
           <div style={{
-            fontFamily: 'monospace', fontSize: 20, fontWeight: 700, letterSpacing: 2,
+            fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 700, letterSpacing: 2,
             background: 'var(--surface-2)', borderRadius: 8, padding: '12px 16px',
             textAlign: 'center', color: 'var(--text)', marginBottom: 12,
           }}>
@@ -177,7 +177,7 @@ function TelegramSettings() {
       <div style={{ marginTop: 28 }}>
         <h4 style={{ margin: '0 0 4px', fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>Data Access</h4>
         <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-3)' }}>
-          Choose which company data the Telegram bot can read when answering questions. Send <span style={{ fontFamily: 'monospace' }}>/dashboard</span> in the chat for a quick summary.
+          Choose which company data the Telegram bot can read when answering questions. Send <span style={{ fontFamily: 'var(--font-mono)' }}>/dashboard</span> in the chat for a quick summary.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {BOT_DATA_SOURCE_DEFS.map(ds => (

@@ -331,7 +331,7 @@ function UsersSettings() {
                     return (
                       <tr key={u.id} style={{ borderBottom: '1px solid var(--border-3)' }}>
                         <td style={tdStyle}><strong style={{ color: 'var(--text)' }}>{u.name}</strong></td>
-                        <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-4)' }} title={u.id}>{truncateId(u.id)}</td>
+                        <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-4)' }} title={u.id}>{truncateId(u.id)}</td>
                         <td style={{ ...tdStyle, color: 'var(--text-3)' }}>{u.email || '—'}</td>
                         <td style={{ ...tdStyle, color: 'var(--text-3)' }}>{u.phone || '—'}</td>
                         <td style={tdStyle}>
@@ -648,7 +648,7 @@ function UsersSettings() {
               {editId && (
                 <div className="acc-form-group full">
                   <label>ID</label>
-                  <input value={editId} readOnly style={{ background: 'var(--surface-2)', color: 'var(--text-4)', fontFamily: 'monospace', fontSize: 12, cursor: 'default' }} />
+                  <input value={editId} readOnly style={{ background: 'var(--surface-2)', color: 'var(--text-4)', fontFamily: 'var(--font-mono)', fontSize: 12, cursor: 'default' }} />
                 </div>
               )}
               <div className="acc-form-group">

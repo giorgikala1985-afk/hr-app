@@ -109,7 +109,7 @@ export default function BgColorSettings() {
           style={{ opacity: 0, width: 0, height: 0, position: 'absolute', pointerEvents: 'none' }}
         />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: 'monospace' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>
             {activeColor.toUpperCase()}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 2 }}>

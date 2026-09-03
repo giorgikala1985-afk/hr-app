@@ -310,7 +310,7 @@ function EmployeeRegistration() {
                   <tr key={emp.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                     <td style={td}><input type="checkbox" checked={selected.has(emp.id)} onChange={() => toggleSelect(emp.id)} /></td>
                     {empTable.displayCols.includes('employee') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{emp.first_name} {emp.last_name}</td>}
-                    {empTable.displayCols.includes('personalId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{emp.personal_id}</td>}
+                    {empTable.displayCols.includes('personalId') && <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12 }}>{emp.personal_id}</td>}
                     {empTable.displayCols.includes('position') && <td style={{ ...td, color: 'var(--text-2)' }}>{emp.position || '-'}</td>}
                     {empTable.displayCols.includes('startDate') && <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{emp.start_date ? new Date(emp.start_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>}
                     {empTable.displayCols.includes('status') && (
@@ -370,9 +370,9 @@ function EmployeeRegistration() {
               )}
               {histTable.pagedRows.map((h, i) => (
                 <tr key={h.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  {histTable.displayCols.includes('employee') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{h.personal_id}</td>}
+                  {histTable.displayCols.includes('employee') && <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12 }}>{h.personal_id}</td>}
                   {histTable.displayCols.includes('action') && <td style={td}>{h.action === 'register' ? 'Register' : 'Deregister'}</td>}
-                  {histTable.displayCols.includes('date') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{h.action_date}</td>}
+                  {histTable.displayCols.includes('date') && <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)' }}>{h.action_date}</td>}
                   {histTable.displayCols.includes('status') && (
                     <td style={td}>
                       {h.status === 'registered' ? <span style={badgeGreen}>Registered</span>
@@ -576,7 +576,7 @@ function TaxDeclarations() {
             <div style={{ flex: 1 }}>
               <label style={{ ...lbl, fontSize: 11 }}>SMS Verification Code</label>
               <input value={portalCode} onChange={e => setPortalCode(e.target.value)} placeholder="Enter code from SMS"
-                style={{ ...inpStyle, fontSize: 13, textAlign: 'center', letterSpacing: 3, fontFamily: 'monospace' }}
+                style={{ ...inpStyle, fontSize: 13, textAlign: 'center', letterSpacing: 3, fontFamily: 'var(--font-mono)' }}
                 onKeyDown={e => e.key === 'Enter' && handleVerify2FA()} autoFocus />
             </div>
             <button onClick={handleVerify2FA} disabled={portalLoading}
@@ -646,9 +646,9 @@ function TaxDeclarations() {
                 <tr key={d.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   {declTable.displayCols.includes('period') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{d.period}</td>}
                   {declTable.displayCols.includes('employees') && <td style={td}>{d.employee_count}</td>}
-                  {declTable.displayCols.includes('totalGross') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(d.total_gross)}</td>}
-                  {declTable.displayCols.includes('tax') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#f87171' }}>{fmt(d.total_tax)}</td>}
-                  {declTable.displayCols.includes('pension') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#fbbf24' }}>{fmt(d.total_pension)}</td>}
+                  {declTable.displayCols.includes('totalGross') && <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(d.total_gross)}</td>}
+                  {declTable.displayCols.includes('tax') && <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#f87171' }}>{fmt(d.total_tax)}</td>}
+                  {declTable.displayCols.includes('pension') && <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#fbbf24' }}>{fmt(d.total_pension)}</td>}
                   {declTable.displayCols.includes('status') && (
                     <td style={td}>
                       {d.status === 'accepted' ? <span style={badgeGreen}>Accepted</span>
@@ -812,10 +812,10 @@ function Waybills() {
               )}
               {wbTable.pagedRows.map((wb, i) => (
                 <tr key={wb.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  {wbTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{wb.rs_waybill_id || '-'}</td>}
+                  {wbTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12 }}>{wb.rs_waybill_id || '-'}</td>}
                   {wbTable.displayCols.includes('buyer') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{wb.buyer_name}</td>}
                   {wbTable.displayCols.includes('route') && <td style={{ ...td, fontSize: 12, color: 'var(--text-2)' }}>{wb.start_address} → {wb.end_address}</td>}
-                  {wbTable.displayCols.includes('amount') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(wb.total_amount)}</td>}
+                  {wbTable.displayCols.includes('amount') && <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(wb.total_amount)}</td>}
                   {wbTable.displayCols.includes('items') && <td style={td}>{wb.item_count}</td>}
                   {wbTable.displayCols.includes('status') && (
                     <td style={td}>
@@ -903,8 +903,8 @@ function Waybills() {
               {items.map((item, idx) => (
                 <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 8, marginBottom: 6 }}>
                   <input value={item.name} onChange={e => updateItem(idx, 'name', e.target.value)} placeholder="Item name" style={inpStyle} />
-                  <input type="number" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="Qty" style={{ ...inpStyle, fontFamily: 'monospace' }} />
-                  <input type="number" value={item.price} onChange={e => updateItem(idx, 'price', e.target.value)} placeholder="Price" style={{ ...inpStyle, fontFamily: 'monospace' }} />
+                  <input type="number" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="Qty" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
+                  <input type="number" value={item.price} onChange={e => updateItem(idx, 'price', e.target.value)} placeholder="Price" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
                   {items.length > 1 && (
                     <button onClick={() => removeItem(idx)} style={{ ...smallBtn, color: '#f87171', padding: '4px 8px' }}>X</button>
                   )}
@@ -1064,11 +1064,11 @@ function EInvoices() {
               )}
               {einvTable.pagedRows.map((inv, i) => (
                 <tr key={inv.id} style={{ ...bodyRow, background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
-                  {einvTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'monospace', fontSize: 12 }}>{inv.rs_invoice_id || '-'}</td>}
+                  {einvTable.displayCols.includes('rsId') && <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12 }}>{inv.rs_invoice_id || '-'}</td>}
                   {einvTable.displayCols.includes('buyer') && <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.buyer_name}</td>}
                   {einvTable.displayCols.includes('date') && <td style={{ ...td, fontSize: 12, color: 'var(--text-3)' }}>{inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>}
-                  {einvTable.displayCols.includes('amount') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(inv.total_amount)}</td>}
-                  {einvTable.displayCols.includes('vat') && <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: '#fbbf24' }}>{fmt(inv.total_vat)}</td>}
+                  {einvTable.displayCols.includes('amount') && <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(inv.total_amount)}</td>}
+                  {einvTable.displayCols.includes('vat') && <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', color: '#fbbf24' }}>{fmt(inv.total_vat)}</td>}
                   {einvTable.displayCols.includes('status') && (
                     <td style={td}>
                       {inv.status === 'confirmed' ? <span style={badgeGreen}>Confirmed</span>
@@ -1124,8 +1124,8 @@ function EInvoices() {
               {items.map((item, idx) => (
                 <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 80px 100px 120px auto', gap: 8, marginBottom: 6 }}>
                   <input value={item.name} onChange={e => updateItem(idx, 'name', e.target.value)} placeholder="Item name" style={inpStyle} />
-                  <input type="number" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="Qty" style={{ ...inpStyle, fontFamily: 'monospace' }} />
-                  <input type="number" value={item.price} onChange={e => updateItem(idx, 'price', e.target.value)} placeholder="Price" style={{ ...inpStyle, fontFamily: 'monospace' }} />
+                  <input type="number" value={item.quantity} onChange={e => updateItem(idx, 'quantity', e.target.value)} placeholder="Qty" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
+                  <input type="number" value={item.price} onChange={e => updateItem(idx, 'price', e.target.value)} placeholder="Price" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
                   <select value={item.vatType} onChange={e => updateItem(idx, 'vatType', e.target.value)} style={{ ...inpStyle, fontSize: 12 }}>
                     <option value={1}>18% VAT</option>
                     <option value={2}>VAT Exempt</option>
@@ -1136,7 +1136,7 @@ function EInvoices() {
                   )}
                 </div>
               ))}
-              <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-2)', fontFamily: 'monospace' }}>
+              <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>
                 Subtotal: {fmt(totalCalc.amount)} &middot; VAT: {fmt(totalCalc.vat)} &middot; <strong>Total: {fmt(totalCalc.amount + totalCalc.vat)}</strong>
               </div>
             </div>

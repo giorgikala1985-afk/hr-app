@@ -473,7 +473,7 @@ function AdminPage() {
                 <tr key={c.id} style={{ borderBottom: '1px solid var(--border-3)' }}>
                   <td style={{ padding: '12px 14px', color: 'var(--text-4)', fontSize: 12 }}>{idx + 1}</td>
                   <td style={{ padding: '12px 14px', fontWeight: 600, color: 'var(--text)' }}>{c.email}</td>
-                  <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontSize: 11, color: 'var(--text-4)' }} title={c.id}>{truncate(c.id)}</td>
+                  <td style={{ padding: '12px 14px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-4)' }} title={c.id}>{truncate(c.id)}</td>
                   <td style={{ padding: '12px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{fmt(c.created_at)}</td>
                   <td style={{ padding: '12px 14px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>{fmtTime(c.last_sign_in_at)}</td>
                   <td style={{ padding: '12px 14px', textAlign: 'center', fontWeight: 700, color: c.employee_count > 0 ? 'var(--text)' : 'var(--text-4)' }}>{c.employee_count}</td>

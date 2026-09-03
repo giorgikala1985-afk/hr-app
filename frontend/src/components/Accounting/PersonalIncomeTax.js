@@ -224,7 +224,7 @@ export default function PersonalIncomeTax() {
                 const empRate = r.employee?.pit_rate ?? 20;
                 return (
                   <tr key={r.employee?.id || i} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                    {table.displayCols.includes('personalId') && <td style={{ ...tdStyle, fontFamily: 'monospace', fontSize: 13 }}>{r.employee?.personal_id || '—'}</td>}
+                    {table.displayCols.includes('personalId') && <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', fontSize: 13 }}>{r.employee?.personal_id || '—'}</td>}
                     {table.displayCols.includes('name') && <td style={{ ...tdStyle, fontWeight: 600 }}>{r.employee?.first_name || '—'}</td>}
                     {table.displayCols.includes('lastName') && <td style={{ ...tdStyle, fontWeight: 600 }}>{r.employee?.last_name || '—'}</td>}
                     {table.displayCols.includes('businessTrip') && (

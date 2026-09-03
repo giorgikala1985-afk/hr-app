@@ -329,8 +329,8 @@ function ProjectInvoices({ projects }) {
                       <tr key={inv.id} style={{ background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                         {table.displayCols.includes('invoice_number') && <td style={{ fontWeight: 600, color: 'var(--text)' }}>{inv.invoice_number}</td>}
                         {table.displayCols.includes('client') && <td>{inv.client}</td>}
-                        {table.displayCols.includes('total') && <td style={{ textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{parseFloat(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>}
-                        {table.displayCols.includes('scheduled_send_date') && <td style={{ fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{formatDate(inv.scheduled_send_date)}</td>}
+                        {table.displayCols.includes('total') && <td style={{ textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{parseFloat(inv.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} {inv.currency}</td>}
+                        {table.displayCols.includes('scheduled_send_date') && <td style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)' }}>{formatDate(inv.scheduled_send_date)}</td>}
                         {table.displayCols.includes('status') && (
                           <td>
                             <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 5, background: sc.bg, color: sc.color }}>

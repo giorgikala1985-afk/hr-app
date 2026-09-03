@@ -3,7 +3,7 @@ import { HugeiconsIcon } from '@hugeicons/react';
 import { Clock01Icon } from '@hugeicons/core-free-icons';
 import api from '../../services/api';
 
-const FONT_MONO = 'ui-monospace, "Cascadia Code", "SF Mono", "Fira Mono", Menlo, Consolas, monospace';
+const FONT_MONO = 'var(--font-mono)';
 
 function OvertimeSettings() {
   const [rates, setRates] = useState([]);

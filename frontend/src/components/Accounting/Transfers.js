@@ -170,7 +170,7 @@ function TransfersList() {
           </td>
         );
       case 'amount':
-        return <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>;
+        return <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>;
       case 'dueDate':
         return <td style={{ ...tdCompact, color: 'var(--text-3)', fontSize: 12 }}>{tr.due_date ? new Date(tr.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>;
       case 'description':
@@ -783,7 +783,7 @@ function TransfersList() {
               )}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-              <div><label style={lbl}>{t('tr.amount')}</label><input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ ...inpStyle, fontFamily: 'monospace' }} /></div>
+              <div><label style={lbl}>{t('tr.amount')}</label><input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} /></div>
               <div><label style={lbl}>{t('tr.dueDate')}</label><input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} style={inpStyle} /></div>
             </div>
             <div style={{ marginBottom: 14 }}>
@@ -793,7 +793,7 @@ function TransfersList() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
               <div>
                 <label style={lbl}>IBAN</label>
-                <input value={iban} onChange={e => setIban(e.target.value)} placeholder="GE00XX0000000000000000" style={{ ...inpStyle, fontFamily: 'monospace' }} />
+                <input value={iban} onChange={e => setIban(e.target.value)} placeholder="GE00XX0000000000000000" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
               </div>
               <div>
                 <label style={lbl}>Invoice Number</label>
@@ -838,7 +838,7 @@ function TransfersList() {
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>{t('tr.approvedAmount')}</label>
-              <input type="number" min="0" step="0.01" value={partialAmount} onChange={e => setPartialAmount(e.target.value)} style={{ ...inpStyle, fontFamily: 'monospace' }} />
+              <input type="number" min="0" step="0.01" value={partialAmount} onChange={e => setPartialAmount(e.target.value)} style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
             </div>
             <div style={{ marginBottom: 18 }}>
               <label style={lbl}>{t('tr.note')}</label>
@@ -1059,12 +1059,12 @@ function ApprovalRequests() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{r.recipient_name}</span>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{fmt(r.amount)} {r.currency}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{fmt(r.amount)} {r.currency}</span>
                   <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 20, ...approvalStyle(r.approval_status) }}>{statusLabel(r.approval_status)}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-3)', flexWrap: 'wrap' }}>
                   <span>Requested by: <strong style={{ color: 'var(--text-2)' }}>{r.requester_name}</strong></span>
-                  {r.recipient_account && <span>Account: <strong style={{ color: 'var(--text-2)', fontFamily: 'monospace' }}>{r.recipient_account}</strong></span>}
+                  {r.recipient_account && <span>Account: <strong style={{ color: 'var(--text-2)', fontFamily: 'var(--font-mono)' }}>{r.recipient_account}</strong></span>}
                   <span>{new Date(r.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 </div>
                 {r.description && <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-2)' }}>{r.description}</div>}
@@ -1114,7 +1114,7 @@ function ApprovalRequests() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, marginBottom: 14 }}>
               <div>
                 <label style={lbl}>Amount</label>
-                <input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ ...inpStyle, fontFamily: 'monospace' }} />
+                <input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
               </div>
               <div>
                 <label style={lbl}>Currency</label>
@@ -1139,7 +1139,7 @@ function ApprovalRequests() {
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={lbl}>Recipient Account <span style={{ color: 'var(--text-4)', fontWeight: 400 }}>(optional)</span></label>
-              <input value={recipientAccount} onChange={e => setRecipientAccount(e.target.value)} placeholder="IBAN or account number" style={{ ...inpStyle, fontFamily: 'monospace' }} />
+              <input value={recipientAccount} onChange={e => setRecipientAccount(e.target.value)} placeholder="IBAN or account number" style={{ ...inpStyle, fontFamily: 'var(--font-mono)' }} />
             </div>
             <div style={{ marginBottom: 22 }}>
               <label style={lbl}>Description <span style={{ color: 'var(--text-4)', fontWeight: 400 }}>(optional)</span></label>

@@ -293,7 +293,7 @@ export default function Stock() {
                 <tr key={r.id}>
                   {table.displayCols.includes('sku') && (
                     <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                      {r.sku ? <span style={{ fontFamily: 'monospace', fontSize: 12, background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, color: '#475569' }}>{r.sku}</span> : '—'}
+                      {r.sku ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, color: '#475569' }}>{r.sku}</span> : '—'}
                     </td>
                   )}
                   {table.displayCols.includes('name') && <td style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}><strong>{r.name}</strong></td>}

@@ -259,7 +259,7 @@ function BankSettings() {
 
       <div style={{ marginTop: 24, padding: 16, background: 'rgba(59,130,246,0.08)', borderRadius: 10, border: '1px solid rgba(59,130,246,0.2)' }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa', marginBottom: 6 }}>Environment Variables Required</div>
-        <div style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'monospace', lineHeight: 1.8 }}>
+        <div style={{ fontSize: 12, color: 'var(--text-3)', fontFamily: 'var(--font-mono)', lineHeight: 1.8 }}>
           TBC_API_BASE_URL<br />
           TBC_API_KEY<br />
           TBC_CLIENT_ID<br />
@@ -429,10 +429,10 @@ function SalaryPayments() {
                     <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>
                       {s.employee.first_name} {s.employee.last_name}
                     </td>
-                    <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: s.employee.account_number ? 'var(--text-2)' : '#f87171' }}>
+                    <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: s.employee.account_number ? 'var(--text-2)' : '#f87171' }}>
                       {s.employee.account_number || 'No account'}
                     </td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text)' }}>
                       {fmt(s.net_salary)}
                     </td>
                     <td style={td}>
@@ -449,7 +449,7 @@ function SalaryPayments() {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--surface-2)', borderRadius: 10, border: '1px solid var(--border-2)' }}>
             <div style={{ fontSize: 14, color: 'var(--text-2)' }}>
-              <strong>{selected.size}</strong> employees selected &middot; Total: <strong style={{ color: 'var(--text)', fontFamily: 'monospace' }}>{fmt(totalSelected)} GEL</strong>
+              <strong>{selected.size}</strong> employees selected &middot; Total: <strong style={{ color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{fmt(totalSelected)} GEL</strong>
             </div>
             <button onClick={handlePaySalaries} disabled={processing || selected.size === 0} style={{ ...primaryBtn, opacity: (processing || selected.size === 0) ? 0.6 : 1 }}>
               {processing ? 'Processing...' : `Pay ${selected.size} Employees via TBC`}
@@ -512,14 +512,14 @@ function SalaryPayments() {
                       <tr key={s.employee.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                         <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{s.employee.first_name} {s.employee.last_name}</td>
                         <td style={{ ...td, color: 'var(--text-2)' }}>{match ? match.tx.name : '—'}</td>
-                        <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>
+                        <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)' }}>
                           {match ? new Date(match.tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                           {match && !match.inMonth && <span style={{ color: '#fbbf24', marginLeft: 6 }} title="Matched transaction is outside the selected month">⚠</span>}
                         </td>
-                        <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text)' }}>
                           {match ? fmt(match.tx.amount) : '—'}
                         </td>
-                        <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', color: 'var(--text-2)' }}>{fmt(s.net_salary)}</td>
+                        <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', color: 'var(--text-2)' }}>{fmt(s.net_salary)}</td>
                         <td style={td}>
                           {status === 'paid' && <span style={{ fontSize: 11, fontWeight: 700, color: '#479c73', background: 'rgba(71,156,115,0.12)', padding: '2px 8px', borderRadius: 4 }}>Paid ✓</span>}
                           {status === 'mismatch' && <span style={{ fontSize: 11, fontWeight: 700, color: '#fbbf24', background: 'rgba(234,179,8,0.12)', padding: '2px 8px', borderRadius: 4 }}>Amount Mismatch</span>}
@@ -628,7 +628,7 @@ function SalaryPayments() {
                   <tr key={h.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                     <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{h.month}</td>
                     <td style={td}>{h.employee_count}</td>
-                    <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700 }}>{fmt(h.total_amount)}</td>
+                    <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{fmt(h.total_amount)}</td>
                     <td style={td}>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
@@ -1057,13 +1057,13 @@ function BankStatements() {
                         }}
                       >
                         <td style={td}><input type="checkbox" checked={selectedTx.has(i)} onChange={() => toggleTx(i)} /></td>
-                        <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-2)' }}>{tx.bookingDate || tx.date || '-'}</td>
+                        <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-2)' }}>{tx.bookingDate || tx.date || '-'}</td>
                         <td style={{ ...td, color: 'var(--text-2)' }}>{tx.remittanceInformation || tx.description || '-'}</td>
                         <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{tx.creditorName || tx.debtorName || '-'}</td>
                         <td style={{ ...td, textAlign: 'right' }}>
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
-                            fontFamily: 'monospace', fontWeight: 700,
+                            fontFamily: 'var(--font-mono)', fontWeight: 700,
                             color: isIncome ? '#479c73' : '#f87171',
                             background: isIncome ? 'rgba(71,156,115,0.1)' : 'rgba(220,38,38,0.1)',
                             padding: '3px 9px', borderRadius: 6, fontSize: 12.5,
@@ -1261,13 +1261,13 @@ function InvoicePayment() {
                 <tr key={inv.id} style={{ borderBottom: '1px solid var(--border-2)', background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)' }}>
                   <td style={{ ...td, fontWeight: 600, color: 'var(--text)' }}>{inv.invoice_number || '-'}</td>
                   <td style={{ ...td, color: 'var(--text)' }}>{inv.client}</td>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: inv.account_number ? 'var(--text-2)' : '#f87171' }}>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: inv.account_number ? 'var(--text-2)' : '#f87171' }}>
                     {inv.account_number || 'No account'}
                   </td>
-                  <td style={{ ...td, textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, color: 'var(--text)' }}>
+                  <td style={{ ...td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text)' }}>
                     {fmt(inv.total)} {inv.currency || 'GEL'}
                   </td>
-                  <td style={{ ...td, fontFamily: 'monospace', fontSize: 12, color: 'var(--text-3)' }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
+                  <td style={{ ...td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-3)' }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
                   <td style={td}>
                     <span style={{
                       fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
@@ -1317,6 +1317,6 @@ const statCard = (accent) => ({
   boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
 });
 const statLabel = { fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.4px', marginBottom: 6 };
-const statValue = { fontSize: 18, fontWeight: 800, fontFamily: 'monospace' };
+const statValue = { fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-mono)' };
 
 export default TbcBanking;

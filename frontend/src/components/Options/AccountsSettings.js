@@ -242,7 +242,7 @@ function AccountsSettings() {
                 const ts = TYPE_STYLE[a.type] || TYPE_STYLE.Asset;
                 return (
                   <tr key={a.id} style={{ borderBottom: '1px solid var(--border-3)' }}>
-                    <td style={{ ...tdStyle, fontFamily: 'monospace', color: 'var(--text-3)', fontSize: 13 }}>{a.code || '—'}</td>
+                    <td style={{ ...tdStyle, fontFamily: 'var(--font-mono)', color: 'var(--text-3)', fontSize: 13 }}>{a.code || '—'}</td>
                     <td style={tdStyle}>
                       <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 5, ...ts }}>{a.type}</span>
                     </td>
