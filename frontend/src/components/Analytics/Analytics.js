@@ -9,9 +9,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, PieChart, Pie, Legend, LineChart, Line
 } from 'recharts';
-import { DL_TABLES_KEY, CHART_COLORS, buildChartData as buildDlChartData, loadPinnedCharts, savePinnedCharts } from '../common/PinnedChartView';
+import { dlTablesKey, CHART_COLORS, buildChartData as buildDlChartData, loadPinnedCharts, savePinnedCharts } from '../common/PinnedChartView';
+import { useAuth } from '../../contexts/AuthContext';
 
 function DataLakeCharts() {
+  const { user } = useAuth();
   const [tables, setTables] = useState([]);
   const [selectedTableId, setSelectedTableId] = useState('');
   const [mode, setMode] = useState('values');
@@ -19,16 +21,16 @@ function DataLakeCharts() {
   const [valueColId, setValueColId] = useState('');
   const [groupColId, setGroupColId] = useState('');
   const [chartType, setChartType] = useState('bar');
-  const [pinnedCharts, setPinnedCharts] = useState(loadPinnedCharts);
+  const [pinnedCharts, setPinnedCharts] = useState(() => loadPinnedCharts(user?.id));
 
   useEffect(() => {
     const load = () => {
-      try { setTables(JSON.parse(localStorage.getItem(DL_TABLES_KEY)) || []); } catch {}
+      try { setTables(JSON.parse(localStorage.getItem(dlTablesKey(user?.id))) || []); } catch {}
     };
     load();
     window.addEventListener('storage', load);
     return () => window.removeEventListener('storage', load);
-  }, []);
+  }, [user?.id]);
 
   const table = tables.find(t => t.id === selectedTableId);
   const numericCols = table ? table.columns.filter(c => c.type === 'number') : [];
@@ -83,7 +85,7 @@ function DataLakeCharts() {
     if (pinned) {
       const next = pinnedCharts.filter(p => p.id !== pinned.id);
       setPinnedCharts(next);
-      savePinnedCharts(next);
+      savePinnedCharts(user?.id, next);
       return;
     }
     const valueColName = numericCols.find(c => c.id === valueColId)?.name;
@@ -93,7 +95,7 @@ function DataLakeCharts() {
       : `${table.name} — by ${groupColName || 'Chart'}`;
     const next = [...pinnedCharts, { id: `pc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`, title, ...chartConfig }];
     setPinnedCharts(next);
-    savePinnedCharts(next);
+    savePinnedCharts(user?.id, next);
   };
 
   return (

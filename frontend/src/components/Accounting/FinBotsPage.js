@@ -3,6 +3,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { isFloating, setFloating } from './floatingStore';
+import { dlTablesKey } from '../common/PinnedChartView';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 import { HugeiconsIcon } from '@hugeicons/react';
@@ -54,14 +55,17 @@ const DATA_SOURCE_DEFS = [
 ];
 
 const STORAGE_KEY_PREFIX = 'datum_finbots_';
-const DL_TABLES_KEY = 'dl_custom_tables';
 
 function getStorageKey(userId) {
   return STORAGE_KEY_PREFIX + (userId || 'guest');
 }
 
-function readDLTables() {
-  try { return JSON.parse(localStorage.getItem(DL_TABLES_KEY)) || []; } catch { return []; }
+// Namespaced the same way as Orders.js's useLocalOrders and PinnedChartView's
+// dlTablesKey — localStorage is per-browser, not per-company, so an
+// un-namespaced key here would leak one org's Data Lake tables into another's
+// FinBot data-source list.
+function readDLTables(userId) {
+  try { return JSON.parse(localStorage.getItem(dlTablesKey(userId))) || []; } catch { return []; }
 }
 
 export function mapBot(b) {
@@ -132,6 +136,7 @@ export function BotAvatar({ color, icon = 'bot', size = 36 }) {
 // ── Create / Edit modal ──────────────────────────────────────────────────────
 function BotModal({ bot, onSave, onClose }) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const DATA_SOURCES = DATA_SOURCE_DEFS.map(ds => ({ ...ds, label: t(ds.labelKey), desc: t(ds.descKey) }));
   const [name, setName] = useState(bot?.name || '');
   const [description, setDescription] = useState(bot?.description || '');
@@ -140,7 +145,7 @@ function BotModal({ bot, onSave, onClose }) {
   const [color, setColor] = useState(bot?.color || '#ec4899');
   const [icon, setIcon] = useState(bot?.icon || 'bot');
   const [floating, setFloatingState] = useState(() => isFloating(bot?.id));
-  const [dlTables] = useState(() => readDLTables());
+  const [dlTables] = useState(() => readDLTables(user?.id));
   const [preferredChart, setPreferredChart] = useState(bot?.preferredChart || 'bar');
   const [modalTab, setModalTab] = useState('settings');
 
@@ -1201,6 +1206,7 @@ function MessageContent({ content, botColor, botName }) {
 // ── Chat view ────────────────────────────────────────────────────────────────
 export function BotChat({ bot, showHeader = true }) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [messages, setMessages] = useState(() => loadChatHistory(bot.id));
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1231,7 +1237,7 @@ export function BotChat({ bot, showHeader = true }) {
     setLoading(true);
 
     try {
-      const allDlTables = readDLTables();
+      const allDlTables = readDLTables(user?.id);
       const dlTablesData = (bot.dataSources || [])
         .filter(s => s.startsWith('dl_table:'))
         .map(key => allDlTables.find(t => t.id === key.replace('dl_table:', '')))
@@ -1257,7 +1263,7 @@ export function BotChat({ bot, showHeader = true }) {
 
   const connectedSources = DATA_SOURCE_DEFS.filter(s => bot.dataSources?.includes(s.key));
   const connectedDlTables = (() => {
-    const all = readDLTables();
+    const all = readDLTables(user?.id);
     return (bot.dataSources || [])
       .filter(s => s.startsWith('dl_table:'))
       .map(key => all.find(t => t.id === key.replace('dl_table:', '')))
@@ -1478,7 +1484,7 @@ function FinBotsPage() {
                 <div className="fb-bot-item-sources">
                   {(() => {
                     if (!bot.dataSources?.length) return t('fb.noDataConnected');
-                    const dlTables = readDLTables();
+                    const dlTables = readDLTables(userId);
                     const labels = bot.dataSources.map(s => {
                       const def = DATA_SOURCE_DEFS.find(d => d.key === s);
                       if (def?.labelKey) return t(def.labelKey);

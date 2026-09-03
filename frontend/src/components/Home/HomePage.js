@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
 import WeatherWidget from './WeatherWidget';
@@ -160,34 +161,40 @@ const DEFAULT_PINS = ['doc-hr', 'opt-units', 'acc-purchases', 'employees'];
 function HomePage() {
   const { t } = useLanguage();
   const { theme } = useTheme();
+  const { user } = useAuth();
+  // localStorage is scoped per browser origin, not per logged-in company —
+  // namespace by the current tenant so pinned tabs/charts from one org never
+  // leak into another's Home view when the same browser logs into both.
+  const pinsKey = `${STORAGE_KEY}_${user?.id || 'anon'}`;
   const [pinned, setPinned] = useState(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(pinsKey);
       return saved ? JSON.parse(saved) : DEFAULT_PINS;
     } catch { return DEFAULT_PINS; }
   });
   const [customizing, setCustomizing] = useState(false);
   const [empCount, setEmpCount] = useState(null);
-  const [pinnedCharts, setPinnedCharts] = useState(loadPinnedCharts);
+  const [pinnedCharts, setPinnedCharts] = useState(() => loadPinnedCharts(user?.id));
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pinned));
-  }, [pinned]);
+    localStorage.setItem(pinsKey, JSON.stringify(pinned));
+  }, [pinned, pinsKey]);
 
   useEffect(() => {
-    const reload = () => setPinnedCharts(loadPinnedCharts());
+    const reload = () => setPinnedCharts(loadPinnedCharts(user?.id));
+    reload();
     window.addEventListener('storage', reload);
     window.addEventListener('pinned-charts-changed', reload);
     return () => {
       window.removeEventListener('storage', reload);
       window.removeEventListener('pinned-charts-changed', reload);
     };
-  }, []);
+  }, [user?.id]);
 
   const unpinChart = (id) => {
     const next = pinnedCharts.filter(p => p.id !== id);
     setPinnedCharts(next);
-    savePinnedCharts(next);
+    savePinnedCharts(user?.id, next);
   };
 
   useEffect(() => {

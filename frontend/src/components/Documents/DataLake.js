@@ -11,11 +11,11 @@ import {
 } from '@hugeicons/core-free-icons';
 import { fetchTbcRawStatement, saveTbcRawStatement, clearTbcRawStatement } from '../../utils/tbcStatement';
 import TableSkeleton from '../common/TableSkeleton';
+import { useAuth } from '../../contexts/AuthContext';
+import { dlTablesKey } from '../common/PinnedChartView';
 import './ct-styles.css';
 
 const typeIcon = (icon) => <HugeiconsIcon icon={icon} size={15} color="currentColor" strokeWidth={1.8} />;
-
-const TABLES_STORAGE_KEY = 'dl_custom_tables';
 
 const CATEGORIES = ['All', 'HR', 'Finance', 'Payroll', 'Insurance', 'Reports'];
 
@@ -397,8 +397,10 @@ function AddColumnModal({ onAdd, onClose }) {
 
 /* ── Custom Tables ─────────────────────────────────────────────────── */
 function CustomTables() {
+  const { user } = useAuth();
+  const tablesKey = dlTablesKey(user?.id);
   const [tables, setTables] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(TABLES_STORAGE_KEY)) || []; } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(tablesKey)) || []; } catch { return []; }
   });
   const [view, setView] = useState('list');
   const [activeTableId, setActiveTableId] = useState(null);
@@ -411,8 +413,8 @@ function CustomTables() {
 
   const persist = useCallback((updated) => {
     setTables(updated);
-    localStorage.setItem(TABLES_STORAGE_KEY, JSON.stringify(updated));
-  }, []);
+    localStorage.setItem(tablesKey, JSON.stringify(updated));
+  }, [tablesKey]);
 
   const activeTable = tables.find(t => t.id === activeTableId);
 
@@ -462,10 +464,10 @@ function CustomTables() {
         if (t.id !== activeTableId) return t;
         return { ...t, rows: t.rows.map(r => r.id === rowId ? { ...r, [colId]: value } : r) };
       });
-      localStorage.setItem(TABLES_STORAGE_KEY, JSON.stringify(updated));
+      localStorage.setItem(tablesKey, JSON.stringify(updated));
       return updated;
     });
-  }, [activeTableId]);
+  }, [activeTableId, tablesKey]);
 
   const handleAddColumn = ({ name, type, options }) => {
     const col = {
