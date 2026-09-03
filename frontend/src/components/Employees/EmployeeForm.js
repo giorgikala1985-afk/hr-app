@@ -396,6 +396,26 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
                     </div>
                   </div>
                   <div className="form-group">
+                    <label htmlFor="accrued_salary">{t('empForm.accruedSalary')}</label>
+                    <input
+                      id="accrued_salary"
+                      type="text"
+                      readOnly
+                      disabled
+                      value={(() => {
+                        const net = parseFloat(formData.salary);
+                        if (!net || net <= 0) return '';
+                        const pitRate = parseFloat(formData.pit_rate) || 0;
+                        const pensionRate = formData.pension ? 2 : 0;
+                        const gross = net / (1 - pitRate / 100) / (1 - pensionRate / 100);
+                        return Number.isFinite(gross) ? gross.toFixed(2) : '';
+                      })()}
+                      placeholder="—"
+                      style={{ background: 'var(--bg-2, #f3f4f6)', cursor: 'not-allowed' }}
+                    />
+                    <span className="photo-hint">{t('empForm.accruedSalaryHint')}</span>
+                  </div>
+                  <div className="form-group">
                     <label htmlFor="start_date">{t('empForm.startDate')}</label>
                     <input id="start_date" name="start_date" type="date" value={formData.start_date} onChange={handleChange} required />
                   </div>

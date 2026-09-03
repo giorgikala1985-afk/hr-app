@@ -720,6 +720,25 @@ function HiringTab() {
                           </select>
                         </div>
                       </div>
+                      <div className="form-group">
+                        <label>{t('orders.accruedSalary')}</label>
+                        <input
+                          type="text"
+                          readOnly
+                          disabled
+                          value={(() => {
+                            const net = parseFloat(form.salary);
+                            if (!net || net <= 0) return '';
+                            const pitRate = parseFloat(form.pitRate) || 0;
+                            const pensionRate = form.pension ? 2 : 0;
+                            const gross = net / (1 - pitRate / 100) / (1 - pensionRate / 100);
+                            return Number.isFinite(gross) ? gross.toFixed(2) : '';
+                          })()}
+                          placeholder="—"
+                          style={{ background: 'var(--surface-2)', cursor: 'not-allowed' }}
+                        />
+                        <span className="photo-hint">{t('orders.accruedSalaryHint')}</span>
+                      </div>
                       <div className="form-group" style={{ gridColumn: 'span 2' }}>
                         <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, startDate: v ? p.startDate : endOfMonth(currentMonthStr()) }))} />
                       </div>
