@@ -41,10 +41,15 @@ const MENU_ITEMS = [
 // Stack straight up above the button — the item closest to the button
 // (last in the array) unfolds first, the farthest last, so it reads as
 // the stack "growing" outward rather than everything popping at once.
+// The closest item is offset by the button's own size + a gap, not just
+// one item-height, otherwise it sits underneath the (taller) button.
+const BUTTON_SIZE = 52;
+const BUTTON_GAP = 12;
 const ITEM_HEIGHT = 46;
 const fanPosition = (i, total) => {
-  const ty = -(total - i) * ITEM_HEIGHT;
-  return { '--tx': '0px', '--ty': `${ty}px`, '--delay': `${(total - 1 - i) * 50}ms` };
+  const distanceFromButton = total - 1 - i; // 0 = closest item
+  const ty = -(BUTTON_SIZE + BUTTON_GAP + distanceFromButton * ITEM_HEIGHT);
+  return { '--tx': '0px', '--ty': `${ty}px`, '--delay': `${distanceFromButton * 50}ms` };
 };
 
 export default function FloatingQuickAdd() {
