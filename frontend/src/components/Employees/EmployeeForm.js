@@ -411,35 +411,20 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
                   <div className="form-group">
                     <label htmlFor="salary">{t('empForm.salary')}</label>
                     <div style={{ display: 'flex', gap: 0, alignItems: 'stretch' }}>
+                      <select
+                        id="salary_currency"
+                        value={formData.salary_currency}
+                        onChange={e => setFormData(p => ({ ...p, salary_currency: e.target.value }))}
+                        style={{ flex: '0 0 64px', width: 64, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none', padding: '6px 22px 6px 8px', backgroundPosition: 'right 6px center' }}
+                      >
+                        {['GEL', 'USD', 'EUR'].map(cur => <option key={cur} value={cur}>{cur}</option>)}
+                      </select>
                       <input
                         id="salary" name="salary" type="number" step="0.01" min="0"
                         value={formData.salary} onChange={handleSalaryChange}
                         placeholder="e.g. 5000.00" required
-                        style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
+                        style={{ flex: 1, minWidth: 0, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                       />
-                      {['GEL', 'USD', 'EUR'].map((cur, i, arr) => (
-                        <button
-                          key={cur}
-                          type="button"
-                          onClick={() => setFormData(p => ({ ...p, salary_currency: cur }))}
-                          style={{
-                            padding: '0 11px',
-                            fontSize: 12, fontWeight: 700,
-                            border: '1px solid var(--border, #d1d5db)',
-                            borderLeft: i === 0 ? '1px solid var(--border, #d1d5db)' : 'none',
-                            borderTopRightRadius: i === arr.length - 1 ? 'var(--radius, 8px)' : 0,
-                            borderBottomRightRadius: i === arr.length - 1 ? 'var(--radius, 8px)' : 0,
-                            borderTopLeftRadius: 0, borderBottomLeftRadius: 0,
-                            cursor: 'pointer',
-                            background: formData.salary_currency === cur ? '#2563eb' : 'var(--surface, #fff)',
-                            color: formData.salary_currency === cur ? '#fff' : 'var(--text-2, #6b7280)',
-                            transition: 'background 0.13s, color 0.13s',
-                            height: '100%',
-                          }}
-                        >
-                          {cur}
-                        </button>
-                      ))}
                     </div>
                   </div>
                   <div className="form-group">

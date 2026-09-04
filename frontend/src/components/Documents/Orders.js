@@ -743,25 +743,25 @@ function HiringTab() {
                       <div className="form-group">
                         <label>{t('orders.salary')} *</label>
                         <div style={{ display: 'flex', gap: 0, borderRadius: 8, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
-                          <input
-                            type="number" step="0.01" min="0"
-                            value={form.salary} onChange={handleSalaryChange}
-                            placeholder="e.g. 5000.00" required
-                            style={{ flex: 1, border: 'none', outline: 'none', padding: '9px 12px', fontSize: 14, background: 'var(--surface)', color: 'var(--text)', minWidth: 0 }}
-                          />
                           <select
                             value={form.salaryCurrency}
                             onChange={fv('salaryCurrency')}
                             required
                             style={{
-                              flexShrink: 0, padding: '0 10px', border: 'none', borderLeft: '1px solid var(--border-2)',
-                              cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                              flexShrink: 0, width: 78, padding: '0 6px', border: 'none', borderRight: '1px solid var(--border-2)',
+                              cursor: 'pointer', fontSize: 12, fontWeight: 700,
                               background: 'var(--surface-2)', color: form.salaryCurrency ? 'var(--text)' : 'var(--text-3)',
                             }}
                           >
                             <option value="" disabled>{t('orders.currency')}</option>
                             {['GEL', 'USD', 'EUR'].map(cur => <option key={cur} value={cur}>{cur}</option>)}
                           </select>
+                          <input
+                            type="number" step="0.01" min="0"
+                            value={form.salary} onChange={handleSalaryChange}
+                            placeholder="e.g. 5000.00" required
+                            style={{ flex: 1, border: 'none', outline: 'none', padding: '6px 10px', fontSize: 12.5, background: 'var(--surface)', color: 'var(--text)', minWidth: 0 }}
+                          />
                         </div>
                       </div>
                       <div className="form-group">
