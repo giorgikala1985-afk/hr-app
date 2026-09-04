@@ -16,6 +16,25 @@ import TableSkeleton from '../common/TableSkeleton';
 const now = new Date();
 const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+// Net (take-home) <-> Accrued (gross) salary conversion.
+// accrued = net / (1 - pitRate) / (1 - pensionRate)
+function calcAccruedFromNet(net, pitRate, pensionOn) {
+  const n = parseFloat(net);
+  if (!n || n <= 0) return '';
+  const pit = parseFloat(pitRate) || 0;
+  const pensionRate = pensionOn ? 2 : 0;
+  const gross = n / (1 - pit / 100) / (1 - pensionRate / 100);
+  return Number.isFinite(gross) ? gross.toFixed(2) : '';
+}
+function calcNetFromAccrued(accrued, pitRate, pensionOn) {
+  const g = parseFloat(accrued);
+  if (!g || g <= 0) return '';
+  const pit = parseFloat(pitRate) || 0;
+  const pensionRate = pensionOn ? 2 : 0;
+  const net = g * (1 - pit / 100) * (1 - pensionRate / 100);
+  return Number.isFinite(net) ? net.toFixed(2) : '';
+}
+
 const CURRENCIES = [
   { code: 'USD', symbol: '$', color: '#479c73' },
   { code: 'GEL', symbol: '₾', color: '#92400e' },
@@ -449,8 +468,31 @@ function HiringTab() {
     immediateEffect: true,
   };
   const [form, setForm] = useState(EMPTY);
+  const [accruedInput, setAccruedInput] = useState('');
   const fv = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
-  const fc = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.checked }));
+
+  // Salary / Accrued Salary are two views of the same number — editing either
+  // one recalculates the other using the current PIT rate and pension state.
+  const handleSalaryChange = (e) => {
+    const value = e.target.value;
+    setForm(prev => ({ ...prev, salary: value }));
+    setAccruedInput(calcAccruedFromNet(value, form.pitRate, form.pension));
+  };
+  const handleAccruedChange = (e) => {
+    const value = e.target.value;
+    setAccruedInput(value);
+    setForm(prev => ({ ...prev, salary: calcNetFromAccrued(value, form.pitRate, form.pension) }));
+  };
+  const handlePitRateChange = (e) => {
+    const value = e.target.value;
+    setForm(prev => ({ ...prev, pitRate: value }));
+    setAccruedInput(calcAccruedFromNet(form.salary, value, form.pension));
+  };
+  const handlePensionToggle = () => {
+    const next = !form.pension;
+    setForm(prev => ({ ...prev, pension: next }));
+    setAccruedInput(calcAccruedFromNet(form.salary, form.pitRate, next));
+  };
 
   useEffect(() => {
     api.get('/positions').then(r => setPositions(r.data.positions || [])).catch(() => {});
@@ -470,7 +512,7 @@ function HiringTab() {
   const canCreate = perms.create_hiring === 'Yes';
 
   const [detailsFor, setDetailsFor] = useState(null);
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setActiveTab('info'); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setAccruedInput(''); setActiveTab('info'); setShowForm(true); };
   const openEdit = (o) => {
     setEditing(o.id);
     setForm({
@@ -483,6 +525,7 @@ function HiringTab() {
       pension: o.pension || false, personalEmail: o.personalEmail || '',
       phone: o.phone || '', address: o.address || '', notes: o.notes || '',
     });
+    setAccruedInput(calcAccruedFromNet(o.salary, o.pitRate || '20', o.pension || false));
     setActiveTab('info');
     setShowForm(true);
   };
@@ -498,6 +541,7 @@ function HiringTab() {
       pension: o.pension || false, personalEmail: '',
       phone: '', address: o.address || '', notes: o.notes || '',
     });
+    setAccruedInput(calcAccruedFromNet(o.salary, o.pitRate || '20', o.pension || false));
     setActiveTab('info');
     setShowForm(true);
   };
@@ -701,7 +745,7 @@ function HiringTab() {
                         <div style={{ display: 'flex', gap: 0, borderRadius: 8, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
                           <input
                             type="number" step="0.01" min="0"
-                            value={form.salary} onChange={fv('salary')}
+                            value={form.salary} onChange={handleSalaryChange}
                             placeholder="e.g. 5000.00" required
                             style={{ flex: 1, border: 'none', outline: 'none', padding: '9px 12px', fontSize: 14, background: 'var(--surface)', color: 'var(--text)', minWidth: 0 }}
                           />
@@ -723,19 +767,10 @@ function HiringTab() {
                       <div className="form-group">
                         <label>{t('orders.accruedSalary')}</label>
                         <input
-                          type="text"
-                          readOnly
-                          disabled
-                          value={(() => {
-                            const net = parseFloat(form.salary);
-                            if (!net || net <= 0) return '';
-                            const pitRate = parseFloat(form.pitRate) || 0;
-                            const pensionRate = form.pension ? 2 : 0;
-                            const gross = net / (1 - pitRate / 100) / (1 - pensionRate / 100);
-                            return Number.isFinite(gross) ? gross.toFixed(2) : '';
-                          })()}
-                          placeholder="—"
-                          style={{ background: 'var(--surface-2)', cursor: 'not-allowed' }}
+                          type="number" step="0.01" min="0"
+                          value={accruedInput}
+                          onChange={handleAccruedChange}
+                          placeholder="e.g. 5000.00"
                         />
                         <span className="photo-hint">{t('orders.accruedSalaryHint')}</span>
                       </div>
@@ -753,7 +788,7 @@ function HiringTab() {
                       </div>
                       <div className="form-group">
                         <label>{t('orders.pitRate')}</label>
-                        <select value={form.pitRate} onChange={fv('pitRate')}>
+                        <select value={form.pitRate} onChange={handlePitRateChange}>
                           <option value="5">5%</option>
                           <option value="20">20%</option>
                         </select>
@@ -775,16 +810,16 @@ function HiringTab() {
                         <input value={form.notes} onChange={fv('notes')} placeholder="Additional notes…" />
                       </div>
                       <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                        <label className="pension-toggle-row" style={{ width: 'fit-content' }} onClick={() => setForm(p => ({ ...p, pension: !p.pension }))}>
+                        <div className="pension-toggle-row" style={{ width: 'fit-content' }} onClick={handlePensionToggle}>
                           <label className="toggle-switch" onClick={e => e.stopPropagation()}>
-                            <input type="checkbox" checked={form.pension} onChange={fc('pension')} />
+                            <input type="checkbox" checked={form.pension} onChange={handlePensionToggle} />
                             <span className="toggle-track" />
                           </label>
                           <span className="pension-label">
                             {t('orders.pension')}
                             <span className="pension-label-sub">{t('orders.pensionScheme')}</span>
                           </span>
-                        </label>
+                        </div>
                       </div>
 
                     </div>

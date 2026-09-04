@@ -11,6 +11,25 @@ import TableSkeleton from '../common/TableSkeleton';
 import './Employees.css';
 import { useLanguage } from '../../contexts/LanguageContext';
 
+// Net (take-home) <-> Accrued (gross) salary conversion.
+// accrued = net / (1 - pitRate) / (1 - pensionRate)
+function calcAccruedFromNet(net, pitRate, pensionOn) {
+  const n = parseFloat(net);
+  if (!n || n <= 0) return '';
+  const pit = parseFloat(pitRate) || 0;
+  const pensionRate = pensionOn ? 2 : 0;
+  const gross = n / (1 - pit / 100) / (1 - pensionRate / 100);
+  return Number.isFinite(gross) ? gross.toFixed(2) : '';
+}
+function calcNetFromAccrued(accrued, pitRate, pensionOn) {
+  const g = parseFloat(accrued);
+  if (!g || g <= 0) return '';
+  const pit = parseFloat(pitRate) || 0;
+  const pensionRate = pensionOn ? 2 : 0;
+  const net = g * (1 - pit / 100) * (1 - pensionRate / 100);
+  return Number.isFinite(net) ? net.toFixed(2) : '';
+}
+
 function EmployeeForm({ employeeId, onClose, onSaved }) {
   const id = employeeId;
   const isEdit = Boolean(id);
@@ -37,6 +56,7 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
     pension: false,
     personal_email: ''
   });
+  const [accruedInput, setAccruedInput] = useState('');
   const [positions, setPositions] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [taxCodes, setTaxCodes] = useState([]);
@@ -137,6 +157,7 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
         personal_email: emp.personal_email || '',
         pit_rate: emp.pit_rate ?? 20
       });
+      setAccruedInput(calcAccruedFromNet(emp.salary, emp.pit_rate ?? 20, emp.pension || false));
       if (emp.photo_url) {
         setExistingPhotoUrl(emp.photo_url);
       }
@@ -150,6 +171,32 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
   const handleChange = (e) => {
     const { name, type, checked, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  // Salary / Accrued Salary are two views of the same number — editing either
+  // one recalculates the other using the current PIT rate and pension state.
+  const handleSalaryChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, salary: value }));
+    setAccruedInput(calcAccruedFromNet(value, formData.pit_rate, formData.pension));
+  };
+
+  const handleAccruedChange = (e) => {
+    const value = e.target.value;
+    setAccruedInput(value);
+    setFormData(prev => ({ ...prev, salary: calcNetFromAccrued(value, formData.pit_rate, formData.pension) }));
+  };
+
+  const handlePitRateChange = (e) => {
+    const value = e.target.value;
+    setFormData(prev => ({ ...prev, pit_rate: value }));
+    setAccruedInput(calcAccruedFromNet(formData.salary, value, formData.pension));
+  };
+
+  const handlePensionToggle = () => {
+    const next = !formData.pension;
+    setFormData(prev => ({ ...prev, pension: next }));
+    setAccruedInput(calcAccruedFromNet(formData.salary, formData.pit_rate, next));
   };
 
   const handlePhotoChange = (e) => {
@@ -366,7 +413,7 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
                     <div style={{ display: 'flex', gap: 0, alignItems: 'stretch' }}>
                       <input
                         id="salary" name="salary" type="number" step="0.01" min="0"
-                        value={formData.salary} onChange={handleChange}
+                        value={formData.salary} onChange={handleSalaryChange}
                         placeholder="e.g. 5000.00" required
                         style={{ flex: 1, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderRight: 'none' }}
                       />
@@ -399,19 +446,10 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
                     <label htmlFor="accrued_salary">{t('empForm.accruedSalary')}</label>
                     <input
                       id="accrued_salary"
-                      type="text"
-                      readOnly
-                      disabled
-                      value={(() => {
-                        const net = parseFloat(formData.salary);
-                        if (!net || net <= 0) return '';
-                        const pitRate = parseFloat(formData.pit_rate) || 0;
-                        const pensionRate = formData.pension ? 2 : 0;
-                        const gross = net / (1 - pitRate / 100) / (1 - pensionRate / 100);
-                        return Number.isFinite(gross) ? gross.toFixed(2) : '';
-                      })()}
-                      placeholder="—"
-                      style={{ background: 'var(--bg-2, #f3f4f6)', cursor: 'not-allowed' }}
+                      type="number" step="0.01" min="0"
+                      value={accruedInput}
+                      onChange={handleAccruedChange}
+                      placeholder="e.g. 5000.00"
                     />
                     <span className="photo-hint">{t('empForm.accruedSalaryHint')}</span>
                   </div>
@@ -465,7 +503,7 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
                   })()}
                   <div className="form-group">
                     <label htmlFor="pit_rate">PIT Rate</label>
-                    <select id="pit_rate" name="pit_rate" value={formData.pit_rate} onChange={handleChange}>
+                    <select id="pit_rate" name="pit_rate" value={formData.pit_rate} onChange={handlePitRateChange}>
                       <option value={5}>5%</option>
                       <option value={20}>20%</option>
                     </select>
@@ -479,16 +517,16 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
                     <input id="mobile_number" name="mobile_number" type="tel" value={formData.mobile_number} onChange={handleChange} placeholder="e.g. +995 555 123456" />
                   </div>
                   <div className="form-group">
-                    <label className="pension-toggle-row" onClick={() => setFormData(p => ({ ...p, pension: !p.pension }))}>
+                    <div className="pension-toggle-row" onClick={handlePensionToggle}>
                       <label className="toggle-switch" onClick={e => e.stopPropagation()}>
-                        <input type="checkbox" name="pension" checked={formData.pension} onChange={handleChange} />
+                        <input type="checkbox" name="pension" checked={formData.pension} onChange={handlePensionToggle} />
                         <span className="toggle-track" />
                       </label>
                       <span className="pension-label">
                         {t('empForm.pension')}
                         <span className="pension-label-sub">Employee participates in pension scheme</span>
                       </span>
-                    </label>
+                    </div>
                   </div>
                 </div>
 
