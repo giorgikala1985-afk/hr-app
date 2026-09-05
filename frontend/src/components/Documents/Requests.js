@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
@@ -319,7 +320,7 @@ function Requests() {
       </div>
 
       {/* Modal */}
-      {showForm && (
+      {showForm && createPortal(
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" style={{ maxWidth: 520, width: '100%' }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 700 }}>
@@ -375,7 +376,8 @@ function Requests() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

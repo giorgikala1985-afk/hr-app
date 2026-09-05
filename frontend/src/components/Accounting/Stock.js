@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -331,7 +332,7 @@ export default function Stock() {
         )}
       </div>
 
-      {showForm && (
+      {showForm && createPortal(
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" style={{ maxWidth: 820 }} onClick={e => e.stopPropagation()}>
             <h3>{editId ? t('stock.editItem') : t('stock.newItem')}</h3>
@@ -404,7 +405,8 @@ export default function Stock() {
               <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('stock.saving') : t('stock.save')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

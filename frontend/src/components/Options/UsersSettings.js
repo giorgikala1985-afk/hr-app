@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 
 const RIGHTS = ['Super Admin', 'Admin', 'Member'];
@@ -588,7 +589,7 @@ function UsersSettings() {
         </div>
       )}
 
-      {roleModal && (
+      {roleModal && createPortal(
         <div className="acc-modal-overlay" onClick={() => setRoleModal(null)}>
           <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{roleModal.idx === null ? 'Add Role' : 'Edit Role'}</h3>
@@ -608,10 +609,11 @@ function UsersSettings() {
               <button className="btn-primary" onClick={handleSaveRole} disabled={roleSaving}>{roleSaving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {pwdModal && (
+      {pwdModal && createPortal(
         <div className="acc-modal-overlay" onClick={() => setPwdModal(null)}>
           <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Set Password — {pwdModal.name}</h3>
@@ -632,10 +634,11 @@ function UsersSettings() {
               <button className="btn-primary" onClick={handleSetPassword} disabled={pwdSaving}>{pwdSaving ? 'Saving…' : 'Set Password'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showForm && (
+      {showForm && createPortal(
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={(e) => e.stopPropagation()}>
             <h3>{editId ? 'Edit User' : 'New User'}</h3>
@@ -671,7 +674,8 @@ function UsersSettings() {
               <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

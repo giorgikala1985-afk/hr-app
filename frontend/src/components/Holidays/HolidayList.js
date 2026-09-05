@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useColumnResize, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -326,7 +327,7 @@ function HolidayList() {
         .holidays-compact .acc-table td { padding: 7px 12px; }
       `}</style>
 
-      {showForm && (
+      {showForm && createPortal(
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={e => e.stopPropagation()}>
             <h3>{editId ? t('hol.editTitle') : t('hol.addTitle')}</h3>
@@ -370,7 +371,8 @@ function HolidayList() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

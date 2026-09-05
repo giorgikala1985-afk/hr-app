@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 
@@ -275,7 +276,7 @@ function AccountsSettings() {
       )}
 
       {/* Form modal */}
-      {showForm && (
+      {showForm && createPortal(
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={e => e.stopPropagation()}>
             <h3>{editId ? 'Edit Account' : 'New Account'}</h3>
@@ -307,7 +308,8 @@ function AccountsSettings() {
               <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

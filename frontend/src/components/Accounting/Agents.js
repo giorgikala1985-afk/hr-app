@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
@@ -358,7 +359,7 @@ function Agents() {
         </div>
       )}
 
-      {showForm && (
+      {showForm && createPortal(
         <div className="acc-modal-overlay" onClick={() => setShowForm(false)}>
           <div className="acc-modal" onClick={e => e.stopPropagation()}>
             <h3>{editId ? t('agents.editCoagent') : t('agents.newCoagent')}</h3>
@@ -369,7 +370,7 @@ function Agents() {
               <div className="acc-form-group"><label>{t('agents.dateAdded')}</label><input type="date" value={form.add_date} onChange={e => setForm({ ...form, add_date: e.target.value })} /></div>
               <div className="acc-form-group full"><label>{t('agents.accountNumber')}</label><input value={form.account_number} onChange={e => setForm({ ...form, account_number: e.target.value })} placeholder="e.g. GE00TB0000000000001234" /></div>
               <div className="acc-form-group full"><label>{t('agents.address')}</label><input value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} placeholder="e.g. 123 Main St, Tbilisi" /></div>
-              <div className="acc-form-group full"><label>{t('agents.contactName')}</label><input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} placeholder="e.g. John Doe" /></div>
+              <div className="acc-form-group"><label>{t('agents.contactName')}</label><input value={form.contact_name} onChange={e => setForm({ ...form, contact_name: e.target.value })} placeholder="e.g. John Doe" /></div>
               <div className="acc-form-group"><label>{t('agents.phone')}</label><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="e.g. +995 555 000 000" /></div>
             </div>
             <div className="acc-modal-actions">
@@ -377,7 +378,8 @@ function Agents() {
               <button className="btn-primary" onClick={handleSave} disabled={saving}>{saving ? t('agents.saving') : t('agents.saveCoagent')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
