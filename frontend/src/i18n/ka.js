@@ -829,7 +829,7 @@ const ka = {
   'acc.title': 'ფინანსები',
   'acc.expand': 'გაშლა',
   'acc.collapse': 'დაკეცვა',
-  'acc.bookkeeping': 'საბუღალტრო',
+  'acc.bookkeeping': 'ბუღალტერია',
   'acc.purchases': 'შესყიდვები',
   'acc.sales': 'გაყიდვები',
   'acc.projects': 'პროექტები',
