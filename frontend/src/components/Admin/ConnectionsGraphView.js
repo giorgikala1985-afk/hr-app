@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import ReactFlow, { Background, Controls, MiniMap, MarkerType } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { CONNECTION_NODES, CONNECTION_EDGES, CONNECTION_COLS } from './moduleConnections';
@@ -20,7 +20,9 @@ const TYPE_LABEL = {
 };
 
 export default function ConnectionsGraphView() {
-  const nodes = useMemo(() => CONNECTION_NODES.map(n => {
+  const [selectedId, setSelectedId] = useState(null);
+
+  const allNodes = useMemo(() => CONNECTION_NODES.map(n => {
     const color = TYPE_COLOR[n.type] || '#94a3b8';
     return {
       id: n.id,
@@ -37,11 +39,12 @@ export default function ConnectionsGraphView() {
         whiteSpace: 'pre-line',
         textAlign: 'center',
         width: 170,
+        cursor: 'pointer',
       },
     };
   }), []);
 
-  const edges = useMemo(() => CONNECTION_EDGES.map((e, i) => {
+  const allEdges = useMemo(() => CONNECTION_EDGES.map((e, i) => {
     const sourceNode = CONNECTION_NODES.find(n => n.id === e.source);
     const color = TYPE_COLOR[sourceNode?.type] || '#94a3b8';
     return {
@@ -56,6 +59,25 @@ export default function ConnectionsGraphView() {
       animated: sourceNode?.type === 'brain',
     };
   }), []);
+
+  // When a node is selected, keep only it plus its direct (1-hop) neighbors
+  // and the edges connecting them — everything else is hidden.
+  const connectedIds = useMemo(() => {
+    if (!selectedId) return null;
+    const ids = new Set([selectedId]);
+    CONNECTION_EDGES.forEach(e => {
+      if (e.source === selectedId) ids.add(e.target);
+      if (e.target === selectedId) ids.add(e.source);
+    });
+    return ids;
+  }, [selectedId]);
+
+  const nodes = connectedIds ? allNodes.filter(n => connectedIds.has(n.id)) : allNodes;
+  const edges = connectedIds
+    ? allEdges.filter(e => e.source === selectedId || e.target === selectedId)
+    : allEdges;
+
+  const selectedLabel = selectedId ? CONNECTION_NODES.find(n => n.id === selectedId)?.label : null;
 
   return (
     <div>
@@ -76,9 +98,32 @@ export default function ConnectionsGraphView() {
       </p>
       <div style={{
         height: '65vh', border: '1px solid var(--border-2)', borderRadius: 14,
-        overflow: 'hidden', background: '#fff',
+        overflow: 'hidden', background: '#fff', position: 'relative',
       }}>
+        {selectedId && (
+          <div style={{
+            position: 'absolute', top: 12, left: 12, zIndex: 5,
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8,
+            padding: '6px 10px', fontSize: 12, fontWeight: 600, color: '#1e293b',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}>
+            Showing connections for: {selectedLabel}
+            <button
+              type="button"
+              onClick={() => setSelectedId(null)}
+              style={{
+                border: 'none', background: '#f1f5f9', borderRadius: 6,
+                padding: '3px 8px', fontSize: 11.5, fontWeight: 600,
+                color: '#475569', cursor: 'pointer',
+              }}
+            >
+              Show all ✕
+            </button>
+          </div>
+        )}
         <ReactFlow
+          key={selectedId || 'all'}
           nodes={nodes}
           edges={edges}
           fitView
@@ -88,6 +133,8 @@ export default function ConnectionsGraphView() {
           nodesDraggable={true}
           nodesConnectable={false}
           elementsSelectable={true}
+          onNodeClick={(_, node) => setSelectedId(prev => prev === node.id ? null : node.id)}
+          onPaneClick={() => setSelectedId(null)}
         >
           <Background gap={16} size={1} color="#e2e8f0" />
           <Controls showInteractive={false} />
