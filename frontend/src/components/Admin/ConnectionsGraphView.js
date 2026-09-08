@@ -21,6 +21,7 @@ const TYPE_LABEL = {
 
 export default function ConnectionsGraphView() {
   const [selectedId, setSelectedId] = useState(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
 
   const initialNodes = useMemo(() => CONNECTION_NODES.map(n => {
     const color = TYPE_COLOR[n.type] || '#94a3b8';
@@ -33,12 +34,12 @@ export default function ConnectionsGraphView() {
         border: `1.5px solid ${color}88`,
         borderRadius: 10,
         padding: '8px 12px',
-        fontSize: 11.5,
+        fontSize: 11,
         fontWeight: 600,
         color: '#1e293b',
         whiteSpace: 'pre-line',
         textAlign: 'center',
-        width: 170,
+        width: 148,
         cursor: 'grab',
       },
     };
@@ -59,11 +60,12 @@ export default function ConnectionsGraphView() {
       label: e.label,
       labelStyle: { fontSize: 9.5, fill: 'var(--text-3)', fontWeight: 600 },
       labelBgStyle: { fill: 'var(--surface)', fillOpacity: 0.9 },
-      style: { stroke: color, strokeWidth: 1.5 },
+      style: { stroke: color, strokeWidth: hoveredEdgeId === `e-${i}` ? 3 : 1.5 },
       markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
       animated: sourceNode?.type === 'brain',
+      interactionWidth: 18,
     };
-  }), []);
+  }), [hoveredEdgeId]);
 
   // When a node is selected, keep only it plus its direct (1-hop) neighbors
   // and the edges connecting them — everything else is hidden.
@@ -83,6 +85,16 @@ export default function ConnectionsGraphView() {
     : allEdges;
 
   const selectedLabel = selectedId ? CONNECTION_NODES.find(n => n.id === selectedId)?.label : null;
+
+  const hoveredEdge = useMemo(() => {
+    if (!hoveredEdgeId) return null;
+    const i = parseInt(hoveredEdgeId.slice(2), 10);
+    const raw = CONNECTION_EDGES[i];
+    if (!raw) return null;
+    const sourceLabel = CONNECTION_NODES.find(n => n.id === raw.source)?.label.replace('\n', ' ');
+    const targetLabel = CONNECTION_NODES.find(n => n.id === raw.target)?.label.replace('\n', ' ');
+    return { ...raw, sourceLabel, targetLabel };
+  }, [hoveredEdgeId]);
 
   return (
     <div>
@@ -127,6 +139,29 @@ export default function ConnectionsGraphView() {
             </button>
           </div>
         )}
+        {hoveredEdge && (
+          <div style={{
+            position: 'absolute', top: 12, right: 12, zIndex: 5, width: 260,
+            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10,
+            padding: '12px 14px', boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
+            pointerEvents: 'none',
+          }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: '#1e293b', marginBottom: 4, lineHeight: 1.4 }}>
+              {hoveredEdge.sourceLabel} → {hoveredEdge.targetLabel}
+            </div>
+            {hoveredEdge.label && (
+              <div style={{
+                display: 'inline-block', fontSize: 10, fontWeight: 700, color: '#475569',
+                background: '#f1f5f9', borderRadius: 5, padding: '2px 6px', marginBottom: 6,
+              }}>
+                {hoveredEdge.label}
+              </div>
+            )}
+            <div style={{ fontSize: 11.5, color: '#475569', lineHeight: 1.5 }}>
+              {hoveredEdge.detail || 'No field-level detail recorded for this connection yet.'}
+            </div>
+          </div>
+        )}
         <ReactFlow
           key={selectedId || 'all'}
           nodes={nodes}
@@ -141,6 +176,8 @@ export default function ConnectionsGraphView() {
           onNodesChange={onNodesChange}
           onNodeClick={(_, node) => setSelectedId(prev => prev === node.id ? null : node.id)}
           onPaneClick={() => setSelectedId(null)}
+          onEdgeMouseEnter={(_, edge) => setHoveredEdgeId(edge.id)}
+          onEdgeMouseLeave={() => setHoveredEdgeId(null)}
         >
           <Background gap={16} size={1} color="#e2e8f0" />
           <Controls showInteractive={false} />
