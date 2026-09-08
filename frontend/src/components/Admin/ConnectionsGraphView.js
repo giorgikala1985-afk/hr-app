@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import ReactFlow, { Background, Controls, MiniMap, MarkerType } from 'reactflow';
+import ReactFlow, { Background, Controls, MiniMap, MarkerType, useNodesState } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { CONNECTION_NODES, CONNECTION_EDGES, CONNECTION_COLS } from './moduleConnections';
 
@@ -22,7 +22,7 @@ const TYPE_LABEL = {
 export default function ConnectionsGraphView() {
   const [selectedId, setSelectedId] = useState(null);
 
-  const allNodes = useMemo(() => CONNECTION_NODES.map(n => {
+  const initialNodes = useMemo(() => CONNECTION_NODES.map(n => {
     const color = TYPE_COLOR[n.type] || '#94a3b8';
     return {
       id: n.id,
@@ -39,10 +39,15 @@ export default function ConnectionsGraphView() {
         whiteSpace: 'pre-line',
         textAlign: 'center',
         width: 170,
-        cursor: 'pointer',
+        cursor: 'grab',
       },
     };
   }), []);
+
+  // Node positions live in React state (not a plain memo) so dragging can
+  // actually update them — without this, React Flow's uncontrolled drag
+  // preview snaps back on the next render since nothing owns the position.
+  const [allNodes, , onNodesChange] = useNodesState(initialNodes);
 
   const allEdges = useMemo(() => CONNECTION_EDGES.map((e, i) => {
     const sourceNode = CONNECTION_NODES.find(n => n.id === e.source);
@@ -133,6 +138,7 @@ export default function ConnectionsGraphView() {
           nodesDraggable={true}
           nodesConnectable={false}
           elementsSelectable={true}
+          onNodesChange={onNodesChange}
           onNodeClick={(_, node) => setSelectedId(prev => prev === node.id ? null : node.id)}
           onPaneClick={() => setSelectedId(null)}
         >
