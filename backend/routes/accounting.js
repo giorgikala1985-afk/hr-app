@@ -5,6 +5,7 @@ const OpenAI = require('openai');
 const pdfParse = require('pdf-parse');
 const { checkPermission } = require('../middleware/permission');
 const { createTransferRecord } = require('../services/transferService');
+const { createNotifications } = require('../services/notificationService');
 const { resolveUserName } = require('../services/userIdentity');
 const { generateInvoicePdf } = require('../utils/invoicePdf');
 const { sendInvoiceEmail } = require('../utils/mailer');
@@ -949,16 +950,6 @@ router.get('/transfers', async (req, res) => {
 
 
 // ── Notification helpers ─────────────────────────────────
-async function createNotifications(user_id, recipient_emails, type, title, body, reference_id) {
-  try {
-    const unique = [...new Set((recipient_emails || []).filter(Boolean))];
-    if (unique.length === 0) return;
-    await supabase.from('app_notifications').insert(
-      unique.map(email => ({ user_id, recipient_email: email, type, title, body: body || null, reference_id: reference_id || null }))
-    );
-  } catch (err) { console.error('createNotifications error:', err.message); }
-}
-
 async function getApproverEmails(user_id) {
   try {
     const { data: matrixRows } = await supabase.from('user_matrix')

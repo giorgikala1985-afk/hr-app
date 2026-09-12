@@ -1,4 +1,5 @@
 const supabase = require('../config/supabase');
+const { createNotifications } = require('./notificationService');
 
 async function getApproverEmails(user_id) {
   try {
@@ -17,16 +18,6 @@ async function getMainUserEmail(user_id) {
     const result = await supabase.auth.admin.getUserById(user_id);
     return result?.data?.user?.email || null;
   } catch { return null; }
-}
-
-async function createNotifications(user_id, recipient_emails, type, title, body, reference_id) {
-  try {
-    const unique = [...new Set((recipient_emails || []).filter(Boolean))];
-    if (unique.length === 0) return;
-    await supabase.from('app_notifications').insert(
-      unique.map(email => ({ user_id, recipient_email: email, type, title, body: body || null, reference_id: reference_id || null }))
-    );
-  } catch (err) { console.error('createNotifications error:', err.message); }
 }
 
 // Shared by POST /api/accounting/transfers (browser) and the Telegram bot's

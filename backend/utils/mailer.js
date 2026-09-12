@@ -72,4 +72,34 @@ async function sendInvoiceEmail({ toEmail, toName, invoice, pdfBuffer, companyNa
   });
 }
 
-module.exports = { sendSigningInvite, sendInvoiceEmail };
+// Send an email for an in-app notification (e.g. "New Transfer Request",
+// "Transfer Approved"). Mirrors what the bell icon shows, so it should
+// never be the only place a user learns about something.
+async function sendNotificationEmail({ toEmail, toName, title, body, companyName, actionUrl }) {
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  await transporter.sendMail({
+    from: `"${companyName || 'Datum'}" <${from}>`,
+    to: toEmail,
+    subject: title,
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1e293b;">
+        <h2 style="color:#1e293b; margin-bottom: 4px;">${title}</h2>
+        <p>Hi ${toName || 'there'},</p>
+        <p>${body || ''}</p>
+        ${actionUrl ? `
+        <div style="text-align: center; margin: 28px 0;">
+          <a href="${actionUrl}"
+             style="background:#3185FC;color:white;padding:12px 24px;border-radius:8px;
+                    text-decoration:none;font-weight:700;font-size:14px;display:inline-block;">
+            Open in Datum
+          </a>
+        </div>` : ''}
+        <p style="font-size:12px;color:#94a3b8; margin-top: 24px;">
+          You're receiving this because you have a notification in ${companyName || 'Datum'}.
+        </p>
+      </div>
+    `,
+  });
+}
+
+module.exports = { sendSigningInvite, sendInvoiceEmail, sendNotificationEmail };
