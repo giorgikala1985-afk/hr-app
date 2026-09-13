@@ -70,6 +70,16 @@ const DEFAULT_MATRIX = [
   { role: 'Super Admin / CFO',         description: 'Highest authority — overrides and policy-level decisions',    initiate_transfer: 'Yes', approve_transfer: 'Yes',         reject_transfer: 'Yes', view_transactions: 'Yes',         cancel_transaction: 'Yes',         set_limits: 'Yes',         manage_users: 'Yes',         audit_reports: 'Yes',      transfer_limit: 'Unlimited' },
 ];
 
+const NOTIF_EVENT_COLS = [
+  { key: 'transfer_submitted', label: 'Transfer Submitted' },
+  { key: 'transfer_approved',  label: 'Transfer Approved' },
+  { key: 'transfer_rejected',  label: 'Transfer Rejected' },
+  { key: 'transfer_partial',   label: 'Partial Approval' },
+  { key: 'transfer_wait',      label: 'On Hold' },
+];
+
+const NOTIF_OPTIONS = ['Yes', 'No'];
+
 const ORDER_PERMISSION_COLS = [
   { key: 'create_hiring',        label: 'Create Hiring' },
   { key: 'create_firing',        label: 'Create Firing' },
@@ -108,6 +118,11 @@ function UsersSettings() {
 
   const [ordersMatrixRows, setOrdersMatrixRows] = useState(null);
   const [ordersMatrixDirty, setOrdersMatrixDirty] = useState(false);
+
+  const [notifMatrixRows, setNotifMatrixRows] = useState(null);
+  const [notifMatrixDirty, setNotifMatrixDirty] = useState(false);
+  const [notifMatrixSaving, setNotifMatrixSaving] = useState(false);
+  const [notifMatrixError, setNotifMatrixError] = useState('');
 
   const [roleModal, setRoleModal] = useState(null);
   const [roleSaving, setRoleSaving] = useState(false);
@@ -231,6 +246,35 @@ function UsersSettings() {
     setOrdersMatrixDirty(true);
   };
 
+  const loadNotifMatrix = async () => {
+    setNotifMatrixError('');
+    try {
+      const res = await api.get('/notification-matrix');
+      setNotifMatrixRows(res.data.rows || []);
+    } catch { setNotifMatrixRows([]); }
+  };
+
+  const saveNotifMatrix = async () => {
+    setNotifMatrixSaving(true); setNotifMatrixError('');
+    try {
+      await api.put('/notification-matrix', { rows: notifMatrixRows });
+      setNotifMatrixDirty(false);
+    } catch (err) {
+      setNotifMatrixError(err.response?.data?.error || 'Failed to save.');
+    } finally { setNotifMatrixSaving(false); }
+  };
+
+  const updateNotifCell = (rowIdx, key, value) => {
+    setNotifMatrixRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [key]: value } : r));
+    setNotifMatrixDirty(true);
+  };
+
+  const handleDeleteNotifRole = (idx) => {
+    if (!window.confirm(`Delete role "${notifMatrixRows[idx].role}" from Notification Matrix?`)) return;
+    setNotifMatrixRows(prev => prev.filter((_, i) => i !== idx));
+    setNotifMatrixDirty(true);
+  };
+
   const openRoleModal = (idx) => {
     const row = idx === null
       ? { role: '', description: '' }
@@ -277,10 +321,10 @@ function UsersSettings() {
 
       {/* Inner tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {['users', 'roles', 'transfers-matrix', 'orders-matrix'].map((t) => (
+        {['users', 'roles', 'transfers-matrix', 'orders-matrix', 'notification-matrix'].map((t) => (
           <button
             key={t}
-            onClick={() => { setActiveTab(t); if ((t === 'transfers-matrix' || t === 'roles') && !matrixRows) loadMatrix(); if (t === 'orders-matrix' && !ordersMatrixRows) loadOrdersMatrix(); }}
+            onClick={() => { setActiveTab(t); if ((t === 'transfers-matrix' || t === 'roles') && !matrixRows) loadMatrix(); if (t === 'orders-matrix' && !ordersMatrixRows) loadOrdersMatrix(); if (t === 'notification-matrix' && !notifMatrixRows) loadNotifMatrix(); }}
             style={{
               padding: '7px 20px',
               border: 'none',
@@ -296,7 +340,7 @@ function UsersSettings() {
               textTransform: 'capitalize',
             }}
           >
-            {t === 'transfers-matrix' ? 'Transfers Matrix' : t === 'orders-matrix' ? 'Orders Matrix' : t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === 'transfers-matrix' ? 'Transfers Matrix' : t === 'orders-matrix' ? 'Orders Matrix' : t === 'notification-matrix' ? 'Notification Matrix' : t.charAt(0).toUpperCase() + t.slice(1)}
           </button>
         ))}
       </div>
@@ -576,6 +620,101 @@ function UsersSettings() {
                       {canEditMatrix && (
                         <td style={{ ...mxTd, textAlign: 'center' }}>
                           <button className="btn-icon btn-delete" onClick={() => handleDeleteOrdersRole(ri)} title="Remove role">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'notification-matrix' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)', maxWidth: 620 }}>
+              Choose which roles get a <strong>WhatsApp</strong> message for each transfer event — in-app and email
+              notifications already go out to the usual recipients regardless of this table. WhatsApp only actually
+              sends if that person has personally linked their number under Options → WhatsApp.
+              {!canEditMatrix && <strong style={{ color: '#991b1b' }}> View only — Super Admin or Admin required to edit.</strong>}
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {canEditMatrix && <button className="btn-add btn-sm" onClick={() => {
+                const firstRole = notifMatrixRows && notifMatrixRows.length > 0 ? notifMatrixRows[0].role : (matrixRows && matrixRows[0]?.role) || '';
+                setNotifMatrixRows(prev => [...(prev || []), { role: firstRole, transfer_submitted: 'No', transfer_approved: 'No', transfer_rejected: 'No', transfer_partial: 'No', transfer_wait: 'No' }]);
+                setNotifMatrixDirty(true);
+              }}>+ Add Row</button>}
+              {canEditMatrix && (
+                <button className="btn-primary btn-sm" onClick={saveNotifMatrix} disabled={!notifMatrixDirty || notifMatrixSaving}>
+                  {notifMatrixSaving ? 'Saving…' : 'Save Changes'}
+                </button>
+              )}
+            </div>
+          </div>
+          {notifMatrixError && <div className="msg-error" style={{ marginBottom: 12 }}>{notifMatrixError}</div>}
+          {!notifMatrixRows ? (
+            <div style={{ padding: '20px 0', color: 'var(--text-4)' }}>Loading…</div>
+          ) : notifMatrixRows.length === 0 ? (
+            <div className="ut-empty">No roles configured yet. Add one above to start routing WhatsApp alerts.</div>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                <thead>
+                  <tr style={{ background: '#1e3a5f', color: '#fff' }}>
+                    <th style={{ ...mxTh, minWidth: 160, textAlign: 'left' }}>Role</th>
+                    {NOTIF_EVENT_COLS.map(c => (
+                      <th key={c.key} style={{ ...mxTh, minWidth: 130, textAlign: 'center' }}>{c.label}</th>
+                    ))}
+                    {canEditMatrix && <th style={{ ...mxTh, width: 40 }}></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {notifMatrixRows.map((row, ri) => (
+                    <tr key={ri} style={{ background: ri % 2 === 0 ? 'var(--surface)' : 'var(--surface-2)', borderBottom: '1px solid var(--border-3)' }}>
+                      <td style={{ ...mxTd, whiteSpace: 'nowrap' }}>
+                        {canEditMatrix ? (
+                          <select
+                            value={row.role}
+                            onChange={e => updateNotifCell(ri, 'role', e.target.value)}
+                            style={{ fontWeight: 700, fontSize: 13, border: '1px solid var(--border-2)', borderRadius: 6, padding: '4px 8px', background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', cursor: 'pointer', minWidth: 160 }}
+                          >
+                            {[...new Set([...RIGHTS, ...(matrixRows || []).map(r => r.role)])].map((r, i) => (
+                              <option key={i} value={r}>{r}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <strong style={{ color: 'var(--text)' }}>{row.role}</strong>
+                        )}
+                      </td>
+                      {NOTIF_EVENT_COLS.map(c => {
+                        const val = row[c.key] || 'No';
+                        const color = PERM_COLORS[val] || {};
+                        if (!canEditMatrix) {
+                          return (
+                            <td key={c.key} style={{ ...mxTd, textAlign: 'center' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5, ...color }}>{val}</span>
+                            </td>
+                          );
+                        }
+                        return (
+                          <td key={c.key} style={{ ...mxTd, textAlign: 'center' }}>
+                            <select
+                              value={val}
+                              onChange={e => updateNotifCell(ri, c.key, e.target.value)}
+                              style={{ fontSize: 11, fontWeight: 700, padding: '3px 6px', borderRadius: 5, border: 'none', cursor: 'pointer', fontFamily: 'inherit', ...color }}
+                            >
+                              {NOTIF_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                            </select>
+                          </td>
+                        );
+                      })}
+                      {canEditMatrix && (
+                        <td style={{ ...mxTd, textAlign: 'center' }}>
+                          <button className="btn-icon btn-delete" onClick={() => handleDeleteNotifRole(ri)} title="Remove role">
                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                           </button>
                         </td>

@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const axios = require('axios');
 const crypto = require('crypto');
 const supabase = require('../config/supabase');
 const { authenticateUser } = require('../middleware/auth');
@@ -9,34 +8,21 @@ const { EXECUTABLE_TYPES, summarizeAction, executeAction } = require('../service
 const { getBotDataSources, setBotDataSources, ALL_SOURCES } = require('../services/botSettings');
 const { buildDashboardSummary } = require('../services/dashboardSummary');
 
-const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
-const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
-const API_VERSION = process.env.WHATSAPP_API_VERSION || 'v20.0';
-const GRAPH_API = `https://graph.facebook.com/${API_VERSION}/${PHONE_NUMBER_ID}/messages`;
-
-async function sendMessage(waId, text) {
-  if (!ACCESS_TOKEN || !PHONE_NUMBER_ID) { console.error('[whatsapp] WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID not configured'); return; }
-  try {
-    await axios.post(GRAPH_API, {
-      messaging_product: 'whatsapp',
-      to: waId,
-      type: 'text',
-      text: { body: text },
-    }, { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } });
-  } catch (err) {
-    console.error('[whatsapp] sendMessage error:', err.response?.data || err.message);
-  }
-}
+const { sendMessage } = require('../utils/whatsapp');
 
 // POST /api/whatsapp/link-code — generate a one-time code the user sends to
 // the business WhatsApp number to link their chat to their Datum account.
 router.post('/link-code', authenticateUser, async (req, res) => {
   try {
+    const appUserId = req.appUserId || null;
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const code_expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    await supabase.from('whatsapp_links').delete().eq('user_id', req.userId).eq('status', 'pending');
-    await supabase.from('whatsapp_links').insert({ user_id: req.userId, link_code: code, status: 'pending', code_expires_at });
+    let delQuery = supabase.from('whatsapp_links').delete().eq('user_id', req.userId).eq('status', 'pending');
+    delQuery = appUserId ? delQuery.eq('app_user_id', appUserId) : delQuery.is('app_user_id', null);
+    await delQuery;
+
+    await supabase.from('whatsapp_links').insert({ user_id: req.userId, app_user_id: appUserId, link_code: code, status: 'pending', code_expires_at });
 
     res.json({ code, businessNumber: process.env.WHATSAPP_DISPLAY_NUMBER || null, expiresAt: code_expires_at });
   } catch (err) {
@@ -44,21 +30,27 @@ router.post('/link-code', authenticateUser, async (req, res) => {
   }
 });
 
-// GET /api/whatsapp/status — is this account currently linked?
+// GET /api/whatsapp/status — is THIS caller (the owner, or a specific team
+// member if logged in with a Member JWT) currently linked?
 router.get('/status', authenticateUser, async (req, res) => {
   try {
-    const { data } = await supabase.from('whatsapp_links')
-      .select('wa_id, wa_name, linked_at').eq('user_id', req.userId).eq('status', 'linked').maybeSingle();
+    const appUserId = req.appUserId || null;
+    let q = supabase.from('whatsapp_links').select('wa_id, wa_name, linked_at').eq('user_id', req.userId).eq('status', 'linked');
+    q = appUserId ? q.eq('app_user_id', appUserId) : q.is('app_user_id', null);
+    const { data } = await q.maybeSingle();
     res.json({ linked: !!data, waId: data?.wa_id || null, waName: data?.wa_name || null, linkedAt: data?.linked_at || null });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// DELETE /api/whatsapp/link — unlink this account's WhatsApp number.
+// DELETE /api/whatsapp/link — unlink THIS caller's WhatsApp number.
 router.delete('/link', authenticateUser, async (req, res) => {
   try {
-    await supabase.from('whatsapp_links').delete().eq('user_id', req.userId);
+    const appUserId = req.appUserId || null;
+    let q = supabase.from('whatsapp_links').delete().eq('user_id', req.userId);
+    q = appUserId ? q.eq('app_user_id', appUserId) : q.is('app_user_id', null);
+    await q;
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
