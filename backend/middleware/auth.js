@@ -1,9 +1,15 @@
 const { createClient } = require('@supabase/supabase-js');
 const jwt = require('jsonwebtoken');
 
+// storageKey isolates this client's auth state from any other Supabase
+// client in the process (defense in depth — see config/supabase.js for
+// the actual bug this guards against). Note auth.getUser(explicitJwt), used
+// below, is a stateless server-side lookup and does not itself mutate this
+// client's session — it's safe even without this.
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_ANON_KEY,
+  { auth: { autoRefreshToken: false, persistSession: false, storageKey: 'datum-backend-auth-middleware' } }
 );
 
 const JWT_SECRET = process.env.JWT_SECRET || 'datum-member-secret';

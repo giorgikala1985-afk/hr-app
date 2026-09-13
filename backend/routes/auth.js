@@ -1,11 +1,25 @@
 const express = require('express');
 const router = express.Router();
+const { createClient } = require('@supabase/supabase-js');
 const supabase = require('../config/supabase');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { authenticateUser } = require('../middleware/auth');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'datum-member-secret';
+
+// A dedicated, throwaway client for actually signing a user in. This must
+// NEVER be the shared service-role client from config/supabase.js: calling
+// auth.signInWithPassword() on a client permanently swaps that client's
+// internal session to the signed-in user for the rest of the process's
+// life — every other request using the "service role" client afterward
+// would silently run as whichever user logged in last, tripping RLS
+// failures (or worse, acting with that user's identity) for everyone.
+function freshAuthClient() {
+  return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 // POST /api/auth/signup
 router.post('/signup', async (req, res) => {
@@ -60,7 +74,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await freshAuthClient().auth.signInWithPassword({
       email,
       password
     });
