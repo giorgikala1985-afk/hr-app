@@ -2521,7 +2521,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
         : form.mode === 'manual' ? 'ხელით განაწილება'
         : 'იმავე პერიოდში დაქვითვა';
       try {
-        await api.post('/accounting/advance-transfers', {
+        await api.post('/accounting/auto-transfers', {
           client_name: empName,
           amount: toGEL(total, form.currency),
           due_date: new Date().toISOString().slice(0, 10),
@@ -3929,17 +3929,26 @@ export default function Orders() {
         include_in_salary: form.includeInSalary,
       });
 
-      if (!form.includeInSalary) {
+      // Only queue a transfer for positive (addition-direction) adjustments
+      // excluded from the salary batch -- those are the only ones that need
+      // their own payout (an excluded deduction isn't money going out, and
+      // anything still included in salary is already paid via that batch).
+      if (!form.includeInSalary && getDirection(form.type) === 'addition') {
         const emp = employees.find(e => e.id === form.employeeId);
         const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
-        await api.post('/accounting/transfers', {
-          client_name: empName,
-          agent_id: null,
-          amount: amountUSD,
-          due_date: form.date || monthLastDay,
-          description: `${form.type} — ${empName}`,
-          status: 'normal',
-        });
+        try {
+          await api.post('/accounting/auto-transfers', {
+            client_name: empName,
+            agent_id: null,
+            amount: amountUSD,
+            due_date: form.date || monthLastDay,
+            description: `${form.type} — ${empName}`,
+            status: 'normal',
+          });
+        } catch (transferErr) {
+          console.error('Failed to queue adjustment transfer:', transferErr);
+          window.alert(`ბრძანება შენახულია, მაგრამ გადარიცხვის ავტომატურად შექმნა ვერ მოხერხდა: ${transferErr.response?.data?.error || transferErr.message}\n\nგთხოვთ, გადარიცხვა ხელით შექმნათ Transfers-ში.`);
+        }
       }
 
       setShowForm(false);

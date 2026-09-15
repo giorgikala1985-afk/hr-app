@@ -981,13 +981,15 @@ const APPROVAL_TITLES = {
   wait:     'Transfer On Hold ⏸',
 };
 
-// Auto-queued transfer for an Advance Payment order (Documents › Orders ›
-// Advance Payment). Deliberately NOT gated by checkPermission('initiate_transfer'):
-// creating the advance order is already its own permissioned HR action, and
-// queuing its payout is a required side effect of that — it shouldn't
-// silently fail just because the person who created the advance doesn't
-// separately have accounting's "Initiate Transfer" right.
-router.post('/advance-transfers', async (req, res) => {
+// Auto-queued transfer for an HR order that pays money out directly (Documents
+// › Orders — Advance Payment, and Adjusting for addition-type units marked
+// "not included in salary"). Deliberately NOT gated by
+// checkPermission('initiate_transfer'): creating the order is already its
+// own permissioned HR action, and queuing its payout is a required side
+// effect of that — it shouldn't silently fail just because the person who
+// created the order doesn't separately have accounting's "Initiate Transfer"
+// right.
+router.post('/auto-transfers', async (req, res) => {
   try {
     const requester_name = await resolveUserName(req);
     const requester_email = req.user?.email || null;
