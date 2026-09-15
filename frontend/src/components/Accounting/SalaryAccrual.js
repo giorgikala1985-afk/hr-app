@@ -746,18 +746,29 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
               onClick={() => {
                 if (!onCreateSalaryFile) return;
                 const rate = transferRate || gelRate || 1;
-                const rows = active.map(r => {
+                const [y, mo] = month.split('-').map(Number);
+                const monthAbbr = new Date(y, mo - 1, 1).toLocaleString('en-US', { month: 'short' });
+                const rows = [];
+                active.forEach(r => {
                   const emp = r.employee;
                   const ins2 = getInsAmount2(emp?.personal_id, month);
                   const correctedNet = parseFloat(r.net_salary || 0) + parseFloat(r.insurance_deduction || 0) - ins2;
-                  const amountUSD = Math.round(correctedNet * 100) / 100;
-                  const amountGEL = Math.round(amountUSD * rate * 100) / 100;
 
-                  // Build description
-                  const [y, mo] = month.split('-').map(Number);
-                  const monthAbbr = new Date(y, mo - 1, 1).toLocaleString('en-US', { month: 'short' });
+                  // Addition-type units (bonuses, reimbursements) are already folded into
+                  // correctedNet. Pull them back out into their own transfer rows so they're
+                  // itemized in Transfers, and shrink the base row by the same amount so the
+                  // total paid out doesn't change.
+                  const includedAdditions = (r.deductions || []).filter(d => {
+                    const ut = unitTypes.find(t => t.name === d.type);
+                    return ut?.direction === 'addition' && d.include_in_salary !== false && parseFloat(d.amount || 0) > 0;
+                  });
+                  const additionsTotal = includedAdditions.reduce((s, d) => s + parseFloat(d.amount || 0), 0);
+
+                  const baseAmountUSD = Math.round((correctedNet - additionsTotal) * 100) / 100;
+                  const baseAmountGEL = Math.round(baseAmountUSD * rate * 100) / 100;
+
                   const descParts = [
-                    `Salary for ${monthAbbr}. $${amountUSD.toFixed(2)}`,
+                    `Salary for ${monthAbbr}. $${baseAmountUSD.toFixed(2)}`,
                     `Rate ${rate.toFixed(4)}`,
                   ];
                   const fitpassAmt = parseFloat(r.fitpass_deduction || 0);
@@ -766,19 +777,32 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     const amt = parseFloat(d.amount || 0);
                     if (amt > 0 && d.type && d.include_in_salary !== false) {
                       const ut = unitTypes.find(t => t.name === d.type);
-                      const label = ut?.direction === 'addition' ? 'Incl.' : 'Excl.';
+                      const label = ut?.direction === 'addition' ? 'Itemized' : 'Excl.';
                       descParts.push(`${label} $${amt.toFixed(2)} ${d.type}`);
                     }
                   });
-                  const description = descParts.join(' | ');
 
-                  return {
+                  rows.push({
                     first_name: emp.first_name,
                     last_name: emp.last_name,
                     iban: emp.account_number || '',
-                    amount: amountGEL,
-                    description,
-                  };
+                    amount: baseAmountGEL,
+                    description: descParts.join(' | '),
+                    row_type: 'base',
+                  });
+
+                  includedAdditions.forEach(d => {
+                    const amtGEL = Math.round(parseFloat(d.amount) * rate * 100) / 100;
+                    rows.push({
+                      first_name: emp.first_name,
+                      last_name: emp.last_name,
+                      iban: emp.account_number || '',
+                      amount: amtGEL,
+                      description: `${d.type} for ${emp.first_name} ${emp.last_name} — ${monthAbbr} ${y}${d.note ? ` (${d.note})` : ''}`,
+                      row_type: 'addition',
+                      unit_type: d.type,
+                    });
+                  });
                 });
                 onCreateSalaryFile({ transferDate, month, rate, rows });
               }}

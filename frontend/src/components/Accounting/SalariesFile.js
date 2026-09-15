@@ -63,7 +63,7 @@ function SalariesFile({ data, onClear, onSent }) {
         due_date: dueDate,
         description: r.description || `Salary — ${data.month}`,
         iban: r.iban,
-        invoice_number: batchTag,
+        invoice_number: r.row_type === 'addition' ? `${batchTag}-ADJ` : batchTag,
       }).then(() => { sentCount += 1; })));
     } catch (err) {
       setSendError(err.response?.data?.error || t('salFile.sendFailed'));
@@ -199,6 +199,11 @@ function SalariesFile({ data, onClear, onSent }) {
               <tr key={idx} style={{ background: 'var(--surface)', borderBottom: '1px solid var(--border-3)' }}>
                 {/* Name — read-only */}
                 <td style={{ padding: '9px 14px', color: 'var(--text)', fontWeight: 600, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {r.row_type === 'addition' && (
+                    <span title={r.unit_type} style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, color: '#8b5cf6', background: 'rgba(139,92,246,0.12)', padding: '1px 6px', borderRadius: 20, marginRight: 6 }}>
+                      {r.unit_type || t('salFile.adjustmentBadge')}
+                    </span>
+                  )}
                   {r.first_name}
                 </td>
                 {/* Last Name — read-only */}

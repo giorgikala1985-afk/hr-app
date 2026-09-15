@@ -11,6 +11,7 @@ import Bookkeeping from './Bookkeeping';
 import Transfers from './Transfers';
 import PaymentCalendar from './PaymentCalendar';
 import Stock from './Stock';
+import ItemOrders from './ItemOrders';
 import FinBotsPage from './FinBotsPage';
 import JetPage from './JetPage';
 import Orders from '../Documents/Orders';
@@ -40,6 +41,7 @@ const ICONS = {
   salaryAccrual: accIcon(MoneyBag01Icon, '#8b5cf6'),
   bookkeeping:   accIcon(Book01Icon, '#6366f1'),
   stock:         accIcon(Package01Icon, '#f59e0b'),
+  itemOrders:    accIcon(Package01Icon, '#06b6d4'),
   calendar:      accIcon(Calendar03Icon, '#ec4899'),
   transfers:     accIcon(ArrowDataTransferHorizontalIcon, '#06b6d4'),
   orders:        accIcon(ClipboardListIcon, '#f97316'),
@@ -59,6 +61,7 @@ const TAB_KEYS = [
   { key: 'invoices',       labelKey: 'acc.invoices',    icon: ICONS.invoices },
   { key: 'salary-accrual', labelKey: 'acc.salaries',    icon: ICONS.salaryAccrual },
   { key: 'stock',          labelKey: 'acc.stock',       icon: ICONS.stock },
+  { key: 'item-orders',    labelKey: 'acc.itemOrders',  icon: ICONS.itemOrders },
   { key: 'calendar',       labelKey: 'acc.calendar',    icon: ICONS.calendar },
   { key: 'transfers',      labelKey: 'acc.transfers',   icon: ICONS.transfers },
   { key: 'orders',        labelKey: 'docs.orders',     icon: ICONS.orders },
@@ -149,6 +152,7 @@ function AccountingPage() {
           {activeTab === 'salary-accrual' && <SalariesPage />}
           {activeTab === 'bookkeeping'    && <Bookkeeping />}
           {activeTab === 'stock'          && <Stock />}
+          {activeTab === 'item-orders'    && <ItemOrders />}
           {activeTab === 'calendar'       && <PaymentCalendar />}
           {activeTab === 'transfers'      && <Transfers />}
           {activeTab === 'orders'         && <Orders />}
