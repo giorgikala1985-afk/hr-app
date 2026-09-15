@@ -2521,7 +2521,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
         : form.mode === 'manual' ? 'ხელით განაწილება'
         : 'იმავე პერიოდში დაქვითვა';
       try {
-        await api.post('/accounting/transfers', {
+        await api.post('/accounting/advance-transfers', {
           client_name: empName,
           amount: toGEL(total, form.currency),
           due_date: new Date().toISOString().slice(0, 10),
@@ -2530,6 +2530,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
         });
       } catch (transferErr) {
         console.error('Failed to queue advance transfer:', transferErr);
+        window.alert(`ავანსი შენახულია, მაგრამ გადარიცხვის ავტომატურად შექმნა ვერ მოხერხდა: ${transferErr.response?.data?.error || transferErr.message}\n\nგთხოვთ, გადარიცხვა ხელით შექმნათ Transfers-ში.`);
       }
     }
 
