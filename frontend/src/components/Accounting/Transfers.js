@@ -107,6 +107,7 @@ function TransfersList() {
   const ALL_COL_DEFS = {
     status:      { label: t('tr.colStatus'), sticky: 0 },
     actions:     { label: t('tr.colOptions') || 'Options' },
+    recipient:   { label: t('tr.colRecipient') },
     amount:      { label: t('tr.colAmount'), align: 'right' },
     dueDate:     { label: t('tr.colDueDate') },
     description: { label: t('tr.colDescription') },
@@ -116,6 +117,7 @@ function TransfersList() {
   };
   const TRANSFER_COLUMNS = [
     { key: 'actions', label: ALL_COL_DEFS.actions.label, sortable: false, filterable: false, getValue: () => '' },
+    { key: 'recipient', label: ALL_COL_DEFS.recipient.label, getValue: tr => tr.client_name || '—' },
     { key: 'amount', label: ALL_COL_DEFS.amount.label, right: true, getValue: tr => fmt(tr.amount), getSortValue: tr => parseFloat(tr.amount) || 0 },
     { key: 'dueDate', label: ALL_COL_DEFS.dueDate.label, getValue: tr => tr.due_date ? new Date(tr.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—', getSortValue: tr => tr.due_date || '' },
     { key: 'description', label: ALL_COL_DEFS.description.label, getValue: tr => tr.description || '—' },
@@ -169,6 +171,8 @@ function TransfersList() {
             ><HugeiconsIcon icon={Menu01Icon} size={16} color="currentColor" strokeWidth={2} /></button>
           </td>
         );
+      case 'recipient':
+        return <td style={{ ...tdCompact, color: 'var(--text)', fontWeight: 600, ...(tr._nested ? { paddingLeft: 32 } : {}) }}>{tr._nested ? '↳ ' : ''}{tr.client_name || '—'}</td>;
       case 'amount':
         return <td style={{ ...tdCompact, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text)' }}>{fmt(tr.amount)}</td>;
       case 'dueDate':

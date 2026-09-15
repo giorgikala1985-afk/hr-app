@@ -1107,6 +1107,7 @@ const en = {
   'tr.colStatus': 'Status',
   'tr.colClient': 'Client',
   'tr.colAmount': 'Amount',
+  'tr.colRecipient': 'Recipient',
   'tr.colDueDate': 'Due Date',
   'tr.colDescription': 'Description',
   'tr.editTransfer': 'Edit Transfer',

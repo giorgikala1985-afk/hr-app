@@ -1105,6 +1105,7 @@ const ka = {
   'tr.colStatus': 'სტატუსი',
   'tr.colClient': 'კლიენტი',
   'tr.colAmount': 'თანხა',
+  'tr.colRecipient': 'მიმღები',
   'tr.colDueDate': 'ვადა',
   'tr.colDescription': 'აღწერა',
   'tr.editTransfer': 'გადარიცხვის რედაქტირება',
