@@ -21,7 +21,9 @@ async function ensureUnitTypeRegistered(userId, type) {
     .eq('name', type)
     .maybeSingle();
   if (!existing) {
-    await supabase.from('unit_types').insert({ user_id: userId, name: type, direction }).catch(() => {});
+    try {
+      await supabase.from('unit_types').insert({ user_id: userId, name: type, direction });
+    } catch { /* best-effort auto-registration; don't block unit creation on it */ }
   }
 }
 
