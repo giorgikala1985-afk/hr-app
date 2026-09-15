@@ -3929,11 +3929,12 @@ export default function Orders() {
         include_in_salary: form.includeInSalary,
       });
 
-      // Only queue a transfer for positive (addition-direction) adjustments
-      // excluded from the salary batch -- those are the only ones that need
-      // their own payout (an excluded deduction isn't money going out, and
-      // anything still included in salary is already paid via that batch).
-      if (!form.includeInSalary && getDirection(form.type) === 'addition') {
+      // Queue a transfer for every positive (addition-direction) adjustment,
+      // regardless of "Include in Salary" -- deliberately chosen even though
+      // one still included in salary will ALSO be paid via that month's
+      // salary-batch transfer, so double-check the batch amount for anyone
+      // with such an order before sending it, if you want to avoid paying it twice.
+      if (getDirection(form.type) === 'addition') {
         const emp = employees.find(e => e.id === form.employeeId);
         const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
         try {
