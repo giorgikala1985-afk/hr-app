@@ -27,7 +27,7 @@ export const NAV_ORDER_KEY = 'nav_order';
 export const NAV_KEYS_DEFAULT = ['home', 'analytics', 'documents', 'accounting', 'options'];
 
 export const ACC_SIDEBAR_ORDER_KEY = 'acc_sidebar_order';
-export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'projects', 'invoices', 'salary-accrual', 'stock', 'item-orders', 'calendar', 'transfers', 'orders', 'ai-agent'];
+export const ACC_SIDEBAR_DEFAULT = ['bookkeeping', 'purchases', 'sales', 'projects', 'invoices', 'salary-accrual', 'stock', 'calendar', 'transfers', 'orders', 'ai-agent'];
 
 export const OPT_SIDEBAR_ORDER_KEY = 'opt_sidebar_order';
 export const OPT_SIDEBAR_DEFAULT = ['holidays', 'info', 'pagination', 'tax', 'language', 'navorder', 'accounts', 'users', 'hierarchy', 'tools', 'telegram', 'whatsapp', 'appearance', 'about'];
@@ -99,7 +99,6 @@ const ACC_ICONS = {
   invoices: listIcon(Invoice01Icon),
   'salary-accrual': listIcon(MoneyBag01Icon),
   stock: listIcon(Package01Icon),
-  'item-orders': listIcon(Package01Icon),
   calendar: listIcon(Calendar03Icon),
   transfers: listIcon(ArrowDataTransferHorizontalIcon),
   orders: listIcon(ClipboardListIcon),
@@ -268,7 +267,6 @@ function NavOrderSettings() {
   const accLabels = {
     bookkeeping: t('acc.bookkeeping'), purchases: t('acc.purchases'), sales: t('acc.sales'),
     projects: t('acc.projects'), invoices: t('acc.invoices'), 'salary-accrual': t('acc.salaries'), stock: t('acc.stock'),
-    'item-orders': t('acc.itemOrders'),
     calendar: t('acc.calendar'), transfers: t('acc.transfers'), 'ai-agent': t('docs.finbot'),
   };
   const docsLabels = {

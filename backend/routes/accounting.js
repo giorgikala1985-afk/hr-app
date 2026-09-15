@@ -915,59 +915,6 @@ router.delete('/stock/:id', async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── ITEM ORDERS ─────────────────────────────────────────
-router.get('/item-orders', async (req, res) => {
-  try {
-    const { data, error } = await supabase.from('item_orders').select('*').eq('user_id', req.userId).order('order_date', { ascending: false });
-    if (error) throw error;
-    res.json({ records: data });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-router.post('/item-orders', async (req, res) => {
-  try {
-    const { agent_id, company_name, order_date, item_name, quantity, is_common } = req.body;
-    if (!order_date || !item_name || quantity === undefined || quantity === null) {
-      return res.status(400).json({ error: 'order_date, item_name and quantity are required' });
-    }
-    const { data, error } = await supabase.from('item_orders').insert([{
-      user_id: req.userId,
-      agent_id: agent_id || null,
-      company_name: company_name || null,
-      order_date,
-      item_name,
-      quantity: parseFloat(quantity),
-      is_common: is_common !== false,
-    }]).select().single();
-    if (error) throw error;
-    res.status(201).json({ record: data });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-router.put('/item-orders/:id', async (req, res) => {
-  try {
-    const { agent_id, company_name, order_date, item_name, quantity, is_common } = req.body;
-    const { data, error } = await supabase.from('item_orders').update({
-      agent_id: agent_id || null,
-      company_name: company_name || null,
-      order_date,
-      item_name,
-      quantity: quantity !== undefined ? parseFloat(quantity) : undefined,
-      is_common: is_common !== false,
-    }).eq('id', req.params.id).eq('user_id', req.userId).select().single();
-    if (error) throw error;
-    res.json({ record: data });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-router.delete('/item-orders/:id', async (req, res) => {
-  try {
-    const { error } = await supabase.from('item_orders').delete().eq('id', req.params.id).eq('user_id', req.userId);
-    if (error) throw error;
-    res.json({ message: 'Deleted' });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 // ── TRANSFERS ───────────────────────────────────────────
 router.get('/transfers', async (req, res) => {
   try {
