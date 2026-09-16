@@ -127,6 +127,12 @@ export default function JournalPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterType, setFilterType] = useState('all');
+  const [unitTypes, setUnitTypes] = useState([]);
+
+  const getDirection = useCallback((type) => {
+    if (type === 'OT' || type === 'Overtime') return 'addition';
+    return unitTypes.find(u => u.name === type)?.direction || 'deduction';
+  }, [unitTypes]);
 
   // Orders' local records are namespaced per-tenant (see useLocalOrders in
   // Orders.js) so a browser shared across multiple organizations doesn't
@@ -144,8 +150,12 @@ export default function JournalPage() {
 
       let adjustments = [];
       try {
-        const res = await api.get('/employees/units/all');
-        adjustments = (res.data.units || []).map(u => ({ ...u, _type: 'adjustment', createdAt: u.created_at || u.date, createdBy: u.created_by_name }));
+        const [unitsRes, typesRes] = await Promise.all([
+          api.get('/employees/units/all'),
+          api.get('/units'),
+        ]);
+        setUnitTypes(typesRes.data.unit_types || []);
+        adjustments = (unitsRes.data.units || []).map(u => ({ ...u, _type: 'adjustment', createdAt: u.created_at || u.date, createdBy: u.created_by_name }));
       } catch {}
 
       // Hire/fire/promotion events created by non-browser channels (Telegram/
@@ -176,6 +186,7 @@ export default function JournalPage() {
   const JOURNAL_COLUMNS = [
     { key: 'date', label: t('journal.colDate'), getValue: r => formatDate(r.createdAt), getSortValue: r => r.createdAt || '' },
     { key: 'type', label: t('journal.colType'), getValue: r => t(TYPE_META[r._type]?.labelKey || r._type) },
+    { key: 'adjustType', label: t('journal.colAdjustType'), getValue: r => r._type === 'adjustment' ? (r.type || '—') : '—' },
     { key: 'createdBy', label: t('journal.colCreatedBy'), getValue: r => r.createdBy || '—' },
     { key: 'summary', label: t('journal.colSummary'), sortable: false, filterable: false, getValue: () => '' },
     { key: 'notes', label: t('journal.colNotes'), getValue: r => r.notes || r.reason || '—' },
@@ -376,6 +387,24 @@ export default function JournalPage() {
                     {table.displayCols.includes('type') && (
                       <td style={{ padding: '12px 16px' }}>
                         <Badge color={meta.color} typeKey={row._type} />
+                      </td>
+                    )}
+                    {table.displayCols.includes('adjustType') && (
+                      <td style={{ padding: '12px 16px' }}>
+                        {row._type === 'adjustment' && row.type ? (() => {
+                          const positive = getDirection(row.type) === 'addition';
+                          const color = positive ? '#479c73' : '#ef4444';
+                          return (
+                            <span style={{
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              padding: '3px 9px', borderRadius: 20,
+                              background: color + '18', border: `1px solid ${color}33`,
+                              color, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
+                            }}>
+                              {positive ? '▲' : '▼'} {row.type}
+                            </span>
+                          );
+                        })() : <span style={{ color: 'var(--text-4)' }}>—</span>}
                       </td>
                     )}
                     {table.displayCols.includes('createdBy') && (

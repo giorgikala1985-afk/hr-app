@@ -1906,6 +1906,7 @@ const en = {
   'journal.noRecordsHint': 'Create orders from the Orders tab or via FinBot',
   'journal.colDate': 'Date',
   'journal.colType': 'Type',
+  'journal.colAdjustType': 'Adjust Type',
   'journal.colSummary': 'Summary',
   'journal.colNotes': 'Notes',
   'journal.colCreatedBy': 'Created By',

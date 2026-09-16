@@ -1904,6 +1904,7 @@ const ka = {
   'journal.noRecordsHint': 'შექმენით ბრძანებები "ბრძანებებიდან" ან FinBot-ით',
   'journal.colDate': 'თარიღი',
   'journal.colType': 'ტიპი',
+  'journal.colAdjustType': 'კორექტირების ტიპი',
   'journal.colSummary': 'შინაარსი',
   'journal.colNotes': 'შენიშვნები',
   'journal.colCreatedBy': 'შემქმნელი',
