@@ -103,7 +103,7 @@ function Invoices() {
     const rows = records.map((r, idx) => ({
       '№': idx + 1,
       'ფაილი': r.fileName,
-      'გადამხდელი': r.extracted?.payee || '',
+      'მიმღები': r.extracted?.payee || '',
       'თანხა': r.extracted?.amount || '',
       'ვალუტა': r.extracted?.currency || '',
       'ინვოისის №': r.extracted?.invoice_number || '',
@@ -162,7 +162,7 @@ function Invoices() {
 
   const handleSendToTransfers = async (rec) => {
     if (!rec.payee.trim() || !rec.amount || !rec.dueDate) {
-      alert('შეავსეთ გადამხდელი, თანხა და გადახდის ვადა გაგზავნამდე.');
+      alert('შეავსეთ მიმღები, თანხა და გადახდის ვადა გაგზავნამდე.');
       return false;
     }
     setSendingId(rec.uploadId);
@@ -553,7 +553,7 @@ function Invoices() {
                             <tr>
                               <th style={{ width: 40 }}>№</th>
                               <th style={{ width: 200 }}>ფაილი</th>
-                              <th style={{ width: 150 }}>გადამხდელი</th>
+                              <th style={{ width: 150 }}>მიმღები</th>
                               <th style={{ width: 110 }}>თანხა</th>
                               <th style={{ width: 120 }}>ინვოისის №</th>
                               <th style={{ width: 120 }}>ინვოისის თარიღი</th>
@@ -680,7 +680,7 @@ function Invoices() {
                     <tr>
                       <th style={{ width: 180 }}>ფაილი</th>
                       <th style={{ width: 130 }}></th>
-                      <th style={{ width: 170 }}>გადამხდელი</th>
+                      <th style={{ width: 170 }}>მიმღები</th>
                       <th style={{ width: 110 }}>თანხა</th>
                       <th style={{ width: 90 }}>ვალუტა</th>
                       <th style={{ width: 140 }}>ინვოისის №</th>
@@ -719,7 +719,7 @@ function Invoices() {
                           )}
                         </td>
                         <td>
-                          <input value={rec.payee} onChange={e => updateEditField(rec.uploadId, 'payee', e.target.value)} placeholder="გადამხდელი" style={editInpStyle} />
+                          <input value={rec.payee} onChange={e => updateEditField(rec.uploadId, 'payee', e.target.value)} placeholder="მიმღები" style={editInpStyle} />
                         </td>
                         <td>
                           <input type="number" min="0" step="0.01" value={rec.amount} onChange={e => updateEditField(rec.uploadId, 'amount', e.target.value)} placeholder="0.00" style={{ ...editInpStyle, fontFamily: 'var(--font-mono)' }} />
