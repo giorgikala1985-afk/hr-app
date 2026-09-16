@@ -1,5 +1,7 @@
 const supabase = require('../config/supabase');
 const crypto = require('crypto');
+const { createTransferRecord } = require('./transferService');
+const { nbgUsdToGelRate } = require('../utils/exchangeRate');
 
 // Reserved unit type names the app itself creates via hardcoded flows
 // (Advance Payment order, OT/overtime entries). If a tenant has never
@@ -118,11 +120,49 @@ async function setEmployeeEndDate(userId, employeeId, endDate) {
   return data;
 }
 
+async function getUnitDirection(userId, type) {
+  const norm = String(type || '').toLowerCase().trim();
+  if (norm === 'ot' || norm === 'overtime') return 'addition';
+  const { data } = await supabase.from('unit_types').select('direction').eq('user_id', userId).eq('name', type).maybeSingle();
+  return data?.direction || 'deduction';
+}
+
+// Every positive (addition-direction) unit queues its own transfer,
+// regardless of which screen or channel (browser form, Telegram/WhatsApp
+// bot) created it -- centralized here rather than in each caller so no path
+// can miss it. Deliberately independent of include_in_salary: a unit still
+// folded into net salary gets paid again via that month's salary-batch
+// transfer, which is accepted (see git history for the reasoning).
+async function queueAdjustmentTransfer(userId, employeeId, unit) {
+  const direction = await getUnitDirection(userId, unit.type);
+  if (direction !== 'addition') return;
+
+  const { data: emp } = await supabase.from('employees').select('first_name, last_name').eq('id', employeeId).eq('user_id', userId).maybeSingle();
+  const empName = emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown';
+
+  let amountGEL;
+  if (unit.currency === 'GEL') {
+    amountGEL = parseFloat(unit.amount);
+  } else {
+    const rate = await nbgUsdToGelRate(unit.date);
+    amountGEL = rate ? Math.round(parseFloat(unit.amount) * rate * 100) / 100 : parseFloat(unit.amount);
+  }
+
+  await createTransferRecord(userId, unit.created_by_name || 'System', null, {
+    client_name: empName,
+    agent_id: null,
+    amount: amountGEL,
+    due_date: unit.date,
+    description: `${unit.type} — ${empName}`,
+    status: 'normal',
+  });
+}
+
 // Shared by POST /api/employees/:id/units and the Telegram bot's
 // "adjusting"/"advance" actions — inserts the unit row and auto-posts to
 // bookkeeping if a matching posting rule exists.
 async function createEmployeeUnit(userId, employeeId, fields) {
-  const { type, amount, date, currency, include_in_salary, note, created_by_name } = fields;
+  const { type, amount, date, currency, include_in_salary, note, created_by_name, skip_transfer } = fields;
   if (!type || amount === undefined || !date) {
     throw new Error('Type, amount, and date are required');
   }
@@ -174,6 +214,14 @@ async function createEmployeeUnit(userId, employeeId, fields) {
     }
   } catch (autoPostErr) {
     console.error('Auto-post error:', autoPostErr.message);
+  }
+
+  if (!skip_transfer) {
+    try {
+      await queueAdjustmentTransfer(userId, employeeId, data);
+    } catch (transferErr) {
+      console.error('queueAdjustmentTransfer error:', transferErr.message);
+    }
   }
 
   return data;

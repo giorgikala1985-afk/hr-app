@@ -355,30 +355,9 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         currency: unitForm.currency,
       });
 
-      // Queue a transfer for every positive (addition-direction) unit, same
-      // rule as Documents › Orders › Adjust -- deliberately regardless of
-      // whether it's also folded into this month's salary-batch transfer.
-      if (getDirection(unitForm.type) === 'addition') {
-        const emp = (data?.salaries || []).find(r => r.employee.id === employeeId)?.employee;
-        const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
-        const activeRate = transferRate || nbgRate || gelRate;
-        const amountGEL = unitForm.currency === 'GEL'
-          ? parseFloat(unitForm.amount)
-          : (activeRate ? Math.round(parseFloat(unitForm.amount) * activeRate * 100) / 100 : parseFloat(unitForm.amount));
-        try {
-          await api.post('/accounting/auto-transfers', {
-            client_name: empName,
-            agent_id: null,
-            amount: amountGEL,
-            due_date: date,
-            description: `${unitForm.type} — ${empName}`,
-            status: 'normal',
-          });
-        } catch (transferErr) {
-          console.error('Failed to queue adjustment transfer:', transferErr);
-          window.alert(`დამატებულია, მაგრამ გადარიცხვის ავტომატურად შექმნა ვერ მოხერხდა: ${transferErr.response?.data?.error || transferErr.message}\n\nგთხოვთ, გადარიცხვა ხელით შექმნათ Transfers-ში.`);
-        }
-      }
+      // A transfer for positive (addition-direction) units is queued
+      // automatically server-side (see createEmployeeUnit) -- no client-side
+      // call needed here.
 
       setUnitForm({ type: '', amount: '', otRate: overtimeRates.length > 0 ? String(overtimeRates[0].rate) : '', otHours: '', currency: unitForm.currency });
       const res = await api.get(`/salaries?month=${month}`);

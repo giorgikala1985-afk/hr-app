@@ -2933,6 +2933,8 @@ function BonusTab({ employees, gelRate, eurRate }) {
     if (currency === 'EUR' && eurRate) return Math.round((val / eurRate) * 100) / 100;
     return val;
   };
+  // A transfer for each bonus (always positive) is queued automatically
+  // server-side (see createEmployeeUnit) -- no client-side call needed here.
 
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -3096,6 +3098,9 @@ function BonusTab({ employees, gelRate, eurRate }) {
           currency: 'USD',
           include_in_salary: true,
           note: form.purpose || null,
+          // Editing deletes and recreates the underlying units -- skip
+          // re-queuing a transfer for those, the original may already be approved/paid.
+          skip_transfer: !!editId,
         });
         const emp = employees.find(x => String(x.id) === String(id));
         createdEntries.push({
@@ -3728,7 +3733,7 @@ export default function Orders() {
     }
   };
 
-  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '', immediateEffect: true };
+  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '' };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
   const [detailsForUnit, setDetailsForUnit] = useState(null);
@@ -3872,14 +3877,6 @@ export default function Orders() {
     if (currency === 'EUR' && eurRate) return Math.round((val / eurRate) * 100) / 100;
     return val;
   };
-  // Transfers are tracked in GEL (no per-record currency field) -- convert
-  // via USD as the common intermediate, same as Advance Payment does.
-  const toGEL = (amount, currency) => {
-    if (currency === 'GEL') return parseFloat(amount);
-    const usd = toUSD(amount, currency);
-    return gelRate ? Math.round(usd * gelRate * 100) / 100 : usd;
-  };
-
   const getDirection = (type) => {
     if (type === 'OT' || type === 'Overtime') return 'addition';
     return unitTypes.find(u => u.name === type)?.direction || 'deduction';
@@ -3936,28 +3933,9 @@ export default function Orders() {
         include_in_salary: form.includeInSalary,
       });
 
-      // Queue a transfer for every positive (addition-direction) adjustment,
-      // regardless of "Include in Salary" -- deliberately chosen even though
-      // one still included in salary will ALSO be paid via that month's
-      // salary-batch transfer, so double-check the batch amount for anyone
-      // with such an order before sending it, if you want to avoid paying it twice.
-      if (getDirection(form.type) === 'addition') {
-        const emp = employees.find(e => e.id === form.employeeId);
-        const empName = emp ? `${emp.first_name} ${emp.last_name}` : '';
-        try {
-          await api.post('/accounting/auto-transfers', {
-            client_name: empName,
-            agent_id: null,
-            amount: toGEL(form.amount, form.currency),
-            due_date: form.date || monthLastDay,
-            description: `${form.type} — ${empName}`,
-            status: 'normal',
-          });
-        } catch (transferErr) {
-          console.error('Failed to queue adjustment transfer:', transferErr);
-          window.alert(`ბრძანება შენახულია, მაგრამ გადარიცხვის ავტომატურად შექმნა ვერ მოხერხდა: ${transferErr.response?.data?.error || transferErr.message}\n\nგთხოვთ, გადარიცხვა ხელით შექმნათ Transfers-ში.`);
-        }
-      }
+      // A transfer for positive (addition-direction) adjustments is queued
+      // automatically server-side (see createEmployeeUnit), regardless of
+      // "Include in Salary" -- no client-side call needed here.
 
       setShowForm(false);
       setForm({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' });
@@ -4001,6 +3979,7 @@ export default function Orders() {
           date: form.date || monthLastDay,
           currency: 'USD',
           include_in_salary: form.includeInSalary,
+          skip_transfer: true, // editing -- the original transfer may already be approved/paid
         });
       } else {
         await api.put(`/employees/${form.employeeId}/units/${editingUnit.id}`, {
@@ -4312,14 +4291,9 @@ export default function Orders() {
                   </div>
                 </div>
 
-                {/* Immediate Effect toggle */}
+                {/* Date this should be transferred */}
                 <div>
-                  <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, date: v ? p.date : monthLastDay }))} />
-                </div>
-
-                {/* Date */}
-                <div>
-                  <label style={LABEL}>Date</label>
+                  <label style={LABEL}>Transfer Date</label>
                   <input
                     type="date"
                     value={form.date || monthLastDay}
