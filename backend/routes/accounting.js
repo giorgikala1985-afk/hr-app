@@ -121,11 +121,63 @@ async function analyzeInvoiceFile(data, mimeType) {
   }
 }
 
+// Normalize a company name for fuzzy matching: strip common legal-entity
+// markers (შპს, LLC, ltd, ...), punctuation, and extra whitespace.
+function normalizeCompanyName(name) {
+  return String(name || '')
+    .toLowerCase()
+    .replace(/[().,"'`]/g, '')
+    .replace(/\b(შპს|სს|ip|ltd|llc|inc|corp|co|ooo|zao|gmbh|s\.?a\.?)\b\.?/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function nameSimilarity(a, b) {
+  const na = normalizeCompanyName(a);
+  const nb = normalizeCompanyName(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  if (na.includes(nb) || nb.includes(na)) return 0.9;
+  const ta = na.split(' ').filter(Boolean);
+  const tb = nb.split(' ').filter(Boolean);
+  const setB = new Set(tb);
+  const inter = ta.filter(x => setB.has(x)).length;
+  const union = new Set([...ta, ...tb]).size;
+  return union ? inter / union : 0;
+}
+
+// Suggest a counterparty already in this tenant's agents (people/companies
+// they've paid before) whose name looks like the AI-extracted payee, so a
+// repeat invoice from the same company doesn't need re-typing their details.
+async function matchAgentForPayee(userId, payeeName) {
+  if (!payeeName) return null;
+  const { data: agents } = await supabase.from('accounting_agents').select('id, name, account_number').eq('user_id', userId);
+  if (!agents || agents.length === 0) return null;
+  let best = null, bestScore = 0;
+  for (const agent of agents) {
+    const score = nameSimilarity(payeeName, agent.name);
+    if (score > bestScore) { bestScore = score; best = agent; }
+  }
+  if (!best || bestScore < 0.5) return null;
+  return { id: best.id, name: best.name, account_number: best.account_number || null };
+}
+
+async function attachMatchedAgent(userId, extracted) {
+  if (!extracted || !extracted.payee) return extracted;
+  try {
+    const match = await matchAgentForPayee(userId, extracted.payee);
+    if (match) extracted.matched_agent = match;
+  } catch (err) {
+    console.error('matchAgentForPayee error:', err.message);
+  }
+  return extracted;
+}
+
 // ── INVOICE SCANNER ─────────────────────────────────────
 router.post('/invoices/scan', async (req, res) => {
   try {
     const { data, mimeType } = req.body;
-    const parsed = await analyzeInvoiceFile(data, mimeType);
+    const parsed = await attachMatchedAgent(req.userId, await analyzeInvoiceFile(data, mimeType));
     res.json({ result: parsed });
   } catch (err) {
     console.error('Invoice scan error:', err.message);
@@ -305,7 +357,7 @@ router.post('/invoices/uploads', async (req, res) => {
     let extracted = null;
     try {
       const base64 = file_data.includes(',') ? file_data.split(',')[1] : file_data;
-      extracted = await analyzeInvoiceFile(base64, file_type);
+      extracted = await attachMatchedAgent(req.userId, await analyzeInvoiceFile(base64, file_type));
     } catch (extractErr) {
       extracted = { error: extractErr.message };
     }
@@ -334,7 +386,7 @@ router.post('/invoices/uploads/:id/rescan', async (req, res) => {
     let extracted;
     try {
       const base64 = existing.file_data.includes(',') ? existing.file_data.split(',')[1] : existing.file_data;
-      extracted = await analyzeInvoiceFile(base64, existing.file_type);
+      extracted = await attachMatchedAgent(req.userId, await analyzeInvoiceFile(base64, existing.file_type));
     } catch (extractErr) {
       extracted = { error: extractErr.message };
     }

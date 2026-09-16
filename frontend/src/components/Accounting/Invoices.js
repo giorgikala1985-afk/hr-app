@@ -144,6 +144,8 @@ function Invoices() {
       iban: r.extracted?.account_number || '',
       description: r.extracted?.description || '',
       sent: r.sent || sentUploadIds.has(r.id),
+      agentId: null,
+      matchedAgent: r.extracted?.matched_agent || null,
     })));
     setEditSourceLabel(dateLabel);
     setTab('edit');
@@ -151,6 +153,21 @@ function Invoices() {
 
   const updateEditField = (uploadId, field, value) => {
     setEditRecords(prev => prev.map(r => r.uploadId === uploadId ? { ...r, [field]: value } : r));
+  };
+
+  // Accept the suggested counterparty match: use their exact name/IBAN and
+  // link the transfer to the real agent record instead of a free-typed name.
+  const applyMatchedAgent = (uploadId) => {
+    setEditRecords(prev => prev.map(r => {
+      if (r.uploadId !== uploadId || !r.matchedAgent) return r;
+      return {
+        ...r,
+        payee: r.matchedAgent.name,
+        iban: r.matchedAgent.account_number || r.iban,
+        agentId: r.matchedAgent.id,
+        matchedAgent: null,
+      };
+    }));
   };
 
   const markSent = (uploadId) => {
@@ -169,7 +186,7 @@ function Invoices() {
     try {
       await api.post('/accounting/transfers', {
         client_name: rec.payee.trim(),
-        agent_id: null,
+        agent_id: rec.agentId || null,
         amount: parseFloat(rec.amount),
         due_date: rec.dueDate,
         description: rec.description || '',
@@ -720,6 +737,16 @@ function Invoices() {
                         </td>
                         <td>
                           <input value={rec.payee} onChange={e => updateEditField(rec.uploadId, 'payee', e.target.value)} placeholder="მიმღები" style={editInpStyle} />
+                          {rec.matchedAgent && (
+                            <button
+                              type="button"
+                              onClick={() => applyMatchedAgent(rec.uploadId)}
+                              title={rec.matchedAgent.account_number || ''}
+                              style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4, padding: '3px 8px', background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#2563eb', cursor: 'pointer', fontFamily: 'inherit', maxWidth: '100%' }}
+                            >
+                              🔎 {rec.matchedAgent.name}{rec.matchedAgent.account_number ? ` · ${rec.matchedAgent.account_number}` : ''}
+                            </button>
+                          )}
                         </td>
                         <td>
                           <input type="number" min="0" step="0.01" value={rec.amount} onChange={e => updateEditField(rec.uploadId, 'amount', e.target.value)} placeholder="0.00" style={{ ...editInpStyle, fontFamily: 'var(--font-mono)' }} />
