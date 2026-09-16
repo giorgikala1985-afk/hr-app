@@ -38,9 +38,27 @@ async function sendOneInvoice(invoice, userId) {
   return true;
 }
 
-const INVOICE_PROMPT = `You are an invoice analysis expert. Extract the following information in JSON format ONLY (no markdown, no explanation):
+const INVOICE_PROMPT = `You are an invoice analysis expert. Extract structured payment information from this invoice.
+
+CRITICAL — identifying the payee (who should be PAID):
+Georgian invoices and payment orders often show TWO parties, and they are
+easy to confuse: the payer (გადამხდელი / Payer / From / Client) and the
+recipient (მიმღები / რეციპიენტი / Recipient / Beneficiary / Payee / To).
+The "payee" field must be the RECIPIENT, never the payer. To find it:
+1. Look for a name explicitly labeled "მიმღები", "რეციპიენტი", "Recipient",
+   "Beneficiary", or "Payee" (Georgian or English) and use that name.
+2. Explicitly ignore any name labeled "გადამხდელი", "Payer", "From", or
+   "Client" — that party is PAYING, not being paid.
+3. If neither label appears anywhere in the document, fall back to the
+   company or person name that appears first/most prominently (e.g. in a
+   letterhead or header).
+The bank account_number/IBAN and bank_name you extract must belong to
+this same payee entity, not the payer — if the document shows bank
+details for both parties, pick the ones next to the payee's name.
+
+Extract the following information in JSON format ONLY (no markdown, no explanation):
 {
-  "payee": "name of the company or person to pay",
+  "payee": "name of the company or person to be PAID (the recipient/beneficiary, never the payer)",
   "bank_name": "bank name if visible",
   "account_number": "bank account number or IBAN if visible",
   "swift_bic": "SWIFT/BIC code if visible",
