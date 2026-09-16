@@ -3872,6 +3872,13 @@ export default function Orders() {
     if (currency === 'EUR' && eurRate) return Math.round((val / eurRate) * 100) / 100;
     return val;
   };
+  // Transfers are tracked in GEL (no per-record currency field) -- convert
+  // via USD as the common intermediate, same as Advance Payment does.
+  const toGEL = (amount, currency) => {
+    if (currency === 'GEL') return parseFloat(amount);
+    const usd = toUSD(amount, currency);
+    return gelRate ? Math.round(usd * gelRate * 100) / 100 : usd;
+  };
 
   const getDirection = (type) => {
     if (type === 'OT' || type === 'Overtime') return 'addition';
@@ -3941,7 +3948,7 @@ export default function Orders() {
           await api.post('/accounting/auto-transfers', {
             client_name: empName,
             agent_id: null,
-            amount: amountUSD,
+            amount: toGEL(form.amount, form.currency),
             due_date: form.date || monthLastDay,
             description: `${form.type} — ${empName}`,
             status: 'normal',
