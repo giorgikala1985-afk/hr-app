@@ -1905,6 +1905,7 @@ const ka = {
   'journal.colDate': 'თარიღი',
   'journal.colType': 'ტიპი',
   'journal.colAdjustType': 'კორექტირების ტიპი',
+  'journal.colEmployee': 'თანამშრომელი',
   'journal.colSummary': 'შინაარსი',
   'journal.colNotes': 'შენიშვნები',
   'journal.colCreatedBy': 'შემქმნელი',

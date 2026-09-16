@@ -1907,6 +1907,7 @@ const en = {
   'journal.colDate': 'Date',
   'journal.colType': 'Type',
   'journal.colAdjustType': 'Adjust Type',
+  'journal.colEmployee': 'Employee',
   'journal.colSummary': 'Summary',
   'journal.colNotes': 'Notes',
   'journal.colCreatedBy': 'Created By',

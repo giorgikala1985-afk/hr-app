@@ -119,6 +119,18 @@ function SummaryText({ type, row }) {
   return null;
 }
 
+// Who a journal entry is FOR (the employee affected), as opposed to who
+// performed the action (createdBy) -- kept as its own column since the two
+// are frequently different people (an admin acting on someone else's record).
+function employeeNameFor(row) {
+  switch (row._type) {
+    case 'hiring': return [row.firstName, row.lastName].filter(Boolean).join(' ') || '—';
+    case 'business_trip': return row.isGroup ? (row.groupName || '—') : (row.empName || '—');
+    case 'adjustment': return row.empName || (row.employee ? `${row.employee.first_name} ${row.employee.last_name}` : '—');
+    default: return row.empName || '—';
+  }
+}
+
 const ALL_TYPES = Object.keys(TYPE_META);
 
 export default function JournalPage() {
@@ -187,6 +199,7 @@ export default function JournalPage() {
     { key: 'date', label: t('journal.colDate'), getValue: r => formatDate(r.createdAt), getSortValue: r => r.createdAt || '' },
     { key: 'type', label: t('journal.colType'), getValue: r => t(TYPE_META[r._type]?.labelKey || r._type) },
     { key: 'adjustType', label: t('journal.colAdjustType'), getValue: r => r._type === 'adjustment' ? (r.type || '—') : '—' },
+    { key: 'employee', label: t('journal.colEmployee'), getValue: r => employeeNameFor(r) },
     { key: 'createdBy', label: t('journal.colCreatedBy'), getValue: r => r.createdBy || '—' },
     { key: 'summary', label: t('journal.colSummary'), sortable: false, filterable: false, getValue: () => '' },
     { key: 'notes', label: t('journal.colNotes'), getValue: r => r.notes || r.reason || '—' },
@@ -405,6 +418,11 @@ export default function JournalPage() {
                             </span>
                           );
                         })() : <span style={{ color: 'var(--text-4)' }}>—</span>}
+                      </td>
+                    )}
+                    {table.displayCols.includes('employee') && (
+                      <td style={{ padding: '12px 16px', color: 'var(--text)', fontWeight: 600, fontSize: 12, whiteSpace: 'nowrap' }}>
+                        {employeeNameFor(row)}
                       </td>
                     )}
                     {table.displayCols.includes('createdBy') && (
