@@ -930,6 +930,26 @@ router.get('/transfers', async (req, res) => {
       return res.json({ records: data });
     }
 
+    // A sub-user whose role is permitted to view all transactions (e.g. an
+    // approver) sees everything too, same as the owner -- otherwise they
+    // couldn't see other team members' requests to approve them, and
+    // wouldn't see system-generated transfers (backfills, auto-queued
+    // adjustment payouts) that have no requester_email at all.
+    const { data: appUser } = await supabase.from('app_users').select('rights').eq('id', req.appUserId).maybeSingle();
+    let canViewAll = false;
+    if (appUser?.rights) {
+      const { data: matrixRow } = await supabase.from('user_matrix').select('view_transactions').eq('user_id', req.userId).eq('role', appUser.rights).maybeSingle();
+      canViewAll = matrixRow?.view_transactions === 'Yes';
+    }
+    if (canViewAll) {
+      const { data, error } = await supabase
+        .from('accounting_transfers').select('*')
+        .eq('user_id', req.userId)
+        .order('due_date', { ascending: true });
+      if (error) throw error;
+      return res.json({ records: data });
+    }
+
     // Sub-user — sees own transfers + owner's transfers
     // Get owner email to include their transfers
     const { data: ownerData } = await supabase.auth.admin.getUserById(req.userId);
