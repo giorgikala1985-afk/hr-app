@@ -21,7 +21,7 @@ const en = {
   'nav.salaries': 'Salaries',
   'nav.analytics': 'Analytics',
   'nav.documents': 'Documents',
-  'nav.accounting': 'Finances',
+  'nav.accounting': 'Operations',
   'nav.options': 'Options',
   'nav.logout': 'Logout',
 
@@ -398,8 +398,8 @@ const en = {
   'navset.subtitle': 'Drag items to reorder menus. Changes apply immediately.',
   'navset.topNav': 'Top Navigation',
   'navset.topNavDesc': 'Reorder the main navigation bar items.',
-  'navset.accSidebar': 'Finances Sidebar',
-  'navset.accSidebarDesc': 'Reorder the Finances section sidebar tabs.',
+  'navset.accSidebar': 'Operations Sidebar',
+  'navset.accSidebarDesc': 'Reorder the Operations section sidebar tabs.',
   'navset.optSidebar': 'Options Sidebar',
   'navset.optSidebarDesc': 'Reorder the Options section sidebar tabs.',
   'navset.docsSidebar': 'Documents Sidebar',
@@ -828,7 +828,7 @@ const en = {
   'salAccrual.holidays': 'holidays',
 
   // ===== Accounting Sidebar =====
-  'acc.title': 'Finances',
+  'acc.title': 'Operations',
   'acc.expand': 'Expand',
   'acc.collapse': 'Collapse',
   'acc.bookkeeping': 'Bookkeeping',
@@ -1820,7 +1820,7 @@ const en = {
   'fb.ds.insurance.desc': 'Insurance records and amounts',
   'fb.ds.fitpass': 'FitPass / Gym',
   'fb.ds.fitpass.desc': 'Gym membership records',
-  'fb.ds.accounting': 'Finances',
+  'fb.ds.accounting': 'Operations',
   'fb.ds.accounting.desc': 'Purchase and expense records',
   'fb.ds.sales': 'Sales Database',
   'fb.ds.sales.desc': 'Sales revenue and transaction records',

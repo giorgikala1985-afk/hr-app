@@ -21,7 +21,7 @@ const ka = {
   'nav.salaries': 'ხელფასები',
   'nav.analytics': 'ანალიტიკა',
   'nav.documents': 'დოკუმენტები',
-  'nav.accounting': 'ფინანსები',
+  'nav.accounting': 'ოპერაციები',
   'nav.options': 'პარამეტრები',
   'nav.logout': 'გასვლა',
 
@@ -452,8 +452,8 @@ const ka = {
   'navset.subtitle': 'გადაათრიეთ ელემენტები მენიუების გადასალაგებლად. ცვლილებები მაშინვე აისახება.',
   'navset.topNav': 'ზედა ნავიგაცია',
   'navset.topNavDesc': 'გადაალაგეთ მთავარი ნავიგაციის ზოლის ელემენტები.',
-  'navset.accSidebar': 'ფინანსების გვერდითი მენიუ',
-  'navset.accSidebarDesc': 'გადაალაგეთ ფინანსების სექციის გვერდითი ჩანართები.',
+  'navset.accSidebar': 'ოპერაციების გვერდითი მენიუ',
+  'navset.accSidebarDesc': 'გადაალაგეთ ოპერაციების სექციის გვერდითი ჩანართები.',
   'navset.optSidebar': 'პარამეტრების გვერდითი მენიუ',
   'navset.optSidebarDesc': 'გადაალაგეთ პარამეტრების სექციის გვერდითი ჩანართები.',
   'navset.docsSidebar': 'დოკუმენტების გვერდითი მენიუ',
@@ -826,7 +826,7 @@ const ka = {
   'home.tab.analytics': 'ანალიტიკა',
 
   // ===== Accounting Sidebar =====
-  'acc.title': 'ფინანსები',
+  'acc.title': 'ოპერაციები',
   'acc.expand': 'გაშლა',
   'acc.collapse': 'დაკეცვა',
   'acc.bookkeeping': 'ბუღალტერია',
@@ -1818,7 +1818,7 @@ const ka = {
   'fb.ds.insurance.desc': 'დაზღვევის ჩანაწერები და თანხები',
   'fb.ds.fitpass': 'FitPass / სპორტდარბაზი',
   'fb.ds.fitpass.desc': 'სპორტდარბაზის გაწევრიანების ჩანაწერები',
-  'fb.ds.accounting': 'ფინანსები',
+  'fb.ds.accounting': 'ოპერაციები',
   'fb.ds.accounting.desc': 'შესყიდვებისა და ხარჯების ჩანაწერები',
   'fb.ds.sales': 'გაყიდვების ბაზა',
   'fb.ds.sales.desc': 'გაყიდვების შემოსავლების და ტრანზაქციების ჩანაწერები',
