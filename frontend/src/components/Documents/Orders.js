@@ -4411,10 +4411,17 @@ export default function Orders() {
                       onChange={e => setForm(p => ({ ...p, amount: e.target.value }))}
                       required style={{ ...INPUT, flex: 1 }}
                     />
-                    <select value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))} required style={{ ...INPUT, width: 110, flexShrink: 0 }}>
-                      <option value="">— Currency —</option>
-                      {CURRENCIES.map(({ code, symbol }) => <option key={code} value={code}>{symbol} {code}</option>)}
-                    </select>
+                    <div style={{ position: 'relative', width: 110, flexShrink: 0 }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                        style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                        <circle cx="12" cy="12" r="9"/>
+                        <path d="M12 6.5v11M9 9c0-1.1 1.3-2 3-2s3 .9 3 2-1.3 1.5-3 1.5-3 .4-3 1.5 1.3 2 3 2 3-.9 3-2"/>
+                      </svg>
+                      <select value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))} required style={{ ...INPUT, width: '100%', paddingLeft: 30 }}>
+                        <option value="">Currency</option>
+                        {CURRENCIES.map(({ code, symbol }) => <option key={code} value={code}>{symbol} {code}</option>)}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
