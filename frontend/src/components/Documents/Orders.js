@@ -2348,6 +2348,7 @@ function BusinessTripTab({ employees }) {
 
 // ── Advance Payment Tab ───────────────────────────────────────────────────────
 function AdvancePaymentTab({ employees, gelRate, eurRate }) {
+  const { t } = useLanguage();
   const { orders, add, update, remove } = useLocalOrders('hr_advance_payment_orders', o => employees.some(e => e.id === o.employeeId));
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
