@@ -920,6 +920,8 @@ const en = {
   'orders.editOrder': 'Edit Order',
   'orders.newOrder': 'New Order',
   'orders.orderType': 'Order Type *',
+  'orders.transferDate': 'Transfer Date',
+  'orders.nearestTransferDate': 'Nearest transfer date',
   'orders.includeInSalary': 'Include in salary calculation',
   'orders.willAffect': 'This order will affect the net salary',
   'orders.willNotAffect': 'This order will not affect the net salary',

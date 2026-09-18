@@ -3733,7 +3733,7 @@ export default function Orders() {
     }
   };
 
-  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '' };
+  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '', autoDate: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
   const [detailsForUnit, setDetailsForUnit] = useState(null);
@@ -3928,7 +3928,7 @@ export default function Orders() {
       await api.post(`/employees/${form.employeeId}/units`, {
         type: form.type,
         amount: amountUSD,
-        date: form.date || monthLastDay,
+        date: form.autoDate ? monthLastDay : (form.date || monthLastDay),
         currency: 'USD',
         include_in_salary: form.includeInSalary,
       });
@@ -3958,6 +3958,7 @@ export default function Orders() {
       currency: 'USD',
       includeInSalary: u.include_in_salary !== false,
       date: u.date ? u.date.slice(0, 10) : monthLastDay,
+      autoDate: false,
     });
     setError('');
     setShowForm(true);
@@ -3976,7 +3977,7 @@ export default function Orders() {
         await api.post(`/employees/${form.employeeId}/units`, {
           type: form.type,
           amount: amountUSD,
-          date: form.date || monthLastDay,
+          date: form.autoDate ? monthLastDay : (form.date || monthLastDay),
           currency: 'USD',
           include_in_salary: form.includeInSalary,
           skip_transfer: true, // editing -- the original transfer may already be approved/paid
@@ -4011,6 +4012,7 @@ export default function Orders() {
       currency: 'USD',
       includeInSalary: u.include_in_salary !== false,
       date: monthLastDay,
+      autoDate: true,
     });
     setError('');
     setShowForm(true);
@@ -4293,13 +4295,24 @@ export default function Orders() {
 
                 {/* Date this should be transferred */}
                 <div>
-                  <label style={LABEL}>Transfer Date</label>
-                  <input
-                    type="date"
-                    value={form.date || monthLastDay}
-                    onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
-                    style={INPUT}
-                  />
+                  <label style={LABEL}>{t('orders.transferDate')}</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', border: '1px solid var(--border-2)', borderRadius: 8, background: 'var(--surface-2)', cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
+                    <input
+                      type="checkbox"
+                      checked={form.autoDate}
+                      onChange={e => setForm(p => ({ ...p, autoDate: e.target.checked }))}
+                      style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    {t('orders.nearestTransferDate')} · {new Date(monthLastDay).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                  </label>
+                  {!form.autoDate && (
+                    <input
+                      type="date"
+                      value={form.date || monthLastDay}
+                      onChange={e => setForm(p => ({ ...p, date: e.target.value }))}
+                      style={{ ...INPUT, marginTop: 8 }}
+                    />
+                  )}
                 </div>
 
                 {/* OT extras */}

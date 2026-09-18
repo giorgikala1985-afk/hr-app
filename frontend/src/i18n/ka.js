@@ -918,6 +918,8 @@ const ka = {
   'orders.editOrder': 'ბრძანების რედაქტირება',
   'orders.newOrder': 'ახალი ბრძანება',
   'orders.orderType': 'ბრძანების ტიპი *',
+  'orders.transferDate': 'გადარიცხვის თარიღი',
+  'orders.nearestTransferDate': 'უახლოესი გადარიცხვის თარიღი',
   'orders.includeInSalary': 'ხელფასის გამოთვლაში ჩართვა',
   'orders.willAffect': 'ეს ბრძანება გავლენას მოახდენს წმინდა ხელფასზე',
   'orders.willNotAffect': 'ეს ბრძანება გავლენას არ მოახდენს წმინდა ხელფასზე',
