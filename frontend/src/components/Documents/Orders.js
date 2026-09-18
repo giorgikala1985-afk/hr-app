@@ -2372,6 +2372,8 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
+  const nearestDate = endOfMonth(currentMonthStr());
+
   const EMPTY = {
     employeeId: '',
     currency: '',
@@ -2383,7 +2385,8 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
     samePeriodMonth: thisMonth,
     samePeriodAmount: '',
     includeInSalary: true,
-    immediateEffect: true,
+    autoDate: true,
+    dueDate: '',
   };
   const [form, setForm] = useState(EMPTY);
   const [samePeriodSalary, setSamePeriodSalary] = useState(null); // net salary for employee+samePeriodMonth
@@ -2524,7 +2527,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
         await api.post('/accounting/auto-transfers', {
           client_name: empName,
           amount: toGEL(total, form.currency),
-          due_date: new Date().toISOString().slice(0, 10),
+          due_date: form.autoDate ? nearestDate : (form.dueDate || nearestDate),
           description: `ავანსის გადარიცხვა — ${modeLabel}`,
           iban: emp?.account_number || null,
         });
@@ -2558,7 +2561,8 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       samePeriodMonth: o.mode === 'sameperiod' ? (o.schedule?.[0]?.month || thisMonth) : thisMonth,
       samePeriodAmount: o.mode === 'sameperiod' ? String(o.schedule?.[0]?.amount ?? '') : '',
       includeInSalary: o.includeInSalary !== false,
-      immediateEffect: true,
+      autoDate: true,
+      dueDate: '',
     });
     setShowForm(true);
     setError('');
@@ -2579,7 +2583,8 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
       samePeriodMonth: thisMonth,
       samePeriodAmount: o.mode === 'sameperiod' ? String(o.schedule?.[0]?.amount ?? '') : '',
       includeInSalary: o.includeInSalary !== false,
-      immediateEffect: true,
+      autoDate: true,
+      dueDate: '',
     });
     setShowForm(true);
     setError('');
@@ -2694,19 +2699,10 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
         <SubTabModal title={editId ? 'Edit Advance Payment' : 'Advance Payment'} onClose={() => { setShowForm(false); setEditId(null); setError(''); }} maxWidth={680}>
           <form onSubmit={handleSubmit}>
 
-            {/* Employee + Currency */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
-              <div>
-                <label style={LABEL}>Employee</label>
-                <EmployeeSearchSelect employees={employees} value={form.employeeId} required onChange={e => setField('employeeId', e.target.value)} />
-              </div>
-              <div>
-                <label style={LABEL}>Currency</label>
-                <select value={form.currency} onChange={e => setField('currency', e.target.value)} required style={INPUT}>
-                  <option value="">— Select currency —</option>
-                  {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
-                </select>
-              </div>
+            {/* Employee */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={LABEL}>Employee</label>
+              <EmployeeSearchSelect employees={employees} value={form.employeeId} required onChange={e => setField('employeeId', e.target.value)} />
             </div>
 
             {/* Mode toggle */}
@@ -2722,8 +2718,27 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
               </div>
             </div>
 
-            {/* Immediate Effect toggle */}
-            <ImmediateEffectToggle value={form.immediateEffect} onToggle={v => setForm(p => ({ ...p, immediateEffect: v, startMonth: v ? p.startMonth : currentMonthStr() }))} />
+            {/* Transfer date */}
+            <div style={{ marginBottom: 14 }}>
+              <label style={LABEL}>{t('orders.transferDate')}</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', border: '1px solid var(--border-2)', borderRadius: 8, background: 'var(--surface-2)', cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
+                <input
+                  type="checkbox"
+                  checked={form.autoDate}
+                  onChange={e => setForm(p => ({ ...p, autoDate: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+                />
+                {t('orders.nearestTransferDate')} · {new Date(nearestDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </label>
+              {!form.autoDate && (
+                <input
+                  type="date"
+                  value={form.dueDate || nearestDate}
+                  onChange={e => setField('dueDate', e.target.value)}
+                  style={{ ...INPUT, marginTop: 8 }}
+                />
+              )}
+            </div>
 
             {/* Start month + num months (automatic/manual only) */}
             {form.mode !== 'sameperiod' && (
@@ -2751,13 +2766,20 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                       placeholder="e.g. 400" style={INPUT} />
                   </div>
                   <div>
-                    <label style={LABEL}>Deduct From Salary</label>
-                    <select value={form.samePeriodMonth} onChange={e => setField('samePeriodMonth', e.target.value)} style={INPUT}>
-                      {samePeriodOptions.map((m, i) => (
-                        <option key={m} value={m}>{getMonthLabel(m, 0)}{i === 0 ? ' (current)' : ''}</option>
-                      ))}
+                    <label style={LABEL}>Currency</label>
+                    <select value={form.currency} onChange={e => setField('currency', e.target.value)} required style={INPUT}>
+                      <option value="">— Select currency —</option>
+                      {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
                     </select>
                   </div>
+                </div>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={LABEL}>Deduct From Salary</label>
+                  <select value={form.samePeriodMonth} onChange={e => setField('samePeriodMonth', e.target.value)} style={INPUT}>
+                    {samePeriodOptions.map((m, i) => (
+                      <option key={m} value={m}>{getMonthLabel(m, 0)}{i === 0 ? ' (current)' : ''}</option>
+                    ))}
+                  </select>
                 </div>
 
                 {form.employeeId && (
@@ -2789,10 +2811,21 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
             {/* AUTOMATIC mode */}
             {form.mode === 'automatic' && (
               <div style={{ marginBottom: 16 }}>
-                <label style={LABEL}>Total Amount</label>
-                <input type="number" min={0} step="0.01" value={form.totalAmount}
-                  onChange={e => setField('totalAmount', e.target.value)}
-                  placeholder="e.g. 4000" style={INPUT} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={LABEL}>Total Amount</label>
+                    <input type="number" min={0} step="0.01" value={form.totalAmount}
+                      onChange={e => setField('totalAmount', e.target.value)}
+                      placeholder="e.g. 4000" style={INPUT} />
+                  </div>
+                  <div>
+                    <label style={LABEL}>Currency</label>
+                    <select value={form.currency} onChange={e => setField('currency', e.target.value)} required style={INPUT}>
+                      <option value="">— Select currency —</option>
+                      {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+                    </select>
+                  </div>
+                </div>
                 {autoInstallment && (
                   <div style={{ marginTop: 12, padding: 14, borderRadius: 10, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
                     <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 8, fontWeight: 600 }}>PAYMENT SCHEDULE</div>
@@ -2828,6 +2861,13 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
                       </div>
                     </div>
                   ))}
+                </div>
+                <div style={{ marginTop: 12 }}>
+                  <label style={LABEL}>Currency</label>
+                  <select value={form.currency} onChange={e => setField('currency', e.target.value)} required style={INPUT}>
+                    <option value="">— Select currency —</option>
+                    {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
+                  </select>
                 </div>
                 {manualTotal > 0 && (
                   <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-3)', textAlign: 'right' }}>
