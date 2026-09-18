@@ -133,19 +133,28 @@ async function getUnitDirection(userId, type) {
 // can miss it. Deliberately independent of include_in_salary: a unit still
 // folded into net salary gets paid again via that month's salary-batch
 // transfer, which is accepted (see git history for the reasoning).
-async function queueAdjustmentTransfer(userId, employeeId, unit) {
+async function queueAdjustmentTransfer(userId, employeeId, unit, opts = {}) {
   const direction = await getUnitDirection(userId, unit.type);
   if (direction !== 'addition') return;
 
   const { data: emp } = await supabase.from('employees').select('first_name, last_name').eq('id', employeeId).eq('user_id', userId).maybeSingle();
   const empName = emp ? `${emp.first_name} ${emp.last_name}` : 'Unknown';
 
+  // Some callers pre-convert the entered amount to USD before storing it
+  // (employee_units is treated as USD-equivalent for payroll math), which
+  // would otherwise force a second GEL conversion here on top of the first
+  // -- two exchange-rate lookups on two different dates can drift from what
+  // was actually typed in. Use the original figure when the caller passed
+  // one, so this is only ever converted once.
+  const amount = opts.original_amount != null ? parseFloat(opts.original_amount) : parseFloat(unit.amount);
+  const currency = opts.original_currency || unit.currency;
+
   let amountGEL;
-  if (unit.currency === 'GEL') {
-    amountGEL = parseFloat(unit.amount);
+  if (currency === 'GEL') {
+    amountGEL = amount;
   } else {
     const rate = await nbgUsdToGelRate(unit.date);
-    amountGEL = rate ? Math.round(parseFloat(unit.amount) * rate * 100) / 100 : parseFloat(unit.amount);
+    amountGEL = rate ? Math.round(amount * rate * 100) / 100 : amount;
   }
 
   await createTransferRecord(userId, unit.created_by_name || 'System', null, {
@@ -162,7 +171,7 @@ async function queueAdjustmentTransfer(userId, employeeId, unit) {
 // "adjusting"/"advance" actions — inserts the unit row and auto-posts to
 // bookkeeping if a matching posting rule exists.
 async function createEmployeeUnit(userId, employeeId, fields) {
-  const { type, amount, date, currency, include_in_salary, note, created_by_name, skip_transfer } = fields;
+  const { type, amount, date, currency, include_in_salary, note, created_by_name, skip_transfer, original_amount, original_currency } = fields;
   if (!type || amount === undefined || !date) {
     throw new Error('Type, amount, and date are required');
   }
@@ -218,7 +227,7 @@ async function createEmployeeUnit(userId, employeeId, fields) {
 
   if (!skip_transfer) {
     try {
-      await queueAdjustmentTransfer(userId, employeeId, data);
+      await queueAdjustmentTransfer(userId, employeeId, data, { original_amount, original_currency });
     } catch (transferErr) {
       console.error('queueAdjustmentTransfer error:', transferErr.message);
     }

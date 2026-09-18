@@ -3033,6 +3033,12 @@ function BonusTab({ employees, gelRate, eurRate }) {
               currency: 'USD',
               include_in_salary: true,
               note: form.purpose || null,
+              // Original entered figure, so the auto-queued transfer converts
+              // straight from it instead of re-deriving GEL from the already
+              // USD-converted amount (a second exchange-rate lookup drifts
+              // from what was actually typed in).
+              original_amount: amount,
+              original_currency: form.currency,
             });
             const emp = employees.find(x => String(x.id) === String(id));
             createdEntries.push({ employeeId: id, empName: emp ? `${emp.first_name} ${emp.last_name}` : '', amount, unitId: res.data?.unit?.id });
@@ -3098,6 +3104,8 @@ function BonusTab({ employees, gelRate, eurRate }) {
           currency: 'USD',
           include_in_salary: true,
           note: form.purpose || null,
+          original_amount: amount,
+          original_currency: form.currency,
           // Editing deletes and recreates the underlying units -- skip
           // re-queuing a transfer for those, the original may already be approved/paid.
           skip_transfer: !!editId,
@@ -3931,6 +3939,12 @@ export default function Orders() {
         date: form.autoDate ? monthLastDay : (form.date || monthLastDay),
         currency: 'USD',
         include_in_salary: form.includeInSalary,
+        // Original entered figure, so the auto-queued transfer converts
+        // straight from it instead of re-deriving GEL from the already
+        // USD-converted amount (a second exchange-rate lookup drifts from
+        // what was actually typed in).
+        original_amount: form.amount,
+        original_currency: form.currency,
       });
 
       // A transfer for positive (addition-direction) adjustments is queued
