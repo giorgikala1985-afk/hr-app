@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import api from '../../services/api';
 import ChartDesignsGallery from './ChartDesignsGallery';
 import ModuleMapView from './ModuleMapView';
-import InvoiceFlowPreview from './InvoiceFlowPreview';
 import TableSkeleton from '../common/TableSkeleton';
 
 const RIGHTS_STYLE = {
@@ -354,7 +353,7 @@ function AdminPage() {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 2, background: 'var(--surface-2)', borderRadius: 10, padding: 4, marginBottom: 24, width: 'fit-content' }}>
-        {[{ key: 'companies', label: 'Companies' }, { key: 'users', label: 'All Users' }, { key: 'chartDesigns', label: 'Chart Designs' }, { key: 'moduleMap', label: 'Module Map' }, { key: 'invoiceFlow', label: 'Invoice Flow (Preview)' }].map(t => (
+        {[{ key: 'companies', label: 'Companies' }, { key: 'users', label: 'All Users' }, { key: 'chartDesigns', label: 'Chart Designs' }, { key: 'moduleMap', label: 'Module Map' }].map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
             padding: '7px 20px', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer',
             fontFamily: 'inherit',
@@ -367,7 +366,7 @@ function AdminPage() {
       </div>
 
       {/* Search */}
-      {activeTab !== 'chartDesigns' && activeTab !== 'moduleMap' && activeTab !== 'invoiceFlow' && (
+      {activeTab !== 'chartDesigns' && activeTab !== 'moduleMap' && (
         <div style={{ marginBottom: 16 }}>
           <input
             value={search}
@@ -382,8 +381,6 @@ function AdminPage() {
         <ChartDesignsGallery />
       ) : activeTab === 'moduleMap' ? (
         <ModuleMapView />
-      ) : activeTab === 'invoiceFlow' ? (
-        <InvoiceFlowPreview />
       ) : loading ? (
         <TableSkeleton
           icon={
