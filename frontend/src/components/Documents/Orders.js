@@ -3782,7 +3782,7 @@ export default function Orders() {
     }
   };
 
-  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: '', includeInSalary: true, date: '', autoDate: true };
+  const EMPTY_FORM = { employeeId: '', type: 'OT', amount: '', otRate: '110', otHours: '', currency: 'USD', includeInSalary: true, date: '', autoDate: true };
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingUnit, setEditingUnit] = useState(null);
   const [detailsForUnit, setDetailsForUnit] = useState(null);
@@ -4418,7 +4418,6 @@ export default function Orders() {
                         <path d="M12 6.5v11M9 9c0-1.1 1.3-2 3-2s3 .9 3 2-1.3 1.5-3 1.5-3 .4-3 1.5 1.3 2 3 2 3-.9 3-2"/>
                       </svg>
                       <select value={form.currency} onChange={e => setForm(p => ({ ...p, currency: e.target.value }))} required style={{ ...INPUT, width: '100%', paddingLeft: 30 }}>
-                        <option value="">Currency</option>
                         {CURRENCIES.map(({ code, symbol }) => <option key={code} value={code}>{symbol} {code}</option>)}
                       </select>
                     </div>
