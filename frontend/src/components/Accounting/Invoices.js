@@ -13,12 +13,21 @@ function Invoices() {
   // Upload tab state
   const [uploadRecords, setUploadRecords] = useState([]);
   const [uploadLoading, setUploadLoading] = useState(false);
-  const [uploadFile, setUploadFile] = useState(null);
-  const [uploadPreview, setUploadPreview] = useState(null);
-  const [uploadForm, setUploadForm] = useState({ dueDate: '', urgent: false });
-  const [uploadError, setUploadError] = useState('');
-  const [uploadSaving, setUploadSaving] = useState(false);
   const uploadInputRef = useRef();
+
+  // Multi-upload -> extract -> one-by-one review flow.
+  // pendingFiles: uploaded (stored) but not yet extracted, this session.
+  // reviewRecords: null until extraction finishes, then the editable
+  // one-by-one review queue; reviewIndex is the current position in it.
+  const [pendingFiles, setPendingFiles] = useState([]);
+  const [uploadingMulti, setUploadingMulti] = useState(false);
+  const [multiUploadError, setMultiUploadError] = useState('');
+  const [extracting, setExtracting] = useState(false);
+  const [extractProgress, setExtractProgress] = useState({ current: 0, total: 0 });
+  const [reviewRecords, setReviewRecords] = useState(null);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewSendingId, setReviewSendingId] = useState(null);
+  const [reviewRetryingId, setReviewRetryingId] = useState(null);
 
   const loadUploadRecords = async () => {
     setUploadLoading(true);
@@ -42,52 +51,155 @@ function Invoices() {
 
   useEffect(() => { loadUploadRecords(); }, []);
 
-  const handleUploadFile = (file) => {
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { setUploadError('ფაილი 10MB-ზე მეტია.'); return; }
-    setUploadFile(file);
-    setUploadError('');
-    if (file.type.startsWith('image/')) {
-      const r = new FileReader();
-      r.onload = (ev) => setUploadPreview(ev.target.result);
-      r.readAsDataURL(file);
-    } else {
-      setUploadPreview(null);
+  // Upload one or more files, stored immediately without AI extraction --
+  // extraction is a separate step (handleExtractAll) so a batch of many
+  // files doesn't block on the AI call for each one before the next can
+  // even start uploading.
+  const handleMultiFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    const tooBig = files.filter(f => f.size > 10 * 1024 * 1024);
+    const okFiles = files.filter(f => f.size <= 10 * 1024 * 1024);
+    if (tooBig.length) setMultiUploadError(`${tooBig.length} ფაილი გამოტოვებულია (10MB-ზე მეტია).`);
+    else setMultiUploadError('');
+    if (okFiles.length === 0) return;
+
+    setUploadingMulti(true);
+    const uploaded = [];
+    for (const file of okFiles) {
+      try {
+        const fileData = await new Promise((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = (e) => resolve(e.target.result);
+          r.onerror = reject;
+          r.readAsDataURL(file);
+        });
+        const res = await api.post('/accounting/invoices/uploads', {
+          file_name: file.name,
+          file_type: file.type,
+          file_data: fileData,
+          upload_date: today(),
+          skip_extract: true,
+        });
+        const r = res.data.upload;
+        uploaded.push({ id: r.id, fileName: r.file_name, fileType: r.file_type });
+      } catch {
+        setMultiUploadError(prev => prev || `ვერ აიტვირთა: ${file.name}`);
+      }
+    }
+    setPendingFiles(prev => [...prev, ...uploaded]);
+    setUploadRecords(prev => [
+      ...uploaded.map(u => ({ id: u.id, fileName: u.fileName, fileType: u.fileType, uploadDate: today(), dueDate: null, urgent: false, extracted: null, sent: false })),
+      ...prev,
+    ]);
+    setUploadingMulti(false);
+    if (uploadInputRef.current) uploadInputRef.current.value = '';
+  };
+
+  // Extract every pending file one at a time; a failure on one doesn't stop
+  // the rest -- it's recorded with an error and the batch moves on.
+  const handleExtractAll = async () => {
+    const queue = pendingFiles;
+    if (queue.length === 0) return;
+    setExtracting(true);
+    setExtractProgress({ current: 0, total: queue.length });
+    const results = [];
+    for (let i = 0; i < queue.length; i++) {
+      const pf = queue[i];
+      setExtractProgress({ current: i + 1, total: queue.length });
+      let extracted;
+      try {
+        const res = await api.post(`/accounting/invoices/uploads/${pf.id}/rescan`);
+        extracted = res.data.upload.extracted;
+      } catch {
+        extracted = { error: 'ვერ მოხერხდა ამოცნობა' };
+      }
+      results.push({ ...pf, extracted });
+      setUploadRecords(prev => prev.map(r => r.id === pf.id ? { ...r, extracted } : r));
+    }
+    setExtracting(false);
+    setPendingFiles([]);
+    setReviewRecords(results.map(r => ({
+      uploadId: r.id,
+      fileName: r.fileName,
+      fileType: r.fileType,
+      extractFailed: !!r.extracted?.error,
+      payee: r.extracted?.payee || '',
+      amount: r.extracted?.amount != null ? String(r.extracted.amount) : '',
+      currency: r.extracted?.currency || 'GEL',
+      invoiceNumber: r.extracted?.invoice_number || '',
+      dueDate: r.extracted?.due_date || '',
+      iban: r.extracted?.account_number || '',
+      description: r.extracted?.description || '',
+      matchedAgent: r.extracted?.matched_agent || null,
+      agentId: null,
+      sent: false,
+    })));
+    setReviewIndex(0);
+  };
+
+  const handleReviewRetry = async (uploadId) => {
+    setReviewRetryingId(uploadId);
+    try {
+      const res = await api.post(`/accounting/invoices/uploads/${uploadId}/rescan`);
+      const ex = res.data.upload.extracted;
+      setUploadRecords(prev => prev.map(r => r.id === uploadId ? { ...r, extracted: ex } : r));
+      setReviewRecords(prev => prev.map(r => r.uploadId !== uploadId ? r : {
+        ...r,
+        extractFailed: !!ex?.error,
+        payee: ex?.payee || r.payee,
+        amount: ex?.amount != null ? String(ex.amount) : r.amount,
+        currency: ex?.currency || r.currency,
+        invoiceNumber: ex?.invoice_number || r.invoiceNumber,
+        dueDate: ex?.due_date || r.dueDate,
+        iban: ex?.account_number || r.iban,
+        description: ex?.description || r.description,
+        matchedAgent: ex?.matched_agent || r.matchedAgent,
+      }));
+    } catch {} finally { setReviewRetryingId(null); }
+  };
+
+  const updateReviewField = (uploadId, field, value) => {
+    setReviewRecords(prev => prev.map(r => r.uploadId === uploadId ? { ...r, [field]: value } : r));
+  };
+
+  const applyReviewMatchedAgent = (uploadId) => {
+    setReviewRecords(prev => prev.map(r => {
+      if (r.uploadId !== uploadId || !r.matchedAgent) return r;
+      return { ...r, payee: r.matchedAgent.name, iban: r.matchedAgent.account_number || r.iban, agentId: r.matchedAgent.id, matchedAgent: null };
+    }));
+  };
+
+  const handleSendReview = async (rec) => {
+    if (!rec.payee.trim() || !rec.amount || !rec.dueDate) {
+      alert('შეავსეთ მიმღები, თანხა და გადახდის ვადა გაგზავნამდე.');
+      return;
+    }
+    setReviewSendingId(rec.uploadId);
+    try {
+      await api.post('/accounting/transfers', {
+        client_name: rec.payee.trim(),
+        agent_id: rec.agentId || null,
+        amount: parseFloat(rec.amount),
+        due_date: rec.dueDate,
+        description: rec.description || '',
+        iban: rec.iban || null,
+        invoice_number: rec.invoiceNumber || null,
+        status: 'normal',
+      });
+      setReviewRecords(prev => prev.map(r => r.uploadId === rec.uploadId ? { ...r, sent: true } : r));
+      setUploadRecords(prev => prev.map(r => r.id === rec.uploadId ? { ...r, sent: true } : r));
+      setSentUploadIds(prev => new Set([...prev, rec.uploadId]));
+      api.patch(`/accounting/invoices/uploads/${rec.uploadId}`, { sent: true }).catch(() => {});
+    } catch (err) {
+      alert(err.response?.data?.error || 'გაგზავნა ვერ მოხერხდა.');
+    } finally {
+      setReviewSendingId(null);
     }
   };
 
-  const handleUploadSave = async (onSuccess) => {
-    if (!uploadFile) return;
-    setUploadSaving(true);
-    setUploadError('');
-    try {
-      const fileData = await new Promise((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = (e) => resolve(e.target.result);
-        r.onerror = reject;
-        r.readAsDataURL(uploadFile);
-      });
-      const res = await api.post('/accounting/invoices/uploads', {
-        file_name: uploadFile.name,
-        file_type: uploadFile.type,
-        file_data: fileData,
-        upload_date: today(),
-        due_date: uploadForm.dueDate || null,
-        urgent: uploadForm.urgent,
-      });
-      const r = res.data.upload;
-      setUploadRecords(prev => [{ id: r.id, fileName: r.file_name, fileType: r.file_type, uploadDate: r.upload_date, dueDate: r.due_date, urgent: r.urgent, extracted: r.extracted }, ...prev]);
-      setUploadFile(null);
-      setUploadPreview(null);
-      setUploadForm({ dueDate: '', urgent: false });
-      if (uploadInputRef.current) uploadInputRef.current.value = '';
-      if (onSuccess) onSuccess();
-    } catch {
-      setUploadError('ფაილის შენახვა ვერ მოხერხდა.');
-    } finally {
-      setUploadSaving(false);
-    }
-  };
+  const reviewNext = () => setReviewIndex(i => Math.min(i + 1, (reviewRecords?.length || 1) - 1));
+  const reviewPrev = () => setReviewIndex(i => Math.max(i - 1, 0));
+  const closeReview = () => { setReviewRecords(null); setReviewIndex(0); setTab('uploads'); };
 
   const [rescanningId, setRescanningId] = useState(null);
   const handleUploadRescan = async (id) => {
@@ -355,102 +467,161 @@ function Invoices() {
         </button>
       </div>
 
-      {/* ── UPLOAD TAB ─────────────────────────── */}
+      {/* ── UPLOAD TAB: multi-upload -> extract -> one-by-one review ── */}
       {tab === 'upload' && (
-        <div style={{ maxWidth: 640 }}>
+        <div style={{ maxWidth: reviewRecords ? 720 : 640 }}>
           <input
             ref={uploadInputRef}
             type="file"
             accept=".pdf,.jpg,.jpeg,.png"
+            multiple
             style={{ display: 'none' }}
-            onChange={e => handleUploadFile(e.target.files[0])}
+            onChange={e => handleMultiFiles(e.target.files)}
           />
 
-          {!uploadFile ? (
-            <div
-              onClick={() => uploadInputRef.current.click()}
-              onDragOver={e => e.preventDefault()}
-              onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleUploadFile(f); }}
-              style={{
-                border: '2px dashed var(--border)', borderRadius: 14, padding: '64px 32px',
-                textAlign: 'center', cursor: 'pointer', background: 'var(--surface-2)',
-                transition: 'border-color 0.2s',
-              }}
-              onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
-              onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
-            >
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-                <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <HugeiconsIcon icon={Upload01Icon} size={28} color="var(--accent, #6366f1)" strokeWidth={1.8} />
+          {reviewRecords ? (() => {
+            const rec = reviewRecords[reviewIndex];
+            return (
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)' }}>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>ინვოისი {reviewIndex + 1} / {reviewRecords.length}</div>
+                    <button onClick={() => handleUploadView({ id: rec.uploadId })} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, color: '#3b82f6', textDecoration: 'underline', fontFamily: 'inherit' }}>
+                      {rec.fileName}
+                    </button>
+                  </div>
+                  <button onClick={closeReview} title="დახურვა" style={{ width: 28, height: 28, border: '1px solid var(--border-2)', background: 'var(--surface)', borderRadius: 7, cursor: 'pointer', color: 'var(--text-3)' }}>×</button>
+                </div>
+
+                <div style={{ padding: 20 }}>
+                  {rec.extractFailed && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', marginBottom: 16, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 9 }}>
+                      <span style={{ fontSize: 12, color: '#dc2626' }}>ტექსტი ვერ ამოიცნო — შეავსეთ ხელით ან სცადეთ ხელახლა.</span>
+                      <button onClick={() => handleReviewRetry(rec.uploadId)} disabled={reviewRetryingId === rec.uploadId} style={{ padding: '4px 10px', background: 'var(--surface)', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: '#dc2626', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                        {reviewRetryingId === rec.uploadId ? '...' : 'ხელახლა სკანირება'}
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={reviewLbl}>მიმღები</label>
+                    <input value={rec.payee} onChange={e => updateReviewField(rec.uploadId, 'payee', e.target.value)} placeholder="მიმღები" style={reviewInp} disabled={rec.sent} />
+                    {rec.matchedAgent && (
+                      <button type="button" onClick={() => applyReviewMatchedAgent(rec.uploadId)} title={rec.matchedAgent.account_number || ''}
+                        style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5, padding: '3px 8px', background: 'rgba(37,99,235,0.1)', border: '1px solid rgba(37,99,235,0.3)', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#2563eb', cursor: 'pointer', fontFamily: 'inherit', maxWidth: '100%' }}>
+                        🔎 {rec.matchedAgent.name}{rec.matchedAgent.account_number ? ` · ${rec.matchedAgent.account_number}` : ''}
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <label style={reviewLbl}>თანხა</label>
+                      <input type="number" min="0" step="0.01" value={rec.amount} onChange={e => updateReviewField(rec.uploadId, 'amount', e.target.value)} placeholder="0.00" style={{ ...reviewInp, fontFamily: 'var(--font-mono)' }} disabled={rec.sent} />
+                    </div>
+                    <div>
+                      <label style={reviewLbl}>ვალუტა</label>
+                      <select value={rec.currency} onChange={e => updateReviewField(rec.uploadId, 'currency', e.target.value)} style={reviewInp} disabled={rec.sent}>
+                        <option>GEL</option><option>USD</option><option>EUR</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
+                    <div>
+                      <label style={reviewLbl}>ინვოისის №</label>
+                      <input value={rec.invoiceNumber} onChange={e => updateReviewField(rec.uploadId, 'invoiceNumber', e.target.value)} placeholder="INV-0001" style={reviewInp} disabled={rec.sent} />
+                    </div>
+                    <div>
+                      <label style={reviewLbl}>გადახდის ვადა</label>
+                      <input type="date" value={rec.dueDate} onChange={e => updateReviewField(rec.uploadId, 'dueDate', e.target.value)} style={reviewInp} disabled={rec.sent} />
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={reviewLbl}>IBAN/ანგარიში</label>
+                    <input value={rec.iban} onChange={e => updateReviewField(rec.uploadId, 'iban', e.target.value)} placeholder="GE00XX..." style={{ ...reviewInp, fontFamily: 'var(--font-mono)' }} disabled={rec.sent} />
+                  </div>
+
+                  <div style={{ marginBottom: 4 }}>
+                    <label style={reviewLbl}>აღწერა</label>
+                    <input value={rec.description} onChange={e => updateReviewField(rec.uploadId, 'description', e.target.value)} placeholder="აღწერა" style={reviewInp} disabled={rec.sent} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderTop: '1px solid var(--border-2)', background: 'var(--surface-2)' }}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={reviewPrev} disabled={reviewIndex === 0} style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 12, fontWeight: 600, cursor: reviewIndex === 0 ? 'not-allowed' : 'pointer', opacity: reviewIndex === 0 ? 0.5 : 1 }}>‹ წინა</button>
+                    <button onClick={reviewNext} disabled={reviewIndex === reviewRecords.length - 1} style={{ padding: '7px 14px', borderRadius: 7, border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-3)', fontSize: 12, fontWeight: 600, cursor: reviewIndex === reviewRecords.length - 1 ? 'not-allowed' : 'pointer', opacity: reviewIndex === reviewRecords.length - 1 ? 0.5 : 1 }}>შემდეგი ›</button>
+                  </div>
+                  {rec.sent ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: '#479c73' }}>
+                      <HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} color="#479c73" strokeWidth={2.5} /> გაგზავნილია
+                    </span>
+                  ) : (
+                    <button onClick={() => handleSendReview(rec)} disabled={reviewSendingId === rec.uploadId} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', opacity: reviewSendingId === rec.uploadId ? 0.6 : 1 }}>
+                      <HugeiconsIcon icon={SentIcon} size={13} color="#fff" strokeWidth={2} />
+                      {reviewSendingId === rec.uploadId ? 'იგზავნება...' : 'Send to Transfer'}
+                    </button>
+                  )}
                 </div>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 6 }}>
-                Click or drag & drop to upload
+            );
+          })() : extracting ? (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)', marginBottom: 8 }}>
+                ტექსტის ამოცნობა — {extractProgress.current} / {extractProgress.total}
               </div>
-              <div style={{ fontSize: 13, color: 'var(--text-3)' }}>PDF, JPG, PNG — max 10MB</div>
+              <div style={{ fontSize: 12, color: 'var(--text-4)' }}>წარუმატებელი ფაილები გამოტოვდება და გაგრძელდება შემდეგზე.</div>
             </div>
           ) : (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 14, overflow: 'hidden' }}>
-              {uploadPreview && (
-                <div style={{ borderBottom: '1px solid var(--border-2)', maxHeight: 260, overflow: 'hidden' }}>
-                  <img src={uploadPreview} alt="preview" style={{ width: '100%', objectFit: 'contain', display: 'block', maxHeight: 260 }} />
+            <>
+              <div
+                onClick={() => uploadInputRef.current.click()}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => { e.preventDefault(); handleMultiFiles(e.dataTransfer.files); }}
+                style={{
+                  border: '2px dashed var(--border)', borderRadius: 14, padding: '64px 32px',
+                  textAlign: 'center', cursor: 'pointer', background: 'var(--surface-2)',
+                  transition: 'border-color 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--accent)'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border)'}
+              >
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <HugeiconsIcon icon={Upload01Icon} size={28} color="var(--accent, #6366f1)" strokeWidth={1.8} />
+                  </div>
+                </div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', marginBottom: 6 }}>
+                  {uploadingMulti ? 'იტვირთება…' : 'დააჭირეთ ან ჩააგდეთ რამდენიმე ინვოისი'}
+                </div>
+                <div style={{ fontSize: 13, color: 'var(--text-3)' }}>PDF, JPG, PNG — თითო ფაილი მაქს. 10MB, ერთდროულად რამდენიმე</div>
+              </div>
+
+              {multiUploadError && <div className="msg-error" style={{ marginTop: 14 }}>{multiUploadError}</div>}
+
+              {pendingFiles.length > 0 && (
+                <div style={{ marginTop: 18, background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
+                  <div style={{ padding: '10px 16px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-2)', fontSize: 12, fontWeight: 700, color: 'var(--text-3)' }}>
+                    ატვირთულია, მზადაა ამოსაცნობად ({pendingFiles.length})
+                  </div>
+                  <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                    {pendingFiles.map(f => (
+                      <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', fontSize: 13, color: 'var(--text)', borderBottom: '1px solid var(--border-3)' }}>
+                        <span style={{ fontSize: 16 }}>📄</span>
+                        <span style={{ overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{f.fileName}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ padding: 14 }}>
+                    <button onClick={handleExtractAll} className="btn-add" style={{ width: '100%' }}>
+                      ტექსტის ამოცნობა ({pendingFiles.length})
+                    </button>
+                  </div>
                 </div>
               )}
-              <div style={{ padding: '20px 24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(99,102,241,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <HugeiconsIcon icon={Upload01Icon} size={18} color="var(--accent, #6366f1)" strokeWidth={2} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{uploadFile.name}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{(uploadFile.size / 1024).toFixed(0)} KB</div>
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 20 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-3)', display: 'block', marginBottom: 5 }}>Due Date</label>
-                    <input
-                      type="date"
-                      value={uploadForm.dueDate}
-                      onChange={e => setUploadForm(f => ({ ...f, dueDate: e.target.value }))}
-                      style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--surface-2)', color: 'var(--text)', fontSize: 13, boxSizing: 'border-box' }}
-                    />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 22 }}>
-                    <input
-                      type="checkbox"
-                      id="upload-urgent"
-                      checked={uploadForm.urgent}
-                      onChange={e => setUploadForm(f => ({ ...f, urgent: e.target.checked }))}
-                      style={{ width: 16, height: 16, cursor: 'pointer' }}
-                    />
-                    <label htmlFor="upload-urgent" style={{ fontSize: 13, fontWeight: 600, color: uploadForm.urgent ? '#f87171' : 'var(--text)', cursor: 'pointer' }}>
-                      Urgent
-                    </label>
-                  </div>
-                </div>
-
-                {uploadError && <div className="msg-error" style={{ marginBottom: 14 }}>{uploadError}</div>}
-
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button
-                    className="btn-add"
-                    onClick={() => handleUploadSave(() => setTab('uploads'))}
-                    disabled={uploadSaving}
-                    style={{ opacity: uploadSaving ? 0.7 : 1 }}
-                  >
-                    {uploadSaving ? 'Saving…' : 'Save Invoice'}
-                  </button>
-                  <button
-                    className="btn-secondary-outline"
-                    onClick={() => { setUploadFile(null); setUploadPreview(null); setUploadForm({ dueDate: '', urgent: false }); setUploadError(''); if (uploadInputRef.current) uploadInputRef.current.value = ''; }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            </div>
+            </>
           )}
         </div>
       )}
@@ -783,6 +954,8 @@ function Invoices() {
 }
 
 const editInpStyle = { width: '100%', padding: '6px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box' };
+const reviewLbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.03em' };
+const reviewInp = { width: '100%', padding: '9px 11px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' };
 const today = () => new Date().toISOString().split('T')[0];
 const fmtDate = (d) => {
   if (!d) return '—';

@@ -350,16 +350,21 @@ router.get('/invoices/uploads/:id/file', async (req, res) => {
 
 router.post('/invoices/uploads', async (req, res) => {
   try {
-    const { file_name, file_type, file_data, upload_date, due_date, urgent } = req.body;
+    const { file_name, file_type, file_data, upload_date, due_date, urgent, skip_extract } = req.body;
     if (!file_name || !file_data) return res.status(400).json({ error: 'file_name and file_data are required' });
 
-    // Extract the raw base64 payload from a data: URL for AI analysis.
+    // skip_extract lets a caller upload (and store) a batch of files first,
+    // then trigger AI extraction on each separately via the rescan endpoint
+    // below -- e.g. to run several one at a time and keep going past failures.
     let extracted = null;
-    try {
-      const base64 = file_data.includes(',') ? file_data.split(',')[1] : file_data;
-      extracted = await attachMatchedAgent(req.userId, await analyzeInvoiceFile(base64, file_type));
-    } catch (extractErr) {
-      extracted = { error: extractErr.message };
+    if (!skip_extract) {
+      // Extract the raw base64 payload from a data: URL for AI analysis.
+      try {
+        const base64 = file_data.includes(',') ? file_data.split(',')[1] : file_data;
+        extracted = await attachMatchedAgent(req.userId, await analyzeInvoiceFile(base64, file_type));
+      } catch (extractErr) {
+        extracted = { error: extractErr.message };
+      }
     }
 
     const { data, error } = await supabase
