@@ -494,6 +494,10 @@ function Invoices() {
                 </div>
 
                 <div style={{ padding: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '10px 12px', marginBottom: 14, background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.25)', borderRadius: 9 }}>
+                    <span style={{ fontSize: 14, lineHeight: '16px' }}>⚠️</span>
+                    <span style={{ fontSize: 12, color: '#b45309' }}>მონაცემები ამოღებულია AI-ს დახმარებით და შეიძლება არასწორი იყოს — გთხოვთ გადაამოწმოთ გაგზავნამდე.</span>
+                  </div>
                   {rec.extractFailed && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 12px', marginBottom: 16, background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 9 }}>
                       <span style={{ fontSize: 12, color: '#dc2626' }}>ტექსტი ვერ ამოიცნო — შეავსეთ ხელით ან სცადეთ ხელახლა.</span>
