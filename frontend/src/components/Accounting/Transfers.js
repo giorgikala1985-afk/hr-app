@@ -378,7 +378,15 @@ function TransfersList() {
     catch (err) { setError(err.response?.data?.error || t('tr.failedArchive')); }
   };
 
-  const filteredTransfers = transfers.filter(tr => filter === 'all' || (tr.approval_status || 'pending') === filter);
+  // Salary batches are tagged with an invoice_number of "SALARY-<month>" (see
+  // SalariesFile's "Send to Transfers"); bonuses are auto-queued server-side
+  // with a description of "Bonus — <employee>" (see createEmployeeUnit).
+  const isSalaryOrBonus = (tr) => !!tr.invoice_number?.startsWith('SALARY-') || !!tr.description?.startsWith('Bonus — ');
+
+  const filteredTransfers = transfers.filter(tr => {
+    if (filter === 'salaryBonus') return isSalaryOrBonus(tr);
+    return filter === 'all' || (tr.approval_status || 'pending') === filter;
+  });
 
   // Transfers created together from one salary run share an invoice_number of
   // "SALARY-<month>" (see SalariesFile's "Send to Transfers"). Collapse those
@@ -455,7 +463,8 @@ function TransfersList() {
             { key: 'all', label: 'All' },
             { key: 'pending', label: 'Pending' },
             { key: 'approved', label: 'Approved' },
-            { key: 'rejected', label: 'Rejected' }
+            { key: 'rejected', label: 'Rejected' },
+            { key: 'salaryBonus', label: 'Salary & Bonus' }
           ].map(f => (
             <button key={f.key} onClick={() => setFilter(f.key)} style={{
               padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
