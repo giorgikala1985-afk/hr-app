@@ -1710,18 +1710,26 @@ function calcDays(from, to) {
 }
 
 // ── Trip Costs ────────────────────────────────────────────────────────────────
-function TripCosts({ tripId }) {
-  const storageKey = `hr_bt_costs_${tripId}`;
-  const [costs, setCosts] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(storageKey)) || []; } catch { return []; }
-  });
+function TripCosts({ tripId, onCostsChanged }) {
+  const [costs, setCosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [costName, setCostName] = useState('');
   const [costAmount, setCostAmount] = useState('');
   const [costFile, setCostFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = React.useRef();
 
-  const saveCosts = (next) => { setCosts(next); localStorage.setItem(storageKey, JSON.stringify(next)); };
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/business-trips/${tripId}/costs`);
+      setCosts((res.data.records || []).map(r => ({
+        id: r.id, name: r.name, amount: r.amount,
+        fileName: r.file_name, fileType: r.file_type, fileData: r.file_data,
+      })));
+    } catch { setCosts([]); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [tripId]);
 
   const readAsBase64 = (file) => new Promise((res, rej) => {
     const r = new FileReader();
@@ -1741,10 +1749,21 @@ function TripCosts({ tripId }) {
         fileName = costFile.name;
         fileType = costFile.type;
       }
-      saveCosts([...costs, { id: Date.now(), name: costName.trim(), amount: costAmount, fileName, fileType, fileData, addedAt: new Date().toISOString() }]);
+      await api.post(`/business-trips/${tripId}/costs`, {
+        name: costName.trim(), amount: costAmount || null,
+        file_name: fileName, file_type: fileType, file_data: fileData,
+      });
       setCostName(''); setCostAmount(''); setCostFile(null);
       if (fileRef.current) fileRef.current.value = '';
+      await load();
+      if (onCostsChanged) onCostsChanged();
     } finally { setUploading(false); }
+  };
+
+  const handleRemoveCost = async (c) => {
+    try { await api.delete(`/business-trips/${tripId}/costs/${c.id}`); } catch {}
+    await load();
+    if (onCostsChanged) onCostsChanged();
   };
 
   const handleDownload = (c) => {
@@ -1755,6 +1774,10 @@ function TripCosts({ tripId }) {
   };
 
   const totalCosts = costs.reduce((s, c) => s + (parseFloat(c.amount) || 0), 0);
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--text-3)', fontSize: 13 }}>Loading…</div>;
+  }
 
   const fileIcon = (type) => {
     if (!type) return '📎';
@@ -1821,7 +1844,7 @@ function TripCosts({ tripId }) {
                   </td>
                   <td style={{ padding: '9px 12px', fontWeight: 700, color: '#479c73', textAlign: 'right', whiteSpace: 'nowrap' }}>{c.amount ? `$${c.amount}` : '—'}</td>
                   <td style={{ padding: '9px 12px', textAlign: 'right' }}>
-                    <button onClick={() => saveCosts(costs.filter(x => x.id !== c.id))}
+                    <button onClick={() => handleRemoveCost(c)}
                       style={{ width: 26, height: 26, borderRadius: 5, border: '1px solid var(--border-2)', background: 'none', color: 'var(--text-4)', cursor: 'pointer', fontSize: 15, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-4)'}><DeleteIcon /></button>
                   </td>
@@ -1839,19 +1862,12 @@ function TripCosts({ tripId }) {
   );
 }
 
-function getTripCostsTotal(tripId) {
-  try {
-    const costs = JSON.parse(localStorage.getItem(`hr_bt_costs_${tripId}`)) || [];
-    return costs.reduce((s, c) => s + (parseFloat(c.amount) || 0), 0);
-  } catch { return 0; }
-}
-
 function BusinessTripTab({ employees }) {
-  const { orders, add, update, remove } = useLocalOrders('hr_business_trip_orders', o => employees.some(e => e.id === o.employeeId));
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [modalTab, setModalTab] = useState('details');
-  const [, forceUpdate] = useState(0);
   const [countrySearch, setCountrySearch] = useState('');
   const [countryOpen, setCountryOpen] = useState(false);
   const countryRef = React.useRef(null);
@@ -1877,6 +1893,33 @@ function BusinessTripTab({ employees }) {
 
   const perms = useOrdersPermissions();
   const canCreate = perms.create_business_trip === 'Yes';
+
+  const mapRecord = (r) => {
+    const emp = employees.find(e => e.id === r.employee_id);
+    return {
+      id: r.id, employeeId: r.employee_id,
+      empName: emp ? `${emp.first_name} ${emp.last_name}` : '',
+      groupId: r.group_id, groupName: r.group_name,
+      fromDate: r.from_date, toDate: r.to_date,
+      countryCode: r.country_code, countryName: r.country_name, cityName: r.city_name,
+      perDiem: r.per_diem, amount: r.amount, days: r.days, notes: r.notes,
+      totalCosts: r.total_costs || 0,
+    };
+  };
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/business-trips');
+      setOrders((res.data.records || []).map(mapRecord));
+    } catch { setOrders([]); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [employees]);
+
+  const remove = async (id) => {
+    try { await api.delete(`/business-trips/${id}`); } catch {}
+    await load();
+  };
 
   React.useEffect(() => {
     const handler = (e) => {
@@ -1929,52 +1972,59 @@ function BusinessTripTab({ employees }) {
     setModalTab('details');
     setShowForm(true);
   };
-  const close = () => { setShowForm(false); setEditing(null); forceUpdate(n => n + 1); };
+  const close = () => { setShowForm(false); setEditing(null); load(); };
 
+  const [saving, setSaving] = useState(false);
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const finalAmount = form.amount || autoAmount;
-    const destination = [form.countryName, form.cityName].filter(Boolean).join(', ');
+    setSaving(true);
+    try {
+      const finalAmount = form.amount || autoAmount;
+      const destination = [form.countryName, form.cityName].filter(Boolean).join(', ');
 
-    const targetIds = !editing && form.isGroup
-      ? form.employeeIds
-      : [form.employeeId];
+      const targetIds = !editing && form.isGroup
+        ? form.employeeIds
+        : [form.employeeId];
 
-    const groupId = !editing && form.isGroup && targetIds.length > 1
-      ? `g_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
-      : null;
-    const groupName = groupId ? (form.groupName.trim() || `Group of ${targetIds.length}`) : null;
+      const groupId = !editing && form.isGroup && targetIds.length > 1
+        ? `g_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+        : null;
+      const groupName = groupId ? (form.groupName.trim() || `Group of ${targetIds.length}`) : null;
 
-    for (const eid of targetIds) {
-      const emp = employees.find(x => x.id === eid);
-      const { employeeIds, isGroup, groupName: _gn, ...rest } = form;
-      const row = {
-        ...rest,
-        employeeId: eid,
-        empName: emp ? `${emp.first_name} ${emp.last_name}` : '',
-        days,
-        amount: finalAmount,
-        ...(groupId ? { groupId, groupName } : {}),
-      };
-      editing ? update(editing, row) : add(row);
+      for (const eid of targetIds) {
+        const emp = employees.find(x => x.id === eid);
+        const payload = {
+          employee_id: eid,
+          from_date: form.fromDate, to_date: form.toDate,
+          country_code: form.countryCode, country_name: form.countryName, city_name: form.cityName,
+          per_diem: form.perDiem || null, amount: finalAmount || null, days,
+          notes: form.notes || null,
+          ...(groupId ? { group_id: groupId, group_name: groupName } : {}),
+        };
+        if (editing) {
+          await api.put(`/business-trips/${editing}`, payload);
+        } else {
+          await api.post('/business-trips', payload);
+        }
 
-      if (!editing && finalAmount) {
-        try {
-          await api.post('/accounting/transfers', {
-            client_name: emp ? `${emp.first_name} ${emp.last_name}` : eid,
-            amount: parseFloat(finalAmount),
-            due_date: form.toDate,
-            description: `Business Trip: ${destination} (${form.fromDate} → ${form.toDate})`,
-            status: 'normal',
-            auto_approved: true,
-          });
-        } catch (err) {
-          console.warn('Could not create transfer for business trip:', err.message);
+        if (!editing && finalAmount) {
+          try {
+            await api.post('/accounting/transfers', {
+              client_name: emp ? `${emp.first_name} ${emp.last_name}` : eid,
+              amount: parseFloat(finalAmount),
+              due_date: form.toDate,
+              description: `Business Trip: ${destination} (${form.fromDate} → ${form.toDate})`,
+              status: 'normal',
+              auto_approved: true,
+            });
+          } catch (err) {
+            console.warn('Could not create transfer for business trip:', err.message);
+          }
         }
       }
-    }
 
-    if (!editing) { close(); } else { setModalTab('details'); }
+      if (!editing) { close(); } else { setModalTab('details'); await load(); }
+    } finally { setSaving(false); }
   };
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -1993,7 +2043,9 @@ function BusinessTripTab({ employees }) {
       </div>
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
-        {orders.length === 0 ? (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-3)', fontSize: 13 }}>Loading…</div>
+        ) : orders.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '64px 24px' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>✈️</div>
             <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: 15, marginBottom: 6 }}>No business trips recorded</div>
@@ -2020,7 +2072,7 @@ function BusinessTripTab({ employees }) {
                     const members = orders.filter(x => x.groupId === o.groupId);
                     const expanded = !!expandedGroups[o.groupId];
                     const totalAmount = members.reduce((s, m) => s + (parseFloat(m.amount) || 0), 0);
-                    const totalCosts = members.reduce((s, m) => s + getTripCostsTotal(m.id), 0);
+                    const totalCosts = members.reduce((s, m) => s + (m.totalCosts || 0), 0);
                     rendered.push(
                       <tr key={`grp-${o.groupId}`}
                         style={{ borderBottom: '1px solid var(--border-2)', background: 'var(--surface-2)', cursor: 'pointer' }}
@@ -2044,7 +2096,7 @@ function BusinessTripTab({ employees }) {
                         </td>
                         <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                         <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                          <button onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete entire group (${members.length} trips)?`)) members.forEach(m => remove(m.id)); }}
+                          <button onClick={async (e) => { e.stopPropagation(); if (window.confirm(`Delete entire group (${members.length} trips)?`)) { for (const m of members) { try { await api.delete(`/business-trips/${m.id}`); } catch {} } await load(); } }}
                             style={actionBtn} onMouseEnter={e => e.currentTarget.style.color = '#f87171'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-3)'}><DeleteIcon /></button>
                         </td>
                       </tr>
@@ -2062,7 +2114,7 @@ function BusinessTripTab({ employees }) {
                             <td style={{ padding: '9px 14px', color: 'var(--text-3)', fontSize: 12 }}>{m.perDiem ? `$${m.perDiem}` : '—'}</td>
                             <td style={{ padding: '9px 14px', fontWeight: 600, color: '#479c73', fontSize: 12 }}>{m.amount ? `$${m.amount}` : '—'}</td>
                             <td style={{ padding: '9px 14px', fontSize: 12 }}>
-                              {(() => { const t = getTripCostsTotal(m.id); return t > 0 ? <span style={{ fontWeight: 600, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
+                              {m.totalCosts > 0 ? <span style={{ fontWeight: 600, color: '#f59e0b' }}>${m.totalCosts.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>}
                             </td>
                             <td style={{ padding: '9px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12 }}>{m.notes || '—'}</td>
                             <td style={{ padding: '9px 14px', whiteSpace: 'nowrap' }}>
@@ -2096,7 +2148,7 @@ function BusinessTripTab({ employees }) {
                         <td style={{ padding: '11px 14px', color: 'var(--text-3)' }}>{o.perDiem ? `$${o.perDiem}` : '—'}</td>
                         <td style={{ padding: '11px 14px', fontWeight: 700, color: '#479c73' }}>{o.amount ? `$${o.amount}` : '—'}</td>
                         <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                          {(() => { const t = getTripCostsTotal(o.id); return t > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${t.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>; })()}
+                          {o.totalCosts > 0 ? <span style={{ fontWeight: 700, color: '#f59e0b' }}>${o.totalCosts.toFixed(2)}</span> : <span style={{ color: 'var(--text-4)' }}>—</span>}
                         </td>
                         <td style={{ padding: '11px 14px', color: 'var(--text-3)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.notes || '—'}</td>
                         <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
@@ -2363,13 +2415,13 @@ function BusinessTripTab({ employees }) {
                   <input type="text" value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional note…" style={INPUT} />
                 </div>
               </div>
-              <SubTabActions onCancel={close} disabled={(form.isGroup ? form.employeeIds.length === 0 : !form.employeeId) || !form.fromDate || !form.toDate || !form.countryCode} />
+              <SubTabActions onCancel={close} saving={saving} disabled={(form.isGroup ? form.employeeIds.length === 0 : !form.employeeId) || !form.fromDate || !form.toDate || !form.countryCode} />
             </form>
           )}
 
           {/* Costs tab */}
           {modalTab === 'costs' && editing && (
-            <TripCosts tripId={editing} />
+            <TripCosts tripId={editing} onCostsChanged={load} />
           )}
         </SubTabModal>
       )}
