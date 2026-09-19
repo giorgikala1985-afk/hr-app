@@ -3947,7 +3947,7 @@ export default function Orders() {
     return val;
   };
   const getDirection = (type) => {
-    if (type === 'OT' || type === 'Overtime') return 'addition';
+    if (type === 'OT' || type === 'Overtime' || type === 'Bonus') return 'addition';
     return unitTypes.find(u => u.name === type)?.direction || 'deduction';
   };
 

@@ -4,14 +4,18 @@ const { createTransferRecord } = require('./transferService');
 const { nbgUsdToGelRate } = require('../utils/exchangeRate');
 
 // Reserved unit type names the app itself creates via hardcoded flows
-// (Advance Payment order, OT/overtime entries). If a tenant has never
-// explicitly registered these in Unit Types, payroll silently drops them
-// from totals (not addition, not deduction) -- so auto-register them with
-// their known correct direction the first time they're used.
+// (Advance Payment order, OT/overtime entries, Bonus tab). If a tenant has
+// never explicitly registered these in Unit Types, payroll silently drops
+// them from totals (not addition, not deduction) AND -- since direction also
+// gates the auto-queued transfer (see queueAdjustmentTransfer below) -- the
+// transfer silently never gets created either, with no error anywhere. So
+// auto-register them with their known correct direction the first time
+// they're used.
 const RESERVED_UNIT_DIRECTIONS = {
   'advance': 'deduction',
   'ot': 'addition',
   'overtime': 'addition',
+  'bonus': 'addition',
 };
 async function ensureUnitTypeRegistered(userId, type) {
   const direction = RESERVED_UNIT_DIRECTIONS[String(type || '').toLowerCase().trim()];
@@ -122,7 +126,7 @@ async function setEmployeeEndDate(userId, employeeId, endDate) {
 
 async function getUnitDirection(userId, type) {
   const norm = String(type || '').toLowerCase().trim();
-  if (norm === 'ot' || norm === 'overtime') return 'addition';
+  if (RESERVED_UNIT_DIRECTIONS[norm]) return RESERVED_UNIT_DIRECTIONS[norm];
   const { data } = await supabase.from('unit_types').select('direction').eq('user_id', userId).eq('name', type).maybeSingle();
   return data?.direction || 'deduction';
 }

@@ -151,7 +151,7 @@ function SalaryList() {
   };
 
   const getUnitDirection = (type) => {
-    if (type === 'OT' || type === 'Overtime') return 'addition';
+    if (type === 'OT' || type === 'Overtime' || type === 'Bonus') return 'addition';
     const found = unitTypes.find((u) => u.name === type);
     return found ? found.direction : 'deduction';
   };

@@ -328,7 +328,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   };
 
   const getDirection = (typeName) => {
-    if (typeName === 'OT' || typeName === 'Overtime') return 'addition';
+    if (typeName === 'OT' || typeName === 'Overtime' || typeName === 'Bonus') return 'addition';
     const found = unitTypes.find(u => u.name === typeName);
     return found ? found.direction : 'deduction';
   };

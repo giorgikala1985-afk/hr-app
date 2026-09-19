@@ -142,7 +142,7 @@ export default function JournalPage() {
   const [unitTypes, setUnitTypes] = useState([]);
 
   const getDirection = useCallback((type) => {
-    if (type === 'OT' || type === 'Overtime') return 'addition';
+    if (type === 'OT' || type === 'Overtime' || type === 'Bonus') return 'addition';
     return unitTypes.find(u => u.name === type)?.direction || 'deduction';
   }, [unitTypes]);
 
