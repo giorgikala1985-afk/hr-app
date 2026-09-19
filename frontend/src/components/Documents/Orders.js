@@ -2915,6 +2915,7 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
 
 // ── Bonus Tab (bulk upload) ─────────────────────────────────────────────────────
 function BonusTab({ employees, gelRate, eurRate }) {
+  const { t } = useLanguage();
   const { orders: localOrders, add, update, remove } = useLocalOrders('hr_bonus_orders', o => (o.entries || []).some(en => employees.some(e => e.id === en.employeeId)));
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -2979,7 +2980,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
 
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const EMPTY = { month: thisMonth, currency: '', purpose: '', selections: {} }; // selections: { [employeeId]: amountString }
+  const EMPTY = { month: thisMonth, currency: '', purpose: '', selections: {}, autoDate: true, dueDate: '' }; // selections: { [employeeId]: amountString }
   const [form, setForm] = useState(EMPTY);
 
   const toggleEmp = (empId) => {
@@ -3061,9 +3062,8 @@ function BonusTab({ employees, gelRate, eurRate }) {
         }
 
         setSaving(true);
-        const [y, m] = form.month.split('-').map(Number);
-        const lastDay = new Date(y, m, 0).getDate();
-        const date = `${form.month}-${String(lastDay).padStart(2, '0')}`;
+        const today = new Date().toISOString().slice(0, 10);
+        const date = form.autoDate ? today : (form.dueDate || today);
         const createdEntries = [];
         try {
           await Promise.all(Object.entries(matched).map(async ([id, amount]) => {
@@ -3108,7 +3108,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     setEditId(o.id);
     const selections = {};
     (o.entries || []).forEach(en => { selections[en.employeeId] = String(en.amount); });
-    setForm({ month: o.month, currency: o.currency, purpose: o.purpose || '', selections });
+    setForm({ month: o.month, currency: o.currency, purpose: o.purpose || '', selections, autoDate: true, dueDate: '' });
     setSearch('');
     setShowForm(true);
     setError('');
@@ -3120,9 +3120,8 @@ function BonusTab({ employees, gelRate, eurRate }) {
     setSaving(true);
     setError('');
 
-    const [y, m] = form.month.split('-').map(Number);
-    const lastDay = new Date(y, m, 0).getDate();
-    const date = `${form.month}-${String(lastDay).padStart(2, '0')}`;
+    const today = new Date().toISOString().slice(0, 10);
+    const date = form.autoDate ? today : (form.dueDate || today);
     const entries = selectedIds
       .map(id => ({ id, amount: parseFloat(form.selections[id]) || 0 }))
       .filter(en => en.amount > 0);
@@ -3181,7 +3180,7 @@ function BonusTab({ employees, gelRate, eurRate }) {
     setEditId(null);
     const selections = {};
     (o.entries || []).forEach(en => { selections[en.employeeId] = String(en.amount); });
-    setForm({ month: o.month, currency: o.currency, purpose: o.purpose || '', selections });
+    setForm({ month: o.month, currency: o.currency, purpose: o.purpose || '', selections, autoDate: true, dueDate: '' });
     setSearch('');
     setShowForm(true);
     setError('');
@@ -3299,6 +3298,27 @@ function BonusTab({ employees, gelRate, eurRate }) {
                   {CURRENCIES.map(c => <option key={c.code} value={c.code}>{c.symbol} {c.code}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={LABEL}>{t('orders.transferDate')}</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px', border: '1px solid var(--border-2)', borderRadius: 8, background: 'var(--surface-2)', cursor: 'pointer', fontSize: 13, color: 'var(--text)' }}>
+                <input
+                  type="checkbox"
+                  checked={form.autoDate}
+                  onChange={e => setForm(p => ({ ...p, autoDate: e.target.checked }))}
+                  style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+                />
+                ASAP · {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              </label>
+              {!form.autoDate && (
+                <input
+                  type="date"
+                  value={form.dueDate}
+                  onChange={e => setForm(p => ({ ...p, dueDate: e.target.value }))}
+                  style={{ ...INPUT, marginTop: 8 }}
+                />
+              )}
             </div>
 
             <div style={{ marginBottom: 14 }}>
