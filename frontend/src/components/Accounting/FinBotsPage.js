@@ -1039,6 +1039,12 @@ function OrderActionCard({ action, botColor }) {
           description: action.description || '', iban: action.iban || null,
         });
       } else if (type === 'promotion') {
+        const res = await api.post(`/employees/${employeeId}/salary-changes`, {
+          salary: action.newSalary,
+          effective_date: action.effectiveDate,
+          note: action.notes || null,
+          position: action.newPosition || undefined,
+        });
         localAdd('hr_promotion_orders', {
           employeeId,
           empName: employeeName,
@@ -1047,6 +1053,7 @@ function OrderActionCard({ action, botColor }) {
           newSalary: action.newSalary,
           effectiveDate: action.effectiveDate,
           notes: action.notes || '',
+          salaryChangeId: res.data?.salary_change?.id || null,
         });
       } else if (type === 'firing') {
         localAdd('hr_firing_orders', {

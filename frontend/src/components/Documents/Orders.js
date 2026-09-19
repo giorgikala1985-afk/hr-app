@@ -309,6 +309,8 @@ function PromotionTab({ employees }) {
   const [positions, setPositions] = useState([]);
   const [pdfLoadingId, setPdfLoadingId] = useState(null);
   const [detailsFor, setDetailsFor] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const EMPTY = { employeeId: '', newPosition: '', oldSalary: '', newSalary: '', effectiveDate: '', notes: '', immediateEffect: true };
 
   const handleDownloadPDF = async (o, idx) => {
@@ -333,17 +335,45 @@ function PromotionTab({ employees }) {
   const perms = useOrdersPermissions();
   const canCreate = perms.create_promotion === 'Yes';
 
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
-  const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); };
-  const openCopy = (o) => { setEditing(null); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); setError(''); };
+  const openEdit = (o) => { setEditing(o.id); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); setError(''); };
+  const openCopy = (o) => { setEditing(null); setForm({ employeeId: o.employeeId, newPosition: o.newPosition, oldSalary: o.oldSalary, newSalary: o.newSalary, effectiveDate: o.effectiveDate, notes: o.notes || '' }); setShowForm(true); setError(''); };
   const close = () => { setShowForm(false); setEditing(null); };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const emp = employees.find(x => x.id === form.employeeId);
     const row = { ...form, empName: emp ? `${emp.first_name} ${emp.last_name}` : '', oldPosition: emp?.position || '' };
-    editing ? update(editing, row) : add(row);
-    close();
+    setSaving(true);
+    setError('');
+    try {
+      // Only a NEW promotion actually applies the change -- editing an
+      // existing order's fields (e.g. fixing a typo in notes) doesn't
+      // re-apply it, since the real salary/position change already happened.
+      if (!editing) {
+        const res = await api.post(`/employees/${form.employeeId}/salary-changes`, {
+          salary: form.newSalary,
+          effective_date: form.effectiveDate,
+          note: form.notes || null,
+          position: form.newPosition || undefined,
+        });
+        row.salaryChangeId = res.data?.salary_change?.id || null;
+      }
+      editing ? update(editing, row) : add(row);
+      close();
+    } catch (err) {
+      setError(err.response?.data?.error || 'ცვლილების შენახვა ვერ მოხერხდა.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async (o) => {
+    if (!window.confirm('წავშალოთ ეს დაწინაურების ბრძანება?')) return;
+    if (o.salaryChangeId) {
+      try { await api.delete(`/employees/${o.employeeId}/salary-changes/${o.salaryChangeId}`); } catch {}
+    }
+    remove(o.id);
   };
 
   return (
@@ -387,7 +417,7 @@ function PromotionTab({ employees }) {
                         onCopy={() => openCopy(o)}
                         onEdit={() => openEdit(o)}
                         onDetails={() => setDetailsFor(o)}
-                        onDelete={() => remove(o.id)}
+                        onDelete={() => handleRemove(o)}
                       />
                     </div>
                   </td>
@@ -417,6 +447,7 @@ function PromotionTab({ employees }) {
       {showForm && (
         <SubTabModal title={editing ? t('orders.editPromotion') : t('orders.newPromotion')} onClose={close}>
           <form onSubmit={handleSubmit}>
+            {error && <div className="msg-error" style={{ marginBottom: 14 }}>{error}</div>}
             <div style={{ display: 'grid', gap: 14 }}>
               <div><label style={LABEL}>{t('orders.employee')} *</label>
                 <EmployeeSearchSelect employees={employees} value={form.employeeId} required placeholder={t('orders.selectEmployee')} onChange={e => {
@@ -439,7 +470,7 @@ function PromotionTab({ employees }) {
               <div><label style={LABEL}>{t('orders.effectiveDate')} *</label><input type="date" value={form.effectiveDate} onChange={f('effectiveDate')} required style={{ ...INPUT, width: '100%' }} /></div>
               <div><label style={LABEL}>{t('orders.notes')}</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
             </div>
-            <SubTabActions onCancel={close} disabled={!form.employeeId || !form.newSalary || !form.effectiveDate} />
+            <SubTabActions onCancel={close} saving={saving} disabled={!form.employeeId || !form.newSalary || !form.effectiveDate} />
           </form>
         </SubTabModal>
       )}
@@ -3424,34 +3455,78 @@ function BonusTab({ employees, gelRate, eurRate }) {
 // ── Handover Tab ──────────────────────────────────────────────────────────────
 function HandoverTab({ employees }) {
   const { t } = useLanguage();
-  const { orders, add, update, remove } = useLocalOrders('hr_handover_orders', o => employees.some(e => e.id === o.fromEmployeeId) || employees.some(e => e.id === o.toEmployeeId));
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const EMPTY = { fromEmployeeId: '', toEmployeeId: '', handoverDate: '', items: '', notes: '', immediateEffect: true };
   const [form, setForm] = useState(EMPTY);
   const f = (k) => (e) => setForm(p => ({ ...p, [k]: e.target.value }));
 
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/handovers');
+      setOrders((res.data.records || []).map(r => ({
+        id: r.id,
+        createdAt: r.created_at,
+        fromEmployeeId: r.from_employee_id,
+        toEmployeeId: r.to_employee_id,
+        handoverDate: r.handover_date,
+        items: r.items || '',
+        notes: r.notes || '',
+      })));
+    } catch { /* non-critical */ } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
   const [detailsFor, setDetailsFor] = useState(null);
-  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); };
+  const openAdd = () => { setEditing(null); setForm(EMPTY); setShowForm(true); setError(''); };
   const openEdit = (o) => {
     setEditing(o.id);
     setForm({ fromEmployeeId: o.fromEmployeeId, toEmployeeId: o.toEmployeeId, handoverDate: o.handoverDate, items: o.items || '', notes: o.notes || '', immediateEffect: o.immediateEffect !== false });
     setShowForm(true);
+    setError('');
   };
   const openCopy = (o) => {
     setEditing(null);
     setForm({ fromEmployeeId: o.fromEmployeeId, toEmployeeId: o.toEmployeeId, handoverDate: o.handoverDate, items: o.items || '', notes: o.notes || '', immediateEffect: o.immediateEffect !== false });
     setShowForm(true);
+    setError('');
   };
   const close = () => { setShowForm(false); setEditing(null); };
 
   const getName = (id) => { const e = employees.find(x => x.id === id); return e ? `${e.first_name} ${e.last_name}` : '—'; };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const row = { ...form, fromName: getName(form.fromEmployeeId), toName: getName(form.toEmployeeId) };
-    editing ? update(editing, row) : add(row);
-    close();
+    setSaving(true);
+    setError('');
+    try {
+      const payload = {
+        from_employee_id: form.fromEmployeeId,
+        to_employee_id: form.toEmployeeId,
+        handover_date: form.handoverDate,
+        items: form.items,
+        notes: form.notes,
+      };
+      if (editing) await api.put(`/handovers/${editing}`, payload);
+      else await api.post('/handovers', payload);
+      close();
+      load();
+    } catch (err) {
+      setError(err.response?.data?.error || 'შენახვა ვერ მოხერხდა.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemove = async (o) => {
+    if (!window.confirm('წავშალოთ ეს დელეგირების ბრძანება?')) return;
+    try { await api.delete(`/handovers/${o.id}`); load(); }
+    catch { setError('წაშლა ვერ მოხერხდა.'); }
   };
 
   const canSave = form.fromEmployeeId && form.toEmployeeId && form.fromEmployeeId !== form.toEmployeeId && form.handoverDate;
@@ -3464,7 +3539,9 @@ function HandoverTab({ employees }) {
         </button>
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
-        {orders.length === 0 ? <EmptyState label={t('orders.handover')} onAdd={openAdd} /> : (
+        {loading ? (
+          <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-4)', fontSize: 13 }}>Loading…</div>
+        ) : orders.length === 0 ? <EmptyState label={t('orders.handover')} onAdd={openAdd} /> : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
@@ -3489,7 +3566,7 @@ function HandoverTab({ employees }) {
                         onCopy={() => openCopy(o)}
                         onEdit={() => openEdit(o)}
                         onDetails={() => setDetailsFor(o)}
-                        onDelete={() => remove(o.id)}
+                        onDelete={() => handleRemove(o)}
                       />
                     </div>
                   </td>
@@ -3517,6 +3594,7 @@ function HandoverTab({ employees }) {
       {showForm && (
         <SubTabModal title={editing ? t('orders.editHandoverOrder') : t('orders.newHandoverOrder')} onClose={close}>
           <form onSubmit={handleSubmit}>
+            {error && <div className="msg-error" style={{ marginBottom: 14 }}>{error}</div>}
             <div style={{ display: 'grid', gap: 14 }}>
               <div><label style={LABEL}>{t('orders.fromEmployee')} *</label>
                 <EmployeeSearchSelect employees={employees} value={form.fromEmployeeId} required placeholder={t('orders.selectEmployee')} onChange={f('fromEmployeeId')} />
@@ -3529,7 +3607,7 @@ function HandoverTab({ employees }) {
               <div><label style={LABEL}>{t('orders.handoverItems')}</label><textarea value={form.items} onChange={f('items')} rows={3} placeholder="e.g. Laptop, project documentation, client contacts…" style={{ ...INPUT, resize: 'vertical', fontFamily: 'inherit' }} /></div>
               <div><label style={LABEL}>{t('orders.notes')}</label><input value={form.notes} onChange={f('notes')} style={{ ...INPUT, width: '100%' }} /></div>
             </div>
-            <SubTabActions onCancel={close} disabled={!canSave} />
+            <SubTabActions onCancel={close} saving={saving} disabled={!canSave} />
           </form>
         </SubTabModal>
       )}
