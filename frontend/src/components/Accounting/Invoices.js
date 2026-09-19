@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { InboxIcon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, FileSpreadsheetIcon } from '@hugeicons/core-free-icons';
+import { InboxIcon, TaskEdit01Icon, SentIcon, CheckmarkCircle02Icon, Upload01Icon, FileSpreadsheetIcon, Calendar03Icon } from '@hugeicons/core-free-icons';
 import { fmtExcelDate } from '../../utils/formatDate';
 
 function Invoices() {
@@ -209,6 +209,38 @@ function Invoices() {
       const r = res.data.upload;
       setUploadRecords(prev => prev.map(rec => rec.id === id ? { ...rec, extracted: r.extracted } : rec));
     } catch {} finally { setRescanningId(null); }
+  };
+
+  // Send straight from the Invoice List row using whatever was already
+  // extracted -- for rows still missing something, direct to Edit
+  // Transactions instead of allowing a half-filled transfer.
+  const [quickSendingId, setQuickSendingId] = useState(null);
+  const handleQuickSend = async (rec) => {
+    const payee = rec.extracted?.payee || '';
+    const amount = rec.extracted?.amount;
+    const dueDate = rec.dueDate || rec.extracted?.due_date || '';
+    if (!payee.trim() || !amount || !dueDate) {
+      alert('მიმღები, თანხა ან გადახდის ვადა არ არის ამოცნობილი — გამოიყენეთ "Edit Transactions" ხელით შესავსებად.');
+      return;
+    }
+    setQuickSendingId(rec.id);
+    try {
+      await api.post('/accounting/transfers', {
+        client_name: payee.trim(),
+        agent_id: rec.extracted?.matched_agent?.id || null,
+        amount: parseFloat(amount),
+        due_date: dueDate,
+        description: rec.extracted?.description || '',
+        iban: rec.extracted?.account_number || null,
+        invoice_number: rec.extracted?.invoice_number || null,
+        status: 'normal',
+      });
+      markSent(rec.id);
+    } catch (err) {
+      alert(err.response?.data?.error || 'გაგზავნა ვერ მოხერხდა.');
+    } finally {
+      setQuickSendingId(null);
+    }
   };
 
   const exportRecordsToExcel = (records, filenameSuffix) => {
@@ -446,6 +478,49 @@ function Invoices() {
     catch { setUploadRecords(prev => prev.map(r => r.id === id ? { ...r, urgent: rec.urgent } : r)); }
   };
 
+  // ── Calendar tab — transfers by due date ──────────────────
+  const [calTransfers, setCalTransfers] = useState([]);
+  const [calLoading, setCalLoading] = useState(false);
+  const calToday = new Date();
+  const [calYear, setCalYear] = useState(calToday.getFullYear());
+  const [calMonth, setCalMonth] = useState(calToday.getMonth());
+  const [calSelectedDay, setCalSelectedDay] = useState(null);
+  const loadCalTransfers = async () => {
+    setCalLoading(true);
+    try {
+      const res = await api.get('/accounting/transfers');
+      setCalTransfers(res.data.records || []);
+    } catch {} finally { setCalLoading(false); }
+  };
+  const CAL_STATUS = {
+    pending:  { label: 'მოლოდინში', color: '#d97706' },
+    approved: { label: 'დამტკიცებული', color: '#479c73' },
+    rejected: { label: 'უარყოფილი', color: '#dc2626' },
+    partial:  { label: 'ნაწილობრივი', color: '#2563eb' },
+  };
+  const calEventsByDate = {};
+  calTransfers.forEach(tr => {
+    const d = (tr.due_date || '').slice(0, 10);
+    if (!d) return;
+    (calEventsByDate[d] = calEventsByDate[d] || []).push(tr);
+  });
+  const CAL_DAYS = ['კვ', 'ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ'];
+  const CAL_MONTHS = ['იანვარი', 'თებერვალი', 'მარტი', 'აპრილი', 'მაისი', 'ივნისი', 'ივლისი', 'აგვისტო', 'სექტემბერი', 'ოქტომბერი', 'ნოემბერი', 'დეკემბერი'];
+  const calPrevMonth = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); setCalSelectedDay(null); };
+  const calNextMonth = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); setCalSelectedDay(null); };
+  const calGoToday = () => { setCalYear(calToday.getFullYear()); setCalMonth(calToday.getMonth()); setCalSelectedDay(null); };
+  const calFirstDay = new Date(calYear, calMonth, 1).getDay();
+  const calDaysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const calDaysInPrev = new Date(calYear, calMonth, 0).getDate();
+  const calCells = [];
+  for (let i = calFirstDay - 1; i >= 0; i--) calCells.push({ day: calDaysInPrev - i, cur: false });
+  for (let d = 1; d <= calDaysInMonth; d++) calCells.push({ day: d, cur: true });
+  const calTrailing = 42 - calCells.length;
+  for (let d = 1; d <= calTrailing; d++) calCells.push({ day: d, cur: false });
+  const calTodayKey = today();
+  const calDayKey = (d) => `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const calSelectedEvents = calSelectedDay ? (calEventsByDate[calDayKey(calSelectedDay)] || []) : [];
+
   return (
     <>
       <h2>{t('inv.title')}</h2>
@@ -464,6 +539,10 @@ function Invoices() {
         <button className={`docs-inner-tab${tab === 'edit' ? ' active' : ''}`} onClick={() => setTab('edit')}>
           <HugeiconsIcon icon={TaskEdit01Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
           Edit Transactions
+        </button>
+        <button className={`docs-inner-tab${tab === 'calendar' ? ' active' : ''}`} onClick={() => { setTab('calendar'); loadCalTransfers(); }}>
+          <HugeiconsIcon icon={Calendar03Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Calendar
         </button>
       </div>
 
@@ -740,7 +819,7 @@ function Invoices() {
                     {/* Block body */}
                     {isOpen && (
                       <div className="acc-table-wrap" style={{ overflowX: 'auto' }}>
-                        <table className="acc-table" style={{ minWidth: 1100 }}>
+                        <table className="acc-table" style={{ minWidth: 1200 }}>
                           <thead>
                             <tr>
                               <th style={{ width: 40 }}>№</th>
@@ -751,7 +830,7 @@ function Invoices() {
                               <th style={{ width: 120 }}>ინვოისის თარიღი</th>
                               <th style={{ width: 120 }}>გადახდის ვადა</th>
                               <th style={{ width: 90, textAlign: 'center' }}>სასწრაფო</th>
-                              <th style={{ width: 130 }}></th>
+                              <th style={{ width: 220 }}></th>
                             </tr>
                           </thead>
                           <tbody>
@@ -809,6 +888,22 @@ function Invoices() {
                                   </td>
                                   <td>
                                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                      {rec.sent ? (
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: 'rgba(71,156,115,0.15)', border: '1px solid rgba(71,156,115,0.3)', borderRadius: 6, fontSize: 11, fontWeight: 700, color: '#479c73', whiteSpace: 'nowrap' }}>
+                                          <HugeiconsIcon icon={CheckmarkCircle02Icon} size={12} color="#479c73" strokeWidth={2.5} />
+                                          გაგზავნილია
+                                        </span>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleQuickSend(rec)}
+                                          disabled={quickSendingId === rec.id}
+                                          title="გაგზავნა Transfers-ში"
+                                          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#2563eb', fontWeight: 600, whiteSpace: 'nowrap' }}
+                                        >
+                                          <HugeiconsIcon icon={SentIcon} size={12} color="#2563eb" strokeWidth={2} />
+                                          {quickSendingId === rec.id ? '...' : 'გაგზავნა'}
+                                        </button>
+                                      )}
                                       <button
                                         onClick={() => handleUploadView(rec)}
                                         style={{ padding: '4px 10px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--text-3)' }}
@@ -953,6 +1048,97 @@ function Invoices() {
         </div>
       )}
 
+      {/* ── CALENDAR TAB — transfers by due date ─────── */}
+      {tab === 'calendar' && (
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', minWidth: 320 }}>
+            <div style={{ padding: '14px 20px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={calPrevMonth} style={calNavBtn}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15,18 9,12 15,6"/></svg></button>
+              <div style={{ flex: 1, textAlign: 'center', fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{CAL_MONTHS[calMonth]} {calYear}</div>
+              <button onClick={calNextMonth} style={calNavBtn}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9,18 15,12 9,6"/></svg></button>
+              <button onClick={calGoToday} style={{ padding: '5px 12px', border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#2563eb' }}>დღეს</button>
+              {calLoading && <span style={{ fontSize: 11, color: 'var(--text-4)' }}>იტვირთება…</span>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px', gap: 2, marginBottom: 4 }}>
+              {CAL_DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-4)', padding: '4px 0' }}>{d}</div>)}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px 16px', gap: 2 }}>
+              {calCells.map((cell, idx) => {
+                if (!cell.cur) return <div key={idx} style={{ minHeight: 56, padding: '6px 4px', opacity: 0.3 }}><div style={{ fontSize: 12, color: 'var(--text-4)' }}>{cell.day}</div></div>;
+                const key = calDayKey(cell.day);
+                const isToday = key === calTodayKey;
+                const isSelected = calSelectedDay === cell.day;
+                const evs = calEventsByDate[key] || [];
+                const dayTotal = evs.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+                return (
+                  <div key={idx} onClick={() => setCalSelectedDay(isSelected ? null : cell.day)}
+                    style={{
+                      minHeight: 56, padding: '6px 4px', borderRadius: 8, cursor: 'pointer',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                      background: isSelected ? 'var(--surface-2)' : isToday ? 'var(--surface-2)' : 'transparent',
+                      border: isSelected ? '2px solid #2563eb' : isToday ? '2px solid var(--border-2)' : '2px solid transparent',
+                    }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: isToday || isSelected ? 700 : 500, color: isToday ? '#2563eb' : 'var(--text)' }}>{cell.day}</div>
+                    {evs.length > 0 && (
+                      <>
+                        <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                          {evs.slice(0, 4).map((e, i) => (
+                            <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: (CAL_STATUS[e.approval_status || 'pending'] || CAL_STATUS.pending).color }} />
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 9, color: 'var(--text-4)', fontFamily: 'var(--font-mono)' }}>{dayTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ padding: '10px 20px 16px', borderTop: '1px solid var(--border-3)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+              {Object.entries(CAL_STATUS).map(([key, s]) => (
+                <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />
+                  <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ flex: 1, minWidth: 260 }}>
+            {calSelectedDay ? (
+              <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+                <div style={{ padding: '14px 18px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)' }}>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{CAL_MONTHS[calMonth]} {calSelectedDay}, {calYear}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 1 }}>{calSelectedEvents.length} გადარიცხვა</div>
+                </div>
+                {calSelectedEvents.length === 0 ? (
+                  <div style={{ padding: '24px 18px', textAlign: 'center', color: 'var(--text-4)', fontSize: 13 }}>ამ დღეს გადარიცხვები არ არის.</div>
+                ) : (
+                  <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {calSelectedEvents.map(tr => {
+                      const st = CAL_STATUS[tr.approval_status || 'pending'] || CAL_STATUS.pending;
+                      return (
+                        <div key={tr.id} style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 9, borderLeft: `3px solid ${st.color}` }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: st.color, textTransform: 'uppercase' }}>{st.label}</span>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{parseFloat(tr.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                          </div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginTop: 3 }}>{tr.client_name || '—'}</div>
+                          {tr.description && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{tr.description}</div>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', padding: '28px 20px', textAlign: 'center', fontSize: 12, color: 'var(--text-4)' }}>
+                დააჭირეთ თარიღს, რომ ნახოთ იმ დღის გადარიცხვები.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
     </>
   );
 }
@@ -960,6 +1146,7 @@ function Invoices() {
 const editInpStyle = { width: '100%', padding: '6px 8px', border: '1px solid var(--border-2)', borderRadius: 6, fontSize: 12, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box' };
 const reviewLbl = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--text-3)', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.03em' };
 const reviewInp = { width: '100%', padding: '9px 11px', border: '1px solid var(--border-2)', borderRadius: 8, fontSize: 13, background: 'var(--surface)', color: 'var(--text)', fontFamily: 'inherit', boxSizing: 'border-box', outline: 'none' };
+const calNavBtn = { width: 30, height: 30, border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' };
 const today = () => new Date().toISOString().split('T')[0];
 const fmtDate = (d) => {
   if (!d) return '—';
