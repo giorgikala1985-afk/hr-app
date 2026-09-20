@@ -1199,6 +1199,7 @@ function TransfersCalendar() {
   const [calYear, setCalYear] = useState(calToday.getFullYear());
   const [calMonth, setCalMonth] = useState(calToday.getMonth());
   const [calSelectedDay, setCalSelectedDay] = useState(null);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     (async () => {
@@ -1216,8 +1217,11 @@ function TransfersCalendar() {
     rejected: { label: t('tr.approvalRejected'), color: '#f87171' },
     partial:  { label: t('tr.approvalPartial'),  color: '#60a5fa' },
   };
+  const filteredTransfers = statusFilter === 'all'
+    ? transfers
+    : transfers.filter(tr => (tr.approval_status || 'pending') === statusFilter);
   const calEventsByDate = {};
-  transfers.forEach(tr => {
+  filteredTransfers.forEach(tr => {
     const d = (tr.due_date || '').slice(0, 10);
     if (!d) return;
     (calEventsByDate[d] = calEventsByDate[d] || []).push(tr);
@@ -1239,8 +1243,28 @@ function TransfersCalendar() {
   const calDayKey = (d) => `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   const calSelectedEvents = calSelectedDay ? (calEventsByDate[calDayKey(calSelectedDay)] || []) : [];
 
+  const FILTER_OPTIONS = [
+    { key: 'all',      label: 'All' },
+    { key: 'pending',  label: t('tr.approvalPending') },
+    { key: 'approved', label: t('tr.approvalApproved') },
+    { key: 'rejected', label: t('tr.approvalRejected') },
+    { key: 'partial',  label: t('tr.approvalPartial') },
+  ];
+
   return (
-    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+    <div>
+      <div style={{ display: 'flex', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 10, padding: 3, gap: 2, width: 'fit-content', marginBottom: 16 }}>
+        {FILTER_OPTIONS.map(f => (
+          <button key={f.key} onClick={() => setStatusFilter(f.key)} style={{
+            padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            background: statusFilter === f.key ? 'var(--surface)' : 'transparent',
+            color: statusFilter === f.key ? 'var(--text)' : 'var(--text-3)',
+            boxShadow: statusFilter === f.key ? '0 1px 4px rgba(0,0,0,0.12)' : 'none',
+            transition: 'all 0.15s',
+          }}>{f.label}</button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
       <div style={{ flex: 1, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', minWidth: 320 }}>
         <div style={{ padding: '14px 20px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={calPrevMonth} style={calNavBtn}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15,18 9,12 15,6"/></svg></button>
@@ -1325,6 +1349,7 @@ function TransfersCalendar() {
             დააჭირეთ თარიღს, რომ ნახოთ იმ დღის გადარიცხვები.
           </div>
         )}
+      </div>
       </div>
     </div>
   );
