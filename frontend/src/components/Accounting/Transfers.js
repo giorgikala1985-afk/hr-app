@@ -5,7 +5,7 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import { useKeyedColumnWidths, RESIZE_HANDLE_STYLE } from '../../hooks/useColumnResize';
 import { HugeiconsIcon } from '@hugeicons/react';
-import { CheckmarkCircleIcon, AlertCircleIcon, FireIcon, HourglassIcon, CancelCircleIcon, PieChartIcon, ClockIcon, ArchiveIcon, ZapIcon, Loading01Icon, Menu01Icon } from '@hugeicons/core-free-icons';
+import { CheckmarkCircleIcon, AlertCircleIcon, FireIcon, HourglassIcon, CancelCircleIcon, PieChartIcon, ClockIcon, ArchiveIcon, ZapIcon, Loading01Icon, Menu01Icon, Calendar03Icon, InboxIcon } from '@hugeicons/core-free-icons';
 import { useExcelTable, ExcelFilterDropdown, ColumnVisibilityMenu, PaginationBar } from '../common/ExcelTable';
 import TableSkeleton from '../common/TableSkeleton';
 import './Accounting.css';
@@ -1190,8 +1190,149 @@ function ApprovalRequests() {
 
 // ── Main Transfers page with sub-tabs ─────────────────────────────────────────
 
+// ── Calendar view — transfers by due date ─────────────────────────────────
+function TransfersCalendar() {
+  const { t } = useLanguage();
+  const [transfers, setTransfers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const calToday = new Date();
+  const [calYear, setCalYear] = useState(calToday.getFullYear());
+  const [calMonth, setCalMonth] = useState(calToday.getMonth());
+  const [calSelectedDay, setCalSelectedDay] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await api.get('/accounting/transfers');
+        setTransfers(res.data.records || []);
+      } catch {} finally { setLoading(false); }
+    })();
+  }, []);
+
+  const CAL_STATUS = {
+    pending:  { label: t('tr.approvalPending'),  color: '#facc15' },
+    approved: { label: t('tr.approvalApproved'), color: '#479c73' },
+    rejected: { label: t('tr.approvalRejected'), color: '#f87171' },
+    partial:  { label: t('tr.approvalPartial'),  color: '#60a5fa' },
+  };
+  const calEventsByDate = {};
+  transfers.forEach(tr => {
+    const d = (tr.due_date || '').slice(0, 10);
+    if (!d) return;
+    (calEventsByDate[d] = calEventsByDate[d] || []).push(tr);
+  });
+  const CAL_DAYS = ['კვ', 'ორშ', 'სამ', 'ოთხ', 'ხუთ', 'პარ', 'შაბ'];
+  const CAL_MONTHS = ['იანვარი', 'თებერვალი', 'მარტი', 'აპრილი', 'მაისი', 'ივნისი', 'ივლისი', 'აგვისტო', 'სექტემბერი', 'ოქტომბერი', 'ნოემბერი', 'დეკემბერი'];
+  const calPrevMonth = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); setCalSelectedDay(null); };
+  const calNextMonth = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); setCalSelectedDay(null); };
+  const calGoToday = () => { setCalYear(calToday.getFullYear()); setCalMonth(calToday.getMonth()); setCalSelectedDay(null); };
+  const calFirstDay = new Date(calYear, calMonth, 1).getDay();
+  const calDaysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const calDaysInPrev = new Date(calYear, calMonth, 0).getDate();
+  const calCells = [];
+  for (let i = calFirstDay - 1; i >= 0; i--) calCells.push({ day: calDaysInPrev - i, cur: false });
+  for (let d = 1; d <= calDaysInMonth; d++) calCells.push({ day: d, cur: true });
+  const calTrailing = 42 - calCells.length;
+  for (let d = 1; d <= calTrailing; d++) calCells.push({ day: d, cur: false });
+  const calTodayKey = new Date().toISOString().split('T')[0];
+  const calDayKey = (d) => `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const calSelectedEvents = calSelectedDay ? (calEventsByDate[calDayKey(calSelectedDay)] || []) : [];
+
+  return (
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ flex: 1, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden', minWidth: 320 }}>
+        <div style={{ padding: '14px 20px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={calPrevMonth} style={calNavBtn}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15,18 9,12 15,6"/></svg></button>
+          <div style={{ flex: 1, textAlign: 'center', fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>{CAL_MONTHS[calMonth]} {calYear}</div>
+          <button onClick={calNextMonth} style={calNavBtn}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9,18 15,12 9,6"/></svg></button>
+          <button onClick={calGoToday} style={{ padding: '5px 12px', border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#2563eb' }}>დღეს</button>
+          {loading && <span style={{ fontSize: 11, color: 'var(--text-4)' }}>იტვირთება…</span>}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px', gap: 2, marginBottom: 4 }}>
+          {CAL_DAYS.map(d => <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 700, color: 'var(--text-4)', padding: '4px 0' }}>{d}</div>)}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', padding: '0 12px 16px', gap: 2 }}>
+          {calCells.map((cell, idx) => {
+            if (!cell.cur) return <div key={idx} style={{ minHeight: 56, padding: '6px 4px', opacity: 0.3 }}><div style={{ fontSize: 12, color: 'var(--text-4)' }}>{cell.day}</div></div>;
+            const key = calDayKey(cell.day);
+            const isToday = key === calTodayKey;
+            const isSelected = calSelectedDay === cell.day;
+            const evs = calEventsByDate[key] || [];
+            const dayTotal = evs.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+            return (
+              <div key={idx} onClick={() => setCalSelectedDay(isSelected ? null : cell.day)}
+                style={{
+                  minHeight: 56, padding: '6px 4px', borderRadius: 8, cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+                  background: isSelected ? 'var(--surface-2)' : isToday ? 'var(--surface-2)' : 'transparent',
+                  border: isSelected ? '2px solid #2563eb' : isToday ? '2px solid var(--border-2)' : '2px solid transparent',
+                }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: isToday || isSelected ? 700 : 500, color: isToday ? '#2563eb' : 'var(--text)' }}>{cell.day}</div>
+                {evs.length > 0 && (
+                  <>
+                    <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                      {evs.slice(0, 4).map((e, i) => (
+                        <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: (CAL_STATUS[e.approval_status || 'pending'] || CAL_STATUS.pending).color }} />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 9, color: 'var(--text-4)', fontFamily: 'var(--font-mono)' }}>{dayTotal.toLocaleString('en-US', { maximumFractionDigits: 0 })}</div>
+                  </>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ padding: '10px 20px 16px', borderTop: '1px solid var(--border-3)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          {Object.entries(CAL_STATUS).map(([key, s]) => (
+            <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color }} />
+              <span style={{ fontSize: 11, color: 'var(--text-3)', fontWeight: 500 }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ flex: 1, minWidth: 260 }}>
+        {calSelectedDay ? (
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 18px', background: 'var(--surface-2)', borderBottom: '1px solid var(--border-3)' }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>{CAL_MONTHS[calMonth]} {calSelectedDay}, {calYear}</div>
+              <div style={{ fontSize: 12, color: 'var(--text-4)', marginTop: 1 }}>{calSelectedEvents.length} გადარიცხვა</div>
+            </div>
+            {calSelectedEvents.length === 0 ? (
+              <div style={{ padding: '24px 18px', textAlign: 'center', color: 'var(--text-4)', fontSize: 13 }}>ამ დღეს გადარიცხვები არ არის.</div>
+            ) : (
+              <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {calSelectedEvents.map(tr => {
+                  const st = CAL_STATUS[tr.approval_status || 'pending'] || CAL_STATUS.pending;
+                  return (
+                    <div key={tr.id} style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 9, borderLeft: `3px solid ${st.color}` }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: st.color, textTransform: 'uppercase' }}>{st.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)', fontFamily: 'var(--font-mono)' }}>{parseFloat(tr.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text)', marginTop: 3 }}>{tr.client_name || '—'}</div>
+                      {tr.description && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 1 }}>{tr.description}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          <div style={{ background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border-2)', padding: '28px 20px', textAlign: 'center', fontSize: 12, color: 'var(--text-4)' }}>
+            დააჭირეთ თარიღს, რომ ნახოთ იმ დღის გადარიცხვები.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function Transfers() {
   const { t } = useLanguage();
+  const [tab, setTab] = useState('list');
 
   return (
     <div style={{ padding: '24px 0' }}>
@@ -1200,7 +1341,18 @@ function Transfers() {
         <p style={{ margin: '4px 0 0', color: 'var(--text-3)', fontSize: 14 }}>{t('tr.subtitle')}</p>
       </div>
 
-      <TransfersList />
+      <div className="docs-inner-tabs" style={{ marginBottom: 24 }}>
+        <button className={`docs-inner-tab${tab === 'list' ? ' active' : ''}`} onClick={() => setTab('list')}>
+          <HugeiconsIcon icon={InboxIcon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          List
+        </button>
+        <button className={`docs-inner-tab${tab === 'calendar' ? ' active' : ''}`} onClick={() => setTab('calendar')}>
+          <HugeiconsIcon icon={Calendar03Icon} size={15} color="currentColor" strokeWidth={2} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          Calendar
+        </button>
+      </div>
+
+      {tab === 'list' ? <TransfersList /> : <TransfersCalendar />}
     </div>
   );
 }
@@ -1227,5 +1379,6 @@ const rejectBtn  = { ...actionBtnBase, background: 'rgba(220,38,38,0.14)',  colo
 const partialBtn = { ...actionBtnBase, background: 'rgba(59,130,246,0.14)', color: '#60a5fa', borderColor: 'rgba(59,130,246,0.35)' };
 const waitBtn    = { ...actionBtnBase, background: 'rgba(148,163,184,0.16)',color: '#cbd5e1', borderColor: 'rgba(148,163,184,0.30)' };
 const ddItem     = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 14px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-2)', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.1s' };
+const calNavBtn  = { width: 30, height: 30, border: '1px solid var(--border-2)', borderRadius: 7, background: 'var(--surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' };
 
 export default Transfers;
