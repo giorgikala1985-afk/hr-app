@@ -195,11 +195,16 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
     const measure = () => {
       if (!tableWrapperRef.current) return;
       const top = tableWrapperRef.current.getBoundingClientRect().top;
-      setWrapperMaxHeight(`calc(100vh - ${Math.round(top)}px - 24px)`);
+      const available = Math.round(window.innerHeight - top - 24);
+      // Never cap below a sane minimum -- if the measured space is too
+      // small (mid-layout, not-yet-painted content, etc.) skip capping
+      // entirely rather than risk collapsing the table to nothing.
+      setWrapperMaxHeight(available >= 300 ? `${available}px` : null);
     };
     measure();
+    const t = setTimeout(measure, 300); // re-measure once layout has settled
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    return () => { window.removeEventListener('resize', measure); clearTimeout(t); };
   }, [loading]);
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [month, setMonth] = useState(todayMonth());
