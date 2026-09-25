@@ -767,13 +767,21 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   ];
                   const fitpassAmt = parseFloat(r.fitpass_deduction || 0);
                   if (fitpassAmt > 0) descParts.push(`Excl. $${fitpassAmt.toFixed(2)} Fitpass`);
+                  // Sum same-type units into one line instead of one line per
+                  // unit (e.g. two separate "Benefit" entries this month become
+                  // a single combined "Incl. $X Benefit").
+                  const unitTotalsByType = {};
                   (r.deductions || []).forEach(d => {
                     const amt = parseFloat(d.amount || 0);
                     if (amt > 0 && d.type && d.include_in_salary !== false) {
-                      const ut = unitTypes.find(t => t.name === d.type);
-                      const label = ut?.direction === 'addition' ? 'Incl.' : 'Excl.';
-                      descParts.push(`${label} $${amt.toFixed(2)} ${d.type}`);
+                      unitTotalsByType[d.type] = (unitTotalsByType[d.type] || 0) + amt;
                     }
+                  });
+                  const abbreviateUnitType = (name) => name === 'Cost Reimbursement' ? 'Cost Rmbst.' : name;
+                  Object.entries(unitTotalsByType).forEach(([type, amt]) => {
+                    const ut = unitTypes.find(t => t.name === type);
+                    const label = ut?.direction === 'addition' ? 'Incl.' : 'Excl.';
+                    descParts.push(`${label} $${amt.toFixed(2)} ${abbreviateUnitType(type)}`);
                   });
                   const description = descParts.join(' | ');
 
