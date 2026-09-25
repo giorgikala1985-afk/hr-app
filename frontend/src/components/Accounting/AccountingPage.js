@@ -80,10 +80,14 @@ const CHEVRON_RIGHT = (
 function AccountingPage() {
   const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'bookkeeping');
-  const [loadingTab, setLoadingTab] = useState(null);
   const [sidebarOrder, setSidebarOrder] = useState(() => loadSidebarOrder(ACC_SIDEBAR_ORDER_KEY, ACC_SIDEBAR_DEFAULT));
   const [hiddenTabs, setHiddenTabs] = useState(() => loadHidden(ACC_SIDEBAR_HIDDEN_KEY));
+  // The first non-hidden tab in the user's own configured sidebar order
+  // (Options > Operations Sidebar), not a hardcoded default -- this is
+  // what "Operations" in the top nav should land on.
+  const firstConfiguredTab = () => sidebarOrder.find(key => !hiddenTabs.has(key) && TAB_KEYS.some(tb => tb.key === key)) || 'bookkeeping';
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || firstConfiguredTab());
+  const [loadingTab, setLoadingTab] = useState(null);
   const TABS = TAB_KEYS.map(tab => ({ ...tab, label: t(tab.labelKey) }));
 
   useEffect(() => {
@@ -94,6 +98,19 @@ function AccountingPage() {
     window.addEventListener('storage', sync);
     return () => window.removeEventListener('storage', sync);
   }, []);
+
+  // Clicking "Operations" in the top nav always links to the bare path
+  // (no ?tab=) -- if this page is already mounted, that doesn't remount
+  // it, so the initial-state default above wouldn't re-fire. Catch that
+  // case here too, and make the resolved tab explicit in the URL.
+  useEffect(() => {
+    if (!searchParams.get('tab')) {
+      const key = firstConfiguredTab();
+      setActiveTab(key);
+      setSearchParams({ tab: key }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
   const orderedTabs = [...TABS]
     .sort((a, b) => sidebarOrder.indexOf(a.key) - sidebarOrder.indexOf(b.key))
