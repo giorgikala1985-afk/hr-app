@@ -24,9 +24,12 @@ const COLUMNS = [
 ];
 
 const DEFAULT_WIDTHS = COLUMNS.map(c => c.defaultWidth);
-// Matches Header.css's .header-content height (64px) -- the table header
-// sticks just beneath the fixed top navbar instead of under it.
-const STICKY_HEADER_TOP = 64;
+// Matches the navbar's real rendered height, the same value already used
+// by .acc-layout's `calc(100vh - 56px)` elsewhere in this codebase --
+// Header.css's .header-content is 64px but that excludes the header's
+// own border/shadow, so 64 leaves a visible gap. The table header sticks
+// just beneath the actual navbar instead of under it.
+const STICKY_HEADER_TOP = 56;
 const TEXT_KEYS = ['date', 'personalId', 'firstName', 'lastName'];
 const COL_STORAGE_KEY = 'hr_salary_columns';
 
@@ -185,6 +188,19 @@ const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: 'var(--text)' };
 function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const { t } = useLanguage();
   const TCOLS = COLUMNS.map(c => ({ ...c, label: t(c.labelKey) }));
+
+  // Measured at runtime instead of hardcoded -- the navbar's actual
+  // rendered height (border/shadow included) doesn't match its CSS
+  // content-height alone, so a fixed guess drifts out of sync.
+  const [stickyTop, setStickyTop] = useState(STICKY_HEADER_TOP);
+  useEffect(() => {
+    const headerEl = document.querySelector('.header');
+    if (!headerEl) return;
+    const measure = () => setStickyTop(headerEl.getBoundingClientRect().height);
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [month, setMonth] = useState(todayMonth());
   const [accrualDate, setAccrualDate] = useState(() => {
@@ -944,7 +960,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   return (
                     <th key={col.key} style={{
                       position: 'sticky',
-                      top: STICKY_HEADER_TOP,
+                      top: stickyTop,
                       left: isSticky ? stickyLeftMap[col.key] : undefined,
                       zIndex: isSticky ? 4 : 2,
                       background: 'var(--surface-2)',
@@ -973,7 +989,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 })}
                 {dynUnitCols.map(ut => (
                   <th key={`dyn-th-${ut.name}`} style={{
-                    position: 'sticky', top: STICKY_HEADER_TOP, zIndex: 2, background: 'var(--surface-2)',
+                    position: 'sticky', top: stickyTop, zIndex: 2, background: 'var(--surface-2)',
                     width: dynColW, overflow: 'hidden', whiteSpace: 'nowrap',
                     textAlign: 'right', padding: '12px 14px',
                     color: ut.direction === 'addition' ? '#479c73' : '#e53e3e',
@@ -985,7 +1001,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const idx = colIdx(col);
                   return (
                     <th key={col.key} style={{
-                      position: 'sticky', top: STICKY_HEADER_TOP, zIndex: 2, background: 'var(--surface-2)',
+                      position: 'sticky', top: stickyTop, zIndex: 2, background: 'var(--surface-2)',
                       width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right',
                     }}>
@@ -1005,7 +1021,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   );
                 })}
                 <th style={{
-                  position: 'sticky', top: STICKY_HEADER_TOP, zIndex: 2, background: 'var(--surface-2)',
+                  position: 'sticky', top: stickyTop, zIndex: 2, background: 'var(--surface-2)',
                   width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#479c73',
                 }}>
                   Transferred
