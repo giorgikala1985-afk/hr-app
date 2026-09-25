@@ -864,7 +864,18 @@ function Invoices() {
                                       </div>
                                     </td>
                                   ) : !ex ? (
-                                    <td colSpan={4} style={{ fontSize: 12, color: 'var(--text-4)', fontStyle: 'italic' }}>—</td>
+                                    <td colSpan={4}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text-4)' }}>
+                                        <span style={{ fontStyle: 'italic' }}>ტექსტი ჯერ არ ამოცნობილა</span>
+                                        <button
+                                          onClick={() => handleUploadRescan(rec.id)}
+                                          disabled={rescanningId === rec.id}
+                                          style={{ padding: '2px 10px', background: 'var(--surface-2)', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 11, color: 'var(--text-2)', fontWeight: 600 }}
+                                        >
+                                          {rescanningId === rec.id ? '...' : 'ტექსტის ამოცნობა'}
+                                        </button>
+                                      </div>
+                                    </td>
                                   ) : (
                                     <>
                                       <td style={{ fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{ex.payee || '—'}</td>
