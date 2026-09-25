@@ -57,6 +57,34 @@ function fmt(val) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
 }
 
+// Shared "Export to Excel" for every Orders sub-tab: columns is
+// [{ header: 'Name', get: row => value }], rows is the tab's order list.
+function exportOrdersToExcel(rows, columns, sheetName, fileName) {
+  const headers = columns.map(c => c.header);
+  const data = (rows || []).map(r => columns.map(c => c.get(r)));
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = columns.map(() => ({ wch: 18 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, `${fileName}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+const EXPORT_BTN_STYLE = {
+  display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 9,
+  border: '1px solid var(--border-2)', background: 'var(--surface)', color: 'var(--text-2)',
+  fontWeight: 700, fontSize: 13, cursor: 'pointer', marginRight: 10,
+};
+function ExportExcelButton({ onClick }) {
+  return (
+    <button onClick={onClick} style={EXPORT_BTN_STYLE}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+      </svg>
+      Export to Excel
+    </button>
+  );
+}
+
 const ORDER_SUBTAB_KEYS = [
   { key: 'hiring',           labelKey: 'orders.hiring'          },
   { key: 'firing',           labelKey: 'orders.firing'          },
@@ -379,6 +407,16 @@ function PromotionTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        {orders.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(orders, [
+          { header: 'Date', get: o => o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '' },
+          { header: 'Employee', get: o => o.empName || '' },
+          { header: 'Old Position', get: o => o.oldPosition || '' },
+          { header: 'New Position', get: o => o.newPosition || '' },
+          { header: 'Old Salary', get: o => o.oldSalary || '' },
+          { header: 'New Salary', get: o => o.newSalary || '' },
+          { header: 'Effective Date', get: o => o.effectiveDate || '' },
+          { header: 'Notes', get: o => o.notes || '' },
+        ], 'Promotion', 'Promotion-Orders')} />}
         {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
@@ -625,6 +663,25 @@ function HiringTab() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        {orders.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(orders, [
+          { header: 'Date', get: o => o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '' },
+          { header: 'First Name', get: o => o.firstName || '' },
+          { header: 'Last Name', get: o => o.lastName || '' },
+          { header: 'Personal ID', get: o => o.personalId || '' },
+          { header: 'Birthdate', get: o => o.birthdate || '' },
+          { header: 'Position', get: o => o.position || '' },
+          { header: 'Department', get: o => o.department || '' },
+          { header: 'Start Date', get: o => o.startDate || '' },
+          { header: 'Salary', get: o => o.salary || '' },
+          { header: 'Currency', get: o => o.salaryCurrency || '' },
+          { header: 'Account Number', get: o => o.accountNumber || '' },
+          { header: 'PIT Rate', get: o => o.pitRate || '' },
+          { header: 'Pension', get: o => o.pension ? 'Yes' : 'No' },
+          { header: 'Email', get: o => o.personalEmail || '' },
+          { header: 'Phone', get: o => o.phone || '' },
+          { header: 'Address', get: o => o.address || '' },
+          { header: 'Notes', get: o => o.notes || '' },
+        ], 'Hiring', 'Hiring-Orders')} />}
         {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
 
@@ -1568,6 +1625,14 @@ function FiringTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        {orders.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(orders, [
+          { header: 'Date', get: o => o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '' },
+          { header: 'Employee', get: o => o.empName || '' },
+          { header: 'Position', get: o => o.position || '' },
+          { header: 'Termination Date', get: o => o.terminationDate || '' },
+          { header: 'Reason', get: o => o.reason || '' },
+          { header: 'Notes', get: o => o.notes || '' },
+        ], 'Firing', 'Firing-Orders')} />}
         {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
@@ -2037,6 +2102,20 @@ function BusinessTripTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        {orders.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(orders, [
+          { header: 'Date', get: o => o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '' },
+          { header: 'Employee', get: o => o.empName || '' },
+          { header: 'Group', get: o => o.groupName || '' },
+          { header: 'From', get: o => o.fromDate || '' },
+          { header: 'To', get: o => o.toDate || '' },
+          { header: 'Days', get: o => o.days || '' },
+          { header: 'Country', get: o => o.countryName || '' },
+          { header: 'City', get: o => o.cityName || '' },
+          { header: 'Per Diem', get: o => o.perDiem || '' },
+          { header: 'Amount', get: o => o.amount || '' },
+          { header: 'Total Costs', get: o => o.totalCosts || 0 },
+          { header: 'Notes', get: o => o.notes || '' },
+        ], 'Business Trip', 'Business-Trip-Orders')} />}
         {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#0ea5e9', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + New Business Trip
         </button>}
@@ -2690,6 +2769,15 @@ function AdvancePaymentTab({ employees, gelRate, eurRate }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        {orders.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(orders, [
+          { header: 'Date', get: o => o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '' },
+          { header: 'Employee', get: o => o.empName || '' },
+          { header: 'Total', get: o => o.total || '' },
+          { header: 'Currency', get: o => o.currency || '' },
+          { header: 'Mode', get: o => o.mode || '' },
+          { header: 'Include in Salary', get: o => o.includeInSalary !== false ? 'Yes' : 'No' },
+          { header: 'Schedule', get: o => (o.schedule || []).map(s => `${s.month}: ${s.amount}`).join('; ') },
+        ], 'Advance Payment', 'Advance-Payment-Orders')} />}
         <button onClick={() => { setEditId(null); setForm(EMPTY); setShowForm(true); }}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + Add New Order
@@ -3287,6 +3375,16 @@ function BonusTab({ employees, gelRate, eurRate }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        {orders.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(
+          orders.flatMap(o => (o.entries || []).map(en => ({ ...en, month: o.month, currency: o.currency, purpose: o.purpose, createdAt: o.createdAt }))),
+          [
+            { header: 'Date', get: r => r.createdAt ? new Date(r.createdAt).toLocaleDateString('en-GB') : '' },
+            { header: 'Month', get: r => r.month || '' },
+            { header: 'Employee', get: r => r.empName || '' },
+            { header: 'Amount', get: r => r.amount || '' },
+            { header: 'Currency', get: r => r.currency || '' },
+            { header: 'Purpose', get: r => r.purpose || '' },
+          ], 'Bonus', 'Bonus-Orders')} />}
         <button onClick={openNew}
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + Add New Order
@@ -3586,6 +3684,14 @@ function HandoverTab({ employees }) {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
+        {orders.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(orders, [
+          { header: 'Date', get: o => o.createdAt ? new Date(o.createdAt).toLocaleDateString('en-GB') : '' },
+          { header: 'From', get: o => getName(o.fromEmployeeId) },
+          { header: 'To', get: o => getName(o.toEmployeeId) },
+          { header: 'Handover Date', get: o => o.handoverDate || '' },
+          { header: 'Items', get: o => o.items || '' },
+          { header: 'Notes', get: o => o.notes || '' },
+        ], 'Handover', 'Handover-Orders')} />}
         <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
           + {t('orders.addNew')}
         </button>
@@ -4258,23 +4364,35 @@ export default function Orders() {
             {t('orders.subtitle')} · {monthLabel}
           </p>
         </div>
-        {subTab === 'adjusting' && canCreateAdjusting && <button
-          onClick={() => { setForm(f => ({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' })); setShowForm(true); setError(''); }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 7,
-            padding: '9px 20px', borderRadius: 9, border: 'none',
-            background: '#479c73', color: '#fff',
-            fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(71,156,115,0.3)', transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          {t('orders.addNew')}
-        </button>}
+        {subTab === 'adjusting' && <div style={{ display: 'flex', alignItems: 'center' }}>
+          {sortedUnits.length > 0 && <ExportExcelButton onClick={() => exportOrdersToExcel(sortedUnits, [
+            { header: 'Date', get: u => u.date ? new Date(u.date).toLocaleDateString('en-GB') : '' },
+            { header: 'Employee', get: u => `${u.employee?.first_name || ''} ${u.employee?.last_name || ''}`.trim() },
+            { header: 'Type', get: u => u.type || '' },
+            { header: 'Direction', get: u => u.direction === 'addition' ? t('orders.addition') : t('orders.deduction') },
+            { header: 'Amount', get: u => u.amount || '' },
+            { header: 'Currency', get: u => u.currency || '' },
+            { header: 'Include in Salary', get: u => u.include_in_salary !== false ? 'Yes' : 'No' },
+            { header: 'Note', get: u => u.note || '' },
+          ], 'Adjusting', 'Adjusting-Orders')} />}
+          {canCreateAdjusting && <button
+            onClick={() => { setForm(f => ({ ...EMPTY_FORM, date: monthLastDay, otRate: overtimeRates[0] ? String(overtimeRates[0].rate) : '110' })); setShowForm(true); setError(''); }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 7,
+              padding: '9px 20px', borderRadius: 9, border: 'none',
+              background: '#479c73', color: '#fff',
+              fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(71,156,115,0.3)', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            {t('orders.addNew')}
+          </button>}
+        </div>}
       </div>
 
       {/* Subtabs */}
