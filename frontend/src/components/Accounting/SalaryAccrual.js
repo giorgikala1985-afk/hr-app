@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
@@ -24,12 +24,6 @@ const COLUMNS = [
 ];
 
 const DEFAULT_WIDTHS = COLUMNS.map(c => c.defaultWidth);
-// Matches the navbar's real rendered height, the same value already used
-// by .acc-layout's `calc(100vh - 56px)` elsewhere in this codebase --
-// Header.css's .header-content is 64px but that excludes the header's
-// own border/shadow, so 64 leaves a visible gap. The table header sticks
-// just beneath the actual navbar instead of under it.
-const STICKY_HEADER_TOP = 56;
 const TEXT_KEYS = ['date', 'personalId', 'firstName', 'lastName'];
 const COL_STORAGE_KEY = 'hr_salary_columns';
 
@@ -189,18 +183,24 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const { t } = useLanguage();
   const TCOLS = COLUMNS.map(c => ({ ...c, label: t(c.labelKey) }));
 
-  // Measured at runtime instead of hardcoded -- the navbar's actual
-  // rendered height (border/shadow included) doesn't match its CSS
-  // content-height alone, so a fixed guess drifts out of sync.
-  const [stickyTop, setStickyTop] = useState(STICKY_HEADER_TOP);
+  // The table wrapper scrolls internally (rather than relying on
+  // position: sticky against the page scroll, which depends on ambiguous
+  // overflow-ancestor interactions) so the header can pin to its own
+  // scrollport reliably. Its max-height is measured from its own
+  // position on screen, so it automatically clears the navbar and
+  // whatever toolbar/title sits above it without any hardcoded offset.
+  const tableWrapperRef = useRef(null);
+  const [wrapperMaxHeight, setWrapperMaxHeight] = useState(null);
   useEffect(() => {
-    const headerEl = document.querySelector('.header');
-    if (!headerEl) return;
-    const measure = () => setStickyTop(headerEl.getBoundingClientRect().height);
+    const measure = () => {
+      if (!tableWrapperRef.current) return;
+      const top = tableWrapperRef.current.getBoundingClientRect().top;
+      setWrapperMaxHeight(`calc(100vh - ${Math.round(top)}px - 24px)`);
+    };
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, []);
+  }, [loading]);
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [month, setMonth] = useState(todayMonth());
   const [accrualDate, setAccrualDate] = useState(() => {
@@ -918,7 +918,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         </div>
       </div>
 
-      <div className="acc-table-wrapper" style={{ overflowX: 'auto', overflowY: 'visible' }}>
+      <div ref={tableWrapperRef} className="acc-table-wrapper" style={{ overflow: 'auto', maxHeight: wrapperMaxHeight || undefined }}>
         {loading ? (
           <TableSkeleton
             icon={<span style={{ fontSize: 12, fontWeight: 800 }}>₾</span>}
@@ -960,7 +960,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   return (
                     <th key={col.key} style={{
                       position: 'sticky',
-                      top: stickyTop,
+                      top: 0,
                       left: isSticky ? stickyLeftMap[col.key] : undefined,
                       zIndex: isSticky ? 4 : 2,
                       background: 'var(--surface-2)',
@@ -989,7 +989,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 })}
                 {dynUnitCols.map(ut => (
                   <th key={`dyn-th-${ut.name}`} style={{
-                    position: 'sticky', top: stickyTop, zIndex: 2, background: 'var(--surface-2)',
+                    position: 'sticky', top: 0, zIndex: 2, background: 'var(--surface-2)',
                     width: dynColW, overflow: 'hidden', whiteSpace: 'nowrap',
                     textAlign: 'right', padding: '12px 14px',
                     color: ut.direction === 'addition' ? '#479c73' : '#e53e3e',
@@ -1001,7 +1001,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const idx = colIdx(col);
                   return (
                     <th key={col.key} style={{
-                      position: 'sticky', top: stickyTop, zIndex: 2, background: 'var(--surface-2)',
+                      position: 'sticky', top: 0, zIndex: 2, background: 'var(--surface-2)',
                       width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right',
                     }}>
@@ -1021,7 +1021,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   );
                 })}
                 <th style={{
-                  position: 'sticky', top: stickyTop, zIndex: 2, background: 'var(--surface-2)',
+                  position: 'sticky', top: 0, zIndex: 2, background: 'var(--surface-2)',
                   width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#479c73',
                 }}>
                   Transferred
