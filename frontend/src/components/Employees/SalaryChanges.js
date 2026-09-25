@@ -3,18 +3,12 @@ import api from '../../services/api';
 import { useLanguage } from '../../contexts/LanguageContext';
 import TableSkeleton from '../common/TableSkeleton';
 
-function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalaryUpdated }) {
+function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate }) {
   const { t } = useLanguage();
   const [changes, setChanges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const [newSalary, setNewSalary] = useState('');
-  const [newOvertimeRate, setNewOvertimeRate] = useState('');
-  const [effectiveDate, setEffectiveDate] = useState('');
-  const [note, setNote] = useState('');
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadChanges();
@@ -30,33 +24,6 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
       setError(t('sc.loadFailed'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setSaving(true);
-
-    try {
-      await api.post(`/employees/${employeeId}/salary-changes`, {
-        salary: newSalary,
-        overtime_rate: newOvertimeRate || undefined,
-        effective_date: effectiveDate,
-        note
-      });
-      setSuccess(t('sc.success'));
-      setNewSalary('');
-      setNewOvertimeRate('');
-      setEffectiveDate('');
-      setNote('');
-      loadChanges();
-      if (onSalaryUpdated) onSalaryUpdated();
-    } catch (err) {
-      setError(err.response?.data?.error || t('sc.saveFailed'));
-    } finally {
-      setSaving(false);
     }
   };
 
@@ -90,30 +57,6 @@ function SalaryChanges({ employeeId, currentSalary, currentOvertimeRate, onSalar
 
       {error && <div className="msg-error">{error}</div>}
       {success && <div className="msg-success">{success}</div>}
-
-      {/* New Salary Change Form */}
-      <div className="sc-form-card">
-        <h4>{t('sc.recordNew')}</h4>
-        <form onSubmit={handleSubmit}>
-          <div className="sc-form-grid">
-            <div className="form-group">
-              <label>{t('sc.newSalary')}</label>
-              <input type="number" step="0.01" min="0" value={newSalary} onChange={(e) => setNewSalary(e.target.value)} placeholder="e.g. 500.00" required />
-            </div>
-            <div className="form-group">
-              <label>{t('sc.effectiveDate')}</label>
-              <input type="date" value={effectiveDate} onChange={(e) => setEffectiveDate(e.target.value)} required />
-            </div>
-            <div className="form-group">
-              <label>{t('sc.note')}</label>
-              <input type="text" value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('sc.notePlaceholder')} />
-            </div>
-          </div>
-          <button type="submit" className="btn-primary btn-sm" disabled={saving}>
-            {saving ? t('sc.saving') : t('sc.recordChange')}
-          </button>
-        </form>
-      </div>
 
       {/* History */}
       {loading ? (

@@ -526,7 +526,7 @@ function EmployeeForm({ employeeId, onClose, onSaved }) {
           )}
 
           {activeTab === 'salary' && isEdit && (
-            <SalaryChanges employeeId={id} currentSalary={employee?.salary} currentOvertimeRate={employee?.overtime_rate} onSalaryUpdated={loadEmployee} />
+            <SalaryChanges employeeId={id} currentSalary={employee?.salary} currentOvertimeRate={employee?.overtime_rate} />
           )}
 
           {activeTab === 'account' && isEdit && (
