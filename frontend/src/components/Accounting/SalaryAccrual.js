@@ -922,7 +922,11 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           <div className="acc-empty"><p>No columns selected. Use the Columns button to show columns.</p></div>
         ) : (
           <>
-          <table className="acc-table" style={{ tableLayout: 'fixed', width: tableWidth, fontSize }}>
+          {/* border-collapse must be "separate" (not the shared class's "collapse")
+              for sticky <th> cells to render correctly -- collapsed borders break
+              position: sticky in a well-known way, letting rows bleed through the
+              frozen header while scrolling. */}
+          <table className="acc-table" style={{ tableLayout: 'fixed', width: tableWidth, fontSize, borderCollapse: 'separate', borderSpacing: 0 }}>
             <colgroup>
               {visColsMain.map(col => (
                 <col key={col.key} style={{ width: scaledW(colIdx(col)) }} />
