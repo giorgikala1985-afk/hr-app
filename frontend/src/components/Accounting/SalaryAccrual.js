@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { HugeiconsIcon } from '@hugeicons/react';
 import { MoneyBag01Icon } from '@hugeicons/core-free-icons';
@@ -182,30 +182,6 @@ const TD_BOLD = { ...TD_NUM, fontWeight: 700, color: 'var(--text)' };
 function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
   const { t } = useLanguage();
   const TCOLS = COLUMNS.map(c => ({ ...c, label: t(c.labelKey) }));
-
-  // The table wrapper scrolls internally (rather than relying on
-  // position: sticky against the page scroll, which depends on ambiguous
-  // overflow-ancestor interactions) so the header can pin to its own
-  // scrollport reliably. Its max-height is measured from its own
-  // position on screen, so it automatically clears the navbar and
-  // whatever toolbar/title sits above it without any hardcoded offset.
-  const tableWrapperRef = useRef(null);
-  const [wrapperMaxHeight, setWrapperMaxHeight] = useState(null);
-  useEffect(() => {
-    const measure = () => {
-      if (!tableWrapperRef.current) return;
-      const top = tableWrapperRef.current.getBoundingClientRect().top;
-      const available = Math.round(window.innerHeight - top - 24);
-      // Never cap below a sane minimum -- if the measured space is too
-      // small (mid-layout, not-yet-painted content, etc.) skip capping
-      // entirely rather than risk collapsing the table to nothing.
-      setWrapperMaxHeight(available >= 300 ? `${available}px` : null);
-    };
-    measure();
-    const t = setTimeout(measure, 300); // re-measure once layout has settled
-    window.addEventListener('resize', measure);
-    return () => { window.removeEventListener('resize', measure); clearTimeout(t); };
-  }, [loading]);
   const { colWidths, onResizeMouseDown } = useColumnResize(DEFAULT_WIDTHS);
   const [month, setMonth] = useState(todayMonth());
   const [accrualDate, setAccrualDate] = useState(() => {
@@ -923,7 +899,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         </div>
       </div>
 
-      <div ref={tableWrapperRef} className="acc-table-wrapper" style={{ overflow: 'auto', maxHeight: wrapperMaxHeight || undefined }}>
+      <div className="acc-table-wrapper" style={{ overflowX: 'auto' }}>
         {loading ? (
           <TableSkeleton
             icon={<span style={{ fontSize: 12, fontWeight: 800 }}>₾</span>}
@@ -943,11 +919,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
           <div className="acc-empty"><p>No columns selected. Use the Columns button to show columns.</p></div>
         ) : (
           <>
-          {/* border-collapse must be "separate" (not the shared class's "collapse")
-              for sticky <th> cells to render correctly -- collapsed borders break
-              position: sticky in a well-known way, letting rows bleed through the
-              frozen header while scrolling. */}
-          <table className="acc-table" style={{ tableLayout: 'fixed', width: tableWidth, fontSize, borderCollapse: 'separate', borderSpacing: 0 }}>
+          <table className="acc-table" style={{ tableLayout: 'fixed', width: tableWidth, fontSize }}>
             <colgroup>
               {visColsMain.map(col => (
                 <col key={col.key} style={{ width: scaledW(colIdx(col)) }} />
@@ -964,11 +936,10 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const isLastSticky = col.key === lastStickyKey;
                   return (
                     <th key={col.key} style={{
-                      position: 'sticky',
-                      top: 0,
+                      position: isSticky ? 'sticky' : 'relative',
                       left: isSticky ? stickyLeftMap[col.key] : undefined,
-                      zIndex: isSticky ? 4 : 2,
-                      background: 'var(--surface-2)',
+                      zIndex: isSticky ? 3 : undefined,
+                      background: isSticky ? 'var(--surface-2)' : undefined,
                       boxShadow: isLastSticky ? '2px 0 5px rgba(0,0,0,0.08)' : undefined,
                       width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap',
@@ -994,7 +965,6 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 })}
                 {dynUnitCols.map(ut => (
                   <th key={`dyn-th-${ut.name}`} style={{
-                    position: 'sticky', top: 0, zIndex: 2, background: 'var(--surface-2)',
                     width: dynColW, overflow: 'hidden', whiteSpace: 'nowrap',
                     textAlign: 'right', padding: '12px 14px',
                     color: ut.direction === 'addition' ? '#479c73' : '#e53e3e',
@@ -1006,8 +976,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const idx = colIdx(col);
                   return (
                     <th key={col.key} style={{
-                      position: 'sticky', top: 0, zIndex: 2, background: 'var(--surface-2)',
-                      width: scaledW(idx),
+                      position: 'relative', width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right',
                     }}>
                       {SORT_ACCESSORS[col.key] ? (
@@ -1025,10 +994,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     </th>
                   );
                 })}
-                <th style={{
-                  position: 'sticky', top: 0, zIndex: 2, background: 'var(--surface-2)',
-                  width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#479c73',
-                }}>
+                <th style={{ width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#479c73' }}>
                   Transferred
                 </th>
               </tr>
