@@ -24,6 +24,9 @@ const COLUMNS = [
 ];
 
 const DEFAULT_WIDTHS = COLUMNS.map(c => c.defaultWidth);
+// Matches Header.css's .header-content height (64px) -- the table header
+// sticks just beneath the fixed top navbar instead of under it.
+const STICKY_HEADER_TOP = 64;
 const TEXT_KEYS = ['date', 'personalId', 'firstName', 'lastName'];
 const COL_STORAGE_KEY = 'hr_salary_columns';
 
@@ -899,7 +902,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
         </div>
       </div>
 
-      <div className="acc-table-wrapper" style={{ overflowX: 'auto' }}>
+      <div className="acc-table-wrapper" style={{ overflowX: 'auto', overflowY: 'visible' }}>
         {loading ? (
           <TableSkeleton
             icon={<span style={{ fontSize: 12, fontWeight: 800 }}>₾</span>}
@@ -936,10 +939,11 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const isLastSticky = col.key === lastStickyKey;
                   return (
                     <th key={col.key} style={{
-                      position: isSticky ? 'sticky' : 'relative',
+                      position: 'sticky',
+                      top: STICKY_HEADER_TOP,
                       left: isSticky ? stickyLeftMap[col.key] : undefined,
-                      zIndex: isSticky ? 3 : undefined,
-                      background: isSticky ? 'var(--surface-2)' : undefined,
+                      zIndex: isSticky ? 4 : 2,
+                      background: 'var(--surface-2)',
                       boxShadow: isLastSticky ? '2px 0 5px rgba(0,0,0,0.08)' : undefined,
                       width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap',
@@ -965,6 +969,7 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                 })}
                 {dynUnitCols.map(ut => (
                   <th key={`dyn-th-${ut.name}`} style={{
+                    position: 'sticky', top: STICKY_HEADER_TOP, zIndex: 2, background: 'var(--surface-2)',
                     width: dynColW, overflow: 'hidden', whiteSpace: 'nowrap',
                     textAlign: 'right', padding: '12px 14px',
                     color: ut.direction === 'addition' ? '#479c73' : '#e53e3e',
@@ -976,7 +981,8 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                   const idx = colIdx(col);
                   return (
                     <th key={col.key} style={{
-                      position: 'relative', width: scaledW(idx),
+                      position: 'sticky', top: STICKY_HEADER_TOP, zIndex: 2, background: 'var(--surface-2)',
+                      width: scaledW(idx),
                       overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right',
                     }}>
                       {SORT_ACCESSORS[col.key] ? (
@@ -994,7 +1000,10 @@ function SalaryAccrual({ onCreateSalaryFile, onMonthChange }) {
                     </th>
                   );
                 })}
-                <th style={{ width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#479c73' }}>
+                <th style={{
+                  position: 'sticky', top: STICKY_HEADER_TOP, zIndex: 2, background: 'var(--surface-2)',
+                  width: Math.round(TBC_COL_W * zoomScale), overflow: 'hidden', whiteSpace: 'nowrap', textAlign: 'right', color: '#479c73',
+                }}>
                   Transferred
                 </th>
               </tr>
