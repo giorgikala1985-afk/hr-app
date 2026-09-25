@@ -331,7 +331,8 @@ function EmptyState({ label, onAdd }) {
 function PromotionTab({ employees }) {
   const { t } = useLanguage();
   const { user } = useAuth();
-  const { orders, add, update, remove } = useLocalOrders('hr_promotion_orders', o => employees.some(e => e.id === o.employeeId));
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [positions, setPositions] = useState([]);
@@ -340,6 +341,26 @@ function PromotionTab({ employees }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const EMPTY = { employeeId: '', newPosition: '', oldSalary: '', newSalary: '', effectiveDate: '', notes: '', immediateEffect: true };
+
+  const mapRecord = (r) => {
+    const emp = employees.find(e => e.id === r.employee_id);
+    return {
+      id: r.id, employeeId: r.employee_id,
+      empName: emp ? `${emp.first_name} ${emp.last_name}` : '',
+      oldPosition: r.old_position, newPosition: r.new_position,
+      oldSalary: r.old_salary, newSalary: r.new_salary,
+      effectiveDate: r.effective_date, notes: r.notes || '',
+      salaryChangeId: r.salary_change_id, createdAt: r.created_at,
+    };
+  };
+  const load = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/promotions');
+      setOrders((res.data.records || []).map(mapRecord));
+    } catch { setOrders([]); } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [employees]);
 
   const handleDownloadPDF = async (o, idx) => {
     setPdfLoadingId(o.id);
@@ -371,13 +392,14 @@ function PromotionTab({ employees }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const emp = employees.find(x => x.id === form.employeeId);
-    const row = { ...form, empName: emp ? `${emp.first_name} ${emp.last_name}` : '', oldPosition: emp?.position || '' };
+    const oldPosition = emp?.position || '';
     setSaving(true);
     setError('');
     try {
       // Only a NEW promotion actually applies the change -- editing an
       // existing order's fields (e.g. fixing a typo in notes) doesn't
       // re-apply it, since the real salary/position change already happened.
+      let salaryChangeId = editing ? orders.find(o => o.id === editing)?.salaryChangeId : null;
       if (!editing) {
         const res = await api.post(`/employees/${form.employeeId}/salary-changes`, {
           salary: form.newSalary,
@@ -385,10 +407,18 @@ function PromotionTab({ employees }) {
           note: form.notes || null,
           position: form.newPosition || undefined,
         });
-        row.salaryChangeId = res.data?.salary_change?.id || null;
+        salaryChangeId = res.data?.salary_change?.id || null;
       }
-      editing ? update(editing, row) : add(row);
+      const payload = {
+        employee_id: form.employeeId, old_position: oldPosition, new_position: form.newPosition,
+        old_salary: form.oldSalary || null, new_salary: form.newSalary,
+        effective_date: form.effectiveDate, notes: form.notes || null,
+        salary_change_id: salaryChangeId,
+      };
+      if (editing) await api.put(`/promotions/${editing}`, payload);
+      else await api.post('/promotions', payload);
       close();
+      await load();
     } catch (err) {
       setError(err.response?.data?.error || 'ცვლილების შენახვა ვერ მოხერხდა.');
     } finally {
@@ -401,7 +431,8 @@ function PromotionTab({ employees }) {
     if (o.salaryChangeId) {
       try { await api.delete(`/employees/${o.employeeId}/salary-changes/${o.salaryChangeId}`); } catch {}
     }
-    remove(o.id);
+    try { await api.delete(`/promotions/${o.id}`); } catch {}
+    await load();
   };
 
   return (
@@ -420,7 +451,9 @@ function PromotionTab({ employees }) {
         {canCreate && <button onClick={openAdd} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 20px', borderRadius: 9, border: 'none', background: '#479c73', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>+ {t('orders.addNew')}</button>}
       </div>
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border-2)', borderRadius: 12, overflow: 'hidden' }}>
-        {orders.length === 0 ? <EmptyState label={t('orders.promotion')} onAdd={canCreate ? openAdd : undefined} /> : (
+        {loading ? (
+          <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-4)', fontSize: 13 }}>Loading…</div>
+        ) : orders.length === 0 ? <EmptyState label={t('orders.promotion')} onAdd={canCreate ? openAdd : undefined} /> : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--surface-2)' }}>
