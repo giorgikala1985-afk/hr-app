@@ -167,8 +167,9 @@ router.get('/payroll', authenticatePortalEmployee, async (req, res) => {
     const isDeferred = !!currentDeferral;
     const carryOver = prevDeferral ? parseFloat(prevDeferral.deferred_amount) : 0;
 
-    const totalDeductions = empUnits.filter(u => !isAddition(u.type)).reduce((s, u) => s + parseFloat(u.amount), 0);
-    const totalAdditions = empUnits.filter(u => isAddition(u.type)).reduce((s, u) => s + parseFloat(u.amount), 0);
+    const salaryUnits = empUnits.filter(u => u.include_in_salary !== false);
+    const totalDeductions = salaryUnits.filter(u => !isAddition(u.type)).reduce((s, u) => s + parseFloat(u.amount), 0);
+    const totalAdditions = salaryUnits.filter(u => isAddition(u.type)).reduce((s, u) => s + parseFloat(u.amount), 0);
     const insuranceDeduction = emp.personal_id ? (insuranceByPersonalId[String(emp.personal_id).trim()] || 0) : 0;
     const fitpassDeduction = emp.personal_id ? (fitpassByPersonalId[String(emp.personal_id).trim()] || 0) : 0;
 

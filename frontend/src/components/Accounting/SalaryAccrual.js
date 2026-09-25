@@ -46,13 +46,13 @@ function fmtMonth(m) {
 
 function unitAmt(units, typeName) {
   return (units || [])
-    .filter(u => u.type?.toLowerCase().trim() === typeName.toLowerCase().trim())
+    .filter(u => u.include_in_salary !== false && u.type?.toLowerCase().trim() === typeName.toLowerCase().trim())
     .reduce((s, u) => s + parseFloat(u.amount || 0), 0);
 }
 
 function otAmt(units) {
   return (units || [])
-    .filter(u => ['ot', 'overtime', 'over time'].includes(String(u.type || '').toLowerCase().trim()))
+    .filter(u => u.include_in_salary !== false && ['ot', 'overtime', 'over time'].includes(String(u.type || '').toLowerCase().trim()))
     .reduce((s, u) => s + parseFloat(u.amount || 0), 0);
 }
 
